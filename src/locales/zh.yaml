@@ -205,8 +205,6 @@ dns:
 
 bg:
   default: 默认
-  azure: 天青色
-  dog: 狗狗
   harbor: 港口
   gradient: 渐变
   sea: 静海
