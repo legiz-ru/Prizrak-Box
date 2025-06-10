@@ -11,6 +11,12 @@ var Template_1 []byte
 //go:embed em/Template_2.yaml
 var Template_2 []byte
 
+//go:embed em/Template_3.yaml
+var Template_3 []byte
+
+//go:embed em/Template_4.yaml
+var Template_4 []byte
+
 //go:embed em/config_download.yaml
 var PandoraDefaultDownloadConfig []byte
 

@@ -71,8 +71,8 @@ func getTemplateList(w http.ResponseWriter, r *http.Request) {
 
 	if len(list) == 0 {
 		// 如果没有数据，使用默认的模板
-		list2 := [3][]byte{internal.Template_0, internal.Template_1, internal.Template_2}
-		titles := [3]string{"m1", "m2", "m3"}
+		list2 := [3][]byte{internal.Template_0, internal.Template_1, internal.Template_2, internal.Template_3, internal.Template_4}
+		titles := [3]string{"m1", "m2", "m3", "m4", "m5"}
 		for i := 0; i < 3; i++ {
 			template := models.Template{
 				Id:       fmt.Sprintf("%s%d", constant.PrefixTemplate, i),
