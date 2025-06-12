@@ -216,6 +216,15 @@ export function initTray(browserWindow: BrowserWindow): void {
     tray = new Tray(trayImage);
     tray.setToolTip('Pandora-Box');
     tray.setContextMenu(Menu.buildFromTemplate(createTrayMenu()))
+
+    // 左键点击时弹出菜单
+    tray.on('click', () => {
+        tray.popUpContextMenu();
+    });
+    // 右键点击时弹出菜单
+    tray.on('right-click', () => {
+        tray.popUpContextMenu();
+    });
 }
 
 

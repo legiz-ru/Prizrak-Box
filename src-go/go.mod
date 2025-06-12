@@ -71,12 +71,12 @@ require (
 	github.com/metacubex/sing-shadowsocks v0.2.11-0.20250531133822-e545de386d4c // indirect
 	github.com/metacubex/sing-shadowsocks2 v0.2.5-0.20250531133559-f4d53bd59335 // indirect
 	github.com/metacubex/sing-shadowtls v0.0.0-20250503063515-5d9f966d17a2 // indirect
-	github.com/metacubex/sing-tun v0.4.6-0.20250524142129-9d110c0af70c // indirect
+	github.com/metacubex/sing-tun v0.4.7-0.20250611091011-60774779fdd8 // indirect
 	github.com/metacubex/sing-vmess v0.2.2 // indirect
 	github.com/metacubex/sing-wireguard v0.0.0-20250503063753-2dc62acc626f // indirect
 	github.com/metacubex/smux v0.0.0-20250503055512-501391591dee // indirect
 	github.com/metacubex/tfo-go v0.0.0-20250516165257-e29c16ae41d4 // indirect
-	github.com/metacubex/utls v1.7.3 // indirect
+	github.com/metacubex/utls v1.7.4-0.20250610022031-808d767c8c73 // indirect
 	github.com/metacubex/wireguard-go v0.0.0-20240922131502-c182e7471181 // indirect
 	github.com/miekg/dns v1.1.66 // indirect
 	github.com/mroth/weightedrand/v2 v2.1.0 // indirect
@@ -120,4 +120,4 @@ require (
 	lukechampine.com/blake3 v1.4.1 // indirect
 )
 
-replace github.com/metacubex/mihomo => github.com/snakem982/mihomo v1.0.52-moshen
+replace github.com/metacubex/mihomo => github.com/snakem982/mihomo v1.0.53-moshen

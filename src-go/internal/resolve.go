@@ -12,6 +12,7 @@ import (
 	"github.com/snakem982/pandora-box/pkg/constant"
 	"github.com/snakem982/pandora-box/pkg/utils"
 	"gopkg.in/yaml.v3"
+	"math/big"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -217,10 +218,10 @@ func ReplaceTwoPoint(path string) string {
 	return strings.Replace(path, "../", "", 1)
 }
 
-func parseFields(input string) map[string]int64 {
+func parseFields(input string) map[string]*big.Int {
 	// 分割字段
 	pairs := strings.Split(input, ";")
-	result := make(map[string]int64)
+	result := make(map[string]*big.Int)
 
 	// 处理每个键值对
 	for _, pair := range pairs {
@@ -230,9 +231,10 @@ func parseFields(input string) map[string]int64 {
 		if len(parts) == 2 {
 			key := strings.TrimSpace(parts[0])
 			value := strings.TrimSpace(parts[1])
-			number, err := strconv.ParseInt(value, 10, 64)
-			if err == nil {
-				result[key] = number
+			bigInt := new(big.Int)
+			bigInt, ok := bigInt.SetString(value, 10)
+			if ok {
+				result[key] = bigInt
 			}
 		}
 	}
@@ -269,14 +271,15 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 	if value := header.Get("Subscription-Userinfo"); value != "" {
 		subInfo := parseFields(value)
 		profile.Total = subInfo["total"]
-		profile.Used = subInfo["upload"] + subInfo["download"]
-		profile.Available = profile.Total - profile.Used
-		if profile.Available < 0 {
-			profile.Available = 0
+		profile.Used = new(big.Int).Add(subInfo["upload"], subInfo["download"])
+		profile.Available = new(big.Int).Sub(profile.Total, profile.Used)
+		zero := big.NewInt(0)
+		if profile.Available.Cmp(zero) < 0 {
+			profile.Available = zero
 		}
-		if subInfo["expire"] != 0 {
+		if subInfo["expire"].Cmp(zero) > 0 {
 			// 转换为时间
-			t := time.Unix(subInfo["expire"], 0)
+			t := time.Unix(subInfo["expire"].Int64(), 0)
 			profile.Expire = t.Local().Format("2006-01-02 15:04")
 		}
 	}
