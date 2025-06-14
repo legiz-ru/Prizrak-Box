@@ -71,6 +71,8 @@ jobs:
           if ($arch -eq "amd64") {
             $arch = "x64"
           }
+          npm dedupe
+          npm prune
           npx electron-forge make --arch=$arch
 
       - name: Compress Executables

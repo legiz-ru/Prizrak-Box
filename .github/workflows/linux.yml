@@ -71,6 +71,8 @@ jobs:
             $arch = "x64"
           }
           Write-Host "Using arch: $arch"
+          npm dedupe
+          npm prune
           npm run make -- --arch=$arch
 
       - name: Compress Executable
