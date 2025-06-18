@@ -26,7 +26,10 @@ const getGroupMd5 = (proxy: any) =>
     async function () {
         const data = await proxy.$http.get("/group");
         const proxies = data["proxies"];
-        const end = [];
+        if (!proxies) {
+            return ""
+        }
+        const end: any[] = [];
         for (const proxy of proxies) {
             end.push({
                 name: proxy["name"],

@@ -24,6 +24,7 @@ tun-switch: 虚拟网卡
 tun-switch-on: 虚拟网卡已开启
 tun-switch-off: 虚拟网卡已关闭
 tun-warning: 开启Tun需要管理员权限
+tun-auth-tip: Px 需要授权才能使用 TUN 模式。
 
 sec-nav:
   rule: 规则

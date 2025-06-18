@@ -16,8 +16,10 @@ import {useWebStore} from "@/store/webStore";
 import {AxiosRequest} from "@/util/axiosRequest";
 import {useHomeStore} from "@/store/homeStore";
 import {memoryCache} from "@/types/persist"
+import {detectLanguage} from "@/util/menu";
 
 const app = createApp(App);
+const lang = detectLanguage();
 
 async function bootstrap() {
     // 加载缓存数据
@@ -35,7 +37,7 @@ async function bootstrap() {
 
     // 国际化设置
     const i18n = createI18n({
-        locale: "zh",
+        locale: lang,
         messages,
         globalInjection: true,
     });
@@ -84,6 +86,9 @@ async function bootstrap() {
             menuStore.setRuleMenu(split[2]);
         }
     });
+    if (!menuStore.language) {
+        menuStore.setLanguage(lang);
+    }
 
     // 设置起始时间 和 操作系统类型
     const homeStore = useHomeStore();

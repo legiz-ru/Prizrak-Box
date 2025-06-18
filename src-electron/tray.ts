@@ -314,6 +314,13 @@ onWindow("boot", function (value) {
     }
 })
 
+// 授权提示
+onWindow("tunAuthTip", function (tunAuthTip) {
+    if (tunAuthTip) {
+        storeSet("tunAuthTip", tunAuthTip);
+    }
+})
+
 
 
 

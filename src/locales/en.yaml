@@ -24,6 +24,7 @@ tun-switch: Tun
 tun-switch-on: Tun is ON
 tun-switch-off: Tun is OFF
 tun-warning: The tun mode requires administrator privileges
+tun-auth-tip: Px requires authorization to enable TUN.
 
 sec-nav:
   rule: Rule

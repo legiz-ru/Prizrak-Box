@@ -24,6 +24,7 @@ tun-switch: Tun
 tun-switch-on: Tun ВКЛЮЧЕН
 tun-switch-off: Tun ВЫКЛЮЧЕН
 tun-warning: Для режима Tun требуются права администратора
+tun-auth-tip: Для включения TUN требуется авторизация.
 
 sec-nav:
   rule: Правило

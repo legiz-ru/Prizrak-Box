@@ -70,6 +70,10 @@ function sendTranslation() {
     name: "translate",
     data: translate
   })
+  Events.Emit({
+    name: "tunAuthTip",
+    data: t('tun-auth-tip')
+  })
 }
 
 

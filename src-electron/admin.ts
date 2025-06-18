@@ -8,6 +8,16 @@ import {storeGet} from "./store";
 // 是否在开发模式
 const isDev = !app.isPackaged;
 
+// 获取提示词
+function getAuthTip(): string {
+    const tip = storeGet("tunAuthTip")
+    if (tip) {
+        return tip.toString();
+    } else {
+        return "Px 需要授权才能使用 TUN 模式。\n[Px requires authorization to enable TUN.]";
+    }
+}
+
 // 获取px路径
 function getBackendPath() {
     const execName = process.platform === 'win32' ? 'px.exe' : 'px';
@@ -83,14 +93,13 @@ export function startBackend(addr: string) {
 
             // 只在 Windows 和 Linux 平台上弹出提权提示，macOS 也需要显示提权提示
             if (process.platform !== 'darwin') {
-                const tip = "Px 需要授权才能使用 TUN 模式。\n[Px requires authorization to enable TUN.]";
                 const confirmed = dialog.showMessageBoxSync({
                     type: 'info',
                     buttons: ['继续', '取消'],
                     defaultId: 0,
                     cancelId: 1,
                     title: 'Pandora-Box',
-                    message: tip,
+                    message: getAuthTip(),
                 });
 
                 if (confirmed === 1) {
@@ -117,11 +126,10 @@ function tryRunAsAdmin(executable: string, args: string[], callback: (success: b
     switch (process.platform) {
         case 'darwin': {
             // macOS 使用 AppleScript 提权
-            const tip = "Px 需要授权才能使用 TUN 模式。\n[Px requires authorization to enable TUN.]";
             const command = `${[executable, ...args].map(escapeShell).join(' ')}`;
             // 使用 `with prompt` 来直接在授权对话框中显示提示信息
             const script = `
-                do shell script "${command}" with administrator privileges with prompt "${tip}"
+                do shell script "${command}" with administrator privileges with prompt "${getAuthTip()}"
             `;
             const osa = spawn('osascript', ['-e', script]);
             log.info("[Admin] 启动px命令行：", osa.spawnargs);

@@ -9,7 +9,7 @@ export const useMenuStore = defineStore('menu', {
         ruleNum: 0,
         proxy: false,
         tun: false,
-        language: 'zh',
+        language: '',
         ruleMenu: 'Now',
         background: 'url("/images/default.jpg")',
         useWhite: true
