@@ -239,6 +239,13 @@ func parseFields(input string) map[string]*big.Int {
 		}
 	}
 
+	// 最后补齐缺失字段
+	for _, key := range []string{"total", "upload", "download", "expire"} {
+		if val, ok := result[key]; !ok || val == nil {
+			result[key] = big.NewInt(0)
+		}
+	}
+
 	return result
 }
 
@@ -274,7 +281,7 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 		profile.Used = new(big.Int).Add(subInfo["upload"], subInfo["download"])
 		profile.Available = new(big.Int).Sub(profile.Total, profile.Used)
 		zero := big.NewInt(0)
-		if profile.Available.Cmp(zero) < 0 {
+		if profile.Available.Cmp(zero) <= 0 {
 			profile.Available = zero
 		}
 		if subInfo["expire"].Cmp(zero) > 0 {
