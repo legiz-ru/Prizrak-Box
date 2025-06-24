@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"fmt"
 	"github.com/metacubex/mihomo/hub/executor"
 	"github.com/metacubex/mihomo/tunnel"
 	"github.com/snakem982/pandora-box/pkg/constant"
@@ -81,7 +82,7 @@ var StartLock = sync.Mutex{}
 func startCore(profile models.Profile, reload bool) {
 
 	// 获取规则分组
-	useTemplate, templateBuf := getTemplate(profile)
+	useTemplate, templateId, templateBuf := getTemplate(profile)
 
 	// 获取配置文件
 	providerBuf, err := os.ReadFile(utils.GetUserHomeDir(profile.Path))
@@ -102,7 +103,10 @@ func startCore(profile models.Profile, reload bool) {
 		provider := rawCfg.ProxyProvider
 		proxy := rawCfg.Proxy
 		rawCfg, _ = config.UnmarshalRawConfig(templateBuf)
-		rawCfg.ProxyProvider = provider
+		changeProvidersPath("template", templateId, rawCfg)
+		if len(provider) > 0 {
+			rawCfg.ProxyProvider = provider
+		}
 		rawCfg.Proxy = proxy
 	}
 
@@ -195,7 +199,7 @@ func startCore(profile models.Profile, reload bool) {
 }
 
 // 获取统一规则分组模板
-func getTemplate(profile models.Profile) (bool, []byte) {
+func getTemplate(profile models.Profile) (bool, string, []byte) {
 
 	// 优先启用个性模板
 	var template models.Template
@@ -205,7 +209,7 @@ func getTemplate(profile models.Profile) (bool, []byte) {
 	if template.Path != "" {
 		body, err := utils.ReadFile(utils.GetUserHomeDir(template.Path))
 		if err == nil {
-			return true, []byte(body)
+			return true, template.Id, []byte(body)
 		}
 	}
 
@@ -221,12 +225,12 @@ func getTemplate(profile models.Profile) (bool, []byte) {
 	if template.Path != "" {
 		body, err := utils.ReadFile(utils.GetUserHomeDir(template.Path))
 		if err == nil {
-			return true, []byte(body)
+			return true, template.Id, []byte(body)
 		}
 	}
 
 	// 最后返回默认模板
-	return false, Template_0
+	return false, fmt.Sprintf("%s%d", constant.PrefixTemplate, 0), Template_0
 }
 
 // SwitchProfile 切换配置

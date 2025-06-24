@@ -156,7 +156,7 @@ func Resolve(content string, profile *models.Profile, refresh bool) error {
 			// 防止重排序，重新赋值
 			rawCfg, _ = config.UnmarshalRawConfig(tempBytes)
 			// 对 provider 进行路径替换
-			findProvider := changeProvidersPath(profile.Order, rawCfg)
+			findProvider := changeProvidersPath("profiles", profile.Order, rawCfg)
 			var yml []byte
 			if findProvider {
 				yml, _ = yaml.Marshal(rawCfg)
@@ -178,18 +178,18 @@ func Resolve(content string, profile *models.Profile, refresh bool) error {
 	return err
 }
 
-func changeProvidersPath(snowflakeId string, config *config.RawConfig) (findProvider bool) {
+func changeProvidersPath(baseDir, subDir string, config *config.RawConfig) (findProvider bool) {
 	findProvider = false
 
-	dir := fmt.Sprintf("./profiles/%s/", snowflakeId)
+	dir := fmt.Sprintf("./%s/%s/", baseDir, subDir)
 	proxyProviders := config.ProxyProvider
 	for _, provider := range proxyProviders {
 
 		if path, findPath := provider["path"]; findPath {
-			provider["path"] = dir + ReplaceTwoPoint(path.(string))
+			provider["path"] = dir + getProviderBase("provider", path.(string))
 		} else {
 			if u, findUrl := provider["url"]; findUrl {
-				provider["path"] = dir + utils.MD5(u.(string))
+				provider["path"] = dir + "provider/" + utils.MD5(u.(string))
 			}
 		}
 
@@ -200,10 +200,10 @@ func changeProvidersPath(snowflakeId string, config *config.RawConfig) (findProv
 	for _, ruleProvider := range ruleProviders {
 
 		if path, findPath := ruleProvider["path"]; findPath {
-			ruleProvider["path"] = dir + ReplaceTwoPoint(path.(string))
+			ruleProvider["path"] = dir + getProviderBase("ruleset", path.(string))
 		} else {
 			if u, findUrl := ruleProvider["url"]; findUrl {
-				ruleProvider["path"] = dir + utils.MD5(u.(string))
+				ruleProvider["path"] = dir + "ruleset/" + utils.MD5(u.(string))
 			}
 		}
 
@@ -213,9 +213,8 @@ func changeProvidersPath(snowflakeId string, config *config.RawConfig) (findProv
 	return
 }
 
-func ReplaceTwoPoint(path string) string {
-	path = filepath.Join(path)
-	return strings.Replace(path, "../", "", 1)
+func getProviderBase(provider, path string) string {
+	return provider + "/" + filepath.Base(path)
 }
 
 func parseFields(input string) map[string]*big.Int {

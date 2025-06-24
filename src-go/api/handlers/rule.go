@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -37,7 +38,7 @@ func ruleRouter() chi.Router {
 	r.Post("/test", testTemplate)
 	r.Post("/switch", switchTemplate)
 
-	// 忽略的域名
+	// 规则总数
 	r.Get("/num", getNum)
 
 	return r
@@ -78,7 +79,7 @@ func getTemplateList(w http.ResponseWriter, r *http.Request) {
 				Id:       fmt.Sprintf("%s%d", constant.PrefixTemplate, i),
 				Order:    int64(i),
 				Title:    titles[i],
-				Path:     fmt.Sprintf("/%s/%s.yaml", constant.DefaultTemplateDir, fmt.Sprintf("%s%d", constant.PrefixTemplate, i)),
+				Path:     fmt.Sprintf("./%s/%s.yaml", constant.DefaultTemplateDir, fmt.Sprintf("%s%d", constant.PrefixTemplate, i)),
 				Selected: false,
 			}
 
@@ -152,7 +153,22 @@ func deleteTemplate(w http.ResponseWriter, r *http.Request) {
 	// 获取路径参数中的ID
 	id := chi.URLParam(r, "id")
 
+	var template models.Template
+	_ = cache.Get(id, &template)
+
+	if template.Id == "" {
+		ErrorResponse(w, r, errors.New("template id not found"))
+		return
+	}
+
+	// 删除数据库中数据
 	_ = cache.Delete(id)
+
+	// 删除文件中数据
+	path := utils.GetUserHomeDir(template.Path)
+	_ = utils.DeletePath(path)
+	path = utils.GetUserHomeDir("template", template.Id)
+	_ = utils.DeletePath(path)
 
 	render.NoContent(w, r)
 }
