@@ -117,7 +117,7 @@ func getTemplate(w http.ResponseWriter, r *http.Request) {
 func addTemplate(w http.ResponseWriter, r *http.Request) {
 	// 读取请求体
 	req := struct {
-		Data  []byte `json:"data"`
+		Data  string `json:"data"`
 		Title string `json:"title"`
 	}{}
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
@@ -131,7 +131,7 @@ func addTemplate(w http.ResponseWriter, r *http.Request) {
 	path := fmt.Sprintf("/%s/%s.yaml", constant.DefaultTemplateDir, id)
 
 	// 存盘
-	_, err := utils.SaveFile(utils.GetUserHomeDir(path), req.Data)
+	_, err := utils.SaveFile(utils.GetUserHomeDir(path), []byte(req.Data))
 	if err != nil {
 		ErrorResponse(w, r, err)
 		return

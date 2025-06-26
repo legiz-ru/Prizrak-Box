@@ -145,6 +145,7 @@ profiles:
     title: 标题
     url: 地址
     update: 更新间隔 (小时)
+    template: 规则分组模版
     title-tip: 标题不能为空
     url-tip: 地址不能为空
     url-error: 地址格式错误
@@ -169,6 +170,7 @@ rule:
   group:
     title: 统一规则分组
     model: 选择一个模版
+    m0: 不使用
     m1: 默认分组
     m2: 多国别
     m3: 全分组
@@ -181,6 +183,13 @@ rule:
     switch:
       ing: 切换中。。。
       success: 切换成功
+    add:
+      title: 模版标题
+      placeholder: 标题添加后不可修改
+      tip: 模版内容不能为空
+      success: 添加成功
+    delete:
+      success: 删除成功
   ignore:
     title: 忽略这些域名
     tip: 按行分割

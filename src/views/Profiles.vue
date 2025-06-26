@@ -4,7 +4,7 @@ import createApi from "@/api";
 import {pError, pLoad, pSuccess, pWarning} from "@/util/pLoad";
 import {useProxiesStore} from "@/store/proxiesStore";
 import {useMenuStore} from "@/store/menuStore";
-import {isHttpOrHttps, prettyBytes} from "@/util/format";
+import {getTemplateTitle, isHttpOrHttps, prettyBytes} from "@/util/format";
 import {useI18n} from "vue-i18n";
 import {Browser, Clipboard, Events} from "@/runtime"
 import {useWebStore} from "@/store/webStore";
@@ -240,6 +240,8 @@ function validateField(value: any) {
   return regex.test(value.toString());
 }
 
+const isNowEdit = ref(false)
+
 async function saveUpdateProfile() {
 
   switch (editForm.type) {
@@ -271,8 +273,9 @@ async function saveUpdateProfile() {
       }
   }
 
-
+  isNowEdit.value = true
   await api.updateProfile(editForm)
+  isNowEdit.value = false
   // 更新当前页面的值
   Object.assign(editFormD, editForm)
   editFormVisible.value = false
@@ -282,6 +285,10 @@ async function saveUpdateProfile() {
     name: "profiles",
     data: toRaw(profiles)
   })
+
+  api.getRuleNum().then((res) => {
+    menuStore.setRuleNum(res);
+  });
 }
 
 // 删除配置
@@ -326,12 +333,20 @@ onBeforeUnmount(() => {
   wsOrder.close();
 })
 
+// Template列表
+let tList = reactive([]);
+
 // vue 周期相关
 onMounted(async () => {
   const urlTraffic = webStore.wsUrl + "/profile/order?token=" + webStore.secret;
   wsOrder = new WS(urlTraffic);
 
   await getProfileList()
+  tList = await api.getTemplateList();
+  tList.unshift({
+    title: 'm0',
+    id: 'm0'
+  });
 })
 
 watch(() => webStore.dProfile, async (pList) => {
@@ -339,6 +354,7 @@ watch(() => webStore.dProfile, async (pList) => {
     pList.forEach(item => profiles.push(item))
   }
 })
+
 </script>
 
 <template>
@@ -557,6 +573,22 @@ watch(() => webStore.dProfile, async (pList) => {
             spellcheck="false">
         </el-input>
       </el-form-item>
+      <el-form-item
+          :label="t('profiles.edit.template')"
+          label-width="120">
+        <el-select
+            v-model="editForm.template"
+            placeholder=""
+            clearable
+        >
+          <el-option
+              v-for="item in tList"
+              :key="item.id"
+              :label="getTemplateTitle(t,item.title)"
+              :value="item.id"
+          />
+        </el-select>
+      </el-form-item>
 
     </el-form>
     <template #footer>
@@ -564,8 +596,11 @@ watch(() => webStore.dProfile, async (pList) => {
         <el-button @click="editFormVisible = false">
           {{ t('cancel') }}
         </el-button>
-        <el-button type="primary"
-                   @click="saveUpdateProfile">
+        <el-button
+            type="primary"
+            :loading="isNowEdit"
+            @click="saveUpdateProfile"
+        >
           {{ t('confirm') }}
         </el-button>
       </div>

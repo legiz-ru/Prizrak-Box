@@ -11,6 +11,7 @@ import {useI18n} from "vue-i18n";
 import {pError, pLoad, pSuccess} from "@/util/pLoad";
 import {useMenuStore} from "@/store/menuStore";
 import {useProxiesStore} from "@/store/proxiesStore";
+import {getTemplateTitle} from "@/util/format";
 
 // 编辑器使用
 const editorOptions = {
@@ -40,13 +41,29 @@ let now = reactive({
   selected: false
 })
 
-onMounted(async () => {
+const innerTemplate = ['m1', 'm2', 'm3']
+// 是否可删除
+const canDelete = ref(false)
+
+function isDefault(data: any) {
+  return innerTemplate.indexOf(data) !== -1
+}
+
+// 添加逻辑
+const addVisible = ref(false)
+const isNowAdd = ref(false)
+const addForm = reactive({
+  content: '',
+})
+
+const initPage = async () => {
   // 初始化
   tList = await api.getTemplateList();
   Object.assign(now, tList[0]);
 
   // 处理选中项
   for (const item of tList) {
+    canDelete.value = !isDefault(item.title);
     if (item.selected) {
       Object.assign(now, item);
       break;
@@ -55,7 +72,9 @@ onMounted(async () => {
 
   // 处理编辑器内容
   yamlContent.value = await api.getTemplateById(now.id);
-});
+}
+
+onMounted(initPage);
 
 // Template 下拉列表逻辑
 const isDropdownOpen = ref(false);
@@ -64,15 +83,35 @@ const selectOption = async (item: any) => {
   // 处理编辑器内容
   yamlContent.value = await api.getTemplateById(item.id);
   isDropdownOpen.value = false;
+
+  canDelete.value = !isDefault(item.title);
 };
 
-// 测试逻辑
-const testTemplate = async () => {
+// 添加逻辑
+const addTemplate = async () => {
+  if (!addForm.content) {
+    pError(t('profiles.edit.title-tip'))
+    return
+  }
+  Object.assign(now, {
+    id: "",
+    title: addForm.content,
+    selected: false
+  });
+  yamlContent.value = ""
+  addVisible.value = false
+  canDelete.value = false;
+}
+
+// 删除逻辑
+const deleteTemplate = async () => {
+  if (!now.id) {
+    return
+  }
   try {
-    await api.testTemplate({
-      data: yamlContent.value,
-    });
-    pSuccess(t('rule.group.test-success'))
+    await api.deleteTemplateById(now.id);
+    await initPage()
+    pSuccess(t('rule.group.delete.success'))
   } catch (e) {
     if (e['message']) {
       pError(e['message'])
@@ -82,26 +121,51 @@ const testTemplate = async () => {
 
 // 保存逻辑
 const saveTemplate = async () => {
+  const trim = yamlContent.value.trim();
+  if (!trim) {
+    pError(t('rule.group.add.tip'))
+    return
+  }
+
   await pLoad(t('rule.group.save-ing'), async () => {
     try {
-      // 先测试
+      // 测试
       await api.testTemplate({
-        data: yamlContent.value,
+        data: trim,
       });
-      // 再保存
-      await api.updateTemplate({
-        data: yamlContent.value,
-        template: now,
-      });
-      // 如果是启用中的 进行切换
-      if (now.selected) {
-        await api.switchTemplate(now);
-        proxiesStore.active = ""
-        api.getRuleNum().then((res) => {
-          menuStore.setRuleNum(res);
+      // 如果ID存在进行更新
+      if (now.id) {
+        await api.updateTemplate({
+          data: trim,
+          template: now,
         });
+        // 如果是启用中的 进行切换
+        if (now.selected) {
+          await api.switchTemplate(now);
+          proxiesStore.active = ""
+          api.getRuleNum().then((res) => {
+            menuStore.setRuleNum(res);
+          });
+        }
+        pSuccess(t('rule.success'))
+      } else {
+        // 如果ID不存在进行添加
+        await api.createTemplate({
+          data: trim,
+          title: now.title,
+        });
+
+        tList = await api.getTemplateList();
+        for (const item of tList) {
+          if (now.title == item.title) {
+            canDelete.value = true;
+            Object.assign(now, item);
+            break;
+          }
+        }
+
+        pSuccess(t('rule.group.add.success'))
       }
-      pSuccess(t('rule.success'))
     } catch (e) {
       if (e['message']) {
         pError(e['message'])
@@ -112,6 +176,9 @@ const saveTemplate = async () => {
 
 // 切换逻辑
 const switchTemplate = async () => {
+  if (!now.id) {
+    return
+  }
   await pLoad(t('rule.group.switch.ing'), async () => {
     try {
       await api.switchTemplate(now);
@@ -140,7 +207,7 @@ const switchTemplate = async () => {
     <el-space class="op">
       <div class="dropdown">
         <button class="dropdown-btn" @click="isDropdownOpen = !isDropdownOpen">
-          {{ t("rule.group." + now.title) }}
+          {{ getTemplateTitle(t, now.title) }}
         </button>
         <ul v-if="isDropdownOpen" class="dropdown-list">
           <li
@@ -149,20 +216,27 @@ const switchTemplate = async () => {
               class="dropdown-item"
               v-for="(item, index) in tList"
           >
-            {{ t("rule.group." + item.title) }}
+            {{ getTemplateTitle(t, item.title) }}
           </li>
         </ul>
       </div>
       <el-divider direction="vertical" border-style="dashed"/>
-      <el-button @click="testTemplate">
-        {{ t("rule.group.test") }}
-      </el-button>
       <el-button @click="saveTemplate">
         {{ t("save") }}
       </el-button>
+      <el-button @click="addVisible=true;addForm.content=''">
+        {{ t("add") }}
+      </el-button>
+      <el-button @click="deleteTemplate" v-if="canDelete">
+        {{ t("delete") }}
+      </el-button>
       <el-divider direction="vertical" border-style="dashed"/>
       <el-text :class="now.selected ? '' : 'st'">{{ t("off") }}</el-text>
-      <el-switch @click="switchTemplate" v-model="now.selected" class="set-switch"/>
+      <el-switch
+          @click="switchTemplate"
+          v-model="now.selected"
+          :disabled="!now.id"
+          class="set-switch"/>
       <el-text :class="now.selected ? 'st' : ''">{{ t("on") }}</el-text>
     </el-space>
 
@@ -175,6 +249,42 @@ const switchTemplate = async () => {
         class="editor"
     />
   </div>
+
+
+  <el-dialog v-model="addVisible"
+             :title="t('add')"
+             width="520"
+             draggable
+             center
+  >
+    <el-form :model="addForm" label-position="top">
+      <el-form-item :label="t('rule.group.add.title')">
+        <el-input
+            :rows="3"
+            type="text"
+            autocapitalize="off"
+            autocomplete="off"
+            spellcheck="false"
+            :placeholder="t('rule.group.add.placeholder')"
+            v-model="addForm.content"
+        />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="addVisible = false">
+          {{ t('cancel') }}
+        </el-button>
+        <el-button
+            :loading="isNowAdd"
+            type="primary"
+            @click="addTemplate">
+          {{ t('confirm') }}
+        </el-button>
+      </div>
+    </template>
+  </el-dialog>
+
 </template>
 
 <style scoped>
@@ -255,7 +365,7 @@ const switchTemplate = async () => {
   left: calc(100% - 21px);
 }
 
-:deep(.el-button) {
+.op :deep(.el-button) {
   padding: 2px 10px;
   --el-button-bg-color: transparent;
   --el-button-text-color: var(--text-color);

@@ -200,10 +200,15 @@ func startCore(profile models.Profile, reload bool) {
 
 // 获取统一规则分组模板
 func getTemplate(profile models.Profile) (bool, string, []byte) {
+	// 默认模版ID
+	defaultId := fmt.Sprintf("%s%d", constant.PrefixTemplate, 0)
 
 	// 优先启用个性模板
 	var template models.Template
 	if profile.Template != "" {
+		if profile.Template == "m0" {
+			return false, defaultId, Template_0
+		}
 		_ = cache.Get(profile.Template, &template)
 	}
 	if template.Path != "" {
@@ -230,7 +235,7 @@ func getTemplate(profile models.Profile) (bool, string, []byte) {
 	}
 
 	// 最后返回默认模板
-	return false, fmt.Sprintf("%s%d", constant.PrefixTemplate, 0), Template_0
+	return false, defaultId, Template_0
 }
 
 // SwitchProfile 切换配置

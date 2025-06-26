@@ -212,13 +212,23 @@ func refreshProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func putProfile(w http.ResponseWriter, r *http.Request) {
-	profile := &models.Profile{}
-	if err := render.DecodeJSON(r.Body, profile); err != nil {
+	var profile models.Profile
+	if err := render.DecodeJSON(r.Body, &profile); err != nil {
 		ErrorResponse(w, r, err)
 		return
 	}
 
+	// 从数据库获取原始配置
+	var dbProfile models.Profile
+	_ = cache.Get(profile.Id, &dbProfile)
+
+	// 存储更新后的数据
 	_ = cache.Put(profile.Id, profile)
+
+	// 如果配置正在使用中  进行配置更新
+	if profile.Selected && dbProfile.Template != profile.Template {
+		internal.SwitchProfile(true)
+	}
 
 	render.NoContent(w, r)
 }

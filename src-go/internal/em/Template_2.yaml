@@ -56,18 +56,18 @@ proxy-groups:
     url: https://www.google.com/blank.html
     interval: 300
     tolerance: 50
-    include-all-proxies: true
+    include-all: true
 
   - name: 🚀 手动切换
     type: select
-    include-all-proxies: true
+    include-all: true
 
   - name: 🔯 故障转移
     type: fallback
     url: https://www.google.com/blank.html
     interval: 300
     tolerance: 50
-    include-all-proxies: true
+    include-all: true
 
   - name: 🔮 负载均衡
     type: load-balance
@@ -75,7 +75,7 @@ proxy-groups:
     url: https://www.google.com/blank.html
     interval: 300
     tolerance: 50
-    include-all-proxies: true
+    include-all: true
 
   - name: 📲 电报消息
     type: select
@@ -319,7 +319,7 @@ proxy-groups:
     url: https://www.google.com/blank.html
     interval: 600
     tolerance: 80
-    include-all-proxies: true
+    include-all: true
     filter: "(?i)美|us|unitedstates|united states"
 
   - name: 🇭🇰 香港节点
@@ -327,7 +327,7 @@ proxy-groups:
     url: https://www.google.com/blank.html
     interval: 600
     tolerance: 50
-    include-all-proxies: true
+    include-all: true
     filter: "(?i)港|hk|hongkong|hong kong"
 
   - name: 🇸🇬 狮城节点
@@ -335,7 +335,7 @@ proxy-groups:
     url: https://www.google.com/blank.html
     interval: 600
     tolerance: 50
-    include-all-proxies: true
+    include-all: true
     filter: "(?i)(新|sg|singapore)"
 
   - name: 🇯🇵 日本节点
@@ -343,7 +343,7 @@ proxy-groups:
     url: https://www.google.com/blank.html
     interval: 600
     tolerance: 50
-    include-all-proxies: true
+    include-all: true
     filter: "(?i)日|jp|japan"
 
   - name: 🇰🇷 韩国节点
@@ -351,7 +351,7 @@ proxy-groups:
     url: https://www.google.com/blank.html
     interval: 600
     tolerance: 50
-    include-all-proxies: true
+    include-all: true
     filter: "(?i)韩|kr|korea"
 
   - name: 台湾节点
@@ -359,7 +359,7 @@ proxy-groups:
     url: https://www.google.com/blank.html
     interval: 600
     tolerance: 50
-    include-all-proxies: true
+    include-all: true
     filter: "(?i)台|tw|taiwan"
 
   - name: 🎥 奈飞节点

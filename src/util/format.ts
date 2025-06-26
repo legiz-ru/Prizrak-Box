@@ -53,3 +53,14 @@ export function isHttpOrHttps(url: any) {
   const regex = /^(https?):\/\/[\w.-]+(?:\.[\w.-]+)+[\w\-._~:/?#[\]@!$&'()*+,;=.]+$/;
   return regex.test(url);
 }
+
+const innerTemplate = ['m0', 'm1', 'm2', 'm3']
+
+// 获取模版标题
+export function getTemplateTitle(t: any, title: string) {
+  if (innerTemplate.indexOf(title) > -1) {
+    return t("rule.group." + title)
+  }
+
+  return title
+}
