@@ -41,7 +41,7 @@ let now = reactive({
   selected: false
 })
 
-const innerTemplate = ['m1', 'm2', 'm3']
+const innerTemplate = ['m1', 'm2', 'm3', 'm4', 'm5']
 // 是否可删除
 const canDelete = ref(false)
 

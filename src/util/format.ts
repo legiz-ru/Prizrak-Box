@@ -57,7 +57,7 @@ export function isHttpOrHttps(url: any) {
     return regex.test(url);
 }
 
-const innerTemplate = ['m0', 'm1', 'm2', 'm3']
+const innerTemplate = ['m0', 'm1', 'm2', 'm3', 'm4', 'm5']
 
 // 获取模版标题
 export function getTemplateTitle(t: any, title: string) {
