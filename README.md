@@ -78,8 +78,7 @@ npm run start
 
 - ✅ [Project Issues](https://github.com/snakem982/Pandora-Box/issues)
 - 📄 [License (GPL-3.0)](./LICENSE)
-- ❤️ Powered by [DartNode](https://dartnode.com)  
-  [![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com "Powered by DartNode - Free VPS for Open Source")
+- ❤️ Powered by [ZMTO](https://zmto.com "Powered by ZMTO - Free VPS for Open Source Contributors")
 
 ---
 

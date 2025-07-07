@@ -120,4 +120,4 @@ require (
 	lukechampine.com/blake3 v1.4.1 // indirect
 )
 
-replace github.com/metacubex/mihomo => github.com/snakem982/mihomo v1.0.57-moshen
+replace github.com/metacubex/mihomo => github.com/snakem982/mihomo v1.0.58-moshen

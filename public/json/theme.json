@@ -76,8 +76,7 @@
       "https://bing.img.run/rand.php?a=1",
       "https://picsum.photos/1920/1080?a=1",
       "https://cdn.seovx.com/?mom=302",
-      "https://cdn.seovx.com/ha/?mom=302",
-      "https://random-image-pepebigotes.vercel.app/api/random-image?a=1"
+      "https://cdn.seovx.com/ha/?mom=302"
     ],
     "rand": true
   }

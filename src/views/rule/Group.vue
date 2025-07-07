@@ -231,13 +231,13 @@ const switchTemplate = async () => {
         {{ t("delete") }}
       </el-button>
       <el-divider direction="vertical" border-style="dashed"/>
-      <el-text :class="now.selected ? '' : 'st'">{{ t("off") }}</el-text>
+      <el-text :class="now.selected ? 'sf' : 'st'">{{ t("off") }}</el-text>
       <el-switch
           @click="switchTemplate"
           v-model="now.selected"
           :disabled="!now.id"
           class="set-switch"/>
-      <el-text :class="now.selected ? 'st' : ''">{{ t("on") }}</el-text>
+      <el-text :class="now.selected ? 'st' : 'sf'">{{ t("on") }}</el-text>
     </el-space>
 
     <VAceEditor
@@ -374,6 +374,10 @@ const switchTemplate = async () => {
 }
 
 .st {
+  color: var(--top-hr-color);
+}
+
+.sf {
   color: var(--text-color);
 }
 
