@@ -303,7 +303,7 @@ func UrlTest(proxies []map[string]any, testUrl string) []map[string]any {
 
 			ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*4500)
 			defer cancel()
-			pass := proxyAdapter.URLTestByPandora(ctx, url, expectedStatus)
+			pass := adapter.NewProxy(proxyAdapter).URLTestByPandora(ctx, url, expectedStatus)
 			if pass {
 				m.Lock()
 				result = append(result, pp)

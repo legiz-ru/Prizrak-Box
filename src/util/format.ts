@@ -52,9 +52,14 @@ export function formatDate(date: Date): string {
 }
 
 // 校验是否 url 格式
-export function isHttpOrHttps(url: any) {
-    const regex = /^(https?):\/\/[\w.-]+(?:\.[\w.-]+)+[\w\-._~:/?#[\]@!$&'()*+,;=.]+$/;
-    return regex.test(url);
+export function isHttpOrHttps(url: string): boolean {
+    if (url.trim() === '') return false;
+    try {
+        const parsed = new URL(url);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+        return false;
+    }
 }
 
 const innerTemplate = ['m0', 'm1', 'm2', 'm3', 'm4', 'm5']

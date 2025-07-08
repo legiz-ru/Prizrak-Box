@@ -62,7 +62,7 @@
     --rule-list-bg: rgba(128, 128, 128, 0.2);
     --rule-list-hover: rgba(0, 0, 0, 0.2);
 
-    --body-blur: blur(0.5px) brightness(0.95);
+    --body-blur: blur(0.5px) brightness(0.95) saturate(180%);
     --body-blur-color: rgba(0, 0, 0, 0.15);
 
     --right-boder: 1px solid rgba(255, 255, 255, 0.1);
@@ -111,7 +111,7 @@
     --rule-list-bg: rgba(0, 0, 0, 0.05);
     --rule-list-hover: rgba(255, 255, 255, 0.6);
 
-    --body-blur: blur(1px) brightness(0.85);
+    --body-blur: blur(1px) brightness(0.75) saturate(100%);
     --body-blur-color: rgba(150, 150, 150, 0.1);
 
     --right-boder: 1px solid rgba(0, 0, 0, 0.1);
