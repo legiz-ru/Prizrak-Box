@@ -34,3 +34,6 @@ var DefaultWebTest []byte
 
 //go:embed em/dns.yaml
 var DefaultDNS string
+
+//go:embed em/Model.bin
+var ModelBin []byte

@@ -69,9 +69,16 @@ func Init() {
 	_, _ = utils.SaveFile(utils.GetUserHomeDir("GeoSite.dat"), GeoSite)
 	_, _ = utils.SaveFile(utils.GetUserHomeDir("ASN.mmdb"), ASN)
 
+	// 释放大模型
+	bin := utils.GetUserHomeDir("Model.bin")
+	if !utils.FileExists(bin) {
+		_, _ = utils.SaveFile(bin, ModelBin)
+	}
+
 	GeoIp = nil
 	GeoSite = nil
 	ASN = nil
+	ModelBin = nil
 }
 
 var NowConfig *config.Config

@@ -18,6 +18,7 @@ const include: any = {
     Pass: true,
     Relay: true,
     Fallback: true,
+    Smart: true,
 }
 
 // 计算类名
