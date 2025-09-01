@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+	"github.com/metacubex/mihomo/component/process"
 	"github.com/metacubex/mihomo/hub/executor"
 	"github.com/metacubex/mihomo/log"
 	"github.com/metacubex/mihomo/tunnel/statistic"
@@ -14,7 +16,9 @@ import (
 	sys "github.com/snakem982/pandora-box/pkg/sys/proxy"
 	"github.com/snakem982/pandora-box/pkg/utils"
 	"net/http"
+	"net/netip"
 	"os"
+	"strings"
 )
 
 func Pandora(r chi.Router) {
@@ -93,8 +97,22 @@ func checkAddressPort(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 增强校验，如果是px程序占用的，那直接返回
+	addr, err := netip.ParseAddr(mi.BindAddress)
+	if err != nil {
+		ErrorResponse(w, r, errors.New("invalid address"))
+		return
+	}
+	_, s, err := process.FindProcessName(process.TCP, addr, mi.MixedPort)
+	if err == nil {
+		if strings.HasSuffix(s, "px") || strings.HasSuffix(s, "px.exe") {
+			render.NoContent(w, r)
+			return
+		}
+	}
+
 	// 检测地址端口是否可用
-	err := utils.IsPortAvailable(mi.BindAddress, mi.MixedPort)
+	err = utils.IsPortAvailable(mi.BindAddress, mi.MixedPort)
 	if err != nil {
 		ErrorResponse(w, r, err)
 		return

@@ -15,14 +15,20 @@
       "url('/images/gradient3.png')",
       "url('/images/gradient4.png')",
       "url('/images/gradient5.png')",
-      "url('/images/gradient6.png')"
+      "url('/images/gradient6.png')",
+      "url('/images/gradient7.png')",
+      "url('/images/gradient8.png')"
     ]
   },
   {
     "id": "sea",
     "bg": [
       "url('/images/sea1.jpg')",
-      "url('/images/sea2.jpg')"
+      "url('/images/sea2.jpg')",
+      "url('/images/sea3.jpg')",
+      "url('/images/sea4.jpg')",
+      "url('/images/sea5.jpg')",
+      "url('/images/sea6.jpg')"
     ]
   },
   {
