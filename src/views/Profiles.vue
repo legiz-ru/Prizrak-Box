@@ -315,12 +315,36 @@ async function deleteProfile(data: any, index: any) {
 // webSocket相关操作
 let wsOrder: WS
 
+function num2SafeNumber(data: any, key: string) {
+  if (data[key] !== undefined && data[key] !== null) {
+    let num = Number(data[key]);
+
+    if (!Number.isFinite(num)) {
+      console.warn(`Invalid number for key "${key}":`, data[key]);
+      return;
+    }
+
+    if (num > Number.MAX_SAFE_INTEGER) {
+      data[key] = Number.MAX_SAFE_INTEGER;
+    } else if (num < Number.MIN_SAFE_INTEGER) {
+      data[key] = Number.MIN_SAFE_INTEGER;
+    } else {
+      data[key] = num;
+    }
+  }
+}
+
 function sendOrder(data: any) {
   if (wsOrder) {
     Events.Emit({
       name: "profiles",
       data: toRaw(data)
     })
+    for (let i = 0; i < data.length; i++) {
+      num2SafeNumber(data[i], 'available')
+      num2SafeNumber(data[i], 'used')
+      num2SafeNumber(data[i], 'total')
+    }
     wsOrder.send(JSON.stringify(data))
   }
 }

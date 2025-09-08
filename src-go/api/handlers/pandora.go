@@ -106,6 +106,10 @@ func checkAddressPort(w http.ResponseWriter, r *http.Request) {
 	_, s, err := process.FindProcessName(process.TCP, addr, mi.MixedPort)
 	if err == nil {
 		if strings.HasSuffix(s, "px") || strings.HasSuffix(s, "px.exe") {
+			if mc.BindAddress == mi.BindAddress && api.ControllerPort == mi.MixedPort {
+				ErrorResponse(w, r, errors.New("invalid address or port"))
+				return
+			}
 			render.NoContent(w, r)
 			return
 		}

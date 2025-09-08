@@ -112,9 +112,21 @@ func startCore(profile models.Profile, reload bool) {
 		rawCfg, _ = config.UnmarshalRawConfig(templateBuf)
 		changeProvidersPath("template", templateId, rawCfg)
 		if len(provider) > 0 {
-			rawCfg.ProxyProvider = provider
+			if len(rawCfg.ProxyProvider) > 0 {
+				for key, value := range provider {
+					rawCfg.ProxyProvider[key] = value
+				}
+			} else {
+				rawCfg.ProxyProvider = provider
+			}
 		}
-		rawCfg.Proxy = proxy
+		if len(proxy) > 0 {
+			if len(rawCfg.Proxy) > 0 {
+				rawCfg.Proxy = append(rawCfg.Proxy, proxy...)
+			} else {
+				rawCfg.Proxy = proxy
+			}
+		}
 	}
 
 	// Pandora-Box 默认配置

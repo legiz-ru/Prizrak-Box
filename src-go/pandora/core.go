@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/metacubex/mihomo/hub/route"
 	"github.com/metacubex/mihomo/log"
+	"github.com/snakem982/pandora-box/api"
 	"github.com/snakem982/pandora-box/api/handlers"
 	"github.com/snakem982/pandora-box/api/job"
 	"github.com/snakem982/pandora-box/internal"
@@ -40,6 +41,7 @@ func StartCore(server string) (port int, secret string) {
 	} else {
 		port, _ = utils.GetRandomPort(host)
 	}
+	api.ControllerPort = port
 
 	// 获取密钥
 	_ = cache.Get(constant.SecretKey, &secret)
