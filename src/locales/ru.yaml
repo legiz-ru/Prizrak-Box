@@ -140,6 +140,7 @@ profiles:
   update: Обновить
   placeholder: Подписка, ShareLink, Yaml, Base64, Json
   home: Перейти на страницу подписки
+  support: Перейти на страницу поддержки
   del-tip: Используется, нельзя удалить
   edit:
     title: Название

@@ -140,6 +140,7 @@ profiles:
   update: Update
   placeholder: Subscription, ShareLink, Yaml, Base64, Json
   home: Visit the Subscription Home Page
+  support: Visit the Support Page
   del-tip: In use, cannot be deleted
   edit:
     title: Title

@@ -217,6 +217,10 @@ function goHome(data: any) {
   Browser.OpenURL(data.home)
 }
 
+function goSupport(data: any) {
+  Browser.OpenURL(data.support)
+}
+
 // 修改配置
 const editFormVisible = ref(false)
 let editForm = reactive<any>({})
@@ -481,6 +485,17 @@ watch(() => webStore.dProfile, async (pList) => {
               </span>
             </div>
             <div class="bottom-row">
+              <el-tooltip
+                  v-if="data.support"
+                  :content="$t('profiles.support')"
+                  placement="top">
+                <el-icon
+                    class="ops"
+                    @click.stop="goSupport(data)"
+                    size="20">
+                  <icon-mdi-face-agent/>
+                </el-icon>
+              </el-tooltip>
               <el-tooltip
                   v-if="data.home"
                   :content="$t('profiles.home')"

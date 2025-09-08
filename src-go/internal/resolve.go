@@ -305,4 +305,8 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 		profile.Home = val
 	}
 
+	if val := header.Get("Support-Url"); val != "" {
+		profile.Support = val
+	}
+
 }

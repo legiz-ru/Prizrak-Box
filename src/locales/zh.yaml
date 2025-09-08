@@ -140,6 +140,7 @@ profiles:
   update: 更新时间
   placeholder: 订阅地址、分享链接、Yaml、Base64、Json
   home: 访问订阅主页
+  support: 访问支持页面
   del-tip: 正在使用中，不可删除
   edit:
     title: 标题

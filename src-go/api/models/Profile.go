@@ -20,6 +20,7 @@ type Profile struct {
 	Expire    string   `json:"expire,omitempty"`
 	Interval  string   `json:"interval,omitempty"`
 	Home      string   `json:"home,omitempty"`
+	Support   string   `json:"support,omitempty"`
 	Update    string   `json:"update,omitempty"`
 	Template  string   `json:"template,omitempty"`
 }
