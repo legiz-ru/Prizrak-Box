@@ -75,16 +75,6 @@ jobs:
           npm prune
           npm run make -- --arch=$arch
 
-      - name: Compress Executable
-        shell: pwsh
-        run: |
-          $arch = "${{ matrix.arch }}"
-          if ($arch -eq "amd64") {
-            $arch = "x64"
-          }
-          Compress-Archive -Path out\make\deb\$arch\* -DestinationPath "linux-${{ matrix.arch }}-deb.zip"
-          Compress-Archive -Path out\make\rpm\$arch\* -DestinationPath "linux-${{ matrix.arch }}-rpm.zip"
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
@@ -93,7 +83,7 @@ jobs:
           draft: false
           prerelease: true
           files: |
-            linux-${{ matrix.arch }}-deb.zip
-            linux-${{ matrix.arch }}-rpm.zip
+            out/make/deb/${{ matrix.arch == 'amd64' && 'x64' || matrix.arch }}/*.deb
+            out/make/rpm/${{ matrix.arch == 'amd64' && 'x64' || matrix.arch }}/*.rpm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
