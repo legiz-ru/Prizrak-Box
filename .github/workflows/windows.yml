@@ -58,7 +58,7 @@ jobs:
         run: |
           cd src-go
           go build -tags=with_gvisor -trimpath `
-            -ldflags "-s -w -X github.com/snakem982/pandora-box/api.Version=$env:VERSION" `
+            -ldflags "-s -w -X github.com/legiz-ru/prizrak-box/api.Version=$env:VERSION" `
             -o px.exe
 
       - name: Sync VERSION to package.json
@@ -88,7 +88,7 @@ jobs:
           $electronArch = if ($arch -eq "amd64") { "x64" } else { $arch }
 
           # Find portable app directory and compress with new name
-          $portableDir = Get-ChildItem -Path "out" -Directory | Where-Object { $_.Name -like "Pandora-Box*" } | Select-Object -First 1
+          $portableDir = Get-ChildItem -Path "out" -Directory | Where-Object { $_.Name -like "Prizrak-Box*" } | Select-Object -First 1
           if ($portableDir) {
               Write-Host "Found portable directory: $($portableDir.FullName)"
               Compress-Archive -Path "$($portableDir.FullName)\*" -DestinationPath "windows-${arch}.zip"

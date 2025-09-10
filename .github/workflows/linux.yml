@@ -56,7 +56,7 @@ jobs:
         run: |
           cd src-go
           go build -tags=with_gvisor -trimpath `
-            -ldflags "-s -w -X github.com/snakem982/pandora-box/api.Version=$env:VERSION" `
+            -ldflags "-s -w -X github.com/legiz-ru/prizrak-box/api.Version=$env:VERSION" `
             -o px
 
       - name: Sync VERSION to package.json

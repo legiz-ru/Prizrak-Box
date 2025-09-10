@@ -19,12 +19,12 @@ const config: ForgeConfig = {
         extendInfo: {
             LSMinimumSystemVersion: "10.13.0"
         },
-        appBundleId: 'com.snakem982.pandora-box',
+        appBundleId: 'com.legiz-ru.prizrak-box',
     },
     rebuildConfig: {},
     makers: [
         new MakerWix({
-            manufacturer: 'snakem982',
+            manufacturer: 'legiz-ru',
             description: 'A Simple Mihomo GUI',
             icon: 'build/appicon.ico',
             ui: {
@@ -34,19 +34,19 @@ const config: ForgeConfig = {
         }),
         new MakerDMG({
             icon: 'build/appicon.icns',
-            title: `Pandora-Box-${arch}`,  // dmg 挂载卷名称
+            title: `Prizrak-Box-${arch}`,  // dmg 挂载卷名称
         }),
         new MakerRpm({
             options: {
                 icon: 'build/appicon.png',
-                homepage: 'https://github.com/snakem982/Pandora-Box',
+                homepage: 'https://github.com/legiz-ru/Prizrak-Box',
             }
         }),
         new MakerDeb({
             options: {
                 icon: 'build/appicon.png',
-                maintainer: 'snakem982',
-                homepage: 'https://github.com/snakem982/Pandora-Box',
+                maintainer: 'legiz-ru',
+                homepage: 'https://github.com/legiz-ru/Prizrak-Box',
             }
         })
     ],

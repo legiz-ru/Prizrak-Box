@@ -95,7 +95,7 @@ home:
     service: 运行模式
     admin: 管理权限
     port: 代理端口
-    version: Pandora-Box
+    version: Prizrak-Box
     day: 天
 
 setting:

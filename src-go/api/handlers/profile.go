@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"github.com/snakem982/pandora-box/api/job"
-	"github.com/snakem982/pandora-box/pkg/proxy"
+	"github.com/legiz-ru/prizrak-box/api/job"
+	"github.com/legiz-ru/prizrak-box/pkg/proxy"
 	"net/http"
 	"path/filepath"
 	"sort"
@@ -12,11 +12,11 @@ import (
 	"github.com/go-chi/render"
 	"github.com/metacubex/mihomo/hub/route"
 	"github.com/metacubex/mihomo/log"
-	"github.com/snakem982/pandora-box/api/models"
-	"github.com/snakem982/pandora-box/internal"
-	"github.com/snakem982/pandora-box/pkg/cache"
-	"github.com/snakem982/pandora-box/pkg/constant"
-	"github.com/snakem982/pandora-box/pkg/utils"
+	"github.com/legiz-ru/prizrak-box/api/models"
+	"github.com/legiz-ru/prizrak-box/internal"
+	"github.com/legiz-ru/prizrak-box/pkg/cache"
+	"github.com/legiz-ru/prizrak-box/pkg/constant"
+	"github.com/legiz-ru/prizrak-box/pkg/utils"
 )
 
 func Profile(r chi.Router) {

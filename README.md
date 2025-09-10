@@ -1,8 +1,8 @@
 <div align="center">
 
-  <img src="build/appicon.png" width="160px" alt="Pandora-Box"/>
+  <img src="build/appicon.png" width="160px" alt="Prizrak-Box"/>
 
-  <h1>Pandora-Box</h1>
+  <h1>Prizrak-Box</h1>
 
   <p>🌈 A simple desktop client for <strong>Mihomo</strong></p>
   <p>✨ 一个简易的 <strong>Mihomo</strong> 桌面客户端</p>
@@ -18,27 +18,27 @@
 
 ## 📦 Project Overview | 项目简介 | Обзор проекта
 
-**Pandora-Box** is a lightweight and user-friendly cross-platform client for [Mihomo](https://github.com/MetaCubeX/mihomo), supporting multiple proxy protocols, automatic rule grouping, and TUN mode.  
+**Prizrak-Box** is a lightweight and user-friendly cross-platform client for [Mihomo](https://github.com/MetaCubeX/mihomo), supporting multiple proxy protocols, automatic rule grouping, and TUN mode.  
 It is designed for both casual and advanced users to easily manage and convert proxy subscriptions.
 
-**Pandora-Box** 是一个跨平台的轻量桌面客户端，适配 [Mihomo](https://github.com/MetaCubeX/mihomo) 内核，支持多种代理协议、规则自动分组与 TUN 模式。界面简洁，功能强大，适合轻量与进阶用户使用。
+**Prizrak-Box** 是一个跨平台的轻量桌面客户端，适配 [Mihomo](https://github.com/MetaCubeX/mihomo) 内核，支持多种代理协议、规则自动分组与 TUN 模式。界面简洁，功能强大，适合轻量与进阶用户使用。
 
-**Pandora-Box** — это легкий и удобный кроссплатформенный клиент для [Mihomo](https://github.com/MetaCubeX/mihomo), поддерживающий различные прокси-протоколы, автоматическую группировку правил и режим TUN.  
+**Prizrak-Box** — это легкий и удобный кроссплатформенный клиент для [Mihomo](https://github.com/MetaCubeX/mihomo), поддерживающий различные прокси-протоколы, автоматическую группировку правил и режим TUN.  
 Он разработан как для обычных пользователей, так и для продвинутых, чтобы облегчить управление и конвертацию подписок прокси.
 
 ---
 
 ## 📥 Get Started ｜ 快速开始 ｜ Начало работы
 
-👉 [Download the Latest Release / 下载最新版本 / Скачать последнюю версию](https://github.com/snakem982/Pandora-Box/releases)
+👉 [Download the Latest Release / 下载最新版本 / Скачать последнюю версию](https://github.com/legiz-ru/Prizrak-Box/releases)
 
 ---
 
 ## 🛠 Development ｜ 开发 ｜ Разработка
 
-If you want to contribute or build Pandora-Box locally, refer to the resources below:  
-如果你想参与开发或构建 Pandora-Box，可以参考以下资源：  
-Если вы хотите принять участие в разработке или собрать Pandora-Box локально, воспользуйтесь следующими ресурсами:
+If you want to contribute or build Prizrak-Box locally, refer to the resources below:  
+如果你想参与开发或构建 Prizrak-Box，可以参考以下资源：  
+Если вы хотите принять участие в разработке или собрать Prizrak-Box локально, воспользуйтесь следующими ресурсами:
 
 ### 🔧 Prerequisites | 前置依赖 | Предварительные требования
 
@@ -54,7 +54,7 @@ cd src-go
 go mod tidy
 
 # Build px backend
-CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags "-X github.com/snakem982/pandora-box/api.Version=v-test" -o px(.exe)
+CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags "-X github.com/legiz-ru/prizrak-box/api.Version=v-test" -o px(.exe)
 cd ..
 
 # Build desktop app
@@ -76,7 +76,7 @@ npm run start
 
 ## 🧭 More Information ｜ 更多信息 ｜ Дополнительная информация
 
-- ✅ [Project Issues](https://github.com/snakem982/Pandora-Box/issues)
+- ✅ [Project Issues](https://github.com/legiz-ru/Prizrak-Box/issues)
 - 📄 [License (GPL-3.0)](./LICENSE)
 - ❤️ Powered by [ZMTO](https://zmto.com "Powered by ZMTO - Free VPS for Open Source Contributors")
 

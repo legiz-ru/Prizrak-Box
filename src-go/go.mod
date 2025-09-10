@@ -1,4 +1,4 @@
-module github.com/snakem982/pandora-box
+module github.com/legiz-ru/prizrak-box
 
 go 1.25
 

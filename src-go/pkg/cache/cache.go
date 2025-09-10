@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"github.com/metacubex/bbolt"
 	"github.com/metacubex/mihomo/log"
-	"github.com/snakem982/pandora-box/pkg/constant"
-	"github.com/snakem982/pandora-box/pkg/utils"
+	"github.com/legiz-ru/prizrak-box/pkg/constant"
+	"github.com/legiz-ru/prizrak-box/pkg/utils"
 	"os"
 	"reflect"
 	"strings"
 )
 
-var BName = []byte("Pandora-Box")
+var BName = []byte("Prizrak-Box")
 var BDb *bbolt.DB
 
 func GetDBInstance() *bbolt.DB {

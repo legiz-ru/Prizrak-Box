@@ -63,7 +63,7 @@ function pxConfigDir() {
 
 // 检查更新
 function checkUpdate() {
-  const url = "https://github.com/snakem982/Pandora-Box/releases"
+  const url = "https://github.com/legiz-ru/Prizrak-Box/releases"
   // @ts-ignore
   window["pxOpen"](url)
 }
@@ -141,7 +141,7 @@ function checkUpdate() {
     <el-col :span="24">
       <div class="box box2">
         <div class="title">
-          Pandora-Box
+          Prizrak-Box
         </div>
         <hr/>
         <ul class="info-list">

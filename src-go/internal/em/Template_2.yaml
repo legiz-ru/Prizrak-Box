@@ -1523,12 +1523,12 @@ rules:
   - DOMAIN-SUFFIX,ad1.xiaomi.com,🍃 应用净化
   - DOMAIN-SUFFIX,adv.sec.intl.miui.com,🍃 应用净化
   - DOMAIN-SUFFIX,adv.sec.miui.com,🍃 应用净化
-  - DOMAIN-SUFFIX,bss.pandora.xiaomi.com,🍃 应用净化
+  - DOMAIN-SUFFIX,bss.prizrak.xiaomi.com,🍃 应用净化
   - DOMAIN-SUFFIX,d.g.mi.com,🍃 应用净化
   - DOMAIN-SUFFIX,data.mistat.xiaomi.com,🍃 应用净化
-  - DOMAIN-SUFFIX,de.pandora.xiaomi.com,🍃 应用净化
-  - DOMAIN-SUFFIX,dvb.pandora.xiaomi.com,🍃 应用净化
-  - DOMAIN-SUFFIX,jellyfish.pandora.xiaomi.com,🍃 应用净化
+  - DOMAIN-SUFFIX,de.prizrak.xiaomi.com,🍃 应用净化
+  - DOMAIN-SUFFIX,dvb.prizrak.xiaomi.com,🍃 应用净化
+  - DOMAIN-SUFFIX,jellyfish.prizrak.xiaomi.com,🍃 应用净化
   - DOMAIN-SUFFIX,migc.g.mi.com,🍃 应用净化
   - DOMAIN-SUFFIX,migcreport.g.mi.com,🍃 应用净化
   - DOMAIN-SUFFIX,notice.game.xiaomi.com,🍃 应用净化
@@ -1536,7 +1536,7 @@ rules:
   - DOMAIN-SUFFIX,r.browser.miui.com,🍃 应用净化
   - DOMAIN-SUFFIX,security.browser.miui.com,🍃 应用净化
   - DOMAIN-SUFFIX,shenghuo.xiaomi.com,🍃 应用净化
-  - DOMAIN-SUFFIX,stat.pandora.xiaomi.com,🍃 应用净化
+  - DOMAIN-SUFFIX,stat.prizrak.xiaomi.com,🍃 应用净化
   - DOMAIN-SUFFIX,union.mi.com,🍃 应用净化
   - DOMAIN-SUFFIX,wtradv.market.xiaomi.com,🍃 应用净化
   - DOMAIN-SUFFIX,ad.api.moji.com,🍃 应用净化
@@ -4353,7 +4353,7 @@ rules:
   - DOMAIN-SUFFIX,sentry.io,🌍 国外媒体
   - DOMAIN-SUFFIX,stripe.com,🌍 国外媒体
   - DOMAIN-SUFFIX,pbs.org,🌍 国外媒体
-  - DOMAIN-SUFFIX,pandora.com,🌍 国外媒体
+  - DOMAIN-SUFFIX,prizrak.com,🌍 国外媒体
   - DOMAIN-SUFFIX,phncdn.com,🌍 国外媒体
   - DOMAIN-SUFFIX,phprcdn.com,🌍 国外媒体
   - DOMAIN-SUFFIX,pornhub.com,🌍 国外媒体
@@ -8711,8 +8711,8 @@ rules:
   - DOMAIN-SUFFIX,pandapow.net,🚀 节点选择
   - DOMAIN-SUFFIX,pandavpn-jp.com,🚀 节点选择
   - DOMAIN-SUFFIX,pandavpnpro.com,🚀 节点选择
-  - DOMAIN-SUFFIX,pandora.com,🚀 节点选择
-  - DOMAIN-SUFFIX,pandora.tv,🚀 节点选择
+  - DOMAIN-SUFFIX,prizrak.com,🚀 节点选择
+  - DOMAIN-SUFFIX,prizrak.tv,🚀 节点选择
   - DOMAIN-SUFFIX,panluan.net,🚀 节点选择
   - DOMAIN-SUFFIX,panoramio.com,🚀 节点选择
   - DOMAIN-SUFFIX,pao-pao.net,🚀 节点选择

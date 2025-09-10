@@ -8,25 +8,25 @@ import (
 	"github.com/metacubex/mihomo/hub/executor"
 	"github.com/metacubex/mihomo/log"
 	"github.com/metacubex/mihomo/tunnel/statistic"
-	"github.com/snakem982/pandora-box/api"
-	"github.com/snakem982/pandora-box/api/job"
-	"github.com/snakem982/pandora-box/api/models"
-	"github.com/snakem982/pandora-box/pkg/cache"
-	"github.com/snakem982/pandora-box/pkg/constant"
-	sys "github.com/snakem982/pandora-box/pkg/sys/proxy"
-	"github.com/snakem982/pandora-box/pkg/utils"
+	"github.com/legiz-ru/prizrak-box/api"
+	"github.com/legiz-ru/prizrak-box/api/job"
+	"github.com/legiz-ru/prizrak-box/api/models"
+	"github.com/legiz-ru/prizrak-box/pkg/cache"
+	"github.com/legiz-ru/prizrak-box/pkg/constant"
+	sys "github.com/legiz-ru/prizrak-box/pkg/sys/proxy"
+	"github.com/legiz-ru/prizrak-box/pkg/utils"
 	"net/http"
 	"net/netip"
 	"os"
 	"strings"
 )
 
-func Pandora(r chi.Router) {
-	r.Get("/version", getPandoraVersion)
-	r.Mount("/pandora", PandoraRouter())
+func Prizrak(r chi.Router) {
+	r.Get("/version", getPrizrakVersion)
+	r.Mount("/prizrak", PrizrakRouter())
 }
 
-func PandoraRouter() chi.Router {
+func PrizrakRouter() chi.Router {
 	r := chi.NewRouter()
 	// 代理相关
 	r.Put("/enableProxy", enableProxy)
@@ -44,7 +44,7 @@ func PandoraRouter() chi.Router {
 	return r
 }
 
-func getPandoraVersion(w http.ResponseWriter, r *http.Request) {
+func getPrizrakVersion(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, render.M{"version": api.Version})
 }
 

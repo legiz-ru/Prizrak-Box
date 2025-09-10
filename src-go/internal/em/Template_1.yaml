@@ -1294,12 +1294,12 @@ rules:
   - DOMAIN-SUFFIX,ad1.xiaomi.com,🛑 全球拦截
   - DOMAIN-SUFFIX,adv.sec.intl.miui.com,🛑 全球拦截
   - DOMAIN-SUFFIX,adv.sec.miui.com,🛑 全球拦截
-  - DOMAIN-SUFFIX,bss.pandora.xiaomi.com,🛑 全球拦截
+  - DOMAIN-SUFFIX,bss.prizrak.xiaomi.com,🛑 全球拦截
   - DOMAIN-SUFFIX,d.g.mi.com,🛑 全球拦截
   - DOMAIN-SUFFIX,data.mistat.xiaomi.com,🛑 全球拦截
-  - DOMAIN-SUFFIX,de.pandora.xiaomi.com,🛑 全球拦截
-  - DOMAIN-SUFFIX,dvb.pandora.xiaomi.com,🛑 全球拦截
-  - DOMAIN-SUFFIX,jellyfish.pandora.xiaomi.com,🛑 全球拦截
+  - DOMAIN-SUFFIX,de.prizrak.xiaomi.com,🛑 全球拦截
+  - DOMAIN-SUFFIX,dvb.prizrak.xiaomi.com,🛑 全球拦截
+  - DOMAIN-SUFFIX,jellyfish.prizrak.xiaomi.com,🛑 全球拦截
   - DOMAIN-SUFFIX,migc.g.mi.com,🛑 全球拦截
   - DOMAIN-SUFFIX,migcreport.g.mi.com,🛑 全球拦截
   - DOMAIN-SUFFIX,notice.game.xiaomi.com,🛑 全球拦截
@@ -1307,7 +1307,7 @@ rules:
   - DOMAIN-SUFFIX,r.browser.miui.com,🛑 全球拦截
   - DOMAIN-SUFFIX,security.browser.miui.com,🛑 全球拦截
   - DOMAIN-SUFFIX,shenghuo.xiaomi.com,🛑 全球拦截
-  - DOMAIN-SUFFIX,stat.pandora.xiaomi.com,🛑 全球拦截
+  - DOMAIN-SUFFIX,stat.prizrak.xiaomi.com,🛑 全球拦截
   - DOMAIN-SUFFIX,union.mi.com,🛑 全球拦截
   - DOMAIN-SUFFIX,wtradv.market.xiaomi.com,🛑 全球拦截
   - DOMAIN-SUFFIX,ad.api.moji.com,🛑 全球拦截
@@ -7249,7 +7249,7 @@ rules:
   - DOMAIN-SUFFIX,sentry.io,🚀 节点选择
   - DOMAIN-SUFFIX,stripe.com,🚀 节点选择
   - DOMAIN-SUFFIX,pbs.org,🚀 节点选择
-  - DOMAIN-SUFFIX,pandora.com,🚀 节点选择
+  - DOMAIN-SUFFIX,prizrak.com,🚀 节点选择
   - DOMAIN-SUFFIX,phncdn.com,🚀 节点选择
   - DOMAIN-SUFFIX,phprcdn.com,🚀 节点选择
   - DOMAIN-SUFFIX,pornhub.com,🚀 节点选择

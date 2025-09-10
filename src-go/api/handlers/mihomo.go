@@ -3,10 +3,10 @@ package handlers
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
-	"github.com/snakem982/pandora-box/api/models"
-	"github.com/snakem982/pandora-box/pkg/cache"
-	"github.com/snakem982/pandora-box/pkg/constant"
-	sys "github.com/snakem982/pandora-box/pkg/sys/admin"
+	"github.com/legiz-ru/prizrak-box/api/models"
+	"github.com/legiz-ru/prizrak-box/pkg/cache"
+	"github.com/legiz-ru/prizrak-box/pkg/constant"
+	sys "github.com/legiz-ru/prizrak-box/pkg/sys/admin"
 	"net/http"
 )
 

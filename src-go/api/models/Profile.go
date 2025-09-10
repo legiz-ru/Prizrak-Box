@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/snakem982/pandora-box/pkg/utils"
+	"github.com/legiz-ru/prizrak-box/pkg/utils"
 	"math/big"
 	"time"
 )
