@@ -75,6 +75,16 @@ jobs:
           npm prune
           npm run make -- --arch=$arch
 
+      - name: Prepare Release Assets
+        run: |
+          arch="${{ matrix.arch }}"
+          electron_arch="$arch"
+          if [ "$arch" = "amd64" ]; then
+            electron_arch="x64"
+          fi
+          find out/make/deb/$electron_arch -name "*.deb" -exec mv {} linux-${arch}.deb \;
+          find out/make/rpm/$electron_arch -name "*.rpm" -exec mv {} linux-${arch}.rpm \;
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
@@ -83,7 +93,7 @@ jobs:
           draft: false
           prerelease: true
           files: |
-            out/make/deb/${{ matrix.arch == 'amd64' && 'x64' || matrix.arch }}/*.deb
-            out/make/rpm/${{ matrix.arch == 'amd64' && 'x64' || matrix.arch }}/*.rpm
+            linux-${{ matrix.arch }}.deb
+            linux-${{ matrix.arch }}.rpm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

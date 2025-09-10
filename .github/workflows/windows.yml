@@ -75,10 +75,20 @@ jobs:
           npm prune
           npx electron-forge make --arch=$arch
 
-      - name: Compress App Executable
+      - name: Prepare Release Assets
         shell: pwsh
         run: |
-          Compress-Archive -Path out\Pandora-Box*\* -DestinationPath "windows-${{ matrix.arch }}-app.zip"
+          $arch = "${{ matrix.arch }}"
+          $electronArch = if ($arch -eq "amd64") { "x64" } else { $arch }
+
+          # Compress portable app with new name
+          Compress-Archive -Path out\Pandora-Box\* -DestinationPath "windows-${arch}.zip"
+
+          # Find and rename MSI package
+          $msiFile = Get-ChildItem -Path "out\make\wix\$electronArch\*.msi" | Select-Object -First 1
+          if ($msiFile) {
+              Rename-Item -Path $msiFile.FullName -NewName "windows-${arch}.msi"
+          }
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
@@ -88,7 +98,7 @@ jobs:
           draft: false
           prerelease: true
           files: |
-            windows-${{ matrix.arch }}-app.zip
-            out/make/wix/${{ matrix.arch == 'amd64' && 'x64' || matrix.arch }}/*.msi
+            windows-${{ matrix.arch }}.zip
+            windows-${{ matrix.arch }}.msi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
