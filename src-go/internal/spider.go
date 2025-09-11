@@ -303,8 +303,8 @@ func UrlTest(proxies []map[string]any, testUrl string) []map[string]any {
 
 			ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*4500)
 			defer cancel()
-			pass := adapter.NewProxy(proxyAdapter).URLTestByPrizrak(ctx, url, expectedStatus)
-			if pass {
+			_, err = adapter.NewProxy(proxyAdapter).URLTest(ctx, url, expectedStatus)
+			if err == nil {
 				m.Lock()
 				result = append(result, pp)
 				m.Unlock()

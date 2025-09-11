@@ -51,7 +51,7 @@ func StartCore(server string) (port int, secret string) {
 	}
 
 	cors := route.Cors{AllowOrigins: []string{"*"}, AllowPrivateNetwork: true}
-	route.StartByPrizrakBox(host, port, secret, cors)
+	route.StartByPandoraBox(host, port, secret, cors)
 	log.Infoln("Routing startup completed")
 
 	// 开启mihomo
