@@ -173,8 +173,8 @@ rule:
     model: Choose a template
     m0: Unused
     m1: Default
-    m2: Multi-national
-    m3: Multi-full
+    m2: ru-bundle by legiz
+    m3: by Davoyan
     reset: Reset
     test: Test
     test-success : Test success
@@ -219,7 +219,7 @@ bg:
   sea: Serene
   women: Serious
   stars: Starry
-  handle: Handle
+  handle: Prizrak
   comics: Comics
   game: Game
   random: Random

@@ -173,8 +173,8 @@ rule:
     model: 选择一个模版
     m0: 不使用
     m1: 默认分组
-    m2: 多国别
-    m3: 全分组
+    m2: ru-bundle by legiz
+    m3: by Davoyan
     reset: 重置
     test: 测试
     test-success: 测试成功
@@ -219,7 +219,7 @@ bg:
   sea: 静海
   women: 严肃
   stars: 星空
-  handle: 手柄
+  handle: 幽灵
   comics: 二次元
   game: 游戏
   random: 随机
