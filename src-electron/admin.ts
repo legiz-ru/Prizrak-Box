@@ -98,7 +98,7 @@ export function startBackend(addr: string) {
                     buttons: ['继续', '取消'],
                     defaultId: 0,
                     cancelId: 1,
-                    title: 'Pandora-Box',
+                    title: 'Prizrak-Box',
                     message: getAuthTip(),
                 });
 

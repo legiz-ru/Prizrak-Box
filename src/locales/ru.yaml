@@ -95,7 +95,7 @@ home:
     service: Режим службы
     admin: Администратор
     port: Смешанный порт
-    version: Pandora-Box
+    version: Prizrak-Box
     day: День
 
 setting:

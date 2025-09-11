@@ -1,12 +1,12 @@
 <template>
   <div class="cBody"
        :style="{ backgroundImage: currentBackground }"
-       key="pandora-box-body"
+       key="prizrak-box-body"
   >
     <div class="left">
       <div :class="isWindows?'top-title win':'top-title'">
         <div class="top-icon"></div>
-        <span class="top-title-text">Pandora-Box</span>
+        <span class="top-title-text">Prizrak-Box</span>
       </div>
       <MyEvent/>
       <MyNav/>
