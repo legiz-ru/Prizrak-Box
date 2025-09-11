@@ -75,15 +75,37 @@ jobs:
           npm prune
           npx electron-forge make --arch=$arch
 
-      - name: Compress Executables
+      - name: Debug Output Structure
+        shell: pwsh
+        run: |
+          Write-Host "=== Output directory structure ==="
+          Get-ChildItem -Path out -Recurse | Select-Object FullName
+
+      - name: Prepare Release Assets
         shell: pwsh
         run: |
           $arch = "${{ matrix.arch }}"
-          if ($arch -eq "amd64") {
-            $arch = "x64"
+          $electronArch = if ($arch -eq "amd64") { "x64" } else { $arch }
+
+          # Find portable app directory and compress with new name
+          $portableDir = Get-ChildItem -Path "out" -Directory | Where-Object { $_.Name -like "Pandora-Box*" } | Select-Object -First 1
+          if ($portableDir) {
+              Write-Host "Found portable directory: $($portableDir.FullName)"
+              Compress-Archive -Path "$($portableDir.FullName)\*" -DestinationPath "windows-${arch}.zip"
+          } else {
+              Write-Error "Portable directory not found"
+              exit 1
           }
-          Compress-Archive -Path out\Prizrak-Box*\* -DestinationPath "windows-${{ matrix.arch }}-app.zip"
-          Compress-Archive -Path out\make\wix\$arch\* -DestinationPath "windows-${{ matrix.arch }}-msi.zip"
+
+          # Find and rename MSI package
+          $msiFile = Get-ChildItem -Path "out\make\wix\$electronArch" -Filter "*.msi" | Select-Object -First 1
+          if ($msiFile) {
+              Write-Host "Found MSI file: $($msiFile.FullName)"
+              Copy-Item -Path $msiFile.FullName -Destination "windows-${arch}.msi"
+          } else {
+              Write-Error "MSI file not found in out\make\wix\$electronArch"
+              exit 1
+          }
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
@@ -93,7 +115,7 @@ jobs:
           draft: false
           prerelease: true
           files: |
-            windows-${{ matrix.arch }}-app.zip
-            windows-${{ matrix.arch }}-msi.zip
+            windows-${{ matrix.arch }}.zip
+            windows-${{ matrix.arch }}.msi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
