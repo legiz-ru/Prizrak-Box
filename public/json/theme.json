@@ -55,7 +55,12 @@
   },
   {
     "id": "handle",
-    "bg": "url('/images/handle.jpg')"
+    "bg": [
+      "url('/images/shaurma1.jpg')",
+      "url('/images/shaurma2.jpg')",
+      "url('/images/shaurma3.jpg')",
+      "url('/images/sharuma4.jpg')"
+    ]
   },
   {
     "id": "comics",

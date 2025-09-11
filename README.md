@@ -18,12 +18,12 @@
 
 ## 📦 Project Overview | 项目简介 | Обзор проекта
 
-**Prizrak-Box** is a lightweight and user-friendly cross-platform client for [Mihomo](https://github.com/MetaCubeX/mihomo), supporting multiple proxy protocols, automatic rule grouping, and TUN mode.  
+**Prizrak-Box** is a lightweight and user-friendly cross-platform client (fork of [Pandora-Box](https://github.com/snakem982/Pandora-Box)) for [Mihomo](https://github.com/MetaCubeX/mihomo), supporting multiple proxy protocols, automatic rule grouping, TUN mode, and functionality relevant for Russia.  
 It is designed for both casual and advanced users to easily manage and convert proxy subscriptions.
 
-**Prizrak-Box** 是一个跨平台的轻量桌面客户端，适配 [Mihomo](https://github.com/MetaCubeX/mihomo) 内核，支持多种代理协议、规则自动分组与 TUN 模式。界面简洁，功能强大，适合轻量与进阶用户使用。
+**Prizrak-Box** 是一个跨平台的轻量桌面客户端（[Pandora-Box](https://github.com/snakem982/Pandora-Box) 的分支项目），适配 [Mihomo](https://github.com/MetaCubeX/mihomo) 内核，支持多种代理协议、规则自动分组与 TUN 模式，并具备适用于俄罗斯的相关功能。界面简洁，功能强大，适合轻量与进阶用户使用。
 
-**Prizrak-Box** — это легкий и удобный кроссплатформенный клиент для [Mihomo](https://github.com/MetaCubeX/mihomo), поддерживающий различные прокси-протоколы, автоматическую группировку правил и режим TUN.  
+**Prizrak-Box** — это легкий и удобный кроссплатформенный клиент (форк [Pandora-Box](https://github.com/snakem982/Pandora-Box)) для [Mihomo](https://github.com/MetaCubeX/mihomo), поддерживающий различные прокси-протоколы, автоматическую группировку правил, режим TUN и функционал, актуальный для России.  
 Он разработан как для обычных пользователей, так и для продвинутых, чтобы облегчить управление и конвертацию подписок прокси.
 
 ---
