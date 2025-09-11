@@ -88,7 +88,7 @@ jobs:
           $electronArch = if ($arch -eq "amd64") { "x64" } else { $arch }
 
           # Find portable app directory and compress with new name
-          $portableDir = Get-ChildItem -Path "out" -Directory | Where-Object { $_.Name -like "Pandora-Box*" } | Select-Object -First 1
+          $portableDir = Get-ChildItem -Path "out" -Directory | Where-Object { $_.Name -like "Prizrak-Box*" } | Select-Object -First 1
           if ($portableDir) {
               Write-Host "Found portable directory: $($portableDir.FullName)"
               Compress-Archive -Path "$($portableDir.FullName)\*" -DestinationPath "windows-${arch}.zip"
