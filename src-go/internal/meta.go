@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/metacubex/mihomo/hub/executor"
 	"github.com/metacubex/mihomo/tunnel"
-	"github.com/snakem982/pandora-box/pkg/constant"
-	sysProxy "github.com/snakem982/pandora-box/pkg/sys/proxy"
+	"github.com/legiz-ru/prizrak-box/pkg/constant"
+	sysProxy "github.com/legiz-ru/prizrak-box/pkg/sys/proxy"
 	"io"
 	"os"
 	"runtime"
@@ -16,9 +16,9 @@ import (
 	C "github.com/metacubex/mihomo/constant"
 	"github.com/metacubex/mihomo/log"
 	plog "github.com/sirupsen/logrus"
-	"github.com/snakem982/pandora-box/api/models"
-	"github.com/snakem982/pandora-box/pkg/cache"
-	"github.com/snakem982/pandora-box/pkg/utils"
+	"github.com/legiz-ru/prizrak-box/api/models"
+	"github.com/legiz-ru/prizrak-box/pkg/cache"
+	"github.com/legiz-ru/prizrak-box/pkg/utils"
 )
 
 // Init meta 启动前的初始化
@@ -129,7 +129,7 @@ func startCore(profile models.Profile, reload bool) {
 		}
 	}
 
-	// Pandora-Box 默认配置
+	// Prizrak-Box 默认配置
 	rawCfg.Port = 0
 	rawCfg.SocksPort = 0
 	rawCfg.TProxyPort = 0
@@ -140,7 +140,7 @@ func startCore(profile models.Profile, reload bool) {
 	rawCfg.Tun.DNSHijack = []string{"any:53"}
 	rawCfg.Tun.AutoRoute = true
 	rawCfg.Tun.AutoDetectInterface = true
-	rawCfg.Tun.Device = "Pandora"
+	rawCfg.Tun.Device = "Prizrak"
 	rawCfg.UnifiedDelay = true
 
 	// 从数据库中获取 mihomo 配置,进行 rawCfg 赋值

@@ -4,9 +4,9 @@ import (
 	"flag"
 	"github.com/metacubex/mihomo/hub/executor"
 	"github.com/metacubex/mihomo/log"
-	"github.com/snakem982/pandora-box/pandora"
-	sys "github.com/snakem982/pandora-box/pkg/sys/proxy"
-	"github.com/snakem982/pandora-box/pkg/utils"
+	"github.com/legiz-ru/prizrak-box/prizrak"
+	sys "github.com/legiz-ru/prizrak-box/pkg/sys/proxy"
+	"github.com/legiz-ru/prizrak-box/pkg/utils"
 	"go.uber.org/automaxprocs/maxprocs"
 	"net/url"
 	"os"
@@ -48,17 +48,17 @@ func main() {
 	}
 
 	// 初始化工作目录
-	pandora.Init()
+	prizrak.Init()
 
 	// 开启后端api
-	pandora.StartCore(*addr)
+	prizrak.StartCore(*addr)
 
 	termSign := make(chan os.Signal, 1)
 	signal.Notify(termSign, syscall.SIGINT, syscall.SIGTERM)
 	select {
 	case <-termSign:
 		log.Warnln("received termination signal")
-		pandora.Release()
+		prizrak.Release()
 		utils.UnlockSingleton()
 		executor.Shutdown()
 		sys.DisableProxy()

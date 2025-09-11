@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	sys "github.com/snakem982/pandora-box/pkg/sys/cmd"
+	sys "github.com/legiz-ru/prizrak-box/pkg/sys/cmd"
 	"io"
 	"net/textproto"
 	"regexp"

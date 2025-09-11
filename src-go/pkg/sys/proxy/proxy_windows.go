@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	sys "github.com/snakem982/pandora-box/pkg/sys/cmd"
+	sys "github.com/legiz-ru/prizrak-box/pkg/sys/cmd"
 )
 
 func OffAll() error {
