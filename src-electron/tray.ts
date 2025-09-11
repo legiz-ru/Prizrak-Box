@@ -76,7 +76,7 @@ ipcMain.on('update-menu', (event, menuTemplate) => {
 
 const initMenu = () => createMenu([
     {
-        label: 'Pandora-Box', submenu: [
+        label: 'Prizrak-Box', submenu: [
             {
                 label: 'Quit', accelerator: 'Cmd+Q', click: readyToQuit
             }
@@ -214,7 +214,7 @@ export function initTray(browserWindow: BrowserWindow): void {
         trayImage = nativeImage.createFromPath(path.join(__dirname, 'tray.png')).resize({width: 32, height: 32});
     }
     tray = new Tray(trayImage);
-    tray.setToolTip('Pandora-Box');
+    tray.setToolTip('Prizrak-Box');
     tray.setContextMenu(Menu.buildFromTemplate(createTrayMenu()))
 
     // 左键点击时弹出菜单

@@ -1,12 +1,12 @@
 <div align="center">
-  <img src="../build/appicon.png" style="width:160px" alt="Pandora-Box"/>
-  <h1>Pandora-Box</h1>
+  <img src="../build/appicon.png" style="width:160px" alt="Prizrak-Box"/>
+  <h1>Prizrak-Box</h1>
   <p>A simple desktop client for Mihomo</p>
 </div>
 
 ## Download
 
-[Download the App](https://github.com/snakem982/Pandora-Box/releases)
+[Download the App](https://github.com/legiz-ru/Prizrak-Box/releases)
 
 ## Features
 

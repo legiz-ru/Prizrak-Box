@@ -3,7 +3,7 @@ package constant
 import _ "embed"
 
 const (
-	DefaultWorkDir     = "Pandora-Box-V3"
+	DefaultWorkDir     = "Prizrak-Box-V3"
 	DefaultCrawlDir    = "crawl"
 	DefaultTemplateDir = "template"
 	DefaultServerDB    = "px-server.db"
@@ -35,5 +35,5 @@ const (
 	CollectSingBox   = "sing"
 )
 
-const PandoraVersionUrl = "https://raw.githubusercontent.com/snakem982/Pandora-Box/main/backend/constant/version.txt"
-const PandoraDownloadUrl = "https://github.com/snakem982/Pandora-Box/releases/download/%s/%s-%s.zip"
+const PrizrakVersionUrl = "https://raw.githubusercontent.com/legiz-ru/Prizrak-Box/main/backend/constant/version.txt"
+const PrizrakDownloadUrl = "https://github.com/legiz-ru/Prizrak-Box/releases/download/%s/%s-%s.zip"

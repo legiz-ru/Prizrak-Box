@@ -5,7 +5,7 @@ import createRuleApi from "./rule";
 import createProfilesApi from "@/api/profiles";
 import createDnsApi from "@/api/dns";
 import createMihomoApi from "@/api/mihomo";
-import createPandoraApi from "@/api/pandora";
+import createPrizrakApi from "@/api/prizrak";
 
 export default function createApi(proxy: any) {
     return {
@@ -49,10 +49,10 @@ export default function createApi(proxy: any) {
         updateMihomo: createMihomoApi(proxy).updateMihomo,
         waitRunning: createMihomoApi(proxy).waitRunning,
         getAdmin: createMihomoApi(proxy).getAdmin,
-        enableProxy: createPandoraApi(proxy).enableProxy,
-        disableProxy: createPandoraApi(proxy).disableProxy,
-        checkAddressPort: createPandoraApi(proxy).checkAddressPort,
-        configDir: createPandoraApi(proxy).configDir,
-        exit: createPandoraApi(proxy).exit,
+        enableProxy: createPrizrakApi(proxy).enableProxy,
+        disableProxy: createPrizrakApi(proxy).disableProxy,
+        checkAddressPort: createPrizrakApi(proxy).checkAddressPort,
+        configDir: createPrizrakApi(proxy).configDir,
+        exit: createPrizrakApi(proxy).exit,
     };
 }

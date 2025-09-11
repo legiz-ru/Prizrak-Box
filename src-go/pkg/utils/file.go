@@ -3,7 +3,7 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"github.com/snakem982/pandora-box/pkg/constant"
+	"github.com/legiz-ru/prizrak-box/pkg/constant"
 	"io"
 	"os"
 	"os/exec"

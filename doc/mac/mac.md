@@ -23,5 +23,5 @@
 打开终端，输入以下命令，后面是app的具体路径，不知道？可以直接将app拖入终端即可看到路径
 
 ```shell
-xattr -rd com.apple.quarantine /Applications/Pandora-Box.app
+xattr -rd com.apple.quarantine /Applications/Prizrak-Box.app
 ```

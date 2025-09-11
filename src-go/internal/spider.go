@@ -9,11 +9,11 @@ import (
 	mu "github.com/metacubex/mihomo/common/utils"
 	"github.com/metacubex/mihomo/config"
 	"github.com/metacubex/mihomo/log"
-	"github.com/snakem982/pandora-box/api/models"
-	"github.com/snakem982/pandora-box/pkg/cache"
-	"github.com/snakem982/pandora-box/pkg/constant"
-	"github.com/snakem982/pandora-box/pkg/proxy"
-	"github.com/snakem982/pandora-box/pkg/utils"
+	"github.com/legiz-ru/prizrak-box/api/models"
+	"github.com/legiz-ru/prizrak-box/pkg/cache"
+	"github.com/legiz-ru/prizrak-box/pkg/constant"
+	"github.com/legiz-ru/prizrak-box/pkg/proxy"
+	"github.com/legiz-ru/prizrak-box/pkg/utils"
 	"gopkg.in/yaml.v3"
 	"regexp"
 	"strings"
@@ -303,8 +303,8 @@ func UrlTest(proxies []map[string]any, testUrl string) []map[string]any {
 
 			ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*4500)
 			defer cancel()
-			pass := adapter.NewProxy(proxyAdapter).URLTestByPandora(ctx, url, expectedStatus)
-			if pass {
+			_, err = adapter.NewProxy(proxyAdapter).URLTest(ctx, url, expectedStatus)
+			if err == nil {
 				m.Lock()
 				result = append(result, pp)
 				m.Unlock()

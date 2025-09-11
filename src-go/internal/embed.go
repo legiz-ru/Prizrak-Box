@@ -12,7 +12,7 @@ var Template_1 []byte
 var Template_2 []byte
 
 //go:embed em/config_download.yaml
-var PandoraDefaultDownloadConfig []byte
+var PrizrakDefaultDownloadConfig []byte
 
 //go:embed em/geoip.metadb
 var GeoIp []byte

@@ -2,8 +2,8 @@ package job
 
 import (
 	"github.com/metacubex/mihomo/log"
-	"github.com/snakem982/pandora-box/pkg/cron"
-	"github.com/snakem982/pandora-box/pkg/utils"
+	"github.com/legiz-ru/prizrak-box/pkg/cron"
+	"github.com/legiz-ru/prizrak-box/pkg/utils"
 	"os"
 	"sync"
 	"time"

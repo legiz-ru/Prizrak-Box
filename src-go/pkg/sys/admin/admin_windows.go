@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	sys "github.com/snakem982/pandora-box/pkg/sys/cmd"
+	sys "github.com/legiz-ru/prizrak-box/pkg/sys/cmd"
 	"golang.org/x/sys/windows"
 )
 

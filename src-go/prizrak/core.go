@@ -1,17 +1,17 @@
-package pandora
+package prizrak
 
 import (
 	"fmt"
 	"github.com/metacubex/mihomo/hub/route"
 	"github.com/metacubex/mihomo/log"
-	"github.com/snakem982/pandora-box/api"
-	"github.com/snakem982/pandora-box/api/handlers"
-	"github.com/snakem982/pandora-box/api/job"
-	"github.com/snakem982/pandora-box/internal"
-	"github.com/snakem982/pandora-box/pkg/cache"
-	"github.com/snakem982/pandora-box/pkg/constant"
-	"github.com/snakem982/pandora-box/pkg/cron"
-	"github.com/snakem982/pandora-box/pkg/utils"
+	"github.com/legiz-ru/prizrak-box/api"
+	"github.com/legiz-ru/prizrak-box/api/handlers"
+	"github.com/legiz-ru/prizrak-box/api/job"
+	"github.com/legiz-ru/prizrak-box/internal"
+	"github.com/legiz-ru/prizrak-box/pkg/cache"
+	"github.com/legiz-ru/prizrak-box/pkg/constant"
+	"github.com/legiz-ru/prizrak-box/pkg/cron"
+	"github.com/legiz-ru/prizrak-box/pkg/utils"
 	"time"
 )
 
@@ -30,7 +30,7 @@ func StartCore(server string) (port int, secret string) {
 	route.Register(handlers.Rule)
 	route.Register(handlers.DNS)
 	route.Register(handlers.Mihomo)
-	route.Register(handlers.Pandora)
+	route.Register(handlers.Prizrak)
 
 	// 设置地址
 	host := "127.0.0.1"

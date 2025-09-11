@@ -1,6 +1,6 @@
 {
-  "name": "Pandora-Box",
-  "productName": "Pandora-Box",
+  "name": "Prizrak-Box",
+  "productName": "Prizrak-Box",
   "version": "1.0.1",
   "description": "A Simple Mihomo GUI",
   "main": ".vite/build/main.js",
@@ -13,8 +13,8 @@
   },
   "keywords": [],
   "author": {
-    "name": "snakem982",
-    "email": "snakem982@gmail.com"
+    "name": "legiz-ru",
+    "email": "legiz-ru@gmail.com"
   },
   "license": "GPL-3.0",
   "devDependencies": {

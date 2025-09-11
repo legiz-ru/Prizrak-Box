@@ -2,9 +2,9 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/snakem982/pandora-box/pkg/cache"
-	"github.com/snakem982/pandora-box/pkg/constant"
-	sys "github.com/snakem982/pandora-box/pkg/sys/proxy"
+	"github.com/legiz-ru/prizrak-box/pkg/cache"
+	"github.com/legiz-ru/prizrak-box/pkg/constant"
+	sys "github.com/legiz-ru/prizrak-box/pkg/sys/proxy"
 )
 
 // GetProxyUrl 获取代理

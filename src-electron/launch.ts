@@ -6,7 +6,7 @@ import AutoLaunch from 'auto-launch';
 import log from './log';
 import {storeGet, storeSet} from './store';
 
-const APP_NAME = 'Pandora-Box';
+const APP_NAME = 'Prizrak-Box';
 const BOOT_FLAG = '--boot-launch';
 
 let autoLauncher = createAutoLauncher();

@@ -1,12 +1,12 @@
 <div align="center">
-  <img src="../build/appicon.png" style="width:160px" alt="Pandora-Box"/>
-  <h1>Pandora-Box</h1>
+  <img src="../build/appicon.png" style="width:160px" alt="Prizrak-Box"/>
+  <h1>Prizrak-Box</h1>
   <p>一个简易的 Mihomo 桌面客户端</p>
 </div>
 
 ## 下载地址
 
-[下载APP](https://github.com/snakem982/Pandora-Box/releases)
+[下载APP](https://github.com/legiz-ru/Prizrak-Box/releases)
 
 ## 功能特点
 
