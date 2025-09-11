@@ -39,7 +39,7 @@ const config: ForgeConfig = {
         new MakerRpm({
             options: {
                 icon: 'build/appicon.png',
-                homepage: 'https://github.com/snakem982/Pandora-Box',
+                homepage: 'https://github.com/legiz-ru/Prizrak-Box',
             }
         }),
         new MakerDeb({

@@ -58,7 +58,7 @@ jobs:
         run: |
           cd src-go
           go build -tags=with_gvisor -trimpath `
-            -ldflags "-s -w -X github.com/snakem982/pandora-box/api.Version=$env:VERSION" `
+            -ldflags "-s -w -X github.com/legiz-ru/prizrak-box/api.Version=$env:VERSION" `
             -o px.exe
 
       - name: Sync VERSION to package.json
@@ -82,7 +82,7 @@ jobs:
           if ($arch -eq "amd64") {
             $arch = "x64"
           }
-          Compress-Archive -Path out\Pandora-Box*\* -DestinationPath "windows-${{ matrix.arch }}-app.zip"
+          Compress-Archive -Path out\Prizrak-Box*\* -DestinationPath "windows-${{ matrix.arch }}-app.zip"
           Compress-Archive -Path out\make\wix\$arch\* -DestinationPath "windows-${{ matrix.arch }}-msi.zip"
 
       - name: Create GitHub Release
