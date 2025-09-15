@@ -141,24 +141,33 @@ func exitPx(w http.ResponseWriter, r *http.Request) {
 }
 
 func getSettings(w http.ResponseWriter, r *http.Request) {
+	log.Printf("getSettings: API endpoint called")
 	settingsData := settings.Get()
+	log.Printf("getSettings: Returning settings: HWID=%v", settingsData.HWID)
 	render.JSON(w, r, settingsData)
 }
 
 func setHWIDSetting(w http.ResponseWriter, r *http.Request) {
+	log.Printf("setHWIDSetting: API endpoint called")
+	
 	var req struct {
 		HWID bool `json:"hwid"`
 	}
 	
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
+		log.Printf("setHWIDSetting: Failed to decode request body: %v", err)
 		ErrorResponse(w, r, err)
 		return
 	}
+
+	log.Printf("setHWIDSetting: Received request to set HWID to: %v", req.HWID)
 
 	if err := settings.SetHWIDSetting(req.HWID); err != nil {
+		log.Printf("setHWIDSetting: Failed to set HWID setting: %v", err)
 		ErrorResponse(w, r, err)
 		return
 	}
 
+	log.Printf("setHWIDSetting: Successfully set HWID to: %v", req.HWID)
 	render.NoContent(w, r)
 }

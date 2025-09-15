@@ -27,6 +27,9 @@ const {t} = useI18n()
 // 使用路由
 const router = useRouter()
 
+// Initialization flag to prevent watcher from firing during initial load
+let isInitialLoad = true;
+
 // 数据监听
 // dns
 watch(() => settingStore.dns, (newValue) => {
@@ -48,12 +51,54 @@ watch(() => settingStore.ipv6, (newValue) => {
 });
 
 // hwid
-watch(() => settingStore.hwid, async (newValue) => {
-  // 更新后端配置
-  try {
-    await api.prizrak.setHWIDSetting(newValue);
-  } catch (error) {
-    console.error('Failed to update HWID setting:', error);
+watch(() => settingStore.hwid, async (newValue, oldValue) => {
+  console.log(`[HWID Toggle] HWID setting changed from ${oldValue} to ${newValue}, isInitialLoad: ${isInitialLoad}`);
+  
+  // Skip the initial load
+  if (isInitialLoad || oldValue === undefined) {
+    console.log(`[HWID Toggle] Skipping - initial load or oldValue is undefined`);
+    return;
+  }
+  
+  // 更新后端配置 with retry and verification
+  const maxRetries = 3;
+  let retryCount = 0;
+  
+  while (retryCount < maxRetries) {
+    try {
+      console.log(`[HWID Toggle] Calling API to set HWID to: ${newValue} (attempt ${retryCount + 1}/${maxRetries})`);
+      await api.prizrak.setHWIDSetting(newValue);
+      console.log(`[HWID Toggle] API call successful, verifying backend state...`);
+      
+      // Verify the setting was actually saved
+      const backendSettings = await api.prizrak.getSettings();
+      console.log(`[HWID Toggle] Backend verification - HWID is now: ${backendSettings.hwid}`);
+      
+      if (backendSettings.hwid === newValue) {
+        console.log(`[HWID Toggle] Verification successful: backend HWID matches UI setting (${newValue})`);
+        break; // Success, exit retry loop
+      } else {
+        throw new Error(`Backend verification failed: expected ${newValue}, got ${backendSettings.hwid}`);
+      }
+    } catch (error) {
+      retryCount++;
+      console.error(`[HWID Toggle] Failed to update HWID setting (attempt ${retryCount}/${maxRetries}):`, error);
+      
+      if (retryCount >= maxRetries) {
+        console.error(`[HWID Toggle] All retry attempts failed. Could not sync HWID setting to backend.`);
+        // Revert the UI setting to match backend
+        try {
+          const backendSettings = await api.prizrak.getSettings();
+          console.log(`[HWID Toggle] Reverting UI to backend state: ${backendSettings.hwid}`);
+          settingStore.setHwid(backendSettings.hwid);
+        } catch (revertError) {
+          console.error(`[HWID Toggle] Could not revert UI setting:`, revertError);
+        }
+      } else {
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
   }
 });
 
@@ -80,13 +125,26 @@ function checkUpdate() {
 
 // 加载初始设置
 onMounted(async () => {
+  console.log('[Settings Load] Loading initial settings from backend...');
   try {
     const settings = await api.prizrak.getSettings();
+    console.log('[Settings Load] Received settings from backend:', settings);
+    
     if (settings && typeof settings.hwid !== 'undefined') {
+      console.log(`[Settings Load] Setting HWID in store to: ${settings.hwid} (backend authoritative)`);
       settingStore.setHwid(settings.hwid);
+      console.log(`[Settings Load] Current HWID in store after update: ${settingStore.hwid}`);
+    } else {
+      console.warn('[Settings Load] No HWID setting received from backend');
     }
   } catch (error) {
-    console.error('Failed to load settings:', error);
+    console.error('[Settings Load] Failed to load settings:', error);
+  } finally {
+    // Mark initial load as complete after a small delay
+    setTimeout(() => {
+      isInitialLoad = false;
+      console.log('[Settings Load] Initial load complete, watchers now active');
+    }, 1000);
   }
 });
 
