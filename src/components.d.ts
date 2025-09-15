@@ -46,6 +46,7 @@ declare module 'vue' {
     IconMdiEye: typeof import('~icons/mdi/eye')['default']
     IconMdiEyeArrowRight: typeof import('~icons/mdi/eye-arrow-right')['default']
     IconMdiEyeOff: typeof import('~icons/mdi/eye-off')['default']
+    IconMdiFaceAgent: typeof import('~icons/mdi/face-agent')['default']
     IconMdiFolderOpen: typeof import('~icons/mdi/folder-open')['default']
     IconMdiHome: typeof import('~icons/mdi/home')['default']
     IconMdiHomeImportOutline: typeof import('~icons/mdi/home-import-outline')['default']

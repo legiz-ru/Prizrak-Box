@@ -1,5 +1,5 @@
-// 排除的分组类型
-const exclude: any = {
+// 排除的分组名字
+const excludeGroupName: any = {
     DIRECT: true,
     REJECT: true,
     "REJECT-DROP": true,
@@ -7,8 +7,18 @@ const exclude: any = {
     COMPATIBLE: true
 }
 
+// 不排除的分组类型
+const includeGroup: any = {
+    Selector: true,
+    URLTest: true,
+    Fallback: true,
+    LoadBalance: true,
+    Smart: true,
+    Relay: true
+}
+
 // 不排除的节点类型
-const include: any = {
+const includeProxy: any = {
     Direct: true,
     Reject: true,
     RejectDrop: true,
@@ -68,21 +78,22 @@ export default function createProxiesApi(proxy: any) {
             }
 
             // 获取分组
-            const group: any[] = []
+            const proxyGroup: any[] = []
             for (const name of proxies['GLOBAL']['all']) {
-                if (exclude[name]) {
+                if (excludeGroupName[name]) {
                     continue
                 }
-                if (!include[proxies[name]['type']]) {
+                const group:any = proxies[name]
+                if (!includeGroup[group['type']]) {
                     continue
                 }
-                if (!!proxies[name]['hidden']) {
+                if (!!group['hidden']) {
                     continue
                 }
-                group.push(name)
+                proxyGroup.push(name)
             }
 
-            return group
+            return proxyGroup
         },
         // 获取相应的分组节点列表
         async getProxies(active: string, isHide: boolean, isSort: boolean) {
@@ -106,7 +117,7 @@ export default function createProxiesApi(proxy: any) {
                 const proxy = proxies[name]
                 const type = proxy['type'];
                 const delay = getDelay(proxy)
-                if (include[type]) {
+                if (includeProxy[type]) {
                     inProxies.push({
                         name,
                         type,

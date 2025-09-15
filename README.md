@@ -78,7 +78,6 @@ npm run start
 
 - ✅ [Project Issues](https://github.com/legiz-ru/Prizrak-Box/issues)
 - 📄 [License (GPL-3.0)](./LICENSE)
-- ❤️ Powered by [ZMTO](https://zmto.com "Powered by ZMTO - Free VPS for Open Source Contributors")
 
 ---
 

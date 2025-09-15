@@ -12,12 +12,12 @@
 
 - 支持本地 HTTP/HTTPS/SOCKS 代理
 - 支持 Vmess, Vless, Shadowsocks, Trojan, Tuic, Hysteria, Hysteria2, Wireguard, Mieru 协议
-- 支持分享链接、订阅链接、Base64 格式、Yaml 格式的数据解析
-- 内置订阅转换，可将各种订阅转换为 mihomo 配置
+- 支持分享链接、订阅链接、Base64 格式、Yaml 格式、Json 格式的数据解析
+- 内置订阅转换，可将clash、v2ray、sing-box订阅转换为 mihomo 配置
 - 对无规则订阅自动添加极简规则分组
 - 开启 DNS 覆写可防止 DNS 泄露
-- 支持统一所有订阅的规则和分组
-- 支持 TUN 模式
+- 支持统一所有订阅的规则和分组，支持自定义模版规则和分组
+- 支持 TUN 模式 和 Smart 智能分组
 
 ## 支持的系统平台
 

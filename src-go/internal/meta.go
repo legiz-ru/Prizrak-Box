@@ -120,6 +120,11 @@ func startCore(profile models.Profile, reload bool) {
 				rawCfg.ProxyProvider = provider
 			}
 		}
+		if len(rawCfg.ProxyProvider) > 1 {
+			for key, value := range rawCfg.ProxyProvider {
+				value["override"] = map[string]string{"additional-suffix": "-" + key}
+			}
+		}
 		if len(proxy) > 0 {
 			if len(rawCfg.Proxy) > 0 {
 				rawCfg.Proxy = append(rawCfg.Proxy, proxy...)
