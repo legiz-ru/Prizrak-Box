@@ -13,6 +13,7 @@ import (
 	"github.com/legiz-ru/prizrak-box/api/models"
 	"github.com/legiz-ru/prizrak-box/pkg/cache"
 	"github.com/legiz-ru/prizrak-box/pkg/constant"
+	"github.com/legiz-ru/prizrak-box/pkg/settings"
 	sys "github.com/legiz-ru/prizrak-box/pkg/sys/proxy"
 	"github.com/legiz-ru/prizrak-box/pkg/utils"
 	"net/http"
@@ -37,6 +38,10 @@ func PrizrakRouter() chi.Router {
 
 	// 配置目录
 	r.Get("/configDir", configDir)
+
+	// 设置相关
+	r.Get("/settings", getSettings)
+	r.Put("/settings/hwid", setHWIDSetting)
 
 	// 退出px
 	r.Get("/exit", exitPx)
@@ -133,4 +138,27 @@ func exitPx(w http.ResponseWriter, r *http.Request) {
 	job.Exit(false)
 	render.PlainText(w, r, "ok")
 	os.Exit(0)
+}
+
+func getSettings(w http.ResponseWriter, r *http.Request) {
+	settingsData := settings.Get()
+	render.JSON(w, r, settingsData)
+}
+
+func setHWIDSetting(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		HWID bool `json:"hwid"`
+	}
+	
+	if err := render.DecodeJSON(r.Body, &req); err != nil {
+		ErrorResponse(w, r, err)
+		return
+	}
+
+	if err := settings.SetHWIDSetting(req.HWID); err != nil {
+		ErrorResponse(w, r, err)
+		return
+	}
+
+	render.NoContent(w, r)
 }

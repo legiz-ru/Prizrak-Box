@@ -8,6 +8,7 @@ require (
 	github.com/go-co-op/gocron v1.37.0
 	github.com/gobwas/ws v1.4.0
 	github.com/gofrs/flock v0.12.1
+	github.com/google/uuid v1.6.0
 	github.com/metacubex/bbolt v0.0.0-20250725135710-010dbbbb7a5b
 	github.com/metacubex/mihomo v1.19.12
 	github.com/panjf2000/ants/v2 v2.11.3
@@ -42,7 +43,6 @@ require (
 	github.com/gofrs/uuid/v5 v5.3.2 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/yamux v0.1.2 // indirect
 	github.com/insomniacslk/dhcp v0.0.0-20250417080101-5f8cf70e8c5f // indirect
 	github.com/josharian/native v1.1.0 // indirect

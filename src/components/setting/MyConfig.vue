@@ -47,6 +47,16 @@ watch(() => settingStore.ipv6, (newValue) => {
   });
 });
 
+// hwid
+watch(() => settingStore.hwid, async (newValue) => {
+  // 更新后端配置
+  try {
+    await api.prizrak.setHWIDSetting(newValue);
+  } catch (error) {
+    console.error('Failed to update HWID setting:', error);
+  }
+});
+
 // 开机自启
 watch(() => settingStore.startup, (newValue) => {
   // 更新配置
@@ -67,6 +77,18 @@ function checkUpdate() {
   // @ts-ignore
   window["pxOpen"](url)
 }
+
+// 加载初始设置
+onMounted(async () => {
+  try {
+    const settings = await api.prizrak.getSettings();
+    if (settings && typeof settings.hwid !== 'undefined') {
+      settingStore.setHwid(settings.hwid);
+    }
+  } catch (error) {
+    console.error('Failed to load settings:', error);
+  }
+});
 
 </script>
 
@@ -145,6 +167,13 @@ function checkUpdate() {
         </div>
         <hr/>
         <ul class="info-list">
+          <li>
+            <strong>HWID :</strong>
+            <el-switch
+                v-model="settingStore.hwid"
+                class="set-switch"
+            />
+          </li>
           <li>
             <strong>{{ $t('setting.px.startup') }} :</strong>
             <el-switch

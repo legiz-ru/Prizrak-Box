@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"github.com/legiz-ru/prizrak-box/pkg/settings"
 )
 
 // 全局超时设置
@@ -65,8 +66,8 @@ func sendRequest(method, requestURL string, headers map[string]string, proxyURL 
 	return sendRequestWithOptions(method, requestURL, headers, proxyURL, timeout, false)
 }
 
-// sendRequestWithOptions 发送 HTTP 请求，支持设备头部选项
-func sendRequestWithOptions(method, requestURL string, headers map[string]string, proxyURL string, timeout time.Duration, includeDeviceHeaders bool) (*http.Response, error) {
+// sendRequestWithConfig 发送 HTTP 请求，支持自定义配置
+func sendRequestWithConfig(method, requestURL string, headers map[string]string, proxyURL string, timeout time.Duration, userAgent string, includeDeviceHeaders bool) (*http.Response, error) {
 	client, err := newHttpClient(proxyURL, timeout)
 	if err != nil {
 		return nil, err
@@ -82,12 +83,14 @@ func sendRequestWithOptions(method, requestURL string, headers map[string]string
 		req.Header.Set(k, v)
 	}
 
-	// 设置默认 User-Agent
-	if _, ok := headers["User-Agent"]; !ok {
+	// 设置 User-Agent
+	if userAgent != "" {
+		req.Header.Set("User-Agent", userAgent)
+	} else if _, ok := headers["User-Agent"]; !ok {
 		req.Header.Set("User-Agent", defaultUserAgent)
 	}
 
-	// 添加设备信息头部（仅用于订阅请求）
+	// 添加设备信息头部（如果需要）
 	if includeDeviceHeaders {
 		deviceHeaders := GetDeviceHeaders()
 		for k, v := range deviceHeaders {
@@ -104,6 +107,11 @@ func sendRequestWithOptions(method, requestURL string, headers map[string]string
 	}
 
 	return resp, nil
+}
+
+// sendRequestWithOptions 发送 HTTP 请求，支持设备头部选项（保持向后兼容）
+func sendRequestWithOptions(method, requestURL string, headers map[string]string, proxyURL string, timeout time.Duration, includeDeviceHeaders bool) (*http.Response, error) {
+	return sendRequestWithConfig(method, requestURL, headers, proxyURL, timeout, "", includeDeviceHeaders)
 }
 
 // SendGet 发送 GET 请求，返回响应内容和头部
@@ -278,4 +286,76 @@ func FastGetWithDeviceHeaders(requestURL string, headers map[string]string, prox
 	}
 
 	return nil, fmt.Errorf("请求失败，未知原因")
+}
+
+// FastGetWithConfig 并发 GET 请求，支持自定义 User-Agent 和设备头部配置
+func FastGetWithConfig(requestURL string, headers map[string]string, proxyURL string, userAgent string, includeDeviceHeaders bool) (*ResponseResult, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), FastTimeOut)
+	defer cancel()
+
+	results := make(chan *ResponseResult, 2)
+	errors := make(chan error, 2)
+
+	send := func(useProxy bool) {
+		var proxy string
+		if useProxy {
+			proxy = proxyURL
+		}
+
+		resp, err := sendRequestWithConfig("GET", requestURL, headers, proxy, ConnTimeOut, userAgent, includeDeviceHeaders)
+		if err != nil {
+			errors <- err
+			return
+		}
+		defer closeResponseBody(resp.Body)
+
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil || len(bodyBytes) == 0 {
+			if err == nil {
+				err = fmt.Errorf("响应内容为空")
+			}
+			errors <- err
+			return
+		}
+
+		select {
+		case results <- &ResponseResult{Body: html.UnescapeString(string(bodyBytes)), Headers: resp.Header}:
+		case <-ctx.Done():
+		}
+	}
+
+	go send(true)
+	go send(false)
+
+	var errList []string
+	for i := 0; i < 2; i++ {
+		select {
+		case result := <-results:
+			return result, nil
+		case err := <-errors:
+			errList = append(errList, err.Error())
+			// 如果两个都失败，立即返回
+			if len(errList) == 2 {
+				return nil, fmt.Errorf("请求失败[1]: %s", strings.Join(errList, " | "))
+			}
+		case <-ctx.Done():
+			if len(errList) == 0 {
+				return nil, fmt.Errorf("请求超时，未收到任何响应")
+			}
+			return nil, fmt.Errorf("请求失败[2]: %s", strings.Join(errList, " | "))
+		}
+	}
+
+	// 理论上不会到这里，但作为兜底处理
+	if len(errList) > 0 {
+		return nil, fmt.Errorf("请求失败[3]: %s", strings.Join(errList, " | "))
+	}
+
+	return nil, fmt.Errorf("请求失败，未知原因")
+}
+// FastGetForSubscription 用于订阅的 GET 请求，根据设置自动选择 User-Agent 和设备头部
+func FastGetForSubscription(requestURL string, headers map[string]string, proxyURL string) (*ResponseResult, error) {
+	userAgent := settings.GetUserAgent()
+	includeDeviceHeaders := settings.ShouldIncludeDeviceHeaders()
+	return FastGetWithConfig(requestURL, headers, proxyURL, userAgent, includeDeviceHeaders)
 }

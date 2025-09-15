@@ -245,7 +245,7 @@ func Worker(url string, proxies *[]map[string]any, headers map[string]string, de
 	}()
 
 	// 并发Get请求
-	resp, err = utils.FastGetWithDeviceHeaders(url, headers, proxy.GetProxyUrl())
+	resp, err = utils.FastGetForSubscription(url, headers, proxy.GetProxyUrl())
 	if err != nil {
 		return
 	}
