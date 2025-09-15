@@ -54,5 +54,6 @@ export default function createApi(proxy: any) {
         checkAddressPort: createPrizrakApi(proxy).checkAddressPort,
         configDir: createPrizrakApi(proxy).configDir,
         exit: createPrizrakApi(proxy).exit,
+        updateHTTPClientConfig: createPrizrakApi(proxy).updateHTTPClientConfig,
     };
 }

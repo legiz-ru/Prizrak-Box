@@ -23,6 +23,11 @@ const exit = (proxy: any) => async function () {
     return await proxy.$http.get('/prizrak/exit');
 }
 
+// 更新HTTP客户端配置
+const updateHTTPClientConfig = (proxy: any) => async function (config: any) {
+    return await proxy.$http.put('/prizrak/httpClientConfig', config);
+}
+
 export default function createPrizrakApi(proxy: any) {
     return {
         enableProxy: enableProxy(proxy),
@@ -30,5 +35,6 @@ export default function createPrizrakApi(proxy: any) {
         checkAddressPort: checkAddressPort(proxy),
         configDir: configDir(proxy),
         exit: exit(proxy),
+        updateHTTPClientConfig: updateHTTPClientConfig(proxy),
     }
 }
