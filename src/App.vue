@@ -108,9 +108,11 @@ watch(() => menuStore.background, (nextBackground) => {
 .top-title {
   padding-top: 40px;
   padding-left: 24px;
+  padding-right: 24px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   -webkit-app-region: drag;
   user-select: none;
 }
@@ -120,21 +122,22 @@ watch(() => menuStore.background, (nextBackground) => {
 }
 
 .top-icon {
-  width: 28px;
-  height: 28px;
+  width: 80px;
+  height: 80px;
   background-image: url("@/assets/images/appicon.png");
   background-size: cover;
   background-position: center;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  flex-shrink: 0;
+  background-repeat: no-repeat;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .top-title-text {
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-color);
-  flex-grow: 1;
+  text-align: center;
   line-height: 1.2;
+  width: 100%;
 }
 </style>
