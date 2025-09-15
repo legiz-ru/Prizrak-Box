@@ -1,9 +1,11 @@
 <script setup lang="ts">
 
 import MyPort from "@/components/setting/MyPort.vue";
+import MyBind from "@/components/setting/MyBind.vue";
 import MyTun from "@/components/setting/MyTun.vue";
 import {EditPen} from "@element-plus/icons-vue";
 import {useWebStore} from "@/store/webStore";
+import {useHomeStore} from "@/store/homeStore";
 import {copy} from "@/util/pLoad";
 import {useI18n} from "vue-i18n";
 import {useSettingStore} from "@/store/settingStore";
@@ -20,6 +22,7 @@ const api = createApi(proxy);
 
 // 使用 store
 const webStore = useWebStore()
+const homeStore = useHomeStore()
 const menuStore = useMenuStore()
 const settingStore = useSettingStore()
 const {t} = useI18n()
@@ -55,6 +58,30 @@ watch(() => settingStore.startup, (newValue) => {
   pUpdateMihomo(menuStore, settingStore, api)
 });
 
+// HWID设置
+watch(() => settingStore.hwid, async (newValue) => {
+  await updateHTTPClientConfig();
+});
+
+// 更新HTTP客户端配置
+async function updateHTTPClientConfig() {
+  try {
+    // 获取版本号
+    const version = await api.getVersion();
+    
+    // 更新HTTP客户端配置
+    await api.updateHTTPClientConfig({
+      enableHWID: settingStore.hwid,
+      version: version,
+      deviceOS: homeStore.os,
+      deviceOSVer: "", // 可以从系统信息获取，暂时留空
+      deviceModel: "", // 可以从系统信息获取，暂时留空
+    });
+  } catch (e) {
+    console.error("Failed to update HTTP client config:", e);
+  }
+}
+
 // 打开配置目录
 function pxConfigDir() {
   // @ts-ignore
@@ -67,6 +94,11 @@ function checkUpdate() {
   // @ts-ignore
   window["pxOpen"](url)
 }
+
+// 初始化HTTP客户端配置
+onMounted(async () => {
+  await updateHTTPClientConfig();
+});
 
 </script>
 
@@ -145,6 +177,13 @@ function checkUpdate() {
         </div>
         <hr/>
         <ul class="info-list">
+          <li>
+            <strong>HWID :</strong>
+            <el-switch
+                v-model="settingStore.hwid"
+                class="set-switch"
+            />
+          </li>
           <li>
             <strong>{{ $t('setting.px.startup') }} :</strong>
             <el-switch
