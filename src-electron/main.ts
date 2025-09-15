@@ -114,10 +114,9 @@ function handleDeepLink(url: string) {
         const parsedUrl = new URL(url);
         if (parsedUrl.protocol === 'prizrak-box:' && parsedUrl.hostname === 'install-config') {
             const subUrl = parsedUrl.searchParams.get('url');
-            const name = parsedUrl.searchParams.get('name');
             
             if (subUrl) {
-                log.info('准备导入配置, URL:', subUrl, 'Name:', name);
+                log.info('准备导入配置, URL:', subUrl);
                 
                 // 显示窗口
                 showWindow();
@@ -125,8 +124,7 @@ function handleDeepLink(url: string) {
                 // 向渲染进程发送导入配置的消息
                 if (mainWindow && mainWindow.webContents) {
                     mainWindow.webContents.send('import-profile-from-deeplink', {
-                        url: subUrl,
-                        name: name
+                        url: subUrl
                     });
                 }
             }

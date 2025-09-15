@@ -108,7 +108,7 @@ function setupDeepLinkHandler() {
     // @ts-ignore
     if (window.pxDeepLink) {
         // @ts-ignore
-        window.pxDeepLink.onImportProfile((data: { url: string; name?: string }) => {
+        window.pxDeepLink.onImportProfile((data: { url: string }) => {
             // 发送全局事件，让 Profiles 页面处理
             window.dispatchEvent(new CustomEvent('deeplink-import-profile', {
                 detail: data

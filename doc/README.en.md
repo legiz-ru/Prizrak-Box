@@ -30,6 +30,52 @@
 - Go to `Settings` → `Enable Authorization` → Restart the app → When the authorization prompt appears, grant
   permission → TUN mode can then be enabled in the app
 
+## Deeplink Profile Import
+
+Prizrak-Box supports importing profiles via deeplink URLs, allowing users to easily add subscriptions from external sources.
+
+### URL Scheme
+
+The deeplink uses the custom protocol `prizrak-box://` with the following format:
+
+```
+prizrak-box://install-config?url=SUBSCRIPTION_URL
+```
+
+### Parameters
+
+- `url` (required): The subscription URL to import
+
+### Examples
+
+1. **Basic import:**
+   ```
+   prizrak-box://install-config?url=https://sub.example.com/username
+   ```
+
+2. **Import from different providers:**
+   ```
+   prizrak-box://install-config?url=https://another.provider.com/config
+   ```
+
+### Supported Content Types
+
+The deeplink supports all content types that manual profile import supports:
+
+- Subscription URLs (HTTP/HTTPS)
+- Share links (vmess://, vless://, ss://, etc.)
+- Base64 encoded configurations  
+- YAML configurations
+- JSON configurations
+
+### Usage
+
+1. User clicks a deeplink from a webpage or application
+2. Operating system launches Prizrak-Box (or brings it to focus)  
+3. Application automatically imports the profile
+4. User receives success/error feedback
+5. New profile appears in the profiles list
+
 ## Note: Px Requires Network Access
 
 - When prompted, click "Allow" to grant network access

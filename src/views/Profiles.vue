@@ -389,7 +389,7 @@ onBeforeUnmount(() => {
 
 // 处理深度链接导入配置
 async function handleDeepLinkImport(event: CustomEvent) {
-  const { url, name } = event.detail;
+  const { url } = event.detail;
   
   if (!url) {
     pError(t('profiles.deeplink.invalid-url'));
@@ -405,9 +405,6 @@ async function handleDeepLinkImport(event: CustomEvent) {
   try {
     const p = new Profile();
     p.content = url;
-    if (name) {
-      p.title = name;
-    }
     
     pLoad(t('profiles.deeplink.importing'), async () => {
       const pList = await api.addProfileFromInput(p);
