@@ -225,8 +225,8 @@ rules:
   - RULE-SET,ru-inline-banned,🌍 VPN
   - PROCESS-NAME,Discord.exe,🌍 VPN
   - PROCESS-NAME,discord,🌍 VPN
-  - RULE-SET,geosite-private,🔓 NO VPN,no-resolve
-  - RULE-SET,geoip-private,🔓 NO VPN
+  - RULE-SET,geoip-private,🔓 NO VPN,no-resolve
+  - RULE-SET,geosite-private,🔓 NO VPN
   - RULE-SET,ru-app-list,🔓 NO VPN
   - RULE-SET,games-direct,🔓 NO VPN
   - RULE-SET,torrent-clients,🔓 NO VPN
