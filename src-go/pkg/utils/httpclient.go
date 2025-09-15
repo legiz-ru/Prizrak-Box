@@ -210,6 +210,11 @@ func SendHead(requestURL string, proxyURL string) (int, error) {
 }
 
 // FastGetWithDeviceHeaders 并发 GET 请求（用于订阅），包含设备信息头部
+// 根据 Device Info Headers Specification 添加以下头部：
+// - x-hwid: 设备唯一标识符（必需）
+// - x-device-os: 操作系统名称（可选）
+// - x-ver-os: 操作系统版本（可选）
+// - x-device-model: 设备型号（可选）
 func FastGetWithDeviceHeaders(requestURL string, headers map[string]string, proxyURL string) (*ResponseResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), FastTimeOut)
 	defer cancel()

@@ -12,11 +12,13 @@ import (
 )
 
 // DeviceInfo holds device-specific information for headers
+// These headers are used to identify the device when making subscription requests
+// as per the Device Info Headers Specification
 type DeviceInfo struct {
-	HWID        string
-	OS          string
-	OSVersion   string
-	DeviceModel string
+	HWID        string // Unique hardware identifier (required, max 36 chars)
+	OS          string // Operating system name (optional)
+	OSVersion   string // OS version (optional)
+	DeviceModel string // Device model (optional)
 }
 
 var (
@@ -25,6 +27,8 @@ var (
 )
 
 // generateHWID creates a unique hardware identifier based on system characteristics
+// The HWID format follows UUID standard (8-4-4-4-12) and is limited to 36 characters
+// as specified in the Device Info Headers Specification
 func generateHWID() string {
 	// Try to get system-specific identifiers
 	var identifiers []string
@@ -62,12 +66,22 @@ func getMachineID() string {
 		if id := readFile("/var/lib/dbus/machine-id"); id != "" {
 			return strings.TrimSpace(id)
 		}
+		// Try to get system UUID from DMI
+		if id := readFile("/sys/class/dmi/id/product_uuid"); id != "" {
+			return strings.TrimSpace(id)
+		}
 	case "darwin":
-		// macOS - try to get hardware UUID
-		// This would require calling system commands, for now use a fallback
+		// macOS - try to get hardware UUID from system_profiler
+		// For now, use a consistent fallback based on hostname
+		if hostname, err := os.Hostname(); err == nil {
+			return "darwin-" + hostname
+		}
 		return "darwin-machine"
 	case "windows":
-		// Windows - would need registry access, use fallback for now
+		// Windows - would need registry access or WMI, use fallback for now
+		if hostname, err := os.Hostname(); err == nil {
+			return "windows-" + hostname
+		}
 		return "windows-machine"
 	}
 	return ""
@@ -96,11 +110,21 @@ func getOSVersion() string {
 				}
 			}
 		}
+		// Try /proc/version as fallback
+		if content := readFile("/proc/version"); content != "" {
+			// Extract kernel version
+			if parts := strings.Fields(content); len(parts) >= 3 {
+				return parts[2]
+			}
+		}
 		return "unknown"
 	case "darwin":
-		return "unknown" // Would need system call to get macOS version
+		// macOS - would need system calls to get proper version
+		// Try to read from system_profiler output would be ideal
+		return "unknown"
 	case "windows":
-		return "unknown" // Would need Windows API to get version
+		// Windows - would need Windows API to get version
+		return "unknown"
 	default:
 		return "unknown"
 	}
