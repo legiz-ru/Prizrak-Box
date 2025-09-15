@@ -98,7 +98,23 @@ async function bootstrap() {
 
     // 设置软件开始时间
     homeStore.setStartTime(Date.now());
+    
+    // 设置深度链接处理器  
+    setupDeepLinkHandler();
+}
 
+// 处理深度链接导入配置
+function setupDeepLinkHandler() {
+    // @ts-ignore
+    if (window.pxDeepLink) {
+        // @ts-ignore
+        window.pxDeepLink.onImportProfile((data: { url: string }) => {
+            // 发送全局事件，让 Profiles 页面处理
+            window.dispatchEvent(new CustomEvent('deeplink-import-profile', {
+                detail: data
+            }));
+        });
+    }
 }
 
 // 🚀 启动应用

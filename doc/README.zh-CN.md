@@ -30,6 +30,18 @@
 - 设置 → 开启授权 → 重启软件 → 弹出授权框 → 完成授权
 - 进入软件后即可开启 TUN 模式
 
+## 深度链接配置导入
+
+Prizrak-Box 支持通过深度链接 URL 导入配置，让用户可以轻松地从外部来源添加订阅。
+
+### URL 格式
+
+深度链接使用自定义协议 `prizrak-box://`，格式如下：
+
+```
+prizrak-box://install-config?url=SUBSCRIPTION_URL
+```
+
 ## 提示 Px 需要网络接入
 
 - 点击 “允许” 即可
