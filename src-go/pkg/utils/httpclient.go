@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"log"
 	"golang.org/x/net/html"
 	"io"
 	"net"
@@ -86,19 +87,25 @@ func sendRequestWithConfig(method, requestURL string, headers map[string]string,
 	// 设置 User-Agent
 	if userAgent != "" {
 		req.Header.Set("User-Agent", userAgent)
+		log.Printf("HTTP Request: Set User-Agent to: %s", userAgent)
 	} else if _, ok := headers["User-Agent"]; !ok {
 		req.Header.Set("User-Agent", defaultUserAgent)
+		log.Printf("HTTP Request: Set default User-Agent to: %s", defaultUserAgent)
 	}
 
 	// 添加设备信息头部（如果需要）
 	if includeDeviceHeaders {
 		deviceHeaders := GetDeviceHeaders()
+		log.Printf("HTTP Request: Adding device headers (HWID enabled)")
 		for k, v := range deviceHeaders {
 			// 只在没有自定义头部时添加设备头部
 			if _, exists := headers[k]; !exists {
 				req.Header.Set(k, v)
+				log.Printf("HTTP Request: Added device header %s: %s", k, v)
 			}
 		}
+	} else {
+		log.Printf("HTTP Request: Skipping device headers (HWID disabled)")
 	}
 
 	resp, err := client.Do(req)
@@ -357,5 +364,8 @@ func FastGetWithConfig(requestURL string, headers map[string]string, proxyURL st
 func FastGetForSubscription(requestURL string, headers map[string]string, proxyURL string) (*ResponseResult, error) {
 	userAgent := settings.GetUserAgent()
 	includeDeviceHeaders := settings.ShouldIncludeDeviceHeaders()
+	
+	log.Printf("FastGetForSubscription: URL=%s, UserAgent=%s, IncludeDeviceHeaders=%v", requestURL, userAgent, includeDeviceHeaders)
+	
 	return FastGetWithConfig(requestURL, headers, proxyURL, userAgent, includeDeviceHeaders)
 }
