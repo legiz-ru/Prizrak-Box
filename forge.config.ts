@@ -20,6 +20,12 @@ const config: ForgeConfig = {
             LSMinimumSystemVersion: "10.13.0"
         },
         appBundleId: 'com.legiz-ru.prizrak-box',
+        protocols: [
+            {
+                name: 'Prizrak-Box Protocol',
+                schemes: ['prizrak-box']
+            }
+        ],
     },
     rebuildConfig: {},
     makers: [
@@ -31,6 +37,43 @@ const config: ForgeConfig = {
                 chooseDirectory: true,
             },
             upgradeCode: 'c1d377b2-2c61-4c5e-8773-8e3c703b8b41',
+            registry: [
+                {
+                    key: 'HKEY_CLASSES_ROOT\\prizrak-box',
+                    values: [
+                        {
+                            name: '',
+                            type: 'REG_SZ',
+                            value: 'URL:Prizrak-Box Protocol'
+                        },
+                        {
+                            name: 'URL Protocol',
+                            type: 'REG_SZ',
+                            value: ''
+                        }
+                    ]
+                },
+                {
+                    key: 'HKEY_CLASSES_ROOT\\prizrak-box\\DefaultIcon',
+                    values: [
+                        {
+                            name: '',
+                            type: 'REG_SZ',
+                            value: '[APPLICATIONROOTDIRECTORY]Prizrak-Box.exe,0'
+                        }
+                    ]
+                },
+                {
+                    key: 'HKEY_CLASSES_ROOT\\prizrak-box\\shell\\open\\command',
+                    values: [
+                        {
+                            name: '',
+                            type: 'REG_SZ',
+                            value: '"[APPLICATIONROOTDIRECTORY]Prizrak-Box.exe" "%1"'
+                        }
+                    ]
+                }
+            ]
         }),
         new MakerDMG({
             icon: 'build/appicon.icns',
@@ -47,6 +90,7 @@ const config: ForgeConfig = {
                 icon: 'build/appicon.png',
                 maintainer: 'legiz-ru',
                 homepage: 'https://github.com/legiz-ru/Prizrak-Box',
+                mimeType: ['x-scheme-handler/prizrak-box']
             }
         })
     ],

@@ -112,7 +112,7 @@ function handleDeepLink(url: string) {
     // 解析URL
     try {
         const parsedUrl = new URL(url);
-        if (parsedUrl.protocol === 'prizrak-box:' && parsedUrl.pathname === '//install-config') {
+        if (parsedUrl.protocol === 'prizrak-box:' && parsedUrl.hostname === 'install-config') {
             const subUrl = parsedUrl.searchParams.get('url');
             const name = parsedUrl.searchParams.get('name');
             
