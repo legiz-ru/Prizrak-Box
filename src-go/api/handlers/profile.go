@@ -138,7 +138,7 @@ func addFromWeb(w http.ResponseWriter, r *http.Request) {
 	ok := false
 	for _, sub := range subs {
 		headers := map[string]string{}
-		res, err := utils.FastGet(sub, headers, proxy.GetProxyUrl())
+		res, err := utils.FastGetWithDeviceHeaders(sub, headers, proxy.GetProxyUrl())
 		if err != nil {
 			tempErr = err
 			log.Errorln("[addFromWeb] URL = %s, Request Error:%v", sub, err)
@@ -181,7 +181,7 @@ func refreshProfile(w http.ResponseWriter, r *http.Request) {
 	// 发送请求
 	sub := profile.Content
 	headers := map[string]string{}
-	res, err := utils.FastGet(sub, headers, proxy.GetProxyUrl())
+	res, err := utils.FastGetWithDeviceHeaders(sub, headers, proxy.GetProxyUrl())
 	if err != nil {
 		ErrorResponse(w, r, err)
 		log.Errorln("[refreshProfile] URL = %s, Request Error:%v", sub, err)

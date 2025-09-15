@@ -74,7 +74,7 @@ func DoRefresh() {
 		// 发送请求
 		sub := profile.Content
 		headers := map[string]string{}
-		res, err := utils.FastGet(sub, headers, proxy.GetProxyUrl())
+		res, err := utils.FastGetWithDeviceHeaders(sub, headers, proxy.GetProxyUrl())
 		if err != nil {
 			log.Errorln("[Refresh] Sub=%s, URL = %s, Request Error:%v", title, sub, err)
 			continue

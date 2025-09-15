@@ -62,6 +62,11 @@ func newHttpClient(proxyURL string, timeout time.Duration) (*http.Client, error)
 
 // sendRequest 发送 HTTP 请求，返回响应对象，由调用方负责关闭 Body
 func sendRequest(method, requestURL string, headers map[string]string, proxyURL string, timeout time.Duration) (*http.Response, error) {
+	return sendRequestWithOptions(method, requestURL, headers, proxyURL, timeout, false)
+}
+
+// sendRequestWithOptions 发送 HTTP 请求，支持设备头部选项
+func sendRequestWithOptions(method, requestURL string, headers map[string]string, proxyURL string, timeout time.Duration, includeDeviceHeaders bool) (*http.Response, error) {
 	client, err := newHttpClient(proxyURL, timeout)
 	if err != nil {
 		return nil, err
@@ -72,6 +77,7 @@ func sendRequest(method, requestURL string, headers map[string]string, proxyURL 
 		return nil, fmt.Errorf("创建请求失败: %w", err)
 	}
 
+	// 添加传入的头部
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
@@ -79,6 +85,17 @@ func sendRequest(method, requestURL string, headers map[string]string, proxyURL 
 	// 设置默认 User-Agent
 	if _, ok := headers["User-Agent"]; !ok {
 		req.Header.Set("User-Agent", defaultUserAgent)
+	}
+
+	// 添加设备信息头部（仅用于订阅请求）
+	if includeDeviceHeaders {
+		deviceHeaders := GetDeviceHeaders()
+		for k, v := range deviceHeaders {
+			// 只在没有自定义头部时添加设备头部
+			if _, exists := headers[k]; !exists {
+				req.Header.Set(k, v)
+			}
+		}
 	}
 
 	resp, err := client.Do(req)
@@ -190,4 +207,70 @@ func SendHead(requestURL string, proxyURL string) (int, error) {
 	defer closeResponseBody(resp.Body)
 
 	return resp.StatusCode, nil
+}
+
+// FastGetWithDeviceHeaders 并发 GET 请求（用于订阅），包含设备信息头部
+func FastGetWithDeviceHeaders(requestURL string, headers map[string]string, proxyURL string) (*ResponseResult, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), FastTimeOut)
+	defer cancel()
+
+	results := make(chan *ResponseResult, 2)
+	errors := make(chan error, 2)
+
+	send := func(useProxy bool) {
+		var proxy string
+		if useProxy {
+			proxy = proxyURL
+		}
+
+		resp, err := sendRequestWithOptions("GET", requestURL, headers, proxy, ConnTimeOut, true)
+		if err != nil {
+			errors <- err
+			return
+		}
+		defer closeResponseBody(resp.Body)
+
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil || len(bodyBytes) == 0 {
+			if err == nil {
+				err = fmt.Errorf("响应内容为空")
+			}
+			errors <- err
+			return
+		}
+
+		select {
+		case results <- &ResponseResult{Body: html.UnescapeString(string(bodyBytes)), Headers: resp.Header}:
+		case <-ctx.Done():
+		}
+	}
+
+	go send(true)
+	go send(false)
+
+	var errList []string
+	for i := 0; i < 2; i++ {
+		select {
+		case result := <-results:
+			return result, nil
+		case err := <-errors:
+			errList = append(errList, err.Error())
+			// 如果两个都失败，立即返回
+			if len(errList) == 2 {
+				return nil, fmt.Errorf("请求失败[1]: %s", strings.Join(errList, " | "))
+			}
+		case <-ctx.Done():
+			if len(errList) == 0 {
+				return nil, fmt.Errorf("请求超时，未收到任何响应")
+			}
+			return nil, fmt.Errorf("请求失败[2]: %s", strings.Join(errList, " | "))
+		}
+	}
+
+	// 理论上不会到这里，但作为兜底处理
+	if len(errList) > 0 {
+		return nil, fmt.Errorf("请求失败[3]: %s", strings.Join(errList, " | "))
+	}
+
+	return nil, fmt.Errorf("请求失败，未知原因")
 }
