@@ -158,6 +158,12 @@ profiles:
   switch:
     ing: 切换中。。。
     success: 切换成功
+  deeplink:
+    importing: 正在导入配置。。。
+    import-success: 配置导入成功
+    import-failed: 配置导入失败
+    invalid-url: 无效的配置链接
+    invalid-url-format: 配置链接格式错误，必须是 HTTP 或 HTTPS
 
 rule:
   title: 规则

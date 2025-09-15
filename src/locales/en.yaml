@@ -158,6 +158,12 @@ profiles:
   switch:
     ing: Switching...
     success: Switch success
+  deeplink:
+    importing: Importing profile...
+    import-success: Profile imported successfully
+    import-failed: Failed to import profile
+    invalid-url: Invalid profile URL
+    invalid-url-format: Invalid URL format, must be HTTP or HTTPS
 
 rule:
   title: Rule

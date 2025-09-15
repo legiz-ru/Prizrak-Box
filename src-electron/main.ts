@@ -100,13 +100,57 @@ const agents = [
     }
 ];
 
+// 注册自定义协议
+if (!app.isDefaultProtocolClient('prizrak-box')) {
+    app.setAsDefaultProtocolClient('prizrak-box');
+}
+
+// 处理深度链接的函数
+function handleDeepLink(url: string) {
+    log.info('收到深度链接:', url);
+    
+    // 解析URL
+    try {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.protocol === 'prizrak-box:' && parsedUrl.pathname === '//install-config') {
+            const subUrl = parsedUrl.searchParams.get('url');
+            const name = parsedUrl.searchParams.get('name');
+            
+            if (subUrl) {
+                log.info('准备导入配置, URL:', subUrl, 'Name:', name);
+                
+                // 显示窗口
+                showWindow();
+                
+                // 向渲染进程发送导入配置的消息
+                if (mainWindow && mainWindow.webContents) {
+                    mainWindow.webContents.send('import-profile-from-deeplink', {
+                        url: subUrl,
+                        name: name
+                    });
+                }
+            }
+        }
+    } catch (error) {
+        log.error('解析深度链接失败:', error);
+    }
+}
+
 // 单例模式
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
     doQuit()
 } else {
-    // 试图启动第二个应用实例
-    app.on('second-instance', showWindow);
+    // 试图启动第二个应用实例，也需要处理深度链接
+    app.on('second-instance', (event, commandLine) => {
+        // Windows/Linux 下从命令行参数获取深度链接
+        const url = commandLine.find(arg => arg.startsWith('prizrak-box://'));
+        if (url) {
+            handleDeepLink(url);
+        } else {
+            showWindow();
+        }
+    });
 
     // 监听应用被激活
     app.on('activate', showWindow);
@@ -155,5 +199,21 @@ if (!gotTheLock) {
 
         // 更新开机自启路径
         await updateAutoLaunchRegistration()
+        
+        // 处理 macOS 下的深度链接
+        if (process.platform === 'darwin') {
+            app.on('open-url', (event, url) => {
+                event.preventDefault();
+                handleDeepLink(url);
+            });
+        }
+        
+        // 处理 Windows/Linux 下启动时的深度链接
+        if (process.platform !== 'darwin') {
+            const url = process.argv.find(arg => arg.startsWith('prizrak-box://'));
+            if (url) {
+                handleDeepLink(url);
+            }
+        }
     });
 }

@@ -14,6 +14,15 @@ contextBridge.exposeInMainWorld('pxTray', {
     emit: (name, ...value) => ipcRenderer.send('px_' + name, ...value)
 });
 
+// 深度链接相关
+contextBridge.exposeInMainWorld('pxDeepLink', {
+    onImportProfile: (callback) => {
+        // 移除旧监听器，确保只注册一次
+        ipcRenderer.removeAllListeners('import-profile-from-deeplink');
+        ipcRenderer.on('import-profile-from-deeplink', (_event, data) => callback(data));
+    }
+});
+
 
 // 缓存接口
 contextBridge.exposeInMainWorld('pxStore', {

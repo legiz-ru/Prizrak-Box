@@ -158,6 +158,12 @@ profiles:
   switch:
     ing: Переключение...
     success: Переключено успешно
+  deeplink:
+    importing: Импорт профиля...
+    import-success: Профиль успешно импортирован
+    import-failed: Не удалось импортировать профиль
+    invalid-url: Неверный URL профиля
+    invalid-url-format: Неверный формат URL, должен быть HTTP или HTTPS
 
 rule:
   title: Правило
