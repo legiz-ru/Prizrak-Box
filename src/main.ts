@@ -17,9 +17,17 @@ import {AxiosRequest} from "@/util/axiosRequest";
 import {useHomeStore} from "@/store/homeStore";
 import {memoryCache} from "@/types/persist"
 import {detectLanguage} from "@/util/menu";
+import createApi from "@/api";
+import {Profile} from "@/types/profile";
+import {pError, pLoad, pSuccess} from "@/util/pLoad";
+import {isHttpOrHttps} from "@/util/format";
 
 const app = createApp(App);
 const lang = detectLanguage();
+const DEEP_LINK_IMPORTED_EVENT = 'deeplink-profile-imported';
+const DEEP_LINK_HOST = 'install-config';
+const KNOWN_DEEP_LINK_EXTRA_KEYS = new Set(['name']);
+let deepLinkHandlerRegistered = false;
 
 async function bootstrap() {
     // 加载缓存数据
@@ -77,6 +85,8 @@ async function bootstrap() {
         webStore.secret
     );
 
+    setupDeepLinkHandler();
+
     // 激活menu
     const menuStore = useMenuStore();
     router.afterEach((to) => {
@@ -98,22 +108,162 @@ async function bootstrap() {
 
     // 设置软件开始时间
     homeStore.setStartTime(Date.now());
-    
-    // 设置深度链接处理器  
-    setupDeepLinkHandler();
+
 }
 
-// 处理深度链接导入配置
+type DeepLinkPayload = string | { rawUrl?: string; url?: string; name?: string };
+
 function setupDeepLinkHandler() {
-    // @ts-ignore
-    if (window.pxDeepLink) {
-        // @ts-ignore
-        window.pxDeepLink.onImportProfile((data: { url: string }) => {
-            // 发送全局事件，让 Profiles 页面处理
-            window.dispatchEvent(new CustomEvent('deeplink-import-profile', {
-                detail: data
-            }));
-        });
+    if (deepLinkHandlerRegistered) {
+        return;
+    }
+
+    if (!window.pxDeepLink || typeof window.pxDeepLink.onImportProfile !== 'function') {
+        return;
+    }
+
+    const globalProperties: any = app.config.globalProperties;
+    const api = createApi(globalProperties);
+    const translate = (key: string) => {
+        try {
+            return typeof globalProperties.$t === 'function' ? globalProperties.$t(key) : key;
+        } catch {
+            return key;
+        }
+    };
+
+    window.pxDeepLink.onImportProfile(async (payload: DeepLinkPayload) => {
+        const normalized = normalizeDeepLinkPayload(payload);
+        const parsed = normalized.rawUrl ? parseDeepLinkUrl(normalized.rawUrl) : null;
+        const subscriptionUrl = parsed?.url ?? normalized.directUrl;
+        const profileName = normalized.name ?? parsed?.name;
+
+        if (!subscriptionUrl) {
+            pError(translate('profiles.deeplink.invalid-url'));
+            return;
+        }
+
+        if (!isHttpOrHttps(subscriptionUrl)) {
+            pError(translate('profiles.deeplink.invalid-url-format'));
+            return;
+        }
+
+        const profile = new Profile();
+        profile.content = subscriptionUrl;
+        if (profileName) {
+            profile.title = profileName;
+        }
+
+        try {
+            await pLoad(translate('profiles.deeplink.importing'), async () => {
+                const result = await api.addProfileFromInput(profile);
+                if (Array.isArray(result) && result.length > 0) {
+                    window.dispatchEvent(new CustomEvent(DEEP_LINK_IMPORTED_EVENT, {
+                        detail: {profiles: result}
+                    }));
+                }
+            });
+            pSuccess(translate('profiles.deeplink.import-success'));
+        } catch (error: any) {
+            if (error && typeof error === 'object' && 'message' in error && error.message) {
+                pError(error.message);
+            } else {
+                pError(translate('profiles.deeplink.import-failed'));
+            }
+        }
+    });
+
+    deepLinkHandlerRegistered = true;
+}
+
+function normalizeDeepLinkPayload(payload: DeepLinkPayload): { rawUrl?: string; directUrl?: string; name?: string } {
+    if (typeof payload === 'string') {
+        return {rawUrl: payload};
+    }
+
+    if (payload && typeof payload === 'object') {
+        return {
+            rawUrl: payload.rawUrl,
+            directUrl: payload.url,
+            name: payload.name,
+        };
+    }
+
+    return {};
+}
+
+function parseDeepLinkUrl(link: string): { url: string; name?: string } | null {
+    try {
+        const parsed = new URL(link);
+        if (parsed.protocol !== 'prizrak-box:') {
+            return null;
+        }
+
+        const host = parsed.hostname || parsed.host;
+        if (host && host.toLowerCase() !== DEEP_LINK_HOST) {
+            return null;
+        }
+
+        const query = parsed.search.startsWith('?') ? parsed.search.slice(1) : '';
+        if (!query) {
+            return null;
+        }
+
+        const segments = query.split('&');
+        let urlValue: string | null = null;
+        const extras: Record<string, string> = {};
+
+        for (const segment of segments) {
+            if (!segment) {
+                continue;
+            }
+
+            const [rawKey, ...rawRest] = segment.split('=');
+            const key = rawKey;
+            const value = rawRest.join('=');
+
+            if (key === 'url' && urlValue === null) {
+                urlValue = value;
+                continue;
+            }
+
+            if (urlValue !== null && KNOWN_DEEP_LINK_EXTRA_KEYS.has(key)) {
+                extras[key] = safeDecode(value);
+                continue;
+            }
+
+            if (urlValue !== null) {
+                urlValue += `&${segment}`;
+            }
+        }
+
+        if (!urlValue) {
+            return null;
+        }
+
+        const decodedUrl = safeDecode(urlValue);
+        if (!decodedUrl) {
+            return null;
+        }
+
+        return {
+            url: decodedUrl,
+            name: extras['name'],
+        };
+    } catch {
+        return null;
+    }
+}
+
+function safeDecode(value?: string) {
+    if (value === undefined) {
+        return undefined;
+    }
+
+    try {
+        return decodeURIComponent(value);
+    } catch {
+        return value;
     }
 }
 

@@ -19,6 +19,11 @@
 - 支持统一所有订阅的规则和分组
 - 支持 TUN 模式
 
+## Deeplink 导入
+
+- 打开 `prizrak-box://install-config?url=https://sub.example.com/username` 这样的链接即可导入配置
+- deeplink 中的额外参数会被忽略，订阅地址内部的查询参数会被完整保留
+
 ## 支持的系统平台
 
 - Windows 10/11 AMD64/ARM64
@@ -29,18 +34,6 @@
 
 - 设置 → 开启授权 → 重启软件 → 弹出授权框 → 完成授权
 - 进入软件后即可开启 TUN 模式
-
-## 深度链接配置导入
-
-Prizrak-Box 支持通过深度链接 URL 导入配置，让用户可以轻松地从外部来源添加订阅。
-
-### URL 格式
-
-深度链接使用自定义协议 `prizrak-box://`，格式如下：
-
-```
-prizrak-box://install-config?url=SUBSCRIPTION_URL
-```
 
 ## 提示 Px 需要网络接入
 

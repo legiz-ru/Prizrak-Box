@@ -353,15 +353,38 @@ function sendOrder(data: any) {
   }
 }
 
+function handleProfilesImported(event: Event) {
+  const customEvent = event as CustomEvent;
+  const detail = customEvent.detail;
+  if (!detail || !Array.isArray(detail.profiles)) {
+    return;
+  }
+
+  let added = false;
+  for (const item of detail.profiles) {
+    if (!item) {
+      continue;
+    }
+    const exists = profiles.some(profile => profile['id'] === item['id']);
+    if (!exists) {
+      profiles.push(item);
+      added = true;
+    }
+  }
+
+  if (added) {
+    sendOrder(profiles);
+  }
+}
+
 // 路由切换前关闭 WebSocket
 onBeforeRouteLeave(() => {
   wsOrder.close();
 });
-
-// This is now handled in the onMounted section above
-// onBeforeUnmount(() => {
-//   wsOrder.close();
-// })
+onBeforeUnmount(() => {
+  wsOrder.close();
+  window.removeEventListener('deeplink-profile-imported', handleProfilesImported as EventListener);
+})
 
 // Template列表
 let tList = reactive([]);
@@ -377,51 +400,9 @@ onMounted(async () => {
     title: 'm0',
     id: 'm0'
   });
-  
-  // 监听深度链接导入配置事件
-  window.addEventListener('deeplink-import-profile', handleDeepLinkImport);
-})
 
-onBeforeUnmount(() => {
-  wsOrder.close();
-  window.removeEventListener('deeplink-import-profile', handleDeepLinkImport);
+  window.addEventListener('deeplink-profile-imported', handleProfilesImported as EventListener);
 })
-
-// 处理深度链接导入配置
-async function handleDeepLinkImport(event: CustomEvent) {
-  const { url } = event.detail;
-  
-  if (!url) {
-    pError(t('profiles.deeplink.invalid-url'));
-    return;
-  }
-  
-  // 验证URL格式
-  if (!isHttpOrHttps(url)) {
-    pError(t('profiles.deeplink.invalid-url-format'));
-    return;
-  }
-  
-  try {
-    const p = new Profile();
-    p.content = url;
-    
-    pLoad(t('profiles.deeplink.importing'), async () => {
-      const pList = await api.addProfileFromInput(p);
-      if (pList && pList.length > 0) {
-        pList.forEach(item => profiles.push(item));
-        sendOrder(profiles);
-        pSuccess(t('profiles.deeplink.import-success'));
-      }
-    });
-  } catch (e) {
-    if (e['message']) {
-      pError(e['message']);
-    } else {
-      pError(t('profiles.deeplink.import-failed'));
-    }
-  }
-}
 
 watch(() => webStore.dProfile, async (pList) => {
   if (pList && pList.length > 0) {

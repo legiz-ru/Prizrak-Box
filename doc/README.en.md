@@ -19,6 +19,11 @@
 - Unified rules and group settings for all subscriptions
 - Supports TUN mode
 
+## Deeplink Import
+
+- Profiles can be imported directly by opening a link in the form `prizrak-box://install-config?url=https://sub.example.com/username`
+- Extra parameters in the deeplink are ignored, while query parameters inside the subscription URL are preserved
+
 ## Supported Platforms
 
 - Windows 10/11 (AMD64 / ARM64)
@@ -29,18 +34,6 @@
 
 - Go to `Settings` → `Enable Authorization` → Restart the app → When the authorization prompt appears, grant
   permission → TUN mode can then be enabled in the app
-
-## Deeplink Profile Import
-
-Prizrak-Box supports importing profiles via deeplink URLs, allowing users to easily add subscriptions from external sources.
-
-### URL Scheme
-
-The deeplink uses the custom protocol `prizrak-box://` with the following format:
-
-```
-prizrak-box://install-config?url=SUBSCRIPTION_URL
-```
 
 ## Note: Px Requires Network Access
 
