@@ -97,6 +97,27 @@ jobs:
             https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r .tag_name)
           echo "PREV_TAG=$LATEST_TAG" >> $GITHUB_ENV
 
+      - name: Get Existing Release Body
+        if: env.RESULT == 'all_success'
+        id: existing_release_body
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const tag = process.env.VERSION;
+            try {
+              const release = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
+              core.setOutput('body', release.data.body || '');
+            } catch (error) {
+              if (error.status === 404) {
+                core.setOutput('body', '');
+              } else {
+                throw error;
+              }
+            }
+
       - name: Generate Sorted & Deduplicated Changelog
         if: env.RESULT == 'all_success'
         shell: bash
@@ -167,7 +188,7 @@ jobs:
         with:
           tag_name: ${{ env.VERSION }}
           name: ${{ env.VERSION }}
-          body: ${{ env.release_notes }}
+          body: ${{ steps.existing_release_body.outputs.body }}
           prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
