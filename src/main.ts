@@ -132,7 +132,19 @@ function setupDeepLinkHandler() {
         }
     };
 
-    window.pxDeepLink.onImportProfile(async (payload: DeepLinkPayload) => {
+    const ensureDeepLinkReady = () => {
+        if (typeof window.pxDeepLink?.notifyReady !== 'function') {
+            return;
+        }
+
+        try {
+            window.pxDeepLink.notifyReady();
+        } catch (error) {
+            console.error('Failed to notify deeplink readiness', error);
+        }
+    };
+
+    const importProfileFromDeepLink = async (payload: DeepLinkPayload) => {
         const normalized = normalizeDeepLinkPayload(payload);
         const parsed = normalized.rawUrl ? parseDeepLinkUrl(normalized.rawUrl) : null;
         const subscriptionUrl = parsed?.url ?? normalized.directUrl;
@@ -171,11 +183,21 @@ function setupDeepLinkHandler() {
                 pError(translate('profiles.deeplink.import-failed'));
             }
         }
-    });
+    };
 
-    if (typeof window.pxDeepLink.notifyReady === 'function') {
-        window.pxDeepLink.notifyReady();
-    }
+    window.pxDeepLink.onImportProfile(importProfileFromDeepLink);
+
+    const handleWindowFocus = () => ensureDeepLinkReady();
+    const handleVisibilityChange = () => {
+        if (!document.hidden) {
+            ensureDeepLinkReady();
+        }
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    ensureDeepLinkReady();
 
     deepLinkHandlerRegistered = true;
 }

@@ -105,14 +105,19 @@ const processPendingDeepLinks = () => {
         return;
     }
 
-    while (pendingDeepLinks.length > 0) {
-        const url = pendingDeepLinks.shift();
+    if (pendingDeepLinks.length === 0) {
+        return;
+    }
+
+    const queue = pendingDeepLinks.splice(0, pendingDeepLinks.length);
+    showWindow();
+
+    for (const url of queue) {
         if (!url) {
             continue;
         }
 
         log.info('处理深度链接队列:', url);
-        showWindow();
         mainWindow.webContents.send(DEEP_LINK_EVENT, {rawUrl: url});
     }
 };
