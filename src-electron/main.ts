@@ -109,11 +109,12 @@ if (!app.isDefaultProtocolClient('prizrak-box')) {
 function handleDeepLink(url: string) {
     log.info('收到深度链接:', url);
     
-    // 解析URL
+    // 解析URL - 修复参数丢失问题
     try {
-        const parsedUrl = new URL(url);
-        if (parsedUrl.protocol === 'prizrak-box:' && parsedUrl.hostname === 'install-config') {
-            const subUrl = parsedUrl.searchParams.get('url');
+        if (url.startsWith('prizrak-box://install-config?url=')) {
+            // 直接提取url参数，避免URL constructor丢失参数
+            const urlParamStart = url.indexOf('url=') + 4;
+            const subUrl = decodeURIComponent(url.substring(urlParamStart));
             
             if (subUrl) {
                 log.info('准备导入配置, URL:', subUrl);
@@ -121,11 +122,21 @@ function handleDeepLink(url: string) {
                 // 显示窗口
                 showWindow();
                 
-                // 向渲染进程发送导入配置的消息
-                if (mainWindow && mainWindow.webContents) {
-                    mainWindow.webContents.send('import-profile-from-deeplink', {
-                        url: subUrl
-                    });
+                // 确保窗口内容已加载，然后发送导入消息
+                const sendImportMessage = () => {
+                    if (mainWindow && mainWindow.webContents) {
+                        mainWindow.webContents.send('import-profile-from-deeplink', {
+                            url: subUrl
+                        });
+                    }
+                };
+                
+                // 如果窗口已经加载完成，直接发送消息
+                if (mainWindow && mainWindow.webContents.isLoading() === false) {
+                    sendImportMessage();
+                } else {
+                    // 等待窗口加载完成再发送消息
+                    mainWindow?.webContents.once('did-finish-load', sendImportMessage);
                 }
             }
         }

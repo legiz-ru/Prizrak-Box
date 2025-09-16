@@ -17,6 +17,7 @@ import {AxiosRequest} from "@/util/axiosRequest";
 import {useHomeStore} from "@/store/homeStore";
 import {memoryCache} from "@/types/persist"
 import {detectLanguage} from "@/util/menu";
+import {setupDeepLinkService} from "@/services/deepLinkService";
 
 const app = createApp(App);
 const lang = detectLanguage();
@@ -100,21 +101,7 @@ async function bootstrap() {
     homeStore.setStartTime(Date.now());
     
     // 设置深度链接处理器  
-    setupDeepLinkHandler();
-}
-
-// 处理深度链接导入配置
-function setupDeepLinkHandler() {
-    // @ts-ignore
-    if (window.pxDeepLink) {
-        // @ts-ignore
-        window.pxDeepLink.onImportProfile((data: { url: string }) => {
-            // 发送全局事件，让 Profiles 页面处理
-            window.dispatchEvent(new CustomEvent('deeplink-import-profile', {
-                detail: data
-            }));
-        });
-    }
+    setupDeepLinkService(app.config.globalProperties.$http, router);
 }
 
 // 🚀 启动应用
