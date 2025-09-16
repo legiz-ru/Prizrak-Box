@@ -132,7 +132,7 @@ setting:
 updates:
   banner:
     title: Update available
-    message: A new version {{ version }} is available.
+    message: A new version {version} is available.
     version-unknown: the latest release
   actions:
     open: View release
@@ -140,13 +140,13 @@ updates:
     dismiss: Dismiss
   notification:
     title: New release available
-    message: Version {{ version }} is now available.
+    message: Version {version} is now available.
   status:
     checking: Checking for updates...
-    available: Version {{ version }} is available
+    available: Version {version} is available
     up-to-date: You already have the latest version
     error: Failed to check for updates
-    error-details: Failed to check for updates: {{ message }}
+    error-details: "Failed to check for updates: {message}"
 
 proxies:
   title: Proxies

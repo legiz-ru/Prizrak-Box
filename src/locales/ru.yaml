@@ -132,7 +132,7 @@ setting:
 updates:
   banner:
     title: Доступно обновление
-    message: Доступна новая версия {{ version }}.
+    message: Доступна новая версия {version}.
     version-unknown: новый релиз
   actions:
     open: Открыть релиз
@@ -140,13 +140,13 @@ updates:
     dismiss: Скрыть
   notification:
     title: Доступна новая версия
-    message: Доступна версия {{ version }}.
+    message: Доступна версия {version}.
   status:
     checking: Проверка обновлений...
-    available: Доступна версия {{ version }}
+    available: Доступна версия {version}
     up-to-date: У вас установлена актуальная версия
     error: Не удалось проверить обновления
-    error-details: Не удалось проверить обновления: {{ message }}
+    error-details: "Не удалось проверить обновления: {message}"
 
 proxies:
   title: Прокси
