@@ -42,6 +42,27 @@ Deeplink использует пользовательский протокол 
 prizrak-box://install-config?url=SUBSCRIPTION_URL
 ```
 
+### Примеры использования
+
+```bash
+# Простая подписка
+prizrak-box://install-config?url=https://sub.example.com/username
+
+# URL с параметрами (все параметры сохраняются)
+prizrak-box://install-config?url=https://example.com/sub?token=abc123&format=json
+
+# Сложные URL с множественными параметрами
+prizrak-box://install-config?url=https://service.com/api?user=test&token=xyz&region=us
+```
+
+### Особенности
+
+- ✅ Работает из любой вкладки приложения
+- ✅ Работает при запуске приложения из закрытого состояния
+- ✅ Корректно обрабатывает URL с множественными параметрами
+- ✅ Автоматически переходит на страницу профилей после импорта
+- ✅ Показывает уведомления об успехе или ошибке
+
 ## Запрос Px на сетевой доступ
 
 - Просто нажмите "Разрешить"

@@ -42,6 +42,27 @@ Prizrak-Box 支持通过深度链接 URL 导入配置，让用户可以轻松地
 prizrak-box://install-config?url=SUBSCRIPTION_URL
 ```
 
+### 使用示例
+
+```bash
+# 简单订阅
+prizrak-box://install-config?url=https://sub.example.com/username
+
+# 带参数的 URL（所有参数都会保留）
+prizrak-box://install-config?url=https://example.com/sub?token=abc123&format=json
+
+# 复杂的多参数 URL
+prizrak-box://install-config?url=https://service.com/api?user=test&token=xyz&region=us
+```
+
+### 功能特点
+
+- ✅ 可从应用的任意标签页工作
+- ✅ 应用关闭状态下启动时也能工作
+- ✅ 正确处理包含多个参数的 URL
+- ✅ 导入后自动跳转到配置页面
+- ✅ 显示成功或错误通知
+
 ## 提示 Px 需要网络接入
 
 - 点击 “允许” 即可

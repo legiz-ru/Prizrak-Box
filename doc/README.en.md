@@ -42,6 +42,27 @@ The deeplink uses the custom protocol `prizrak-box://` with the following format
 prizrak-box://install-config?url=SUBSCRIPTION_URL
 ```
 
+### Usage Examples
+
+```bash
+# Simple subscription
+prizrak-box://install-config?url=https://sub.example.com/username
+
+# URL with parameters (all parameters are preserved)
+prizrak-box://install-config?url=https://example.com/sub?token=abc123&format=json
+
+# Complex URLs with multiple parameters
+prizrak-box://install-config?url=https://service.com/api?user=test&token=xyz&region=us
+```
+
+### Features
+
+- ✅ Works from any application tab
+- ✅ Works when launching the app from closed state
+- ✅ Correctly handles URLs with multiple parameters
+- ✅ Automatically navigates to profiles page after import
+- ✅ Shows success or error notifications
+
 ## Note: Px Requires Network Access
 
 - When prompted, click "Allow" to grant network access
