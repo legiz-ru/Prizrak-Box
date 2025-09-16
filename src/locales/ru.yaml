@@ -132,7 +132,7 @@ setting:
 updates:
   banner:
     title: Доступно обновление
-    message: Доступна новая версия {version}.
+    message: Доступная новая версия
     version-unknown: новый релиз
   actions:
     open: Открыть релиз

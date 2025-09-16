@@ -285,7 +285,7 @@ onMounted(async () => {
               {{ $t('copy.title') }}
             </el-button>
             <el-dropdown trigger="click" @command="handleDashboardCommand" class="api-row__dropdown">
-              <el-button class="api-row__button" type="primary" plain>
+              <el-button class="api-row__button">
                 {{ t('setting.dashboard.open') }}
                 <el-icon class="api-row__icon">
                   <ArrowDown/>
@@ -326,8 +326,14 @@ onMounted(async () => {
           margin-right: 0;">
     <el-col :span="24">
       <div class="box box2">
-        <div class="title">
-          Prizrak-Box
+        <div class="title title--status">
+          <span class="title__label">Prizrak-Box</span>
+          <span
+              v-if="manualUpdateStatus.text"
+              :class="['title__status', manualUpdateStatus.type && `title__status--${manualUpdateStatus.type}`]"
+          >
+            {{ manualUpdateStatus.text }}
+          </span>
         </div>
         <hr/>
         <ul class="info-list">
@@ -367,14 +373,9 @@ onMounted(async () => {
                 @click="checkForUpdatesManually"
                 :loading="updateChecking"
                 class="update-row__button"
-                type="primary"
-                plain
             >
               {{ t('updates.actions.check') }}
             </el-button>
-            <span v-if="manualUpdateStatus.text" :class="['update-status', manualUpdateStatus.type && `update-status--${manualUpdateStatus.type}`]">
-              {{ manualUpdateStatus.text }}
-            </span>
           </li>
         </ul>
       </div>
@@ -463,8 +464,8 @@ onMounted(async () => {
 }
 
 .api-row__value {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 0.95rem;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .api-row__button {
@@ -492,23 +493,29 @@ onMounted(async () => {
   margin-left: 10px;
 }
 
-.update-status {
+.title--status {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title__status {
   font-size: 0.85rem;
 }
 
-.update-status--info {
+.title__status--info {
   color: #909399;
 }
 
-.update-status--success {
+.title__status--success {
   color: #67c23a;
 }
 
-.update-status--warning {
+.title__status--warning {
   color: #e6a23c;
 }
 
-.update-status--danger {
+.title__status--danger {
   color: #f56c6c;
 }
 

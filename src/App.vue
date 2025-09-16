@@ -9,18 +9,13 @@
         <span class="top-title-text">Prizrak-Box</span>
       </div>
       <div v-if="showUpdateBanner" class="update-banner">
-        <div class="update-banner__header">
-          <span class="update-banner__title">{{ t('updates.banner.title') }}</span>
-          <el-button
+        <div class="update-banner__content">
+          <span class="update-banner__message">{{ updateBannerMessage }}</span>
+          <icon-mdi-close-circle
               class="update-banner__dismiss"
-              text
-              size="small"
               @click="dismissUpdateNotification"
-          >
-            {{ t('updates.actions.dismiss') }}
-          </el-button>
+          />
         </div>
-        <p class="update-banner__message">{{ updateBannerMessage }}</p>
         <el-button
             class="update-banner__open"
             type="primary"
@@ -60,11 +55,10 @@ const menuStore = useMenuStore();
 const updateStore = useUpdateStore();
 const {t} = useI18n();
 
-const {hasVisibleUpdate, latestDisplayName, latestUrl} = storeToRefs(updateStore);
+const {hasVisibleUpdate, latestUrl} = storeToRefs(updateStore);
 
 const showUpdateBanner = computed(() => hasVisibleUpdate.value);
-const updateVersionLabel = computed(() => latestDisplayName.value || t('updates.banner.version-unknown'));
-const updateBannerMessage = computed(() => t('updates.banner.message', {version: updateVersionLabel.value}));
+const updateBannerMessage = computed(() => t('updates.banner.message'));
 
 const openExternalLink = (url: string) => {
   if (!url) {
@@ -212,20 +206,14 @@ watch(() => menuStore.background, (nextBackground) => {
   gap: 10px;
 }
 
-.update-banner__header {
+.update-banner__content {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   gap: 8px;
 }
 
-.update-banner__title {
-  font-size: 0.95rem;
-  font-weight: 600;
-}
-
 .update-banner__message {
-  margin: 0;
+  flex: 1;
   font-size: 0.9rem;
   line-height: 1.4;
   opacity: 0.85;
@@ -238,6 +226,10 @@ watch(() => menuStore.background, (nextBackground) => {
 .update-banner__dismiss {
   color: inherit;
   opacity: 0.7;
+  cursor: pointer;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  transition: opacity 0.2s ease;
 }
 
 .update-banner__dismiss:hover {

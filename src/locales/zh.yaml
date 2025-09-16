@@ -132,7 +132,7 @@ setting:
 updates:
   banner:
     title: 发现新版本
-    message: 发现新版本 {version}。
+    message: 有新版本可用
     version-unknown: 最新发布
   actions:
     open: 查看发布

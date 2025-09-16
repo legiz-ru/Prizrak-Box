@@ -23,7 +23,6 @@ import {pError, pSuccess, pWarning} from "@/util/pLoad";
 import {isHttpOrHttps} from "@/util/format";
 import {useDeepLinkImportStore} from "@/store/deepLinkStore";
 import {useUpdateStore} from "@/store/updateStore";
-import {ElNotification} from "element-plus";
 import {Browser} from "@/runtime";
 
 const app = createApp(App);
@@ -292,20 +291,55 @@ function setupUpdateChecker() {
         }
 
         const label = updateStore.latestDisplayName || translate('updates.banner.version-unknown');
+        const title = translate('updates.notification.title');
+        const message = translate('updates.notification.message', {version: label});
 
-        ElNotification({
-            title: translate('updates.notification.title'),
-            message: translate('updates.notification.message', {version: label}),
-            type: 'info',
-            duration: 10000,
-            onClick: () => {
-                if (updateStore.latestUrl) {
-                    openExternalLink(updateStore.latestUrl);
+        const notify = async () => {
+            const NotificationCtor = window.Notification;
+
+            if (typeof NotificationCtor !== 'function') {
+                updateStore.markNotified();
+                return;
+            }
+
+            const showNotification = () => {
+                try {
+                    const notification = new NotificationCtor(title, {body: message});
+                    notification.onclick = () => {
+                        if (typeof window.focus === 'function') {
+                            window.focus();
+                        }
+
+                        if (updateStore.latestUrl) {
+                            openExternalLink(updateStore.latestUrl);
+                        }
+                    };
+                } catch (error) {
+                    console.error('Failed to display update notification', error);
                 }
-            },
-        });
+            };
 
-        updateStore.markNotified();
+            try {
+                let permission = NotificationCtor.permission;
+
+                if (permission === 'default' && typeof NotificationCtor.requestPermission === 'function') {
+                    try {
+                        permission = await NotificationCtor.requestPermission();
+                    } catch (error) {
+                        console.error('Failed to request notification permission', error);
+                        permission = 'denied';
+                    }
+                }
+
+                if (permission === 'granted') {
+                    showNotification();
+                }
+            } finally {
+                updateStore.markNotified();
+            }
+        };
+
+        void notify();
     }, {immediate: false});
 
     const performCheck = async () => {

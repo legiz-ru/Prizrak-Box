@@ -132,7 +132,7 @@ setting:
 updates:
   banner:
     title: Update available
-    message: A new version {version} is available.
+    message: A new version is available.
     version-unknown: the latest release
   actions:
     open: View release
