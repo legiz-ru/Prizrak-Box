@@ -1,4 +1,4 @@
-import {createApp} from "vue";
+import {createApp, nextTick} from "vue";
 import App from "./App.vue";
 import router from "@/router";
 import {createPinia} from "pinia";
@@ -99,13 +99,20 @@ async function bootstrap() {
 
     // 设置软件开始时间
     homeStore.setStartTime(Date.now());
-    
-    // 设置深度链接处理器  
-    setupDeepLinkService(app.config.globalProperties.$http, router);
 }
 
 // 🚀 启动应用
-bootstrap().then(() => app.mount("#app"));
+bootstrap().then(() => {
+    app.mount("#app");
+    
+    // 应用挂载完成后设置深度链接处理器
+    // 使用 nextTick 确保所有组件都已经初始化
+    nextTick(() => {
+        const http = app.config.globalProperties.$http;
+        setupDeepLinkService(http, router);
+        console.log('Deeplink service initialized');
+    });
+});
 
 
 

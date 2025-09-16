@@ -125,20 +125,32 @@ function handleDeepLink(url: string) {
                 // 确保窗口内容已加载，然后发送导入消息
                 const sendImportMessage = () => {
                     if (mainWindow && mainWindow.webContents) {
+                        log.info('发送导入配置消息到渲染进程');
                         mainWindow.webContents.send('import-profile-from-deeplink', {
                             url: subUrl
                         });
+                    } else {
+                        log.error('主窗口或webContents不可用');
                     }
                 };
                 
                 // 如果窗口已经加载完成，直接发送消息
-                if (mainWindow && mainWindow.webContents.isLoading() === false) {
+                if (mainWindow && mainWindow.webContents && !mainWindow.webContents.isLoading()) {
+                    log.info('窗口已加载，直接发送消息');
                     sendImportMessage();
                 } else {
+                    log.info('等待窗口加载完成...');
                     // 等待窗口加载完成再发送消息
-                    mainWindow?.webContents.once('did-finish-load', sendImportMessage);
+                    mainWindow?.webContents.once('did-finish-load', () => {
+                        log.info('窗口加载完成，发送消息');
+                        sendImportMessage();
+                    });
                 }
+            } else {
+                log.error('从深度链接中提取的URL为空');
             }
+        } else {
+            log.error('深度链接格式不正确:', url);
         }
     } catch (error) {
         log.error('解析深度链接失败:', error);

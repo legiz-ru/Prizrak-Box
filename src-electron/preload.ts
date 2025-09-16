@@ -17,9 +17,13 @@ contextBridge.exposeInMainWorld('pxTray', {
 // 深度链接相关
 contextBridge.exposeInMainWorld('pxDeepLink', {
     onImportProfile: (callback) => {
+        console.log('pxDeepLink.onImportProfile called, setting up listener');
         // 移除旧监听器，确保只注册一次
         ipcRenderer.removeAllListeners('import-profile-from-deeplink');
-        ipcRenderer.on('import-profile-from-deeplink', (_event, data) => callback(data));
+        ipcRenderer.on('import-profile-from-deeplink', (_event, data) => {
+            console.log('Received import-profile-from-deeplink event:', data);
+            callback(data);
+        });
     }
 });
 
