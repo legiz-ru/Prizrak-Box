@@ -117,6 +117,37 @@ setting:
     update: Update
     check: Check
 
+  dashboard:
+    open: Open dashboard
+    manage: Manage dashboards
+    custom-title: Custom dashboards
+    name: Name
+    url: URL
+    hint: You can use %host, %port and %secret in the URL.
+    add: Add
+    remove: Remove
+    empty: No custom dashboards yet
+    error: Please provide both a name and a URL
+
+updates:
+  banner:
+    title: Update available
+    message: A new version {{ version }} is available.
+    version-unknown: the latest release
+  actions:
+    open: View release
+    check: Check updates
+    dismiss: Dismiss
+  notification:
+    title: New release available
+    message: Version {{ version }} is now available.
+  status:
+    checking: Checking for updates...
+    available: Version {{ version }} is available
+    up-to-date: You already have the latest version
+    error: Failed to check for updates
+    error-details: Failed to check for updates: {{ message }}
+
 proxies:
   title: Proxies
   test: Latency Test
@@ -164,6 +195,9 @@ profiles:
     import-failed: Failed to import profile
     invalid-url: Invalid profile URL
     invalid-url-format: Invalid URL format, must be HTTP or HTTPS
+    cancel-import: Cancel import
+    cancel-hint: Press Esc to cancel
+    import-cancelled: Profile import cancelled
 
 rule:
   title: Rule

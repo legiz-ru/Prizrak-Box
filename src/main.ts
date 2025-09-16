@@ -1,4 +1,4 @@
-import {createApp} from "vue";
+import {createApp, watch} from "vue";
 import App from "./App.vue";
 import router from "@/router";
 import {createPinia} from "pinia";
@@ -19,8 +19,12 @@ import {memoryCache} from "@/types/persist"
 import {detectLanguage} from "@/util/menu";
 import createApi from "@/api";
 import {Profile} from "@/types/profile";
-import {pError, pLoad, pSuccess} from "@/util/pLoad";
+import {pError, pSuccess, pWarning} from "@/util/pLoad";
 import {isHttpOrHttps} from "@/util/format";
+import {useDeepLinkImportStore} from "@/store/deepLinkStore";
+import {useUpdateStore} from "@/store/updateStore";
+import {ElNotification} from "element-plus";
+import {Browser} from "@/runtime";
 
 const app = createApp(App);
 const lang = detectLanguage();
@@ -28,6 +32,25 @@ const DEEP_LINK_IMPORTED_EVENT = 'deeplink-profile-imported';
 const DEEP_LINK_HOST = 'install-config';
 const KNOWN_DEEP_LINK_EXTRA_KEYS = new Set(['name']);
 let deepLinkHandlerRegistered = false;
+let updateCheckerRegistered = false;
+const UPDATE_CHECK_INTERVAL = 6 * 60 * 60 * 1000;
+
+function isCanceledError(error: any) {
+    if (!error || typeof error !== 'object') {
+        return false;
+    }
+
+    const code = (error as any).code;
+    const name = (error as any).name;
+    const message = typeof (error as any).message === 'string' ? (error as any).message.toLowerCase() : '';
+
+    return code === 'ERR_CANCELED'
+        || name === 'CanceledError'
+        || (error as any).__CANCEL__ === true
+        || message === 'canceled'
+        || message === 'cancelled'
+        || message === 'aborted';
+}
 
 async function bootstrap() {
     // 加载缓存数据
@@ -86,6 +109,7 @@ async function bootstrap() {
     );
 
     setupDeepLinkHandler();
+    setupUpdateChecker();
 
     // 激活menu
     const menuStore = useMenuStore();
@@ -144,6 +168,8 @@ function setupDeepLinkHandler() {
         }
     };
 
+    const deepLinkImportStore = useDeepLinkImportStore();
+
     const importProfileFromDeepLink = async (payload: DeepLinkPayload) => {
         const normalized = normalizeDeepLinkPayload(payload);
         const parsed = normalized.rawUrl ? parseDeepLinkUrl(normalized.rawUrl) : null;
@@ -166,21 +192,48 @@ function setupDeepLinkHandler() {
             profile.title = profileName;
         }
 
+        const controller = new AbortController();
+        let cancelledByUser = false;
+        let overlayActive = false;
+
         try {
-            await pLoad(translate('profiles.deeplink.importing'), async () => {
-                const result = await api.addProfileFromInput(profile);
-                if (Array.isArray(result) && result.length > 0) {
-                    window.dispatchEvent(new CustomEvent(DEEP_LINK_IMPORTED_EVENT, {
-                        detail: {profiles: result}
-                    }));
-                }
+            deepLinkImportStore.startImport({
+                message: translate('profiles.deeplink.importing'),
+                cancelLabel: translate('profiles.deeplink.cancel-import'),
+                onCancel: () => {
+                    if (!controller.signal.aborted) {
+                        cancelledByUser = true;
+                        controller.abort();
+                    }
+                },
             });
+            overlayActive = true;
+
+            const result = await api.addProfileFromInput(profile, {signal: controller.signal});
+
+            if (controller.signal.aborted || cancelledByUser) {
+                pWarning(translate('profiles.deeplink.import-cancelled'));
+                return;
+            }
+
+            if (Array.isArray(result) && result.length > 0) {
+                window.dispatchEvent(new CustomEvent(DEEP_LINK_IMPORTED_EVENT, {
+                    detail: {profiles: result}
+                }));
+            }
+
             pSuccess(translate('profiles.deeplink.import-success'));
         } catch (error: any) {
-            if (error && typeof error === 'object' && 'message' in error && error.message) {
+            if (cancelledByUser || isCanceledError(error)) {
+                pWarning(translate('profiles.deeplink.import-cancelled'));
+            } else if (error && typeof error === 'object' && 'message' in error && error.message) {
                 pError(error.message);
             } else {
                 pError(translate('profiles.deeplink.import-failed'));
+            }
+        } finally {
+            if (overlayActive) {
+                deepLinkImportStore.finishImport();
             }
         }
     };
@@ -200,6 +253,70 @@ function setupDeepLinkHandler() {
     ensureDeepLinkReady();
 
     deepLinkHandlerRegistered = true;
+}
+
+function setupUpdateChecker() {
+    if (updateCheckerRegistered) {
+        return;
+    }
+
+    updateCheckerRegistered = true;
+
+    const updateStore = useUpdateStore();
+    const globalProperties: any = app.config.globalProperties;
+    const translate = (key: string, values?: Record<string, any>) => {
+        try {
+            return typeof globalProperties.$t === 'function'
+                ? globalProperties.$t(key, values)
+                : key;
+        } catch {
+            return key;
+        }
+    };
+
+    const openExternalLink = (url: string) => {
+        if (!url) {
+            return;
+        }
+
+        try {
+            Browser.OpenURL(url);
+        } catch (error) {
+            window.open(url, '_blank');
+        }
+    };
+
+    watch(() => updateStore.shouldNotify, (shouldNotify) => {
+        if (!shouldNotify) {
+            return;
+        }
+
+        const label = updateStore.latestDisplayName || translate('updates.banner.version-unknown');
+
+        ElNotification({
+            title: translate('updates.notification.title'),
+            message: translate('updates.notification.message', {version: label}),
+            type: 'info',
+            duration: 10000,
+            onClick: () => {
+                if (updateStore.latestUrl) {
+                    openExternalLink(updateStore.latestUrl);
+                }
+            },
+        });
+
+        updateStore.markNotified();
+    }, {immediate: false});
+
+    const performCheck = async () => {
+        await updateStore.checkForUpdates();
+    };
+
+    void performCheck();
+
+    window.setInterval(() => {
+        void performCheck();
+    }, UPDATE_CHECK_INTERVAL);
 }
 
 function normalizeDeepLinkPayload(payload: DeepLinkPayload): { rawUrl?: string; directUrl?: string; name?: string } {
