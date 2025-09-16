@@ -10,7 +10,6 @@ import {Browser, Clipboard, Events} from "@/runtime"
 import {useWebStore} from "@/store/webStore";
 import {WS} from "@/util/ws";
 import {onBeforeRouteLeave} from "vue-router";
-import DeepLinkService from "@/services/deepLinkService";
 
 // i18n
 const {t} = useI18n();
@@ -379,14 +378,50 @@ onMounted(async () => {
     id: 'm0'
   });
   
-  // 处理待处理的深度链接URL（如果有的话）
-  const deepLinkService = DeepLinkService.getInstance();
-  await deepLinkService.processPendingDeepLink();
+  // 监听深度链接导入配置事件
+  window.addEventListener('deeplink-import-profile', handleDeepLinkImport);
 })
 
 onBeforeUnmount(() => {
   wsOrder.close();
+  window.removeEventListener('deeplink-import-profile', handleDeepLinkImport);
 })
+
+// 处理深度链接导入配置
+async function handleDeepLinkImport(event: CustomEvent) {
+  const { url } = event.detail;
+  
+  if (!url) {
+    pError(t('profiles.deeplink.invalid-url'));
+    return;
+  }
+  
+  // 验证URL格式
+  if (!isHttpOrHttps(url)) {
+    pError(t('profiles.deeplink.invalid-url-format'));
+    return;
+  }
+  
+  try {
+    const p = new Profile();
+    p.content = url;
+    
+    pLoad(t('profiles.deeplink.importing'), async () => {
+      const pList = await api.addProfileFromInput(p);
+      if (pList && pList.length > 0) {
+        pList.forEach(item => profiles.push(item));
+        sendOrder(profiles);
+        pSuccess(t('profiles.deeplink.import-success'));
+      }
+    });
+  } catch (e) {
+    if (e['message']) {
+      pError(e['message']);
+    } else {
+      pError(t('profiles.deeplink.import-failed'));
+    }
+  }
+}
 
 watch(() => webStore.dProfile, async (pList) => {
   if (pList && pList.length > 0) {
