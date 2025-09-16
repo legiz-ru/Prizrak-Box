@@ -9,6 +9,7 @@ export const useWebStore = defineStore('web', {
         dnd: false,         // 拖拽显示
         dProfile: [],         // 传输文件 拖拽添加文件用
         fProfile: {}, // 更新profile 配置切换用
+        pendingDeepLinkUrl: null as string | null, // 待处理的深度链接URL
     }),
     getters: {
         // 确保使用 state 参数引用正确
@@ -32,6 +33,9 @@ export const useWebStore = defineStore('web', {
             }
             // 在头部添加新日志
             this.logs.unshift(log);
+        },
+        setPendingDeepLinkUrl(url: string | null) {
+            this.pendingDeepLinkUrl = url;
         },
     },
     persist: true,

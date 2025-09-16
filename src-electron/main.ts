@@ -71,6 +71,16 @@ const createWindow = (isBoot: boolean) => {
             mainWindow.focus();
             log.info('页面加载成功');
         }
+        
+        // 如果有待处理的深度链接URL，现在处理它
+        if (pendingDeepLinkUrl) {
+            log.info('处理待处理的深度链接URL:', pendingDeepLinkUrl);
+            showWindow();
+            mainWindow.webContents.send('import-profile-from-deeplink', {
+                url: pendingDeepLinkUrl
+            });
+            pendingDeepLinkUrl = null;
+        }
     });
 };
 
@@ -79,6 +89,9 @@ let resolveReady: () => void;
 const waitForReady = new Promise<void>((resolve) => {
     resolveReady = resolve;
 });
+
+// 存储启动时的深度链接URL
+let pendingDeepLinkUrl: string | null = null;
 
 // 生成一个随机 UA
 const version = Math.floor(Math.random() * 20 + 85); // 统一版本号
@@ -113,20 +126,41 @@ function handleDeepLink(url: string) {
     try {
         const parsedUrl = new URL(url);
         if (parsedUrl.protocol === 'prizrak-box:' && parsedUrl.hostname === 'install-config') {
-            const subUrl = parsedUrl.searchParams.get('url');
+            let subUrl: string | null = null;
+            
+            // 首先尝试标准的searchParams方法
+            subUrl = parsedUrl.searchParams.get('url');
+            
+            // 检查是否可能被截断了：如果原始URL中有更多参数但解析结果没有
+            const originalUrlParam = url.match(/url=([^]*)/); // 匹配url=后的所有内容
+            const hasMoreParams = originalUrlParam && originalUrlParam[1] && originalUrlParam[1].includes('&');
+            const resultLooksComplete = subUrl && subUrl.includes('?') && subUrl.split('&').length > 1;
+            
+            if (!subUrl || (hasMoreParams && !resultLooksComplete)) {
+                // 从原始URL中直接提取url参数的完整值
+                if (originalUrlParam && originalUrlParam[1]) {
+                    subUrl = originalUrlParam[1];
+                    log.info('使用原始URL提取方法获取到完整URL');
+                }
+            }
             
             if (subUrl) {
                 log.info('准备导入配置, URL:', subUrl);
+                
+                // 如果主窗口还没有准备好，存储URL稍后处理
+                if (!mainWindow || !mainWindow.webContents) {
+                    pendingDeepLinkUrl = subUrl;
+                    log.info('主窗口未准备好，存储深度链接URL待处理');
+                    return;
+                }
                 
                 // 显示窗口
                 showWindow();
                 
                 // 向渲染进程发送导入配置的消息
-                if (mainWindow && mainWindow.webContents) {
-                    mainWindow.webContents.send('import-profile-from-deeplink', {
-                        url: subUrl
-                    });
-                }
+                mainWindow.webContents.send('import-profile-from-deeplink', {
+                    url: subUrl
+                });
             }
         }
     } catch (error) {
