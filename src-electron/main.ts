@@ -1,4 +1,4 @@
-import {app, BrowserWindow, BrowserWindowConstructorOptions, session} from 'electron';
+import {app, BrowserWindow, BrowserWindowConstructorOptions, ipcMain, session} from 'electron';
 import path from 'node:path';
 import {startServer, storeInfo} from "./server";
 import {doQuit, initTray, showWindow} from "./tray";
@@ -17,8 +17,9 @@ let mainWindow: BrowserWindow | null = null;
 const DEEP_LINK_SCHEME = 'prizrak-box';
 const DEEP_LINK_HOST_INSTALL = 'install-config';
 const DEEP_LINK_EVENT = 'import-profile-from-deeplink';
+const DEEP_LINK_READY_EVENT = 'deeplink-handler-ready';
 const pendingDeepLinks: string[] = [];
-let rendererReady = false;
+let deepLinkHandlerReady = false;
 // 屏蔽安全警告
 process.env["ELECTRON_DISABLE_SECURITY_WARNINGS"] = "true";
 const createWindow = (isBoot: boolean) => {
@@ -51,7 +52,7 @@ const createWindow = (isBoot: boolean) => {
         };
     }
 
-    rendererReady = false;
+    deepLinkHandlerReady = false;
     mainWindow = new BrowserWindow(windowOptions);
 
     // 隐藏菜单栏
@@ -71,11 +72,10 @@ const createWindow = (isBoot: boolean) => {
     });
 
     mainWindow.webContents.on('did-start-loading', () => {
-        rendererReady = false;
+        deepLinkHandlerReady = false;
     });
 
     mainWindow.webContents.on('did-finish-load', () => {
-        rendererReady = true;
         processPendingDeepLinks();
     });
 
@@ -91,7 +91,7 @@ const createWindow = (isBoot: boolean) => {
     });
 
     mainWindow.on('closed', () => {
-        rendererReady = false;
+        deepLinkHandlerReady = false;
         mainWindow = null;
     });
 };
@@ -101,7 +101,7 @@ const isDeepLinkUrl = (arg: string | undefined): arg is string => {
 };
 
 const processPendingDeepLinks = () => {
-    if (!mainWindow || mainWindow.isDestroyed() || !rendererReady) {
+    if (!mainWindow || mainWindow.isDestroyed() || !deepLinkHandlerReady) {
         return;
     }
 
@@ -145,6 +145,15 @@ function handleDeepLink(url: string) {
         log.error('解析深度链接失败:', error);
     }
 }
+
+ipcMain.on(DEEP_LINK_READY_EVENT, (event) => {
+    if (!mainWindow || event.sender !== mainWindow.webContents) {
+        return;
+    }
+
+    deepLinkHandlerReady = true;
+    processPendingDeepLinks();
+});
 
 // 等待 backend 传来的 port 和 secret
 let resolveReady: () => void;

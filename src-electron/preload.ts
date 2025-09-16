@@ -20,6 +20,9 @@ contextBridge.exposeInMainWorld('pxDeepLink', {
     onImportProfile: (callback) => {
         ipcRenderer.removeAllListeners('import-profile-from-deeplink');
         ipcRenderer.on('import-profile-from-deeplink', (_event, data) => callback(data));
+    },
+    notifyReady: () => {
+        ipcRenderer.send('deeplink-handler-ready');
     }
 });
 

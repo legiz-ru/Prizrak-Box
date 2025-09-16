@@ -173,6 +173,10 @@ function setupDeepLinkHandler() {
         }
     });
 
+    if (typeof window.pxDeepLink.notifyReady === 'function') {
+        window.pxDeepLink.notifyReady();
+    }
+
     deepLinkHandlerRegistered = true;
 }
 
