@@ -8,6 +8,23 @@
         <div class="top-icon"></div>
         <span class="top-title-text">Prizrak-Box</span>
       </div>
+      <div v-if="showUpdateBanner" class="update-banner">
+        <div class="update-banner__content">
+          <span class="update-banner__message">{{ updateBannerMessage }}</span>
+          <icon-mdi-close-circle
+              class="update-banner__dismiss"
+              @click="dismissUpdateNotification"
+          />
+        </div>
+        <el-button
+            class="update-banner__open"
+            type="primary"
+            size="small"
+            @click="openLatestRelease"
+        >
+          {{ t('updates.actions.open') }}
+        </el-button>
+      </div>
       <MyEvent/>
       <MyNav/>
       <MyRule/>
@@ -20,6 +37,7 @@
       <router-view/>
       <MyDrop/>
     </div>
+    <DeepLinkImportOverlay/>
   </div>
 </template>
 
@@ -27,8 +45,41 @@
 <script setup lang="ts">
 import {useMenuStore} from "@/store/menuStore";
 import {preloadBackgroundImage} from "@/util/theme";
+import DeepLinkImportOverlay from "@/components/DeepLinkImportOverlay.vue";
+import {useUpdateStore} from "@/store/updateStore";
+import {storeToRefs} from "pinia";
+import {Browser} from "@/runtime";
+import {useI18n} from "vue-i18n";
 
 const menuStore = useMenuStore();
+const updateStore = useUpdateStore();
+const {t} = useI18n();
+
+const {hasVisibleUpdate, latestUrl} = storeToRefs(updateStore);
+
+const showUpdateBanner = computed(() => hasVisibleUpdate.value);
+const updateBannerMessage = computed(() => t('updates.banner.message'));
+
+const openExternalLink = (url: string) => {
+  if (!url) {
+    return;
+  }
+
+  try {
+    Browser.OpenURL(url);
+  } catch (error) {
+    window.open(url, '_blank');
+  }
+};
+
+const openLatestRelease = () => {
+  const url = latestUrl.value || 'https://github.com/legiz-ru/Prizrak-Box/releases/latest';
+  openExternalLink(url);
+};
+
+const dismissUpdateNotification = () => {
+  updateStore.dismissCurrentUpdate();
+};
 
 // 当前背景
 const currentBackground = ref("linear-gradient(to bottom, #434343, #000000)");
@@ -139,5 +190,53 @@ watch(() => menuStore.background, (nextBackground) => {
   text-align: center;
   line-height: 1.2;
   width: 100%;
+}
+
+.update-banner {
+  margin: 12px 0 0 22px;
+  padding: 14px 16px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  color: var(--text-color);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 193px;
+  align-self: flex-start;
+  box-sizing: border-box;
+}
+
+.update-banner__content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.update-banner__message {
+  flex: 1;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  opacity: 0.85;
+}
+
+.update-banner__open {
+  align-self: stretch;
+  width: 100%;
+}
+
+.update-banner__dismiss {
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  transition: opacity 0.2s ease;
+}
+
+.update-banner__dismiss:hover {
+  opacity: 1;
 }
 </style>

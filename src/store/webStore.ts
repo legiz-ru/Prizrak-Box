@@ -1,5 +1,10 @@
 import {defineStore} from 'pinia';
 
+export interface CustomDashboard {
+    name: string;
+    url: string;
+}
+
 export const useWebStore = defineStore('web', {
     state: () => ({
         host: '127.0.0.1', // 默认值
@@ -9,6 +14,7 @@ export const useWebStore = defineStore('web', {
         dnd: false,         // 拖拽显示
         dProfile: [],         // 传输文件 拖拽添加文件用
         fProfile: {}, // 更新profile 配置切换用
+        customDashboards: [] as CustomDashboard[],
     }),
     getters: {
         // 确保使用 state 参数引用正确
@@ -32,6 +38,16 @@ export const useWebStore = defineStore('web', {
             }
             // 在头部添加新日志
             this.logs.unshift(log);
+        },
+        addCustomDashboard(dashboard: CustomDashboard) {
+            this.customDashboards.push(dashboard);
+        },
+        removeCustomDashboard(index: number) {
+            if (index < 0 || index >= this.customDashboards.length) {
+                return;
+            }
+
+            this.customDashboards.splice(index, 1);
         },
     },
     persist: true,

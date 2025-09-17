@@ -39,6 +39,7 @@ declare module 'vue' {
     IconMdiCancel: typeof import('~icons/mdi/cancel')['default']
     IconMdiCardMinusOutline: typeof import('~icons/mdi/card-minus-outline')['default']
     IconMdiClose: typeof import('~icons/mdi/close')['default']
+    IconMdiCloseCircle: typeof import('~icons/mdi/close-circle')['default']
     IconMdiCog: typeof import('~icons/mdi/cog')['default']
     IconMdiCogOutline: typeof import('~icons/mdi/cog-outline')['default']
     IconMdiContentPaste: typeof import('~icons/mdi/content-paste')['default']
