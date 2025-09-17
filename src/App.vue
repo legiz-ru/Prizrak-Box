@@ -18,7 +18,6 @@
         </div>
         <el-button
             class="update-banner__open"
-            type="primary"
             size="small"
             @click="openLatestRelease"
         >
@@ -225,6 +224,15 @@ watch(() => menuStore.background, (nextBackground) => {
 .update-banner__open {
   align-self: stretch;
   width: 100%;
+  --el-button-bg-color: var(--left-item-selected-bg);
+  --el-button-hover-bg-color: var(--left-item-selected-bg);
+  --el-button-active-bg-color: var(--left-item-selected-bg);
+  --el-button-border-color: transparent;
+  --el-button-hover-border-color: transparent;
+  --el-button-active-border-color: transparent;
+  --el-button-text-color: var(--text-color);
+  --el-button-hover-text-color: var(--text-color);
+  --el-button-active-text-color: var(--text-color);
 }
 
 .update-banner__dismiss {
