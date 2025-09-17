@@ -270,6 +270,7 @@ tray:
   global: Глобальный
   direct: Прямой
   profiles: Профили
+  dashboard: Открыть панель
   proxy: Прокси
   tun: TUN
   quit: Выйти

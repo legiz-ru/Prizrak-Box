@@ -17,6 +17,8 @@ import {useMenuStore} from "@/store/menuStore";
 import {Browser, Events} from "@/runtime";
 import {useUpdateStore} from "@/store/updateStore";
 import {storeToRefs} from "pinia";
+import type {DashboardOption} from "@/util/dashboard";
+import {formatDashboardUrl as buildDashboardUrl, resolveDashboardOptions} from "@/util/dashboard";
 
 // 获取当前 Vue 实例的 proxy 对象 和 api
 const {proxy} = getCurrentInstance()!;
@@ -55,50 +57,13 @@ const manualUpdateStatus = computed(() => {
   return {type: '', text: ''};
 });
 
-interface DashboardOption {
-  key: string;
-  name: string;
-  url: string;
-  isCustom?: boolean;
-}
-
-const defaultDashboards: DashboardOption[] = [
-  {
-    key: 'metacubexd',
-    name: 'MetaCubeXD',
-    url: 'https://metacubex.github.io/metacubexd/#/setup?http=true&hostname=%host&port=%port&secret=%secret',
-  },
-  {
-    key: 'yacd',
-    name: 'Yacd',
-    url: 'https://yacd.metacubex.one/?hostname=%host&port=%port&secret=%secret',
-  },
-  {
-    key: 'zashboard',
-    name: 'Zashboard',
-    url: 'https://board.zash.run.place/#/setup?http=true&hostname=%host&port=%port&secret=%secret',
-  },
-];
-
-const customDashboardOptions = computed<DashboardOption[]>(() =>
-  customDashboards.value.map((entry, index) => ({
-    key: `custom-${index}`,
-    name: entry.name,
-    url: entry.url,
-    isCustom: true,
-  })),
+const dashboardOptions = computed<DashboardOption[]>(() =>
+  resolveDashboardOptions(customDashboards.value),
 );
-
-const dashboardOptions = computed(() => [...defaultDashboards, ...customDashboardOptions.value]);
 
 const dashboardDialogVisible = ref(false);
 const newDashboard = reactive({name: '', url: ''});
 const dashboardFormError = ref('');
-
-const formatDashboardUrl = (template: string) => template
-    .replace(/%host/g, webStore.host)
-    .replace(/%port/g, webStore.port)
-    .replace(/%secret/g, webStore.secret);
 
 const openExternalLink = (url: string) => {
   if (!url) {
@@ -113,7 +78,11 @@ const openExternalLink = (url: string) => {
 };
 
 const openDashboard = (dashboard: DashboardOption) => {
-  const formattedUrl = formatDashboardUrl(dashboard.url);
+  const formattedUrl = buildDashboardUrl(dashboard.url, {
+    host: webStore.host,
+    port: webStore.port,
+    secret: webStore.secret,
+  });
   openExternalLink(formattedUrl);
 };
 
@@ -277,35 +246,37 @@ onMounted(async () => {
             />
           </li>
           <li class="api-row">
-            <strong>Api :</strong>
-            <span class="api-row__value">{{ webStore.baseUrl }}</span>
-            <el-button
-                @click="copy(webStore.baseUrl,t)"
-                class="api-row__button">
-              {{ $t('copy.title') }}
-            </el-button>
-            <el-dropdown trigger="click" @command="handleDashboardCommand" class="api-row__dropdown">
-              <el-button class="api-row__button">
-                {{ t('setting.dashboard.open') }}
-                <el-icon class="api-row__icon">
-                  <ArrowDown/>
-                </el-icon>
+            <div class="api-row__info">
+              <strong>Api :</strong>
+              <span class="api-row__value">{{ webStore.baseUrl }}</span>
+            </div>
+            <div class="api-row__actions">
+              <el-button @click="copy(webStore.baseUrl,t)">
+                {{ $t('copy.title') }}
               </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item
-                      v-for="dashboard in dashboardOptions"
-                      :key="dashboard.key"
-                      :command="dashboard"
-                  >
-                    {{ dashboard.name }}
-                  </el-dropdown-item>
-                  <el-dropdown-item divided command="manage">
-                    {{ t('setting.dashboard.manage') }}
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+              <el-dropdown trigger="click" @command="handleDashboardCommand" class="api-row__dropdown">
+                <el-button>
+                  {{ t('setting.dashboard.open') }}
+                  <el-icon class="api-row__icon">
+                    <ArrowDown/>
+                  </el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item
+                        v-for="dashboard in dashboardOptions"
+                        :key="dashboard.key"
+                        :command="dashboard"
+                    >
+                      {{ dashboard.name }}
+                    </el-dropdown-item>
+                    <el-dropdown-item divided command="manage">
+                      {{ t('setting.dashboard.manage') }}
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
           </li>
           <li style="height: 30px">
             <strong>Secret:</strong>
@@ -455,21 +426,30 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
   min-height: 30px;
 }
 
-.api-row strong {
-  margin-right: 6px;
+.api-row__info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .api-row__value {
-  flex: 1 1 auto;
-  min-width: 0;
+  word-break: break-all;
 }
 
-.api-row__button {
-  margin-left: 10px;
+.api-row__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.api-row__dropdown {
+  display: inline-flex;
 }
 
 .api-row__icon {
@@ -490,7 +470,7 @@ onMounted(async () => {
 }
 
 .update-row__button {
-  margin-left: 10px;
+  margin-left: 0;
 }
 
 .title--status {

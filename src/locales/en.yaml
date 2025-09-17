@@ -270,6 +270,7 @@ tray:
   global: Global
   direct: Direct
   profiles: Profiles
+  dashboard: Open dashboard
   proxy: Proxy
   tun: TUN
   quit: Quit

@@ -23,7 +23,8 @@ import {pError, pSuccess, pWarning} from "@/util/pLoad";
 import {isHttpOrHttps} from "@/util/format";
 import {useDeepLinkImportStore} from "@/store/deepLinkStore";
 import {useUpdateStore} from "@/store/updateStore";
-import {Browser} from "@/runtime";
+import {Browser, Events} from "@/runtime";
+import {createDashboardLinks} from "@/util/dashboard";
 
 const app = createApp(App);
 const lang = detectLanguage();
@@ -100,6 +101,26 @@ async function bootstrap() {
     if (secret) {
         webStore.setSecret(secret);
     }
+
+    const emitDashboardLinks = () => {
+        const dashboards = createDashboardLinks(webStore.customDashboards, {
+            host: webStore.host,
+            port: webStore.port,
+            secret: webStore.secret,
+        });
+
+        if ((window as any)?.pxTray?.emit) {
+            Events.Emit({name: "dashboards", data: dashboards});
+        }
+    };
+
+    watch(() => [webStore.host, webStore.port, webStore.secret], () => {
+        emitDashboardLinks();
+    }, {immediate: true});
+
+    watch(() => webStore.customDashboards, () => {
+        emitDashboardLinks();
+    }, {deep: true});
 
     // 注册 Axios 实例到全局
     app.config.globalProperties.$http = new AxiosRequest(

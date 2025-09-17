@@ -193,7 +193,7 @@ watch(() => menuStore.background, (nextBackground) => {
 }
 
 .update-banner {
-  margin: 12px 24px 0 24px;
+  margin: 12px 0 0 22px;
   padding: 14px 16px 16px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.08);
@@ -204,6 +204,9 @@ watch(() => menuStore.background, (nextBackground) => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 193px;
+  align-self: flex-start;
+  box-sizing: border-box;
 }
 
 .update-banner__content {
@@ -220,7 +223,8 @@ watch(() => menuStore.background, (nextBackground) => {
 }
 
 .update-banner__open {
-  align-self: flex-start;
+  align-self: stretch;
+  width: 100%;
 }
 
 .update-banner__dismiss {

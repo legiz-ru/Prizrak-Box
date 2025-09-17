@@ -1,6 +1,6 @@
 import {defineStore} from 'pinia';
 
-interface CustomDashboard {
+export interface CustomDashboard {
     name: string;
     url: string;
 }

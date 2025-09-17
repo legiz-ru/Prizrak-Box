@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import {app, BrowserWindow, ipcMain, Menu, nativeImage, Tray} from 'electron';
+import {app, BrowserWindow, ipcMain, Menu, nativeImage, Tray, shell} from 'electron';
 import path from "node:path";
 import {storeSet} from "./store";
 import {disableAutoLaunch, enableAutoLaunch} from "./launch";
@@ -154,6 +154,12 @@ trayMap.set('tray.direct', {
     click: (menuItem) => switchMode(menuItem, 'direct')
 });
 trayMap.set('tray.profiles', {id: 'tray.profiles', label: '订阅', submenu: []});
+trayMap.set('tray.dashboard', {
+    id: 'tray.dashboard',
+    label: 'Open Dashboard',
+    submenu: [],
+    enabled: false,
+});
 trayMap.set('tray.proxy', {
     id: 'tray.proxy',
     label: '系统代理',
@@ -178,6 +184,7 @@ const createTrayMenu = () => [
     trayMap.get('tray.direct'),
     {type: 'separator'},
     trayMap.get('tray.profiles'),
+    trayMap.get('tray.dashboard'),
     {type: 'separator'},
     trayMap.get('tray.proxy'),
     trayMap.get('tray.tun'),
@@ -244,6 +251,16 @@ function emitWindow(name: string, ...value: any[]) {
     }
 }
 
+const openDashboardFromTray = (url: string) => {
+    if (!url) {
+        return;
+    }
+
+    void shell.openExternal(url).catch((error) => {
+        console.error('Failed to open dashboard link from tray', error);
+    });
+};
+
 
 // 监听消息
 onWindow("translate", function (trayOptions) {
@@ -286,6 +303,26 @@ onWindow("profiles", function (profiles) {
         })
     }
     trayMap.get(key).submenu = pList
+    currentMenu = Menu.buildFromTemplate(createTrayMenu());
+    tray.setContextMenu(currentMenu);
+})
+
+onWindow("dashboards", function (dashboards) {
+    const key = 'tray.dashboard';
+    const items = Array.isArray(dashboards)
+        ? dashboards
+            .filter((dashboard) => dashboard && dashboard.name && dashboard.url)
+            .map((dashboard) => ({
+                id: `${key}.${dashboard.key ?? dashboard.name}`,
+                label: dashboard.name,
+                type: 'normal',
+                click: () => openDashboardFromTray(dashboard.url),
+            }))
+        : [];
+
+    const menuItem = trayMap.get(key);
+    menuItem.submenu = items;
+    menuItem.enabled = items.length > 0;
     currentMenu = Menu.buildFromTemplate(createTrayMenu());
     tray.setContextMenu(currentMenu);
 })
