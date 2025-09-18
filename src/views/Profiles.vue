@@ -25,6 +25,12 @@ const webStore = useWebStore();
 
 const hasUsageValue = (value: unknown) => value !== undefined && value !== null && value !== ''
 
+const hasAnyStats = (profile: any) =>
+  hasUsageValue(profile?.available) ||
+  hasUsageValue(profile?.used) ||
+  hasUsageValue(profile?.expire) ||
+  hasUsageValue(profile?.update)
+
 const formatBytes = (value: unknown) => {
   if (!hasUsageValue(value)) {
     return ''
@@ -32,6 +38,10 @@ const formatBytes = (value: unknown) => {
 
   if (typeof value === 'number') {
     return prettyBytes(value)
+  }
+
+  if (typeof value === 'bigint') {
+    return prettyBytes(Number(value))
   }
 
   const numeric = Number(value)
@@ -65,6 +75,48 @@ const formatDate = (value: unknown) => {
   const year = date.getFullYear()
 
   return `${day}.${month}.${year}`
+}
+
+const getProfileStats = (profile: any) => {
+  const stats: Array<{key: string; icon: string; label: string; value: string}> = []
+
+  if (hasUsageValue(profile?.available)) {
+    stats.push({
+      key: 'available',
+      icon: 'icon-mdi-database-check',
+      label: t('profiles.available'),
+      value: formatBytes(profile.available)
+    })
+  }
+
+  if (hasUsageValue(profile?.used)) {
+    stats.push({
+      key: 'used',
+      icon: 'icon-mdi-arrow-up-bold-box-outline',
+      label: t('profiles.use'),
+      value: formatBytes(profile.used)
+    })
+  }
+
+  if (hasUsageValue(profile?.expire)) {
+    stats.push({
+      key: 'expire',
+      icon: 'icon-mdi-timer-outline',
+      label: t('profiles.expire'),
+      value: formatDate(profile.expire)
+    })
+  }
+
+  if (hasUsageValue(profile?.update)) {
+    stats.push({
+      key: 'update',
+      icon: 'icon-mdi-update',
+      label: t('profiles.update'),
+      value: formatDate(profile.update)
+    })
+  }
+
+  return stats
 }
 
 // 头部几个按钮操作
@@ -495,41 +547,27 @@ watch(() => webStore.dProfile, async (pList) => {
                     </el-icon>
                   </el-tooltip>
                 </div>
-                <div class="profile-body">
+                <div class="profile-content">
                   <div
-                      v-if="hasUsageValue(data.available) || hasUsageValue(data.used) || hasUsageValue(data.expire) || hasUsageValue(data.update)"
+                      v-if="hasAnyStats(data)"
                       class="profile-stats"
                   >
-                    <div class="profile-stat" v-if="hasUsageValue(data.available)">
+                    <div
+                        v-for="stat in getProfileStats(data)"
+                        :key="stat.key"
+                        class="profile-stat"
+                    >
                       <el-icon class="profile-stat-icon">
-                        <icon-mdi-database-check/>
+                        <component :is="stat.icon"/>
                       </el-icon>
-                      <span class="profile-stat-label">{{ $t('profiles.available') }}</span>
-                      <span class="profile-stat-value">{{ formatBytes(data.available) }}</span>
-                    </div>
-                    <div class="profile-stat" v-if="hasUsageValue(data.used)">
-                      <el-icon class="profile-stat-icon">
-                        <icon-mdi-arrow-up-bold-box-outline/>
-                      </el-icon>
-                      <span class="profile-stat-label">{{ $t('profiles.use') }}</span>
-                      <span class="profile-stat-value">{{ formatBytes(data.used) }}</span>
-                    </div>
-                    <div class="profile-stat" v-if="hasUsageValue(data.expire)">
-                      <el-icon class="profile-stat-icon">
-                        <icon-mdi-timer-outline/>
-                      </el-icon>
-                      <span class="profile-stat-label">{{ $t('profiles.expire') }}</span>
-                      <span class="profile-stat-value">{{ formatDate(data.expire) }}</span>
-                    </div>
-                    <div class="profile-stat" v-if="hasUsageValue(data.update)">
-                      <el-icon class="profile-stat-icon">
-                        <icon-mdi-update/>
-                      </el-icon>
-                      <span class="profile-stat-label">{{ $t('profiles.update') }}</span>
-                      <span class="profile-stat-value">{{ formatDate(data.update) }}</span>
+                      <span class="profile-stat-label">{{ stat.label }}</span>
+                      <span class="profile-stat-value">{{ stat.value }}</span>
                     </div>
                   </div>
-                  <div class="profile-actions">
+                  <div
+                      class="profile-actions"
+                      :class="{'profile-actions--compact': hasAnyStats(data)}"
+                  >
                     <el-tooltip
                         v-if="data.support"
                         :content="$t('profiles.support')"
@@ -790,16 +828,17 @@ watch(() => webStore.dProfile, async (pList) => {
   cursor: pointer;
 }
 
-.profile-body {
+.profile-content {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 6px;
+  flex: 1;
 }
 
 .profile-stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .profile-stat {
@@ -833,9 +872,13 @@ watch(() => webStore.dProfile, async (pList) => {
   justify-content: flex-end;
   align-items: center;
   gap: 8px;
-  margin-top: 0;
+  margin-top: 8px;
   padding-top: 0;
   color: var(--text-color);
+}
+
+.profile-actions--compact {
+  margin-top: 0;
 }
 
 
