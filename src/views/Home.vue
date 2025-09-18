@@ -235,7 +235,6 @@ onMounted(async () => {
                   <component :is="stat.icon"/>
                 </el-icon>
                 <span class="profile-stat-label">{{ stat.label }}</span>
-                <span class="profile-stat-separator">-</span>
                 <span class="profile-stat-value">{{ stat.value }}</span>
               </div>
             </div>
@@ -277,7 +276,7 @@ onMounted(async () => {
   border-radius: 8px;
   text-align: left;
   box-shadow: var(--right-box-shadow);
-  background: var(--sub-card-bg);
+  background: transparent;
   color: var(--text-color);
   display: flex;
   flex-direction: column;
@@ -325,7 +324,8 @@ onMounted(async () => {
 .profile-stats {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  min-height: 120px;
 }
 
 .profile-stat-row {
@@ -340,15 +340,15 @@ onMounted(async () => {
 }
 
 .profile-stat-label {
+  flex: 1;
   font-weight: 500;
-}
-
-.profile-stat-separator {
-  opacity: 0.6;
+  min-width: 0;
 }
 
 .profile-stat-value {
   font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .profile-empty {
