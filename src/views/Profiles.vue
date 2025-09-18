@@ -494,40 +494,32 @@ watch(() => webStore.dProfile, async (pList) => {
                     class="profile-stats"
                 >
                   <div class="profile-stat" v-if="hasUsageValue(data.available)">
-                    <div class="profile-stat-label">
+                    <el-icon class="profile-stat-icon">
                       <icon-mdi-database-check/>
-                      <span>{{ $t('profiles.available') }}</span>
-                    </div>
-                    <div class="profile-stat-value">
-                      {{ formatBytes(data.available) }}
-                    </div>
+                    </el-icon>
+                    <span class="profile-stat-label">{{ $t('profiles.available') }}</span>
+                    <span class="profile-stat-value">{{ formatBytes(data.available) }}</span>
                   </div>
                   <div class="profile-stat" v-if="hasUsageValue(data.used)">
-                    <div class="profile-stat-label">
+                    <el-icon class="profile-stat-icon">
                       <icon-mdi-arrow-up-bold-box-outline/>
-                      <span>{{ $t('profiles.use') }}</span>
-                    </div>
-                    <div class="profile-stat-value">
-                      {{ formatBytes(data.used) }}
-                    </div>
+                    </el-icon>
+                    <span class="profile-stat-label">{{ $t('profiles.use') }}</span>
+                    <span class="profile-stat-value">{{ formatBytes(data.used) }}</span>
                   </div>
                   <div class="profile-stat" v-if="hasUsageValue(data.expire)">
-                    <div class="profile-stat-label">
+                    <el-icon class="profile-stat-icon">
                       <icon-mdi-timer-outline/>
-                      <span>{{ $t('profiles.expire') }}</span>
-                    </div>
-                    <div class="profile-stat-value">
-                      {{ formatDate(data.expire) }}
-                    </div>
+                    </el-icon>
+                    <span class="profile-stat-label">{{ $t('profiles.expire') }}</span>
+                    <span class="profile-stat-value">{{ formatDate(data.expire) }}</span>
                   </div>
                   <div class="profile-stat" v-if="hasUsageValue(data.update)">
-                    <div class="profile-stat-label">
+                    <el-icon class="profile-stat-icon">
                       <icon-mdi-update/>
-                      <span>{{ $t('profiles.update') }}</span>
-                    </div>
-                    <div class="profile-stat-value">
-                      {{ formatDate(data.update) }}
-                    </div>
+                    </el-icon>
+                    <span class="profile-stat-label">{{ $t('profiles.update') }}</span>
+                    <span class="profile-stat-value">{{ formatDate(data.update) }}</span>
                   </div>
                 </div>
                 <div class="bottom-row">
@@ -760,7 +752,7 @@ watch(() => webStore.dProfile, async (pList) => {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 6px 12px 10px 12px;
+  padding: 6px 12px 8px 12px;
   color: var(--text-color);
   flex: 1;
 }
@@ -791,26 +783,23 @@ watch(() => webStore.dProfile, async (pList) => {
 }
 
 .profile-stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  grid-auto-flow: row dense;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .profile-stat {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px 8px;
-  border-radius: 6px;
-  background-color: rgba(255, 255, 255, 0.05);
-  background-color: color-mix(in srgb, var(--text-color) 8%, transparent);
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.profile-stat-icon {
+  color: var(--placeholder-color);
 }
 
 .profile-stat-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   color: var(--placeholder-color);
   font-size: 12px;
 }
@@ -819,6 +808,7 @@ watch(() => webStore.dProfile, async (pList) => {
   color: var(--text-color);
   font-weight: 600;
   font-size: 14px;
+  margin-left: auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -828,8 +818,8 @@ watch(() => webStore.dProfile, async (pList) => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: auto;
-  padding-top: 4px;
+  margin-top: 6px;
+  padding-top: 2px;
   color: var(--text-color);
   align-items: center;
 }
