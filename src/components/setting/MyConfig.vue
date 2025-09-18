@@ -145,30 +145,6 @@ watch(() => settingStore.startup, (newValue) => {
   pUpdateMihomo(menuStore, settingStore, api)
 });
 
-// HWID设置
-watch(() => settingStore.hwid, async (newValue) => {
-  await updateHTTPClientConfig();
-});
-
-// 更新HTTP客户端配置
-async function updateHTTPClientConfig() {
-  try {
-    // 获取版本号
-    const version = await api.getVersion();
-    
-    // 更新HTTP客户端配置
-    await api.updateHTTPClientConfig({
-      enableHWID: settingStore.hwid,
-      version: version,
-      deviceOS: homeStore.os,
-      deviceOSVer: "", // 可以从系统信息获取，暂时留空
-      deviceModel: "", // 可以从系统信息获取，暂时留空
-    });
-  } catch (e) {
-    console.error("Failed to update HTTP client config:", e);
-  }
-}
-
 // 打开配置目录
 function pxConfigDir() {
   // @ts-ignore
@@ -193,11 +169,6 @@ watch(dashboardDialogVisible, (visible) => {
     newDashboard.name = '';
     newDashboard.url = '';
   }
-});
-
-// 初始化HTTP客户端配置
-onMounted(async () => {
-  await updateHTTPClientConfig();
 });
 
 </script>

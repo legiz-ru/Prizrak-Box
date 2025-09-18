@@ -274,3 +274,11 @@ tray:
   proxy: Proxy
   tun: TUN
   quit: Quit
+
+errors:
+  request-failed: Request failed
+  request-send-failed: Failed to send request
+  request-create-failed: Failed to create request
+  response-empty: Response body is empty
+  unknown-reason: Unknown reason
+
