@@ -29,11 +29,17 @@ const formatBytes = (value: unknown) => {
   if (!hasUsageValue(value)) {
     return ''
   }
-  const number = typeof value === 'number' ? value : Number(value)
-  if (!Number.isFinite(number)) {
-    return ''
+
+  if (typeof value === 'number') {
+    return prettyBytes(value)
   }
-  return prettyBytes(number)
+
+  const numeric = Number(value)
+  if (Number.isFinite(numeric)) {
+    return prettyBytes(numeric)
+  }
+
+  return String(value)
 }
 
 const formatDate = (value: unknown) => {
@@ -51,7 +57,7 @@ const formatDate = (value: unknown) => {
 
   const date = new Date(value as any)
   if (Number.isNaN(date.getTime())) {
-    return `${value}`
+    return String(value)
   }
 
   const day = String(date.getDate()).padStart(2, '0')
