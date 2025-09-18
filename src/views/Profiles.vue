@@ -530,13 +530,12 @@ watch(() => webStore.dProfile, async (pList) => {
                   </div>
                 </div>
               </div>
-            </div>
-            <div class="bottom-row">
-              <el-tooltip
-                  v-if="data.support"
-                  :content="$t('profiles.support')"
-                  placement="top">
-                <el-icon
+              <div class="bottom-row">
+                <el-tooltip
+                    v-if="data.support"
+                    :content="$t('profiles.support')"
+                    placement="top">
+                  <el-icon
                     class="ops"
                     @click.stop="goSupport(data)"
                     size="20">
@@ -782,11 +781,10 @@ watch(() => webStore.dProfile, async (pList) => {
 }
 
 .system-info {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  padding: 5px 10px 0 15px;
+  gap: 8px;
+  padding: 5px 10px 5px 15px;
   color: var(--text-color);
 }
 
@@ -825,7 +823,6 @@ watch(() => webStore.dProfile, async (pList) => {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 0;
-  margin-bottom: 4px;
   color: var(--text-color);
 }
 
