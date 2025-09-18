@@ -23,6 +23,19 @@ const menuStore = useMenuStore();
 const proxiesStore = useProxiesStore();
 const webStore = useWebStore();
 
+const hasUsageValue = (value: unknown) => value !== undefined && value !== null && value !== ''
+
+const formatBytes = (value: unknown) => {
+  if (!hasUsageValue(value)) {
+    return ''
+  }
+  const number = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(number)) {
+    return ''
+  }
+  return prettyBytes(number)
+}
+
 // 头部几个按钮操作
 const addFormVisible = ref(false)
 const isNowAdd = ref(false)
@@ -68,37 +81,6 @@ function openFile() {
   webStore.dnd = true
 }
 
-// 头部显示
-const headerShow = reactive({
-  available: '',
-  used: '',
-  expire: '',
-  update: '',
-})
-
-function setHeaderShow(item: any) {
-  if (item['available']) {
-    headerShow.available = prettyBytes(item['available'])
-  } else {
-    headerShow.available = ''
-  }
-  if (item['used']) {
-    headerShow.used = prettyBytes(item['used'])
-  } else {
-    headerShow.used = ''
-  }
-  if (item['expire']) {
-    headerShow.expire = item['expire']
-  } else {
-    headerShow.expire = ''
-  }
-  if (item['update']) {
-    headerShow.update = item['update']
-  } else {
-    headerShow.update = ''
-  }
-}
-
 // 列表显示
 let profiles = reactive<any[]>([])
 
@@ -110,9 +92,6 @@ async function getProfileList() {
   if (list && list.length != 0) {
     list.forEach(item => {
       profiles.push(item)
-      if (item['selected']) {
-        setHeaderShow(item)
-      }
     })
 
     Events.Emit({
@@ -153,7 +132,6 @@ async function switchProfile(data: any) {
         }
       }
       data['selected'] = true
-      setHeaderShow(data)
 
       api.getRuleNum().then((res) => {
         menuStore.setRuleNum(res);
@@ -189,7 +167,6 @@ watch(() => webStore.fProfile, async (data: any) => {
   }
 
   data['selected'] = true
-  setHeaderShow(data)
 })
 
 
@@ -198,9 +175,6 @@ async function refresh(data: any) {
   await pLoad(t('profiles.refresh.ing'), async () => {
     try {
       const re = await api.refreshProfile(data)
-      if (data['selected']) {
-        setHeaderShow(re)
-      }
       Object.assign(data, re);
       pSuccess(t('profiles.refresh.success'))
     } catch (e) {
@@ -452,23 +426,6 @@ watch(() => webStore.dProfile, async (pList) => {
         </div>
       </el-space>
 
-      <div class="sub-title">
-        <template v-if="headerShow.available">
-          <span>{{ $t('profiles.available') }} {{ headerShow.available }}</span>
-          <el-divider direction="vertical" border-style="dashed"/>
-        </template>
-        <template v-if="headerShow.used">
-          <span>{{ $t('profiles.use') }} {{ headerShow.used }}</span>
-          <el-divider direction="vertical" border-style="dashed"/>
-        </template>
-        <template v-if="headerShow.expire">
-          <span>{{ $t('profiles.expire') }} {{ headerShow.expire }}</span>
-          <el-divider direction="vertical" border-style="dashed"/>
-        </template>
-        <template v-if="headerShow.update">
-          <span>{{ $t('profiles.update') }} {{ headerShow.update }}</span>
-        </template>
-      </div>
     </template>
 
     <template #bottom>
@@ -504,12 +461,51 @@ watch(() => webStore.dProfile, async (pList) => {
               </el-tooltip>
 
             </div>
-            <div
-                class="system-info"
-            >
-              <span :title="data.title">
+            <div class="system-info">
+              <div class="profile-title" :title="data.title">
                 {{ data.title }}
-              </span>
+              </div>
+              <div
+                  v-if="hasUsageValue(data.available) || hasUsageValue(data.used) || hasUsageValue(data.expire) || hasUsageValue(data.update)"
+                  class="profile-stats"
+              >
+                <div class="profile-stat" v-if="hasUsageValue(data.available)">
+                  <div class="profile-stat-label">
+                    <icon-mdi-database-check/>
+                    <span>{{ $t('profiles.available') }}</span>
+                  </div>
+                  <div class="profile-stat-value">
+                    {{ formatBytes(data.available) }}
+                  </div>
+                </div>
+                <div class="profile-stat" v-if="hasUsageValue(data.used)">
+                  <div class="profile-stat-label">
+                    <icon-mdi-database-minus/>
+                    <span>{{ $t('profiles.use') }}</span>
+                  </div>
+                  <div class="profile-stat-value">
+                    {{ formatBytes(data.used) }}
+                  </div>
+                </div>
+                <div class="profile-stat" v-if="hasUsageValue(data.expire)">
+                  <div class="profile-stat-label">
+                    <icon-mdi-timer-outline/>
+                    <span>{{ $t('profiles.expire') }}</span>
+                  </div>
+                  <div class="profile-stat-value">
+                    {{ data.expire }}
+                  </div>
+                </div>
+                <div class="profile-stat" v-if="hasUsageValue(data.update)">
+                  <div class="profile-stat-label">
+                    <icon-mdi-update/>
+                    <span>{{ $t('profiles.update') }}</span>
+                  </div>
+                  <div class="profile-stat-value">
+                    {{ data.update }}
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="bottom-row">
               <el-tooltip
@@ -687,13 +683,6 @@ watch(() => webStore.dProfile, async (pList) => {
   margin-left: 10px;
 }
 
-.sub-title {
-  margin-left: 10px;
-  color: var(--top-hr-color);
-  font-size: 14px;
-  margin-top: 15px;
-}
-
 .profile-option {
   margin-left: 10px;
   font-size: 30px;
@@ -748,20 +737,59 @@ watch(() => webStore.dProfile, async (pList) => {
 }
 
 .system-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 5px 10px 5px 15px;
+  color: var(--text-color);
+}
+
+.profile-title {
+  font-size: 15px;
+  font-weight: 600;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  text-align: left;
-  font-size: 14px;
-  padding: 5px 10px 5px 15px;
+}
+
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.profile-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background-color: var(--sub-card-bg);
+  border: 1px solid var(--sub-card-border);
+}
+
+.profile-stat-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--placeholder-color);
+  font-size: 12px;
+}
+
+.profile-stat-value {
   color: var(--text-color);
+  font-weight: 600;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bottom-row {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 5px;
+  margin-top: 10px;
   margin-bottom: 4px;
   color: var(--text-color);
 }
