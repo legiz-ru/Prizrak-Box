@@ -461,122 +461,123 @@ watch(() => webStore.dProfile, async (pList) => {
           :draggable="canDrag"
           style="margin-left: 10px;width: 95%;"
       >
-        <template v-slot:VDC="{data,index}">
-          <div
-              :class="data.selected?'sub-card sub-card-select':'sub-card'"
-              @click="switchProfile(data)"
-          >
-            <div class="row">
-              <el-icon
-                  @mouseenter.stop="mouseEnter"
-                  @mouseleave.stop="mouseLeave"
-                  size="22"
-                  class="drag">
-                <icon-mdi-drag/>
-              </el-icon>
-              <div class="profile-name" :title="data.title">
-                {{ data.title }}
-              </div>
-              <el-tooltip
-                  v-if="data.type == 1"
-                  :content="$t('refresh')"
-                  placement="top">
-                <el-icon size="22"
-                         class="ops row-refresh"
-                         @click.stop="refresh(data)">
-                  <icon-mdi-refresh/>
-                </el-icon>
-              </el-tooltip>
-            </div>
-            <div class="system-info">
-              <div
-                  v-if="hasUsageValue(data.available) || hasUsageValue(data.used) || hasUsageValue(data.expire) || hasUsageValue(data.update)"
-                  class="profile-stats"
-              >
-                <div class="profile-stat" v-if="hasUsageValue(data.available)">
-                  <div class="profile-stat-label">
-                    <icon-mdi-database-check/>
-                    <span>{{ $t('profiles.available') }}</span>
-                  </div>
-                  <div class="profile-stat-value">
-                    {{ formatBytes(data.available) }}
-                  </div>
-                </div>
-                <div class="profile-stat" v-if="hasUsageValue(data.used)">
-                  <div class="profile-stat-label">
-                    <icon-mdi-arrow-up-bold-box-outline/>
-                    <span>{{ $t('profiles.use') }}</span>
-                  </div>
-                  <div class="profile-stat-value">
-                    {{ formatBytes(data.used) }}
-                  </div>
-                </div>
-                <div class="profile-stat" v-if="hasUsageValue(data.expire)">
-                  <div class="profile-stat-label">
-                    <icon-mdi-timer-outline/>
-                    <span>{{ $t('profiles.expire') }}</span>
-                  </div>
-                  <div class="profile-stat-value">
-                    {{ formatDate(data.expire) }}
-                  </div>
-                </div>
-                <div class="profile-stat" v-if="hasUsageValue(data.update)">
-                  <div class="profile-stat-label">
-                    <icon-mdi-update/>
-                    <span>{{ $t('profiles.update') }}</span>
-                  </div>
-                  <div class="profile-stat-value">
-                    {{ formatDate(data.update) }}
-                  </div>
-                </div>
-              </div>
-              <div class="bottom-row">
-                <el-tooltip
-                    v-if="data.support"
-                    :content="$t('profiles.support')"
-                    placement="top">
+          <template v-slot:VDC="{data,index}">
+            <div
+                :class="data.selected?'sub-card sub-card-select':'sub-card'"
+                @click="switchProfile(data)"
+            >
+              <div class="system-info">
+                <div class="profile-title">
                   <el-icon
-                    class="ops"
-                    @click.stop="goSupport(data)"
-                    size="20">
-                  <icon-mdi-face-agent/>
-                </el-icon>
-              </el-tooltip>
-              <el-tooltip
-                  v-if="data.home"
-                  :content="$t('profiles.home')"
-                  placement="top">
-                <el-icon
-                    class="ops"
-                    @click.stop="goHome(data)"
-                    size="20">
-                  <icon-mdi-home-import-outline/>
-                </el-icon>
-              </el-tooltip>
-              <el-tooltip
-                  :content="$t('edit')"
-                  placement="top">
-                <el-icon
-                    class="ops"
-                    @click.stop="updateProfile(data)"
-                    size="20">
-                  <icon-mdi-square-edit-outline/>
-                </el-icon>
-              </el-tooltip>
-              <el-tooltip
-                  :content="$t('delete')"
-                  placement="top">
-                <el-icon
-                    class="ops"
-                    @click.stop="deleteProfile(data,index)"
-                    size="20">
-                  <icon-mdi-trash-can/>
-                </el-icon>
-              </el-tooltip>
+                      @mouseenter.stop="mouseEnter"
+                      @mouseleave.stop="mouseLeave"
+                      size="22"
+                      class="drag">
+                    <icon-mdi-drag/>
+                  </el-icon>
+                  <span class="profile-title-text" :title="data.title">
+                    {{ data.title }}
+                  </span>
+                  <el-tooltip
+                      v-if="data.type == 1"
+                      :content="$t('refresh')"
+                      placement="top">
+                    <el-icon size="22"
+                             class="ops row-refresh"
+                             @click.stop="refresh(data)">
+                      <icon-mdi-refresh/>
+                    </el-icon>
+                  </el-tooltip>
+                </div>
+                <div
+                    v-if="hasUsageValue(data.available) || hasUsageValue(data.used) || hasUsageValue(data.expire) || hasUsageValue(data.update)"
+                    class="profile-stats"
+                >
+                  <div class="profile-stat" v-if="hasUsageValue(data.available)">
+                    <div class="profile-stat-label">
+                      <icon-mdi-database-check/>
+                      <span>{{ $t('profiles.available') }}</span>
+                    </div>
+                    <div class="profile-stat-value">
+                      {{ formatBytes(data.available) }}
+                    </div>
+                  </div>
+                  <div class="profile-stat" v-if="hasUsageValue(data.used)">
+                    <div class="profile-stat-label">
+                      <icon-mdi-arrow-up-bold-box-outline/>
+                      <span>{{ $t('profiles.use') }}</span>
+                    </div>
+                    <div class="profile-stat-value">
+                      {{ formatBytes(data.used) }}
+                    </div>
+                  </div>
+                  <div class="profile-stat" v-if="hasUsageValue(data.expire)">
+                    <div class="profile-stat-label">
+                      <icon-mdi-timer-outline/>
+                      <span>{{ $t('profiles.expire') }}</span>
+                    </div>
+                    <div class="profile-stat-value">
+                      {{ formatDate(data.expire) }}
+                    </div>
+                  </div>
+                  <div class="profile-stat" v-if="hasUsageValue(data.update)">
+                    <div class="profile-stat-label">
+                      <icon-mdi-update/>
+                      <span>{{ $t('profiles.update') }}</span>
+                    </div>
+                    <div class="profile-stat-value">
+                      {{ formatDate(data.update) }}
+                    </div>
+                  </div>
+                </div>
+                <div class="bottom-row">
+                  <el-tooltip
+                      v-if="data.support"
+                      :content="$t('profiles.support')"
+                      placement="top">
+                    <el-icon
+                        class="ops"
+                        @click.stop="goSupport(data)"
+                        size="20">
+                      <icon-mdi-face-agent/>
+                    </el-icon>
+                  </el-tooltip>
+                  <el-tooltip
+                      v-if="data.home"
+                      :content="$t('profiles.home')"
+                      placement="top">
+                    <el-icon
+                        class="ops"
+                        @click.stop="goHome(data)"
+                        size="20">
+                      <icon-mdi-home-import-outline/>
+                    </el-icon>
+                  </el-tooltip>
+                  <el-tooltip
+                      :content="$t('edit')"
+                      placement="top">
+                    <el-icon
+                        class="ops"
+                        @click.stop="updateProfile(data)"
+                        size="20">
+                      <icon-mdi-square-edit-outline/>
+                    </el-icon>
+                  </el-tooltip>
+                  <el-tooltip
+                      :content="$t('delete')"
+                      placement="top">
+                    <el-icon
+                        class="ops"
+                        @click.stop="deleteProfile(data,index)"
+                        size="20">
+                      <icon-mdi-trash-can/>
+                    </el-icon>
+                  </el-tooltip>
+                </div>
+              </div>
             </div>
-          </div>
-        </template>
-      </VDContainer>
+          </template>
+        </VDContainer>
 
     </template>
   </MyLayout>
@@ -750,29 +751,38 @@ watch(() => webStore.dProfile, async (pList) => {
   cursor: default;
 }
 
-.sub-card .row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  justify-content: flex-start;
-}
 
 .row-refresh {
   margin-left: auto;
 }
 
-.profile-name {
+.system-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 12px 10px 12px;
+  color: var(--text-color);
   flex: 1;
-  font-size: 15px;
+}
+
+.profile-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-weight: 600;
+  font-size: 15px;
+  color: var(--text-color);
+}
+
+.profile-title-text {
+  flex: 1;
   text-align: center;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  color: var(--text-color);
 }
 
-.sub-card .row .drag:hover {
+.profile-title .drag:hover {
   cursor: grab;
 }
 
@@ -780,25 +790,21 @@ watch(() => webStore.dProfile, async (pList) => {
   cursor: pointer;
 }
 
-.system-info {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 5px 10px 5px 15px;
-  color: var(--text-color);
-}
-
 .profile-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  grid-auto-flow: row dense;
 }
 
 .profile-stat {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.05);
+  background-color: color-mix(in srgb, var(--text-color) 8%, transparent);
 }
 
 .profile-stat-label {
@@ -822,8 +828,10 @@ watch(() => webStore.dProfile, async (pList) => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 0;
+  margin-top: auto;
+  padding-top: 4px;
   color: var(--text-color);
+  align-items: center;
 }
 
 
