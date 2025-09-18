@@ -274,3 +274,11 @@ tray:
   proxy: Прокси
   tun: TUN
   quit: Выйти
+
+errors:
+  request-failed: Не удалось выполнить запрос
+  request-send-failed: Не удалось отправить запрос
+  request-create-failed: Не удалось создать запрос
+  response-empty: Пустой ответ сервера
+  unknown-reason: Неизвестная причина
+

@@ -15,6 +15,7 @@ import {useMenuStore} from "@/store/menuStore";
 import {useWebStore} from "@/store/webStore";
 import {AxiosRequest} from "@/util/axiosRequest";
 import {useHomeStore} from "@/store/homeStore";
+import {useSettingStore} from "@/store/settingStore";
 import {memoryCache} from "@/types/persist"
 import {detectLanguage} from "@/util/menu";
 import createApi from "@/api";
@@ -85,6 +86,18 @@ async function bootstrap() {
     app.use(i18n);
     app.use(router);
 
+    const translate = (key: string, values?: Record<string, unknown>) => {
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+            return i18n.global.t(key, values);
+        } catch {
+            return key;
+        }
+    };
+
+    (app.config.globalProperties as any).$translate = translate;
+    (window as any).pxTranslate = translate;
+
     // 获取api地址、端口、密钥
     const url = window.location.search;
     const params = new URLSearchParams(url);
@@ -128,6 +141,30 @@ async function bootstrap() {
         webStore.secret
     );
 
+    const api = createApi(app.config.globalProperties);
+
+    const homeStore = useHomeStore();
+    const settingStore = useSettingStore();
+
+    const updateHttpClientConfig = async () => {
+        try {
+            const version = await api.getVersion();
+            await api.updateHTTPClientConfig({
+                enableHWID: settingStore.hwid,
+                version,
+                deviceOS: homeStore.os,
+                deviceOSVer: "",
+                deviceModel: "",
+            });
+        } catch (error) {
+            console.error("Failed to update HTTP client config", error);
+        }
+    };
+
+    watch(() => settingStore.hwid, () => {
+        void updateHttpClientConfig();
+    });
+
     setupDeepLinkHandler();
     setupUpdateChecker();
 
@@ -145,13 +182,13 @@ async function bootstrap() {
     }
 
     // 设置起始时间 和 操作系统类型
-    const homeStore = useHomeStore();
-
     // 获取系统类型
     homeStore.setOS(window.pxOs());
 
     // 设置软件开始时间
     homeStore.setStartTime(Date.now());
+
+    await updateHttpClientConfig();
 
 }
 

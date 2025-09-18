@@ -275,6 +275,10 @@ tray:
   tun: Tun模式
   quit: 退出
 
-
-
+errors:
+  request-failed: 请求失败
+  request-send-failed: 发送请求失败
+  request-create-failed: 创建请求失败
+  response-empty: 响应内容为空
+  unknown-reason: 原因未知
 
