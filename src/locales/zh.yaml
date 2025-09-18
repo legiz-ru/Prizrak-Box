@@ -67,6 +67,13 @@ home:
   download: 下载
   upload: 上传
   memory: 内存
+  profile:
+    title: 当前订阅
+    name: 配置名称
+    stats: 统计信息
+    support: 支持页面
+    subscription: 订阅页面
+    empty: 暂无选中的配置
   web:
     title: 网站测试
     edit: 网站标题

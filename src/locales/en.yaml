@@ -67,6 +67,13 @@ home:
   download: Download
   upload: Upload
   memory: Memory
+  profile:
+    title: Current profile
+    name: Profile name
+    stats: Statistics
+    support: Support
+    subscription: Subscription
+    empty: No profile selected
   web:
     title: Website Testing
     edit: Website Title

@@ -67,6 +67,13 @@ home:
   download: Загрузка
   upload: Отправка
   memory: Память
+  profile:
+    title: Текущий профиль
+    name: Имя профиля
+    stats: Статистика
+    support: Поддержка
+    subscription: Подписка
+    empty: Профиль не выбран
   web:
     title: Тестирование сайта
     edit: Название сайта
