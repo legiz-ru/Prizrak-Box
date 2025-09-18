@@ -3,6 +3,8 @@ import {useRouter} from "vue-router";
 import {debounce} from "lodash";
 import createApi from "@/api";
 import {useProxiesStore} from "@/store/proxiesStore";
+import {changeProxyAndCloseConnections} from "@/util/proxy";
+import {pError} from "@/util/pLoad";
 
 // 获取当前 Vue 实例的 proxy 对象
 const {proxy} = getCurrentInstance()!;
@@ -89,11 +91,25 @@ async function changeProxy(now: any, name: any) {
     return;
   }
   try {
-    await api.setProxy(proxiesStore.active, {name});
+    await changeProxyAndCloseConnections(
+        api,
+        proxiesStore.active,
+        name,
+    );
     proxiesStore.setNow(name)
     searchValue.value = '';
+    isDropdownVisible.value = false;
   } catch (error) {
-    console.error(error);
+    if (error && typeof error === 'object' && 'message' in error) {
+      const message = (error as {message?: unknown}).message;
+      if (typeof message === 'string') {
+        pError(message);
+      } else {
+        console.error(error);
+      }
+    } else {
+      console.error(error);
+    }
   }
 }
 
