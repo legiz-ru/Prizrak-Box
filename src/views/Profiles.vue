@@ -786,7 +786,7 @@ watch(() => webStore.dProfile, async (pList) => {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  padding: 5px 10px 5px 15px;
+  padding: 5px 10px 0 15px;
   color: var(--text-color);
 }
 
@@ -824,7 +824,7 @@ watch(() => webStore.dProfile, async (pList) => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: auto;
+  margin-top: 6px;
   margin-bottom: 4px;
   color: var(--text-color);
 }
