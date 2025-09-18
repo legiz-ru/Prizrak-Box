@@ -58,10 +58,21 @@ const profileStats = computed(() => {
     }
   ];
 
-  return stats.map(stat => ({
-    ...stat,
-    value: stat.value || missingValue
-  }));
+  return stats.reduce((acc, stat) => {
+    const rawValue = stat.value;
+    const normalized = typeof rawValue === "string" ? rawValue.trim() : rawValue;
+
+    if (!normalized) {
+      return acc;
+    }
+
+    acc.push({
+      ...stat,
+      value: typeof normalized === "string" ? normalized : String(normalized)
+    });
+
+    return acc;
+  }, [] as { key: string; icon: string; label: string; value: string }[]);
 });
 
 const supportUrl = computed(() => currentProfile.value?.support ?? "");
@@ -185,57 +196,50 @@ onMounted(async () => {
         <div class="home-second-row">
           <section class="profile-card">
             <div class="profile-card-header">
-              <h2 class="profile-card-title">
-                {{ $t('home.profile.title') }}
-              </h2>
-            </div>
-            <div v-if="currentProfile" class="profile-card-body">
-              <div class="profile-name-block">
-                <span class="profile-label">{{ $t('home.profile.name') }}</span>
-                <div class="profile-name" :title="profileName">
-                  {{ profileName || missingValue }}
-                </div>
-              </div>
-              <div class="profile-stats-block">
-                <span class="profile-label">{{ $t('home.profile.stats') }}</span>
-                <div class="profile-stats">
-                  <div class="profile-stat-row" v-for="stat in profileStats" :key="stat.key">
-                    <el-icon size="18" class="profile-stat-icon">
-                      <component :is="stat.icon"/>
-                    </el-icon>
-                    <span class="profile-stat-label">{{ stat.label }}</span>
-                    <span class="profile-stat-value">{{ stat.value }}</span>
-                  </div>
-                </div>
-              </div>
-              <div class="profile-actions" v-if="supportUrl || subscriptionUrl">
-                <el-button
+              <span class="profile-name" :title="currentProfile ? profileName : ''">
+                {{ currentProfile ? (profileName || missingValue) : missingValue }}
+              </span>
+              <div class="profile-links" v-if="supportUrl || subscriptionUrl">
+                <el-tooltip
                     v-if="supportUrl"
-                    size="small"
-                    type="primary"
-                    plain
-                    @click="openSupport"
+                    :content="$t('home.profile.support')"
+                    placement="top"
                 >
-                  <el-icon class="profile-action-icon">
+                  <el-icon
+                      size="20"
+                      class="profile-link"
+                      @click="openSupport"
+                  >
                     <icon-mdi-face-agent/>
                   </el-icon>
-                  {{ $t('home.profile.support') }}
-                </el-button>
-                <el-button
+                </el-tooltip>
+                <el-tooltip
                     v-if="subscriptionUrl"
-                    size="small"
-                    type="primary"
-                    plain
-                    @click="openSubscription"
+                    :content="$t('home.profile.subscription')"
+                    placement="top"
                 >
-                  <el-icon class="profile-action-icon">
+                  <el-icon
+                      size="20"
+                      class="profile-link"
+                      @click="openSubscription"
+                  >
                     <icon-mdi-home-import-outline/>
                   </el-icon>
-                  {{ $t('home.profile.subscription') }}
-                </el-button>
+                </el-tooltip>
               </div>
             </div>
-            <div v-else class="profile-empty">
+            <hr class="profile-divider"/>
+            <div v-if="currentProfile && profileStats.length" class="profile-stats">
+              <div class="profile-stat-row" v-for="stat in profileStats" :key="stat.key">
+                <el-icon size="18" class="profile-stat-icon">
+                  <component :is="stat.icon"/>
+                </el-icon>
+                <span class="profile-stat-label">{{ stat.label }}</span>
+                <span class="profile-stat-separator">-</span>
+                <span class="profile-stat-value">{{ stat.value }}</span>
+              </div>
+            </div>
+            <div v-else-if="!currentProfile" class="profile-empty">
               {{ $t('home.profile.empty') }}
             </div>
           </section>
@@ -269,47 +273,21 @@ onMounted(async () => {
 }
 
 .profile-card {
-  border: 2px solid var(--sub-card-border);
-  background: var(--sub-card-bg);
+  padding: 10px;
   border-radius: 8px;
+  text-align: left;
+  box-shadow: var(--right-box-shadow);
+  background: var(--sub-card-bg);
   color: var(--text-color);
-  box-shadow: var(--left-nav-shadow);
-  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
 }
 
 .profile-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-
-.profile-card-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.profile-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.profile-name-block {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.profile-label {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-color);
-  opacity: 0.7;
+  gap: 12px;
 }
 
 .profile-name {
@@ -318,25 +296,43 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1 1 auto;
 }
 
-.profile-stats-block {
+.profile-links {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-link {
+  color: var(--text-color);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.profile-link:hover {
+  color: var(--hr-color);
+}
+
+.profile-divider {
+  border: none;
+  height: 1px;
+  background-color: var(--hr-color);
+  margin: 10px 0;
 }
 
 .profile-stats {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .profile-stat-row {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  display: flex;
   align-items: center;
   gap: 8px;
+  font-size: 14px;
 }
 
 .profile-stat-icon {
@@ -344,21 +340,15 @@ onMounted(async () => {
 }
 
 .profile-stat-label {
-  font-size: 14px;
+  font-weight: 500;
+}
+
+.profile-stat-separator {
+  opacity: 0.6;
 }
 
 .profile-stat-value {
   font-weight: 600;
-}
-
-.profile-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.profile-action-icon {
-  margin-right: 6px;
 }
 
 .profile-empty {
