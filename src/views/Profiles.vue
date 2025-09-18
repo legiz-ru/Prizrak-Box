@@ -721,7 +721,7 @@ watch(() => webStore.dProfile, async (pList) => {
 
 
 .sub-card {
-  padding: 5px 8px 5px 5px;
+  padding: 5px 8px 0 5px;
   border: 2px solid var(--sub-card-border);
   border-radius: 8px;
   background: var(--sub-card-bg);
@@ -752,7 +752,7 @@ watch(() => webStore.dProfile, async (pList) => {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 6px 12px 8px 12px;
+  padding: 6px 12px 0 12px;
   color: var(--text-color);
   flex: 1;
 }
@@ -819,7 +819,7 @@ watch(() => webStore.dProfile, async (pList) => {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 6px;
-  padding-top: 2px;
+  padding: 0;
   color: var(--text-color);
   align-items: center;
 }
