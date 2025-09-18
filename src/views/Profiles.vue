@@ -824,7 +824,7 @@ watch(() => webStore.dProfile, async (pList) => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 6px;
+  margin-top: 0;
   margin-bottom: 4px;
   color: var(--text-color);
 }
