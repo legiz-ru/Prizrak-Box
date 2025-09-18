@@ -61,7 +61,7 @@
 
 | Страница  | Пример интерфейса             |
 |-----------|-------------------------------|
-| Главная   | ![General](img/home.png)      |
-| Настройки | ![Setting](img/setting.png)   |
-| Прокси    | ![Proxies](img/proxies.png)   |
-| Подписки  | ![Profiles](img/profiles.png) |
+| Главная   | ![General](img/home.jpg)      |
+| Настройки | ![Setting](img/setting.jpg)   |
+| Прокси    | ![Proxies](img/proxies.jpg)   |
+| Подписки  | ![Profiles](img/profiles.jpg) |

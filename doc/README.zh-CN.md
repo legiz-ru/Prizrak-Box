@@ -61,7 +61,7 @@
 
 | 页面 | 界面预览                          |
 |----|-------------------------------|
-| 首页 | ![General](img/home.png)      |
-| 设置 | ![Setting](img/setting.png)   |
-| 代理 | ![Proxies](img/proxies.png)   |
-| 订阅 | ![Profiles](img/profiles.png) |
+| 首页 | ![General](img/home.jpg)      |
+| 设置 | ![Setting](img/setting.jpg)   |
+| 代理 | ![Proxies](img/proxies.jpg)   |
+| 订阅 | ![Profiles](img/profiles.jpg) |

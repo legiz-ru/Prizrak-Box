@@ -64,7 +64,7 @@
 
 | Tab      | New Interface with Different Themes |
 |----------|-------------------------------------|
-| Home     | ![General](img/home.png)            |
-| Settings | ![Setting](img/setting.png)         |
-| Proxies  | ![Proxies](img/proxies.png)         |
-| Profiles | ![Profiles](img/profiles.png)       |
+| Home     | ![General](img/home.jpg)            |
+| Settings | ![Setting](img/setting.jpg)         |
+| Proxies  | ![Proxies](img/proxies.jpg)         |
+| Profiles | ![Profiles](img/profiles.jpg)       |

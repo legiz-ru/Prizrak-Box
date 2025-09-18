@@ -1,194 +1,351 @@
 name: Release App
 
 on:
-  workflow_run:
-    workflows:
-      - Build Windows App
-      - Build Linux App
-      - Build MacOS App
-    types:
-      - completed
+  push:
+    tags:
+      - 'v*'
 
 jobs:
-  release:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    runs-on: ubuntu-latest
-    permissions: write-all
-
+  build_windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
     steps:
-      - name: Check all required workflows success
-        id: check_workflows
-        uses: actions/github-script@v8
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const workflows = [
-              "Build Windows App",
-              "Build Linux App",
-              "Build MacOS App"
-            ];
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const branch = context.payload.workflow_run.head_branch;
-            
-            core.info(`Checking workflows on branch: ${branch}`);
-
-            let result = 'all_success';
-
-            for (const wfName of workflows) {
-              core.info(`Checking workflow: ${wfName}`);
-              const workflowsList = await github.rest.actions.listRepoWorkflows({ owner, repo });
-              const wf = workflowsList.data.workflows.find(w => w.name === wfName);
-              if (!wf) {
-                core.info(`Workflow '${wfName}' not found`);
-                result = 'incomplete';
-                break;
-              }
-              const runs = await github.rest.actions.listWorkflowRuns({
-                owner,
-                repo,
-                workflow_id: wf.id,
-                branch,
-                per_page: 1,
-                status: 'completed',
-              });
-              if (runs.data.total_count === 0) {
-                core.info(`No completed runs for ${wfName}`);
-                result = 'incomplete';
-                break;
-              }
-              const latestRun = runs.data.workflow_runs[0];
-              core.info(`Latest run of ${wfName} conclusion: ${latestRun.conclusion}`);
-              if (latestRun.conclusion !== 'success') {
-                core.info(`Skipping release because ${wfName} latest run conclusion is ${latestRun.conclusion}`);
-                result = 'incomplete';
-                break;
-              }
-            }
-            // 写入环境变量传递给后续步骤
-            const fs = require('fs');
-            fs.appendFileSync(process.env.GITHUB_ENV, `RESULT=${result}\n`);
-            core.info(`Set RESULT=${result} in environment`);
-
-      - name: Debug result
-        run: |
-          echo "Workflow check result: $RESULT"
-
       - name: Checkout Repository
-        if: env.RESULT == 'all_success'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set Version
-        if: env.RESULT == 'all_success'
-        id: set_version
+      - name: Set Up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 'latest'
+
+      - name: Install Frontend Dependencies
+        run: npm install
+
+      - name: Set Up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+
+      - name: Install Backend Dependencies
+        shell: pwsh
+        run: |
+          cd src-go
+          go mod tidy
+
+      - name: Download Geo Files
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb -OutFile src-go/internal/em/geoip.metadb
+          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat -OutFile src-go/internal/em/GeoSite.dat
+          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb -OutFile src-go/internal/em/GeoLite2-ASN.mmdb
+
+      - name: Get Tag Version
         shell: bash
         run: |
           VERSION=$(git describe --tags --abbrev=0)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Get Previous Release Tag (latest official release)
-        if: env.RESULT == 'all_success'
-        id: get_latest_release
+      - name: Build Backend for ${{ matrix.arch }}
+        shell: pwsh
+        env:
+          CGO_ENABLED: 0
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          cd src-go
+          go build -tags=with_gvisor -trimpath `
+            -ldflags "-s -w -X github.com/legiz-ru/prizrak-box/api.Version=$env:VERSION" `
+            -o px.exe
+
+      - name: Sync VERSION to package.json
+        run: node build/sync-version.js
+
+      - name: Build Frontend for ${{ matrix.arch }}
+        shell: pwsh
+        run: |
+          $arch = "${{ matrix.arch }}"
+          if ($arch -eq "amd64") {
+            $arch = "x64"
+          }
+          npm dedupe
+          npm prune
+          npx electron-forge make --arch=$arch
+
+      - name: Prepare Release Assets
+        shell: pwsh
+        run: |
+          $arch = "${{ matrix.arch }}"
+          $electronArch = if ($arch -eq "amd64") { "x64" } else { $arch }
+          
+          $portableDir = Get-ChildItem -Path "out" -Directory | Where-Object { $_.Name -like "Prizrak-Box*" } | Select-Object -First 1
+          if ($portableDir) {
+              Compress-Archive -Path "$($portableDir.FullName)\*" -DestinationPath "windows-${arch}.zip"
+          } else {
+              Write-Error "Portable directory not found"
+              exit 1
+          }
+          
+          $msiFile = Get-ChildItem -Path "out\make\wix\$electronArch" -Filter "*.msi" | Select-Object -First 1
+          if ($msiFile) {
+              Copy-Item -Path $msiFile.FullName -Destination "windows-${arch}.msi"
+          } else {
+              Write-Error "MSI file not found in out\make\wix\$electronArch"
+              exit 1
+          }
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.arch }}
+          path: |
+            windows-${{ matrix.arch }}.zip
+            windows-${{ matrix.arch }}.msi
+
+  build_linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set Up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 'latest'
+
+      - name: Install Frontend Dependencies
+        run: npm install
+
+      - name: Set Up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+
+      - name: Install Backend Dependencies
+        run: |
+          cd src-go
+          go mod tidy
+
+      - name: Get Latest Geo Data
+        run: |
+          wget -O src-go/internal/em/geoip.metadb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
+          wget -O src-go/internal/em/GeoSite.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          wget -O src-go/internal/em/GeoLite2-ASN.mmdb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
+
+      - name: Get Tag Version
         shell: bash
         run: |
-          LATEST_TAG=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r .tag_name)
-          echo "PREV_TAG=$LATEST_TAG" >> $GITHUB_ENV
+          VERSION=$(git describe --tags --abbrev=0)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Get Existing Release Body
-        if: env.RESULT == 'all_success'
-        id: existing_release_body
-        uses: actions/github-script@v8
+      - name: Build Backend for ${{ matrix.arch }}
+        env:
+          CGO_ENABLED: 0
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          cd src-go
+          go build -tags=with_gvisor -trimpath \
+            -ldflags "-s -w -X github.com/legiz-ru/prizrak-box/api.Version=${{ env.VERSION }}" \
+            -o px
+
+      - name: Sync VERSION to package.json
+        run: node build/sync-version.js
+
+      - name: Build Frontend for ${{ matrix.arch }}
+        run: |
+          arch="${{ matrix.arch }}"
+          if [ "$arch" = "amd64" ]; then
+            arch="x64"
+          fi
+          npm dedupe
+          npm prune
+          npm run make -- --arch=$arch
+
+      - name: Prepare Release Assets
+        run: |
+          arch="${{ matrix.arch }}"
+          electron_arch="$arch"
+          if [ "$arch" = "amd64" ]; then
+            electron_arch="x64"
+          fi
+          find out/make/deb/$electron_arch -name "*.deb" -exec mv {} linux-${arch}.deb \;
+          find out/make/rpm/$electron_arch -name "*.rpm" -exec mv {} linux-${arch}.rpm \;
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}
+          path: |
+            linux-${{ matrix.arch }}.deb
+            linux-${{ matrix.arch }}.rpm
+
+  build_macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set Up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 'latest'
+
+      - name: Install Frontend Dependencies
+        run: npm install
+
+      - name: Set Up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+
+      - name: Install Backend Dependencies
+        run: |
+          cd src-go
+          go mod tidy
+
+      - name: Get Latest Geo Data
+        run: |
+          wget -O src-go/internal/em/geoip.metadb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
+          wget -O src-go/internal/em/GeoSite.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          wget -O src-go/internal/em/GeoLite2-ASN.mmdb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
+
+      - name: Get Tag Version
+        shell: bash
+        run: |
+          VERSION=$(git describe --tags --abbrev=0)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Build Backend for ${{ matrix.arch }}
+        env:
+          CGO_ENABLED: 0
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          cd src-go
+          go build -tags=with_gvisor -trimpath \
+            -ldflags "-s -w -X github.com/legiz-ru/prizrak-box/api.Version=${{ env.VERSION }}" \
+            -o px
+
+      - name: Sync VERSION to package.json
+        run: node build/sync-version.js
+
+      - name: Build Frontend for ${{ matrix.arch }}
+        run: |
+          arch="${{ matrix.arch }}"
+          if [ "$arch" = "amd64" ]; then
+            arch="x64"
+            npm install electron@25
+          fi
+          npm dedupe
+          npm prune
+          npm run make -- --arch=$arch
+
+      - name: Compress Executable
+        run: |
+          Compress-Archive -Path out/make/* -DestinationPath "macos-${{ matrix.arch }}.zip"
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.arch }}
+          path: macos-${{ matrix.arch }}.zip
+
+  release:
+    needs: [build_windows, build_linux, build_macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Get Tag Version
+        id: get_version
+        run: echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+
+      - name: Update GitHub Release
+        id: update_release
+        uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const tag = process.env.VERSION;
+            const fs = require('fs');
+            const path = require('path');
+
+            // 1. Get the release by tag
+            let release;
             try {
-              const release = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
-              core.setOutput('body', release.data.body || '');
+              const { data } = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
+              release = data;
+              core.info(`Found release ID ${release.id} for tag ${tag}.`);
             } catch (error) {
               if (error.status === 404) {
-                core.setOutput('body', '');
-              } else {
-                throw error;
+                core.setFailed(`Release with tag '${tag}' not found. Please create a draft release first.`);
+                return;
               }
+              throw error;
             }
 
-      - name: Generate Sorted & Deduplicated Changelog
-        if: env.RESULT == 'all_success'
-        shell: bash
-        run: |
-          echo "Generating changelog between $PREV_TAG and $VERSION"
-          
-          # 定义类型优先级
-          declare -A type_order=(
-            [feat]=1
-            [fix]=2
-            [perf]=3
-            [improvement]=4
-            [refactor]=5
-            [style]=6
-            [chore]=7
-            [docs]=8
-            [revert]=9
-            [test]=10
-            [build]=11
-            [ci]=12
-          )
-          
-          # 获取所有提交，按时间顺序反转（老的在前）
-          git log "$PREV_TAG..$VERSION" --pretty=format:"%H %s" --date-order | tac > all_commits.txt
-          
-          # 使用 commit message 去重（只保留第一次出现的）
-          declare -A seen_messages
-          > unique_commits.txt
-          while IFS= read -r line; do
-            commit_hash=$(echo "$line" | cut -d' ' -f1)
-            message=$(echo "$line" | cut -d' ' -f2-)
-            if [[ -z "${seen_messages["$message"]}" ]]; then
-              seen_messages["$message"]=1
-              echo "$commit_hash $message" >> unique_commits.txt
-            fi
-          done < all_commits.txt
-          
-          # 对提交按 type_order 排序
-          while IFS= read -r line; do
-            commit_hash=$(echo "$line" | cut -d' ' -f1)
-            message=$(echo "$line" | cut -d' ' -f2-)
-            type=$(echo "$message" | cut -d':' -f1)
-            weight=${type_order[$type]:-999}
-            echo "$weight|$commit_hash|$message"
-          done < unique_commits.txt | sort -t"|" -k1,1n > sorted_commits.txt
-          
-          # 生成最终 changelog.txt
-          > changelog.txt
-          while IFS='|' read -r weight commit_hash message; do
-            git show -s --format="- %s" "$commit_hash" >> changelog.txt
-          done < sorted_commits.txt
-          
-          # 输出 changelog 内容
-          cat changelog.txt
-          
-          # 设置 GitHub 环境变量 release_notes
-          {
-            echo "release_notes<<EOF"
-            echo "# What's Changed"
-            cat changelog.txt
-            echo "EOF"
-          } >> $GITHUB_ENV
+            // 2. Prepare download links
+            const downloadLinks = [
+              `### Downloads`,
+              `* [Windows (amd64, Portable)](https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.zip)`,
+              `* [Windows (amd64, Installer)](https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.msi)`,
+              `* [Windows (arm64, Portable)](https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.zip)`,
+              `* [Windows (arm64, Installer)](https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.msi)`,
+              `* [Linux (amd64, deb)](https://github.com/${owner}/${repo}/releases/download/${tag}/linux-amd64.deb)`,
+              `* [Linux (amd64, rpm)](https://github.com/${owner}/${repo}/releases/download/${tag}/linux-amd64.rpm)`,
+              `* [Linux (arm64, deb)](https://github.com/${owner}/${repo}/releases/download/${tag}/linux-arm64.deb)`,
+              `* [Linux (arm64, rpm)](https://github.com/${owner}/${repo}/releases/download/${tag}/linux-arm64.rpm)`,
+              `* [macOS (amd64, zip)](https://github.com/${owner}/${repo}/releases/download/${tag}/macos-amd64.zip)`,
+              `* [macOS (arm64, zip)](https://github.com/${owner}/${repo}/releases/download/${tag}/macos-arm64.zip)`
+            ].join('\n');
 
+            // 3. Append links to existing body
+            const newBody = (release.body ? release.body + '\n\n' : '') + downloadLinks;
 
-      - name: Create GitHub Release
-        if: env.RESULT == 'all_success'
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ env.VERSION }}
-          name: ${{ env.VERSION }}
-          body: ${{ steps.existing_release_body.outputs.body }}
-          prerelease: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            // 4. Update the release body (name and prerelease status are not changed)
+            await github.rest.repos.updateRelease({
+              owner,
+              repo,
+              release_id: release.id,
+              body: newBody,
+            });
+            core.info(`Successfully updated release body.`);
+            
+            // 5. Upload assets
+            const artifactsDir = 'artifacts';
+            const platformDirs = fs.readdirSync(artifactsDir);
+
+            for (const platformDir of platformDirs) {
+              const files = fs.readdirSync(path.join(artifactsDir, platformDir));
+              for (const fileName of files) {
+                const filePath = path.join(artifactsDir, platformDir, fileName);
+                core.info(`Uploading asset: ${fileName}`);
+                await github.rest.repos.uploadReleaseAsset({
+                  owner,
+                  repo,
+                  release_id: release.id,
+                  name: fileName,
+                  data: fs.readFileSync(filePath),
+                });
+              }
+            }
+            core.info('All assets uploaded successfully.');
