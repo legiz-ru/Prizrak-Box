@@ -800,6 +800,7 @@ watch(() => webStore.dProfile, async (pList) => {
   padding: 6px 6px 0 6px;
   font-size: 13px;
   color: var(--text-color);
+  min-height: 90px;
 }
 
 .stat-row {
@@ -810,7 +811,7 @@ watch(() => webStore.dProfile, async (pList) => {
 
 .stat-label {
   flex: 1;
-  color: var(--top-hr-color);
+  color: var(--text-color);
 }
 
 .stat-value {
