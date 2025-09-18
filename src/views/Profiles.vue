@@ -36,6 +36,31 @@ const formatBytes = (value: unknown) => {
   return prettyBytes(number)
 }
 
+const formatDate = (value: unknown) => {
+  if (!hasUsageValue(value)) {
+    return ''
+  }
+
+  if (typeof value === 'string') {
+    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+    if (match) {
+      const [, year, month, day] = match
+      return `${day}.${month}.${year}`
+    }
+  }
+
+  const date = new Date(value as any)
+  if (Number.isNaN(date.getTime())) {
+    return `${value}`
+  }
+
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const year = date.getFullYear()
+
+  return `${day}.${month}.${year}`
+}
+
 // 头部几个按钮操作
 const addFormVisible = ref(false)
 const isNowAdd = ref(false)
@@ -449,22 +474,21 @@ watch(() => webStore.dProfile, async (pList) => {
                   class="drag">
                 <icon-mdi-drag/>
               </el-icon>
+              <div class="profile-name" :title="data.title">
+                {{ data.title }}
+              </div>
               <el-tooltip
                   v-if="data.type == 1"
                   :content="$t('refresh')"
                   placement="top">
                 <el-icon size="22"
-                         class="ops"
+                         class="ops row-refresh"
                          @click.stop="refresh(data)">
                   <icon-mdi-refresh/>
                 </el-icon>
               </el-tooltip>
-
             </div>
             <div class="system-info">
-              <div class="profile-title" :title="data.title">
-                {{ data.title }}
-              </div>
               <div
                   v-if="hasUsageValue(data.available) || hasUsageValue(data.used) || hasUsageValue(data.expire) || hasUsageValue(data.update)"
                   class="profile-stats"
@@ -480,7 +504,7 @@ watch(() => webStore.dProfile, async (pList) => {
                 </div>
                 <div class="profile-stat" v-if="hasUsageValue(data.used)">
                   <div class="profile-stat-label">
-                    <icon-mdi-database-minus/>
+                    <icon-mdi-arrow-up-bold-box-outline/>
                     <span>{{ $t('profiles.use') }}</span>
                   </div>
                   <div class="profile-stat-value">
@@ -493,7 +517,7 @@ watch(() => webStore.dProfile, async (pList) => {
                     <span>{{ $t('profiles.expire') }}</span>
                   </div>
                   <div class="profile-stat-value">
-                    {{ data.expire }}
+                    {{ formatDate(data.expire) }}
                   </div>
                 </div>
                 <div class="profile-stat" v-if="hasUsageValue(data.update)">
@@ -502,7 +526,7 @@ watch(() => webStore.dProfile, async (pList) => {
                     <span>{{ $t('profiles.update') }}</span>
                   </div>
                   <div class="profile-stat-value">
-                    {{ data.update }}
+                    {{ formatDate(data.update) }}
                   </div>
                 </div>
               </div>
@@ -703,6 +727,7 @@ watch(() => webStore.dProfile, async (pList) => {
   max-width: 245px;
 }
 
+
 .sub-card {
   padding: 5px 8px 5px 5px;
   border: 2px solid var(--sub-card-border);
@@ -711,6 +736,9 @@ watch(() => webStore.dProfile, async (pList) => {
   color: var(--text-color);
   box-shadow: var(--left-nav-shadow);
   margin-top: 5px;
+  display: flex;
+  flex-direction: column;
+  min-height: 190px;
 }
 
 .sub-card:hover, .sub-card-select {
@@ -725,7 +753,24 @@ watch(() => webStore.dProfile, async (pList) => {
 
 .sub-card .row {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-start;
+}
+
+.row-refresh {
+  margin-left: auto;
+}
+
+.profile-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-color);
 }
 
 .sub-card .row .drag:hover {
@@ -737,41 +782,31 @@ watch(() => webStore.dProfile, async (pList) => {
 }
 
 .system-info {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  justify-content: flex-start;
   padding: 5px 10px 5px 15px;
   color: var(--text-color);
 }
 
-.profile-title {
-  font-size: 15px;
-  font-weight: 600;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
 .profile-stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 6px;
 }
 
 .profile-stat {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 6px 8px;
-  border-radius: 6px;
-  background-color: var(--sub-card-bg);
-  border: 1px solid var(--sub-card-border);
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .profile-stat-label {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   color: var(--placeholder-color);
   font-size: 12px;
 }
@@ -789,7 +824,7 @@ watch(() => webStore.dProfile, async (pList) => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: auto;
   margin-bottom: 4px;
   color: var(--text-color);
 }

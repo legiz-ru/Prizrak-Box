@@ -166,9 +166,9 @@ profiles:
   paste: Импорт из буфера обмена
   open: Импорт из файла
   available: Доступно
-  use: Используется
+  use: Использовано
   expire: Истекает
-  update: Обновить
+  update: Обновлено:
   placeholder: Подписка, ShareLink, Yaml, Base64, Json
   home: Перейти на страницу подписки
   support: Перейти на страницу поддержки
