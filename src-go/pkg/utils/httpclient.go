@@ -2,16 +2,21 @@ package utils
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
+	"encoding/hex"
 	"fmt"
 	"golang.org/x/net/html"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/denisbrodbeck/machineid"
 	"github.com/google/uuid"
 )
 
@@ -26,12 +31,12 @@ var (
 
 // HTTPClientConfig 配置结构
 type HTTPClientConfig struct {
-	EnableHWID    bool
-	Version       string
-	DeviceOS      string
-	DeviceOSVer   string
-	DeviceModel   string
-	UserAgent     string
+	EnableHWID  bool
+	Version     string
+	DeviceOS    string
+	DeviceOSVer string
+	DeviceModel string
+	UserAgent   string
 }
 
 // 全局配置，可通过API更新
@@ -42,7 +47,24 @@ var globalConfig = &HTTPClientConfig{
 
 // generateHWID 生成唯一设备标识符
 func generateHWID() string {
+	if id, err := machineid.ProtectedID("prizrak-box"); err == nil && id != "" {
+		return id
+	}
+
+	if id, err := machineid.ID(); err == nil && id != "" {
+		return hashString(id)
+	}
+
+	if host, err := os.Hostname(); err == nil && host != "" {
+		return hashString(host)
+	}
+
 	return uuid.New().String()
+}
+
+func hashString(input string) string {
+	sum := sha256.Sum256([]byte(input))
+	return hex.EncodeToString(sum[:])
 }
 
 // 保存生成的HWID，避免每次重新生成
@@ -65,12 +87,12 @@ func buildDeviceHeaders() map[string]string {
 	if !globalConfig.EnableHWID {
 		return nil
 	}
-	
+
 	headers := make(map[string]string)
 	headers["x-hwid"] = deviceHWID
-	
-	if globalConfig.DeviceOS != "" {
-		headers["x-device-os"] = globalConfig.DeviceOS
+
+	if osName := normalizeDeviceOS(globalConfig.DeviceOS); osName != "" {
+		headers["x-device-os"] = osName
 	}
 	if globalConfig.DeviceOSVer != "" {
 		headers["x-ver-os"] = globalConfig.DeviceOSVer
@@ -78,8 +100,26 @@ func buildDeviceHeaders() map[string]string {
 	if globalConfig.DeviceModel != "" {
 		headers["x-device-model"] = globalConfig.DeviceModel
 	}
-	
+
 	return headers
+}
+
+func normalizeDeviceOS(osName string) string {
+	if osName == "" {
+		return ""
+	}
+
+	lower := strings.ToLower(osName)
+	switch {
+	case strings.Contains(lower, "windows"):
+		return "Windows"
+	case strings.Contains(lower, "linux"):
+		return "Linux"
+	case strings.Contains(lower, "mac") || strings.Contains(lower, "darwin"):
+		return "macOS"
+	default:
+		return osName
+	}
 }
 
 // closeResponseBody 关闭 resp.Body 并处理错误（建议放在 defer 中）
