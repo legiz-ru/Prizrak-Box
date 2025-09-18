@@ -11,7 +11,7 @@ export const useSettingStore = defineStore('setting', {
         dns: false,
         startup: false,
         auth: false,
-        hwid: true
+        hwid: true,
     }),
     actions: {
         setTestUrl(testUrl: any) {

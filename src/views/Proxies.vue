@@ -6,6 +6,7 @@ import {useSettingStore} from "@/store/settingStore";
 import {useI18n} from "vue-i18n";
 import {pError, pLoad} from "@/util/pLoad";
 import {useWebStore} from "@/store/webStore";
+import {changeProxyAndCloseConnections} from "@/util/proxy";
 
 const {t} = useI18n();
 
@@ -109,10 +110,23 @@ async function setProxy(now: any, name: string) {
     return;
   }
   try {
-    await api.setProxy(proxiesStore.active, {name});
-    await nodes();
+    await changeProxyAndCloseConnections(
+        api,
+        proxiesStore.active,
+        name,
+    );
+    proxiesStore.setNow(name);
   } catch (error) {
-    console.error(error);
+    if (error && typeof error === 'object' && 'message' in error) {
+      const message = (error as {message?: unknown}).message;
+      if (typeof message === 'string') {
+        pError(message);
+      } else {
+        console.error(error);
+      }
+    } else {
+      console.error(error);
+    }
   }
 }
 
