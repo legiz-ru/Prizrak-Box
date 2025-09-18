@@ -1,8 +1,9 @@
+import {AxiosRequestConfig} from "axios";
 import {Profile} from "@/types/profile";
 
 // 添加配置从input
-const addProfileFromInput = (proxy: any) => async function (profile: Profile): Promise<Profile[]> {
-    return await proxy.$http.post('/profile', profile);
+const addProfileFromInput = (proxy: any) => async function (profile: Profile, config?: AxiosRequestConfig): Promise<Profile[]> {
+    return await proxy.$http.post('/profile', profile, config);
 }
 
 // 添加配置从文件

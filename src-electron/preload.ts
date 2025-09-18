@@ -15,6 +15,18 @@ contextBridge.exposeInMainWorld('pxTray', {
 });
 
 
+// 深度链接相关
+contextBridge.exposeInMainWorld('pxDeepLink', {
+    onImportProfile: (callback) => {
+        ipcRenderer.removeAllListeners('import-profile-from-deeplink');
+        ipcRenderer.on('import-profile-from-deeplink', (_event, data) => callback(data));
+    },
+    notifyReady: () => {
+        ipcRenderer.send('deeplink-handler-ready');
+    }
+});
+
+
 // 缓存接口
 contextBridge.exposeInMainWorld('pxStore', {
     get: (key) => ipcRenderer.invoke('store:get', key),

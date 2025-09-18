@@ -1,4 +1,4 @@
-import {app, BrowserWindow, BrowserWindowConstructorOptions, session} from 'electron';
+import {app, BrowserWindow, BrowserWindowConstructorOptions, ipcMain, session} from 'electron';
 import path from 'node:path';
 import {startServer, storeInfo} from "./server";
 import {doQuit, initTray, showWindow} from "./tray";
@@ -11,7 +11,15 @@ import {isBootAutoLaunch, updateAutoLaunchRegistration, waitForNetworkReady} fro
 const isDev = !app.isPackaged;
 
 // 主窗口
-let mainWindow: BrowserWindow;
+let mainWindow: BrowserWindow | null = null;
+
+// 深度链接相关
+const DEEP_LINK_SCHEME = 'prizrak-box';
+const DEEP_LINK_HOST_INSTALL = 'install-config';
+const DEEP_LINK_EVENT = 'import-profile-from-deeplink';
+const DEEP_LINK_READY_EVENT = 'deeplink-handler-ready';
+const pendingDeepLinks: string[] = [];
+let deepLinkHandlerReady = false;
 // 屏蔽安全警告
 process.env["ELECTRON_DISABLE_SECURITY_WARNINGS"] = "true";
 const createWindow = (isBoot: boolean) => {
@@ -44,6 +52,7 @@ const createWindow = (isBoot: boolean) => {
         };
     }
 
+    deepLinkHandlerReady = false;
     mainWindow = new BrowserWindow(windowOptions);
 
     // 隐藏菜单栏
@@ -62,6 +71,14 @@ const createWindow = (isBoot: boolean) => {
         log.error('页面加载失败:', err);
     });
 
+    mainWindow.webContents.on('did-start-loading', () => {
+        deepLinkHandlerReady = false;
+    });
+
+    mainWindow.webContents.on('did-finish-load', () => {
+        processPendingDeepLinks();
+    });
+
     // 页面加载完成再显示，避免白屏
     mainWindow.webContents.once('did-finish-load', () => {
         if (isBoot) {
@@ -72,7 +89,76 @@ const createWindow = (isBoot: boolean) => {
             log.info('页面加载成功');
         }
     });
+
+    mainWindow.on('closed', () => {
+        deepLinkHandlerReady = false;
+        mainWindow = null;
+    });
 };
+
+const isDeepLinkUrl = (arg: string | undefined): arg is string => {
+    return typeof arg === 'string' && arg.startsWith(`${DEEP_LINK_SCHEME}://`);
+};
+
+const processPendingDeepLinks = () => {
+    if (!mainWindow || mainWindow.isDestroyed() || !deepLinkHandlerReady) {
+        return;
+    }
+
+    if (pendingDeepLinks.length === 0) {
+        return;
+    }
+
+    const queue = pendingDeepLinks.splice(0, pendingDeepLinks.length);
+    showWindow();
+
+    for (const url of queue) {
+        if (!url) {
+            continue;
+        }
+
+        log.info('处理深度链接队列:', url);
+        mainWindow.webContents.send(DEEP_LINK_EVENT, {rawUrl: url});
+    }
+};
+
+const enqueueDeepLink = (url: string) => {
+    pendingDeepLinks.push(url);
+    processPendingDeepLinks();
+};
+
+function handleDeepLink(url: string) {
+    const trimmed = url?.trim();
+    if (!trimmed) {
+        return;
+    }
+
+    try {
+        const parsedUrl = new URL(trimmed);
+        if (parsedUrl.protocol !== `${DEEP_LINK_SCHEME}:`) {
+            return;
+        }
+
+        const host = parsedUrl.hostname || parsedUrl.host;
+        if (host && host.toLowerCase() === DEEP_LINK_HOST_INSTALL) {
+            log.info('收到深度链接:', trimmed);
+            enqueueDeepLink(trimmed);
+        } else {
+            log.warn('未知深度链接:', trimmed);
+        }
+    } catch (error) {
+        log.error('解析深度链接失败:', error);
+    }
+}
+
+ipcMain.on(DEEP_LINK_READY_EVENT, (event) => {
+    if (!mainWindow || event.sender !== mainWindow.webContents) {
+        return;
+    }
+
+    deepLinkHandlerReady = true;
+    processPendingDeepLinks();
+});
 
 // 等待 backend 传来的 port 和 secret
 let resolveReady: () => void;
@@ -100,16 +186,49 @@ const agents = [
     }
 ];
 
+const registerDeepLinkProtocol = () => {
+    try {
+        if (process.defaultApp && process.argv.length >= 2) {
+            const exePath = process.execPath;
+            const resolvedPath = path.resolve(process.argv[1]);
+            app.setAsDefaultProtocolClient(DEEP_LINK_SCHEME, exePath, [resolvedPath]);
+        } else if (!app.isDefaultProtocolClient(DEEP_LINK_SCHEME)) {
+            app.setAsDefaultProtocolClient(DEEP_LINK_SCHEME);
+        }
+    } catch (error) {
+        log.error('注册深度链接协议失败:', error);
+    }
+};
+
+for (const arg of process.argv) {
+    if (isDeepLinkUrl(arg)) {
+        pendingDeepLinks.push(arg);
+    }
+}
+
 // 单例模式
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
     doQuit()
 } else {
     // 试图启动第二个应用实例
-    app.on('second-instance', showWindow);
+    app.on('second-instance', (_event, commandLine) => {
+        const urls = commandLine.filter(isDeepLinkUrl);
+        if (urls.length > 0) {
+            urls.forEach(handleDeepLink);
+        }
+        showWindow();
+    });
 
     // 监听应用被激活
     app.on('activate', showWindow);
+
+    if (process.platform === 'darwin') {
+        app.on('open-url', (event, url) => {
+            event.preventDefault();
+            handleDeepLink(url);
+        });
+    }
 
     app.whenReady().then(async () => {
         // 判断是否开机启动
@@ -138,6 +257,8 @@ if (!gotTheLock) {
 
         // 等待后端启动
         await waitForReady;
+
+        registerDeepLinkProtocol();
 
         // 设置请求头 Referer
         const agent = agents[Math.floor(Math.random() * agents.length)];

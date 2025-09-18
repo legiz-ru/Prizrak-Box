@@ -41,6 +41,9 @@ func PrizrakRouter() chi.Router {
 	// 退出px
 	r.Get("/exit", exitPx)
 
+	// 更新HTTP客户端配置
+	r.Put("/httpClientConfig", updateHTTPClientConfig)
+
 	return r
 }
 
@@ -133,4 +136,41 @@ func exitPx(w http.ResponseWriter, r *http.Request) {
 	job.Exit(false)
 	render.PlainText(w, r, "ok")
 	os.Exit(0)
+}
+
+func updateHTTPClientConfig(w http.ResponseWriter, r *http.Request) {
+	// 读取请求体
+	config := struct {
+		EnableHWID  bool   `json:"enableHWID"`
+		Version     string `json:"version"`
+		DeviceOS    string `json:"deviceOS"`
+		DeviceOSVer string `json:"deviceOSVer"`
+		DeviceModel string `json:"deviceModel"`
+	}{}
+	if err := render.DecodeJSON(r.Body, &config); err != nil {
+		ErrorResponse(w, r, err)
+		return
+	}
+
+	// 构建用户代理字符串
+	userAgent := ""
+	if config.EnableHWID && config.Version != "" {
+		userAgent = "prizrak-box/" + config.Version
+	} else {
+		userAgent = "clash-verge/v2.3.0"
+	}
+
+	// 更新配置
+	httpConfig := &utils.HTTPClientConfig{
+		EnableHWID:  config.EnableHWID,
+		Version:     config.Version,
+		DeviceOS:    config.DeviceOS,
+		DeviceOSVer: config.DeviceOSVer,
+		DeviceModel: config.DeviceModel,
+		UserAgent:   userAgent,
+	}
+	
+	utils.UpdateHTTPClientConfig(httpConfig)
+
+	render.NoContent(w, r)
 }

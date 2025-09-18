@@ -19,6 +19,11 @@
 - Поддержка унификации правил и групп для всех подписок
 - Поддержка режима TUN
 
+## Импорт через deeplink
+
+- Профили можно импортировать, открыв ссылку вида `prizrak-box://install-config?url=https://sub.example.com/username`
+- Лишние параметры в deeplink игнорируются, при этом параметры внутри адреса подписки сохраняются
+
 ## Поддерживаемые платформы
 
 - Windows 10/11 AMD64/ARM64
@@ -56,7 +61,7 @@
 
 | Страница  | Пример интерфейса             |
 |-----------|-------------------------------|
-| Главная   | ![General](img/home.png)      |
-| Настройки | ![Setting](img/setting.png)   |
-| Прокси    | ![Proxies](img/proxies.png)   |
-| Подписки  | ![Profiles](img/profiles.png) |
+| Главная   | ![General](img/home.jpg)      |
+| Настройки | ![Setting](img/setting.jpg)   |
+| Прокси    | ![Proxies](img/proxies.jpg)   |
+| Подписки  | ![Profiles](img/profiles.jpg) |

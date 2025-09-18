@@ -117,6 +117,37 @@ setting:
     update: Обновить
     check: Проверить
 
+  dashboard:
+    open: Открыть панель
+    manage: Управление панелями
+    custom-title: Пользовательские панели
+    name: Название
+    url: Ссылка
+    hint: В ссылке можно использовать %host, %port и %secret
+    add: Добавить
+    remove: Удалить
+    empty: Пока нет пользовательских панелей
+    error: Укажите название и ссылку
+
+updates:
+  banner:
+    title: Доступно обновление
+    message: Доступная новая версия
+    version-unknown: новый релиз
+  actions:
+    open: Открыть релиз
+    check: Проверить обновления
+    dismiss: Скрыть
+  notification:
+    title: Доступна новая версия
+    message: Доступна версия {version}.
+  status:
+    checking: Проверка обновлений...
+    available: Доступна версия {version}
+    up-to-date: У вас установлена актуальная версия
+    error: Не удалось проверить обновления
+    error-details: "Не удалось проверить обновления: {message}"
+
 proxies:
   title: Прокси
   test: Тест задержки
@@ -158,6 +189,15 @@ profiles:
   switch:
     ing: Переключение...
     success: Переключено успешно
+  deeplink:
+    importing: Импорт профиля...
+    import-success: Профиль успешно импортирован
+    import-failed: Не удалось импортировать профиль
+    invalid-url: Неверный URL профиля
+    invalid-url-format: Неверный формат URL, должен быть HTTP или HTTPS
+    cancel-import: Отменить импорт
+    cancel-hint: Нажмите Esc, чтобы отменить
+    import-cancelled: Импорт профиля отменён
 
 rule:
   title: Правило
@@ -230,6 +270,7 @@ tray:
   global: Глобальный
   direct: Прямой
   profiles: Профили
+  dashboard: Открыть панель
   proxy: Прокси
   tun: TUN
   quit: Выйти

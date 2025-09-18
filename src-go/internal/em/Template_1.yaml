@@ -35,11 +35,17 @@ dns:
   ipv6: false
   enhanced-mode: redir-host
   default-nameserver:
-    - 77.88.8.8
+    - tls://77.88.8.8#DIRECT # Yandex DNS over TLS
+    - 195.208.4.1#DIRECT # НСДИ
+    - system
   proxy-server-nameserver:
-    - 77.88.8.8
+    - tls://77.88.8.8#DIRECT # Yandex DNS over TLS
+    - 195.208.4.1#DIRECT # НСДИ
+    - system
   direct-nameserver:
-    - 77.88.8.8
+    - tls://77.88.8.8#DIRECT # Yandex DNS over TLS
+    - 195.208.4.1#DIRECT # НСДИ
+    - system
   nameserver:
     - https://cloudflare-dns.com/dns-query#PROXY
 

@@ -353,12 +353,37 @@ function sendOrder(data: any) {
   }
 }
 
+function handleProfilesImported(event: Event) {
+  const customEvent = event as CustomEvent;
+  const detail = customEvent.detail;
+  if (!detail || !Array.isArray(detail.profiles)) {
+    return;
+  }
+
+  let added = false;
+  for (const item of detail.profiles) {
+    if (!item) {
+      continue;
+    }
+    const exists = profiles.some(profile => profile['id'] === item['id']);
+    if (!exists) {
+      profiles.push(item);
+      added = true;
+    }
+  }
+
+  if (added) {
+    sendOrder(profiles);
+  }
+}
+
 // 路由切换前关闭 WebSocket
 onBeforeRouteLeave(() => {
   wsOrder.close();
 });
 onBeforeUnmount(() => {
   wsOrder.close();
+  window.removeEventListener('deeplink-profile-imported', handleProfilesImported as EventListener);
 })
 
 // Template列表
@@ -375,6 +400,8 @@ onMounted(async () => {
     title: 'm0',
     id: 'm0'
   });
+
+  window.addEventListener('deeplink-profile-imported', handleProfilesImported as EventListener);
 })
 
 watch(() => webStore.dProfile, async (pList) => {

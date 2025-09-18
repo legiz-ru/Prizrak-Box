@@ -117,6 +117,37 @@ setting:
     update: 软件更新
     check: 检查
 
+  dashboard:
+    open: 打开面板
+    manage: 管理面板
+    custom-title: 自定义面板
+    name: 名称
+    url: 链接
+    hint: 链接中可使用 %host、%port、%secret
+    add: 添加
+    remove: 删除
+    empty: 暂无自定义面板
+    error: 请输入名称和链接
+
+updates:
+  banner:
+    title: 发现新版本
+    message: 有新版本可用
+    version-unknown: 最新发布
+  actions:
+    open: 查看发布
+    check: 检查更新
+    dismiss: 忽略
+  notification:
+    title: 有新版本可用
+    message: 版本 {version} 已发布。
+  status:
+    checking: 正在检查更新...
+    available: 检测到新版本 {version}
+    up-to-date: 当前已是最新版本
+    error: 检查更新失败
+    error-details: "检查更新失败：{message}"
+
 proxies:
   title: 代理
   test: 测试延迟
@@ -158,6 +189,15 @@ profiles:
   switch:
     ing: 切换中。。。
     success: 切换成功
+  deeplink:
+    importing: 正在导入配置。。。
+    import-success: 配置导入成功
+    import-failed: 配置导入失败
+    invalid-url: 无效的配置链接
+    invalid-url-format: 配置链接格式错误，必须是 HTTP 或 HTTPS
+    cancel-import: 取消导入
+    cancel-hint: 按 Esc 键取消
+    import-cancelled: 配置导入已取消
 
 rule:
   title: 规则
@@ -230,6 +270,7 @@ tray:
   global: 全局
   direct: 直连
   profiles: 订阅
+  dashboard: 打开面板
   proxy: 系统代理
   tun: Tun模式
   quit: 退出

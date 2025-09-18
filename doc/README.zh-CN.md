@@ -19,6 +19,11 @@
 - 支持统一所有订阅的规则和分组，支持自定义模版规则和分组
 - 支持 TUN 模式 和 Smart 智能分组
 
+## Deeplink 导入
+
+- 打开 `prizrak-box://install-config?url=https://sub.example.com/username` 这样的链接即可导入配置
+- deeplink 中的额外参数会被忽略，订阅地址内部的查询参数会被完整保留
+
 ## 支持的系统平台
 
 - Windows 10/11 AMD64/ARM64
@@ -56,7 +61,7 @@
 
 | 页面 | 界面预览                          |
 |----|-------------------------------|
-| 首页 | ![General](img/home.png)      |
-| 设置 | ![Setting](img/setting.png)   |
-| 代理 | ![Proxies](img/proxies.png)   |
-| 订阅 | ![Profiles](img/profiles.png) |
+| 首页 | ![General](img/home.jpg)      |
+| 设置 | ![Setting](img/setting.jpg)   |
+| 代理 | ![Proxies](img/proxies.jpg)   |
+| 订阅 | ![Profiles](img/profiles.jpg) |

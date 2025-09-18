@@ -1,4 +1,4 @@
-import axios, {AxiosInstance, AxiosResponse} from 'axios';
+import axios, {AxiosInstance, AxiosRequestConfig, AxiosResponse} from 'axios';
 
 // axios的封装
 export class AxiosRequest {
@@ -48,23 +48,23 @@ export class AxiosRequest {
         );
     }
 
-    get<T>(url: string, params?: any): Promise<AxiosResponse<T, any>> {
-        return this.instance.get<T>(url, params);
+    get<T>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T, any>> {
+        return this.instance.get<T>(url, config);
     }
 
-    post<T>(url: string, params?: any): Promise<AxiosResponse<T, any>> {
-        return this.instance.post<T>(url, params);
+    post<T>(url: string, params?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T, any>> {
+        return this.instance.post<T>(url, params, config);
     }
 
-    put<T>(url: string, params?: any): Promise<AxiosResponse<T, any>> {
-        return this.instance.put<T>(url, params);
+    put<T>(url: string, params?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T, any>> {
+        return this.instance.put<T>(url, params, config);
     }
 
-    patch<T>(url: string, params?: any): Promise<AxiosResponse<T, any>> {
-        return this.instance.patch<T>(url, params);
+    patch<T>(url: string, params?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T, any>> {
+        return this.instance.patch<T>(url, params, config);
     }
 
-    delete<T>(url: string, params?: any): Promise<AxiosResponse<T, any>> {
-        return this.instance.delete<T>(url, params);
+    delete<T>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T, any>> {
+        return this.instance.delete<T>(url, config);
     }
 }

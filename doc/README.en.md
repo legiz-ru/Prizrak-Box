@@ -19,6 +19,11 @@
 - Unified rules and group settings for all subscriptions
 - Supports TUN mode
 
+## Deeplink Import
+
+- Profiles can be imported directly by opening a link in the form `prizrak-box://install-config?url=https://sub.example.com/username`
+- Extra parameters in the deeplink are ignored, while query parameters inside the subscription URL are preserved
+
 ## Supported Platforms
 
 - Windows 10/11 (AMD64 / ARM64)
@@ -59,7 +64,7 @@
 
 | Tab      | New Interface with Different Themes |
 |----------|-------------------------------------|
-| Home     | ![General](img/home.png)            |
-| Settings | ![Setting](img/setting.png)         |
-| Proxies  | ![Proxies](img/proxies.png)         |
-| Profiles | ![Profiles](img/profiles.png)       |
+| Home     | ![General](img/home.jpg)            |
+| Settings | ![Setting](img/setting.jpg)         |
+| Proxies  | ![Proxies](img/proxies.jpg)         |
+| Profiles | ![Profiles](img/profiles.jpg)       |

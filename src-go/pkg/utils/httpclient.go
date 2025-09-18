@@ -2,16 +2,22 @@ package utils
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
+	"encoding/hex"
 	"fmt"
 	"golang.org/x/net/html"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/denisbrodbeck/machineid"
+	"github.com/google/uuid"
 )
 
 // 全局超时设置
@@ -22,6 +28,99 @@ var (
 	defaultUserAgent = "clash-verge/v2.3.0"
 	headPattern      = regexp.MustCompile(`204|blank|generate|gstatic`)
 )
+
+// HTTPClientConfig 配置结构
+type HTTPClientConfig struct {
+	EnableHWID  bool
+	Version     string
+	DeviceOS    string
+	DeviceOSVer string
+	DeviceModel string
+	UserAgent   string
+}
+
+// 全局配置，可通过API更新
+var globalConfig = &HTTPClientConfig{
+	EnableHWID: false,
+	UserAgent:  defaultUserAgent,
+}
+
+// generateHWID 生成唯一设备标识符
+func generateHWID() string {
+	if id, err := machineid.ProtectedID("prizrak-box"); err == nil && id != "" {
+		return id
+	}
+
+	if id, err := machineid.ID(); err == nil && id != "" {
+		return hashString(id)
+	}
+
+	if host, err := os.Hostname(); err == nil && host != "" {
+		return hashString(host)
+	}
+
+	return uuid.New().String()
+}
+
+func hashString(input string) string {
+	sum := sha256.Sum256([]byte(input))
+	return hex.EncodeToString(sum[:])
+}
+
+// 保存生成的HWID，避免每次重新生成
+var deviceHWID = generateHWID()
+
+// UpdateHTTPClientConfig 更新HTTP客户端配置
+func UpdateHTTPClientConfig(config *HTTPClientConfig) {
+	globalConfig = config
+	if globalConfig.UserAgent == "" {
+		if globalConfig.EnableHWID && globalConfig.Version != "" {
+			globalConfig.UserAgent = fmt.Sprintf("prizrak-box/%s", globalConfig.Version)
+		} else {
+			globalConfig.UserAgent = defaultUserAgent
+		}
+	}
+}
+
+// buildDeviceHeaders 构建设备信息头部
+func buildDeviceHeaders() map[string]string {
+	if !globalConfig.EnableHWID {
+		return nil
+	}
+
+	headers := make(map[string]string)
+	headers["x-hwid"] = deviceHWID
+
+	if osName := normalizeDeviceOS(globalConfig.DeviceOS); osName != "" {
+		headers["x-device-os"] = osName
+	}
+	if globalConfig.DeviceOSVer != "" {
+		headers["x-ver-os"] = globalConfig.DeviceOSVer
+	}
+	if globalConfig.DeviceModel != "" {
+		headers["x-device-model"] = globalConfig.DeviceModel
+	}
+
+	return headers
+}
+
+func normalizeDeviceOS(osName string) string {
+	if osName == "" {
+		return ""
+	}
+
+	lower := strings.ToLower(osName)
+	switch {
+	case strings.Contains(lower, "windows"):
+		return "Windows"
+	case strings.Contains(lower, "linux"):
+		return "Linux"
+	case strings.Contains(lower, "mac") || strings.Contains(lower, "darwin"):
+		return "macOS"
+	default:
+		return osName
+	}
+}
 
 // closeResponseBody 关闭 resp.Body 并处理错误（建议放在 defer 中）
 func closeResponseBody(body io.Closer) {
@@ -72,13 +171,24 @@ func sendRequest(method, requestURL string, headers map[string]string, proxyURL 
 		return nil, fmt.Errorf("创建请求失败: %w", err)
 	}
 
+	// 添加设备信息头部（如果启用HWID）
+	deviceHeaders := buildDeviceHeaders()
+	for k, v := range deviceHeaders {
+		req.Header.Set(k, v)
+	}
+
+	// 添加用户自定义头部
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
 
-	// 设置默认 User-Agent
+	// 设置User-Agent（优先级：用户自定义 > 全局配置 > 默认值）
 	if _, ok := headers["User-Agent"]; !ok {
-		req.Header.Set("User-Agent", defaultUserAgent)
+		userAgent := globalConfig.UserAgent
+		if userAgent == "" {
+			userAgent = defaultUserAgent
+		}
+		req.Header.Set("User-Agent", userAgent)
 	}
 
 	resp, err := client.Do(req)
@@ -183,7 +293,13 @@ func SendHead(requestURL string, proxyURL string) (int, error) {
 		method = "HEAD"
 	}
 
-	resp, err := sendRequest(method, requestURL, map[string]string{"User-Agent": defaultUserAgent}, proxyURL, 8*time.Second)
+	// 使用当前配置的User-Agent
+	userAgent := globalConfig.UserAgent
+	if userAgent == "" {
+		userAgent = defaultUserAgent
+	}
+
+	resp, err := sendRequest(method, requestURL, map[string]string{"User-Agent": userAgent}, proxyURL, 8*time.Second)
 	if err != nil {
 		return 500, err
 	}
