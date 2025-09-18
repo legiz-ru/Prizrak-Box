@@ -253,7 +253,8 @@ jobs:
 
       - name: Compress Executable
         run: |
-          Compress-Archive -Path out/make/* -DestinationPath "macos-${{ matrix.arch }}.zip"
+          cd out/make
+          zip -r ../../macos-${{ matrix.arch }}.zip .
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
