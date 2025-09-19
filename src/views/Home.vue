@@ -270,8 +270,7 @@ onMounted(async () => {
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 20px;
   align-items: stretch;
-  max-width: 95%;
-  margin-left: 2px;
+  width: 100%;
 }
 
 .profile-card {
