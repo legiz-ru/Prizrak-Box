@@ -220,16 +220,14 @@ const profileTitle = computed(() => {
 <style scoped>
 .profile-card {
   width: 100%;
-  padding: 16px;
+  padding: 12px 16px;
   border-radius: 8px;
   box-shadow: var(--right-box-shadow);
-  background: var(--sub-card-bg);
   color: var(--text-color);
   display: flex;
   flex-direction: column;
   gap: 12px;
   box-sizing: border-box;
-  backdrop-filter: var(--body-blur);
 }
 
 .profile-card-empty {

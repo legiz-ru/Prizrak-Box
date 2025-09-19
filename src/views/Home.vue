@@ -5,14 +5,18 @@
   <MyLayout>
     <template #bottom>
       <MyChart />
-      <div class="home-second-row">
-        <div class="home-profile">
-          <MyProfileCard />
-        </div>
-        <div class="home-test">
-          <MyTest />
-        </div>
-      </div>
+      <el-row class="home-second-row" :gutter="20">
+        <el-col :xs="24" :sm="24" :md="24" :lg="12">
+          <div class="home-card">
+            <MyProfileCard />
+          </div>
+        </el-col>
+        <el-col :xs="24" :sm="24" :md="24" :lg="12">
+          <div class="home-card">
+            <MyTest />
+          </div>
+        </el-col>
+      </el-row>
       <MyIp />
     </template>
   </MyLayout>
@@ -20,35 +24,26 @@
 
 <style scoped>
 .home-second-row {
-  width: calc(95% - 12px);
-  margin-left: 12px;
+  width: 100%;
+  max-width: 95%;
   margin-top: 28px;
-  display: grid;
-  gap: 20px;
-  grid-template-columns: minmax(320px, 0.9fr) minmax(320px, 1.4fr);
-  grid-auto-rows: 1fr;
+  margin-left: 2px;
 }
 
-.home-profile,
-.home-test {
+.home-card {
+  height: 100%;
   min-width: 0;
   display: flex;
 }
 
-.home-profile :deep(.profile-card),
-.home-profile :deep(.profile-card-empty),
-.home-test :deep(.t-card) {
+.home-card :deep(.profile-card),
+.home-card :deep(.profile-card-empty),
+.home-card :deep(.t-card) {
   flex: 1;
   height: 100%;
 }
 
-.home-test :deep(.t-card) {
+.home-card :deep(.t-card) {
   width: 100%;
-}
-
-@media (max-width: 1280px) {
-  .home-second-row {
-    grid-template-columns: minmax(280px, 1fr);
-  }
 }
 </style>
