@@ -35,8 +35,16 @@ const hasProfileStats = computed(() => {
   );
 });
 
-const supportUrl = computed(() => currentProfile.value?.support ?? "");
-const subscriptionUrl = computed(() => currentProfile.value?.home ?? "");
+function normalizeUrl(raw: unknown) {
+  if (typeof raw !== "string") {
+    return "";
+  }
+
+  return raw.trim();
+}
+
+const supportUrl = computed(() => normalizeUrl(currentProfile.value?.support));
+const subscriptionUrl = computed(() => normalizeUrl(currentProfile.value?.home));
 
 function hasValue(value: any) {
   return value !== undefined && value !== null && value !== "";
@@ -114,16 +122,26 @@ async function loadSelectedProfile() {
   }
 }
 
-function openSupport() {
-  if (supportUrl.value) {
-    Browser.OpenURL(supportUrl.value);
+function openExternal(url: string) {
+  if (!url) {
+    return;
+  }
+
+  try {
+    Browser.OpenURL(url);
+  } catch (error) {
+    if (typeof window !== "undefined") {
+      window.open(url, "_blank", "noopener");
+    }
   }
 }
 
+function openSupport() {
+  openExternal(supportUrl.value);
+}
+
 function openSubscription() {
-  if (subscriptionUrl.value) {
-    Browser.OpenURL(subscriptionUrl.value);
-  }
+  openExternal(subscriptionUrl.value);
 }
 
 watch(

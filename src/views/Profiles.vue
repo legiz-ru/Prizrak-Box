@@ -234,12 +234,31 @@ async function refresh(data: any) {
 
 // 几个按钮操作
 // 到主页
+function openExternalLink(raw: any) {
+  if (typeof raw !== 'string') {
+    return
+  }
+
+  const url = raw.trim()
+  if (!url) {
+    return
+  }
+
+  try {
+    Browser.OpenURL(url)
+  } catch (error) {
+    if (typeof window !== 'undefined') {
+      window.open(url, '_blank', 'noopener')
+    }
+  }
+}
+
 function goHome(data: any) {
-  Browser.OpenURL(data.home)
+  openExternalLink(data.home)
 }
 
 function goSupport(data: any) {
-  Browser.OpenURL(data.support)
+  openExternalLink(data.support)
 }
 
 // 修改配置
