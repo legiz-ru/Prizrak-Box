@@ -1,16 +1,17 @@
 package internal
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/legiz-ru/prizrak-box/api/models"
+	"github.com/legiz-ru/prizrak-box/pkg/constant"
+	"github.com/legiz-ru/prizrak-box/pkg/utils"
 	"github.com/metacubex/mihomo/adapter"
 	"github.com/metacubex/mihomo/common/convert"
 	"github.com/metacubex/mihomo/config"
 	"github.com/metacubex/mihomo/log"
-	"github.com/legiz-ru/prizrak-box/api/models"
-	"github.com/legiz-ru/prizrak-box/pkg/constant"
-	"github.com/legiz-ru/prizrak-box/pkg/utils"
 	"gopkg.in/yaml.v3"
 	"math/big"
 	"net/http"
@@ -271,6 +272,31 @@ func parseContentDisposition(header http.Header, urlStr string) string {
 	return "Remote-" + utils.GetDateTime()
 }
 
+func parseProfileTitle(header http.Header) string {
+	raw := header.Get("Profile-Title")
+	if raw == "" {
+		return ""
+	}
+
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return ""
+	}
+
+	lower := strings.ToLower(trimmed)
+	if strings.HasPrefix(lower, "base64:") {
+		encoded := strings.TrimSpace(trimmed[len("base64:"):])
+		if decoded, err := base64.StdEncoding.DecodeString(encoded); err == nil {
+			title := strings.TrimSpace(string(decoded))
+			if title != "" {
+				return title
+			}
+		}
+	}
+
+	return trimmed
+}
+
 // ParseHeaders 对请求头进行解析
 func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 	// 流量
@@ -291,8 +317,20 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 	}
 
 	// 文件名
-	if profile.Title == "" {
-		profile.Title = parseContentDisposition(header, url)
+	nameFromDisposition := parseContentDisposition(header, url)
+	if profileTitle := parseProfileTitle(header); profileTitle != "" {
+		baseName := strings.TrimSpace(nameFromDisposition)
+		if baseName == "" {
+			baseName = strings.TrimSpace(profile.Title)
+		}
+
+		if baseName != "" && !strings.EqualFold(profileTitle, baseName) {
+			profile.Title = fmt.Sprintf("%s (%s)", profileTitle, baseName)
+		} else {
+			profile.Title = profileTitle
+		}
+	} else if profile.Title == "" {
+		profile.Title = nameFromDisposition
 	}
 
 	// 更新间隔
