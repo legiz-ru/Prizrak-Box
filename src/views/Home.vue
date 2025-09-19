@@ -267,10 +267,12 @@ onMounted(async () => {
 
 .home-second-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
   align-items: stretch;
   width: 100%;
+  max-width: 95%;
+  margin: 0 auto;
 }
 
 .profile-card {
@@ -378,5 +380,11 @@ onMounted(async () => {
 
 .home-row-ip :deep(.spark) {
   width: 100%;
+}
+
+@media (max-width: 900px) {
+  .home-second-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
