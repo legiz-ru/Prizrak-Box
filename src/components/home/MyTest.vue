@@ -313,10 +313,14 @@ onMounted(async () => {
 /* 整体卡片样式 */
 .t-card {
   width: 100%;
-  padding: 10px 0;
+  padding: 16px;
   border-radius: 8px;
   text-align: left;
   box-shadow: var(--right-box-shadow);
+  background: var(--sub-card-bg);
+  color: var(--text-color);
+  box-sizing: border-box;
+  backdrop-filter: var(--body-blur);
 }
 
 /* 分割线样式 */

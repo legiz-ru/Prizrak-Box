@@ -228,6 +228,8 @@ const profileTitle = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  box-sizing: border-box;
+  backdrop-filter: var(--body-blur);
 }
 
 .profile-card-empty {
