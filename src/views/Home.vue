@@ -6,11 +6,15 @@
     <template #bottom>
       <MyChart />
       <el-row class="home-second-row" :gutter="20" align="stretch">
-        <el-col :span="12" :xs="24" :sm="24" class="home-card">
-          <MyProfileCard />
+        <el-col :span="12" :xs="24" :sm="24">
+          <div class="home-card">
+            <MyProfileCard />
+          </div>
         </el-col>
-        <el-col :span="12" :xs="24" :sm="24" class="home-card">
-          <MyTest />
+        <el-col :span="12" :xs="24" :sm="24">
+          <div class="home-card">
+            <MyTest />
+          </div>
         </el-col>
       </el-row>
       <MyIp />
@@ -22,11 +26,12 @@
 .home-second-row {
   width: 95%;
   max-width: 95%;
-  margin-top: 28px;
+  margin-top: 30px;
   margin-left: 2px;
 }
 
 .home-card {
+  width: 100%;
   display: flex;
   height: 100%;
   min-width: 0;
