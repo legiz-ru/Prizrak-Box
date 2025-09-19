@@ -150,6 +150,14 @@ const profileTitle = computed(() => {
   return currentProfile.value.title || currentProfile.value.name || "";
 });
 
+const hasStats = computed(() => {
+  if (!currentProfile.value) {
+    return false;
+  }
+  const profile = currentProfile.value;
+  return [profile.used, profile.available, profile.expire, profile.update].some(value => hasValue(value));
+});
+
 </script>
 
 <template>
@@ -183,6 +191,7 @@ const profileTitle = computed(() => {
         </el-tooltip>
       </div>
     </div>
+    <hr v-if="hasStats" class="profile-divider">
     <div class="profile-stat" v-if="hasValue(currentProfile.used)">
       <el-icon class="profile-stat-icon" size="18">
         <icon-mdi-chart-timeline-variant/>
@@ -263,6 +272,13 @@ const profileTitle = computed(() => {
 .profile-link:hover {
   cursor: pointer;
   color: var(--hr-color);
+}
+
+.profile-divider {
+  border: none;
+  height: 1px;
+  background-color: var(--hr-color);
+  margin: 10px 0;
 }
 
 .profile-stat {
