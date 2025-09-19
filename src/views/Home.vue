@@ -24,55 +24,15 @@ const profileName = computed(() => {
   return currentProfile.value.title || currentProfile.value.name || "";
 });
 
-const profileStats = computed(() => {
+const hasProfileStats = computed(() => {
   if (!currentProfile.value) {
-    return [] as { key: string; icon: string; label: string; value: string }[];
+    return false;
   }
 
   const profile = currentProfile.value;
-
-  const stats = [
-    {
-      key: "used",
-      icon: "icon-mdi-chart-timeline-variant",
-      label: t("profiles.use"),
-      value: formatTrafficValue(profile.used)
-    },
-    {
-      key: "available",
-      icon: "icon-mdi-database-check",
-      label: t("profiles.available"),
-      value: formatTrafficValue(profile.available)
-    },
-    {
-      key: "expire",
-      icon: "icon-mdi-calendar-alert",
-      label: t("profiles.expire"),
-      value: formatDateValue(profile.expire)
-    },
-    {
-      key: "update",
-      icon: "icon-mdi-update",
-      label: t("profiles.update"),
-      value: formatDateValue(profile.update)
-    }
-  ];
-
-  return stats.reduce((acc, stat) => {
-    const rawValue = stat.value;
-    const normalized = typeof rawValue === "string" ? rawValue.trim() : rawValue;
-
-    if (!normalized) {
-      return acc;
-    }
-
-    acc.push({
-      ...stat,
-      value: typeof normalized === "string" ? normalized : String(normalized)
-    });
-
-    return acc;
-  }, [] as { key: string; icon: string; label: string; value: string }[]);
+  return [profile.used, profile.available, profile.expire, profile.update].some((item) =>
+    hasValue(item)
+  );
 });
 
 const supportUrl = computed(() => currentProfile.value?.support ?? "");
@@ -202,7 +162,7 @@ onMounted(async () => {
               <div class="profile-links" v-if="supportUrl || subscriptionUrl">
                 <el-tooltip
                     v-if="supportUrl"
-                    :content="$t('home.profile.support')"
+                    :content="$t('profiles.support')"
                     placement="top"
                 >
                   <el-icon
@@ -215,7 +175,7 @@ onMounted(async () => {
                 </el-tooltip>
                 <el-tooltip
                     v-if="subscriptionUrl"
-                    :content="$t('home.profile.subscription')"
+                    :content="$t('profiles.home')"
                     placement="top"
                 >
                   <el-icon
@@ -229,16 +189,39 @@ onMounted(async () => {
               </div>
             </div>
             <hr class="profile-divider"/>
-            <div v-if="currentProfile && profileStats.length" class="profile-stats">
-              <div class="profile-stat-row" v-for="stat in profileStats" :key="stat.key">
-                <el-icon size="18" class="profile-stat-icon">
-                  <component :is="stat.icon"/>
-                </el-icon>
-                <span class="profile-stat-label">{{ stat.label }}</span>
-                <span class="profile-stat-value">{{ stat.value }}</span>
-              </div>
+            <div v-if="currentProfile" class="profile-stats">
+              <template v-if="hasProfileStats">
+                <div class="profile-stat-row" v-if="hasValue(currentProfile.used)">
+                  <el-icon size="18" class="profile-stat-icon">
+                    <icon-mdi-chart-timeline-variant/>
+                  </el-icon>
+                  <span class="profile-stat-label">{{ $t('profiles.use') }}</span>
+                  <span class="profile-stat-value">{{ formatTrafficValue(currentProfile.used) }}</span>
+                </div>
+                <div class="profile-stat-row" v-if="hasValue(currentProfile.available)">
+                  <el-icon size="18" class="profile-stat-icon">
+                    <icon-mdi-database-check/>
+                  </el-icon>
+                  <span class="profile-stat-label">{{ $t('profiles.available') }}</span>
+                  <span class="profile-stat-value">{{ formatTrafficValue(currentProfile.available) }}</span>
+                </div>
+                <div class="profile-stat-row" v-if="hasValue(currentProfile.expire)">
+                  <el-icon size="18" class="profile-stat-icon">
+                    <icon-mdi-calendar-alert/>
+                  </el-icon>
+                  <span class="profile-stat-label">{{ $t('profiles.expire') }}</span>
+                  <span class="profile-stat-value">{{ formatDateValue(currentProfile.expire) }}</span>
+                </div>
+                <div class="profile-stat-row" v-if="hasValue(currentProfile.update)">
+                  <el-icon size="18" class="profile-stat-icon">
+                    <icon-mdi-update/>
+                  </el-icon>
+                  <span class="profile-stat-label">{{ $t('profiles.update') }}</span>
+                  <span class="profile-stat-value">{{ formatDateValue(currentProfile.update) }}</span>
+                </div>
+              </template>
             </div>
-            <div v-else-if="!currentProfile" class="profile-empty">
+            <div v-else class="profile-empty">
               {{ $t('home.profile.empty') }}
             </div>
           </section>
@@ -269,6 +252,8 @@ onMounted(async () => {
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 20px;
   align-items: stretch;
+  max-width: 95%;
+  margin-left: 2px;
 }
 
 .profile-card {
