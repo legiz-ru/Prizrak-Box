@@ -157,7 +157,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <el-row class="t-card" :gutter="20" style="margin-left: 12px">
+  <el-row class="t-card" :gutter="20">
     <el-col :span="24">
       <el-row>
         {{ $t('home.web.title') }}
@@ -312,9 +312,8 @@ onMounted(async () => {
 <style scoped>
 /* 整体卡片样式 */
 .t-card {
-  width: calc(95% - 20px);
-  margin-top: 28px;
-  padding: 10px 0 10px 0;
+  width: 100%;
+  padding: 10px 0;
   border-radius: 8px;
   text-align: left;
   box-shadow: var(--right-box-shadow);
