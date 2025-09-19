@@ -5,14 +5,14 @@
   <MyLayout>
     <template #bottom>
       <MyChart />
-      <el-row class="home-second-row" :gutter="20" align="stretch">
+      <el-row class="home-second-row" :gutter="20" align="stretch" style="margin-left: 2px;">
         <el-col :span="12" :xs="24" :sm="24">
-          <div class="home-card">
+          <div class="home-box">
             <MyProfileCard />
           </div>
         </el-col>
         <el-col :span="12" :xs="24" :sm="24">
-          <div class="home-card">
+          <div class="home-box">
             <MyTest />
           </div>
         </el-col>
@@ -27,24 +27,26 @@
   width: 95%;
   max-width: 95%;
   margin-top: 30px;
-  margin-left: 2px;
 }
 
-.home-card {
+.home-box {
   width: 100%;
-  display: flex;
   height: 100%;
-  min-width: 0;
+  padding: 10px;
+  border-radius: 8px;
+  text-align: left;
+  box-shadow: var(--right-box-shadow);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
-.home-card :deep(.profile-card),
-.home-card :deep(.profile-card-empty),
-.home-card :deep(.t-card) {
+.home-box :deep(.profile-card),
+.home-box :deep(.profile-card-empty),
+.home-box :deep(.t-card) {
   flex: 1;
   height: 100%;
-}
-
-.home-card :deep(.t-card) {
-  width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 </style>

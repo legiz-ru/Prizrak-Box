@@ -157,10 +157,10 @@ onMounted(async () => {
 </script>
 
 <template>
-  <el-row class="t-card" :gutter="20">
-    <el-col :span="24">
-      <el-row>
-        {{ $t('home.web.title') }}
+  <div class="t-card">
+    <div class="t-card-header">
+      <span class="t-card-title">{{ $t('home.web.title') }}</span>
+      <div class="t-card-actions">
         <el-tooltip
             :content="$t('refresh')"
             placement="top">
@@ -191,63 +191,63 @@ onMounted(async () => {
             <icon-mdi-link-edit/>
           </el-icon>
         </el-tooltip>
-      </el-row>
-      <hr>
+      </div>
+    </div>
+    <hr>
 
 
-      <VDContainer
-          :data="webTestList"
-          @getData="sendOrder"
-          :gap="10"
-          :top="8"
-          draggable
-      >
-        <template v-slot:VDC="{data,index}">
-          <div class="icon-item">
-            <div class="icon">
-              <img
-                  draggable="false"
-                  :src="data.src"
-                  style="height: 48px;width: 48px;"
-                  alt="C">
-              <template v-if="editShow">
-                <div class="delete-btn" @click="handleDelete(data,index)">
-                  <icon-mdi-close/>
-                </div>
-                <div class="edit-btn" @click="handleEdit(data)">
-                  <icon-mdi-pencil/>
-                </div>
-              </template>
-            </div>
-            <div
-                class="icon-title"
-                :title="data.title"
-            >
-              {{ data.title }}
-            </div>
-            <el-tag
-                v-if="data.delay == 0"
-                type="info"
-                class="icon-delay">
-              {{ t('home.web.wait') }}
-            </el-tag>
-            <el-tag
-                v-if="data.delay > 0"
-                type="success"
-                class="icon-delay">
-              {{ data.delay }}
-            </el-tag>
-            <el-tag
-                v-if="data.delay == -1"
-                type="danger"
-                class="icon-delay">
-              {{ t('home.web.timeout') }}
-            </el-tag>
+    <VDContainer
+        :data="webTestList"
+        @getData="sendOrder"
+        :gap="10"
+        :top="8"
+        draggable
+    >
+      <template v-slot:VDC="{data,index}">
+        <div class="icon-item">
+          <div class="icon">
+            <img
+                draggable="false"
+                :src="data.src"
+                style="height: 48px;width: 48px;"
+                alt="C">
+            <template v-if="editShow">
+              <div class="delete-btn" @click="handleDelete(data,index)">
+                <icon-mdi-close/>
+              </div>
+              <div class="edit-btn" @click="handleEdit(data)">
+                <icon-mdi-pencil/>
+              </div>
+            </template>
           </div>
-        </template>
-      </VDContainer>
-    </el-col>
-  </el-row>
+          <div
+              class="icon-title"
+              :title="data.title"
+          >
+            {{ data.title }}
+          </div>
+          <el-tag
+              v-if="data.delay == 0"
+              type="info"
+              class="icon-delay">
+            {{ t('home.web.wait') }}
+          </el-tag>
+          <el-tag
+              v-if="data.delay > 0"
+              type="success"
+              class="icon-delay">
+            {{ data.delay }}
+          </el-tag>
+          <el-tag
+              v-if="data.delay == -1"
+              type="danger"
+              class="icon-delay">
+            {{ t('home.web.timeout') }}
+          </el-tag>
+        </div>
+      </template>
+    </VDContainer>
+  </div>
 
 
   <el-dialog v-model="editFormVisible"
@@ -310,25 +310,36 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-/* 整体卡片样式 */
 .t-card {
   width: 100%;
-  padding: 12px 16px;
-  border-radius: 8px;
-  text-align: left;
-  box-shadow: var(--right-box-shadow);
-  color: var(--text-color);
-  box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  gap: 10px;
+  color: var(--text-color);
 }
 
-/* 分割线样式 */
 .t-card hr {
   border: none;
   height: 1px;
   background-color: var(--hr-color);
   margin: 10px 0;
+}
+
+.t-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.t-card-title {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.t-card-actions {
+  display: flex;
+  align-items: center;
 }
 
 .tip {
