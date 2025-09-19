@@ -67,6 +67,8 @@ home:
   download: Загрузка
   upload: Отправка
   memory: Память
+  profile:
+    empty: Профиль не выбран
   web:
     title: Тестирование сайта
     edit: Название сайта

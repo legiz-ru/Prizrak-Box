@@ -67,6 +67,8 @@ home:
   download: Download
   upload: Upload
   memory: Memory
+  profile:
+    empty: No profile selected
   web:
     title: Website Testing
     edit: Website Title
