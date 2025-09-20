@@ -67,6 +67,8 @@ home:
   download: 下载
   upload: 上传
   memory: 内存
+  profile:
+    empty: 暂无选中的配置
   web:
     title: 网站测试
     edit: 网站标题

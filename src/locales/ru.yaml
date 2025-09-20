@@ -67,6 +67,8 @@ home:
   download: Загрузка
   upload: Отправка
   memory: Память
+  profile:
+    empty: Профиль не выбран
   web:
     title: Тестирование сайта
     edit: Название сайта
@@ -166,9 +168,9 @@ profiles:
   paste: Импорт из буфера обмена
   open: Импорт из файла
   available: Доступно
-  use: Используется
+  use: Использовано
   expire: Истекает
-  update: Обновить
+  update: Обновлено
   placeholder: Подписка, ShareLink, Yaml, Base64, Json
   home: Перейти на страницу подписки
   support: Перейти на страницу поддержки
