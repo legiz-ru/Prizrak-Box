@@ -1,7 +1,6 @@
 package job
 
 import (
-	"github.com/metacubex/mihomo/log"
 	"github.com/legiz-ru/prizrak-box/api/models"
 	"github.com/legiz-ru/prizrak-box/internal"
 	"github.com/legiz-ru/prizrak-box/pkg/cache"
@@ -9,6 +8,7 @@ import (
 	"github.com/legiz-ru/prizrak-box/pkg/cron"
 	"github.com/legiz-ru/prizrak-box/pkg/proxy"
 	"github.com/legiz-ru/prizrak-box/pkg/utils"
+	"github.com/metacubex/mihomo/log"
 	"strconv"
 	"strings"
 	"sync"
@@ -84,7 +84,8 @@ func DoRefresh() {
 		err = internal.Resolve(res.Body, profile, true)
 		if err == nil {
 			// 进行请求头解析
-			internal.ParseHeaders(res.Headers, sub, profile)
+			mergedHeaders := internal.MergeHeaders(res.Headers, internal.ParseInlineHeaders(res.Body))
+			internal.ParseHeaders(mergedHeaders, sub, profile)
 			if title != "" {
 				profile.Title = title
 			}

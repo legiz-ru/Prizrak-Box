@@ -1,17 +1,18 @@
 package internal
 
 import (
+	"bufio"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/legiz-ru/prizrak-box/api/models"
+	"github.com/legiz-ru/prizrak-box/pkg/constant"
+	"github.com/legiz-ru/prizrak-box/pkg/utils"
 	"github.com/metacubex/mihomo/adapter"
 	"github.com/metacubex/mihomo/common/convert"
 	"github.com/metacubex/mihomo/config"
 	"github.com/metacubex/mihomo/log"
-	"github.com/legiz-ru/prizrak-box/api/models"
-	"github.com/legiz-ru/prizrak-box/pkg/constant"
-	"github.com/legiz-ru/prizrak-box/pkg/utils"
 	"gopkg.in/yaml.v3"
 	"math/big"
 	"net/http"
@@ -295,6 +296,79 @@ func parseProfileTitle(header http.Header) string {
 	}
 
 	return trimmed
+}
+
+// ParseInlineHeaders scans the subscription content for metadata style lines such as
+// "#profile-title: example" and converts them into an http.Header instance.
+// These inline headers act as a fallback when the upstream server cannot set
+// the corresponding HTTP headers directly.
+func ParseInlineHeaders(content string) http.Header {
+	headers := http.Header{}
+	scanner := bufio.NewScanner(strings.NewReader(content))
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if !strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		line = strings.TrimLeft(line[1:], " \t")
+		if line == "" {
+			continue
+		}
+
+		idx := strings.Index(line, ":")
+		if idx <= 0 {
+			continue
+		}
+
+		key := http.CanonicalHeaderKey(strings.TrimSpace(line[:idx]))
+		value := strings.TrimSpace(line[idx+1:])
+		if key == "" || value == "" {
+			continue
+		}
+
+		headers.Add(key, value)
+	}
+
+	return headers
+}
+
+// MergeHeaders combines a primary HTTP header map with fallback values. The primary
+// header values (typically obtained from the HTTP response) are preserved, while
+// fallback values (usually parsed from inline subscription metadata) are only
+// applied when a corresponding key is absent in the primary headers.
+func MergeHeaders(primary http.Header, fallback http.Header) http.Header {
+	merged := http.Header{}
+
+	if primary != nil {
+		for key, values := range primary {
+			if len(values) == 0 {
+				continue
+			}
+
+			copied := make([]string, len(values))
+			copy(copied, values)
+			merged[key] = copied
+		}
+	}
+
+	if fallback != nil {
+		for key, values := range fallback {
+			if len(values) == 0 {
+				continue
+			}
+
+			if existing, ok := merged[key]; ok && len(existing) > 0 {
+				continue
+			}
+
+			copied := make([]string, len(values))
+			copy(copied, values)
+			merged[key] = copied
+		}
+	}
+
+	return merged
 }
 
 // ParseHeaders 对请求头进行解析
