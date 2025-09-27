@@ -376,16 +376,43 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 	// 流量
 	if value := header.Get("Subscription-Userinfo"); value != "" {
 		subInfo := parseFields(value)
-		profile.Total = subInfo["total"]
-		profile.Used = new(big.Int).Add(subInfo["upload"], subInfo["download"])
-		profile.Available = new(big.Int).Sub(profile.Total, profile.Used)
 		zero := big.NewInt(0)
-		if profile.Available.Cmp(zero) <= 0 {
-			profile.Available = zero
+
+		total := subInfo["total"]
+		if total == nil {
+			total = zero
 		}
-		if subInfo["expire"].Cmp(zero) > 0 {
+
+		upload := subInfo["upload"]
+		if upload == nil {
+			upload = zero
+		}
+
+		download := subInfo["download"]
+		if download == nil {
+			download = zero
+		}
+
+		if total.Cmp(zero) <= 0 {
+			profile.Total = nil
+			profile.Used = nil
+			profile.Available = nil
+		} else {
+			profile.Total = new(big.Int).Set(total)
+			used := new(big.Int).Add(upload, download)
+			profile.Used = used
+
+			available := new(big.Int).Sub(total, used)
+			if available.Cmp(zero) <= 0 {
+				available = new(big.Int).Set(zero)
+			}
+			profile.Available = available
+		}
+
+		expire := subInfo["expire"]
+		if expire != nil && expire.Cmp(zero) > 0 {
 			// 转换为时间
-			t := time.Unix(subInfo["expire"].Int64(), 0)
+			t := time.Unix(expire.Int64(), 0)
 			profile.Expire = t.Local().Format("2006-01-02 15:04")
 		}
 	}
@@ -393,16 +420,7 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 	// 文件名
 	nameFromDisposition := parseContentDisposition(header, url)
 	if profileTitle := parseProfileTitle(header); profileTitle != "" {
-		baseName := strings.TrimSpace(nameFromDisposition)
-		if baseName == "" {
-			baseName = strings.TrimSpace(profile.Title)
-		}
-
-		if baseName != "" && !strings.EqualFold(profileTitle, baseName) {
-			profile.Title = fmt.Sprintf("%s (%s)", profileTitle, baseName)
-		} else {
-			profile.Title = profileTitle
-		}
+		profile.Title = profileTitle
 	} else if profile.Title == "" {
 		profile.Title = nameFromDisposition
 	}
