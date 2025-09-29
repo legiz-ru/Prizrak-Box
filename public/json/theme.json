@@ -59,7 +59,7 @@
       "url('/images/shaurma1.jpg')",
       "url('/images/shaurma2.jpg')",
       "url('/images/shaurma3.jpg')",
-      "url('/images/sharuma4.jpg')"
+      "url('/images/shaurma4.jpg')"
     ]
   },
   {
@@ -91,5 +91,9 @@
       "https://cdn.seovx.com/ha/?mom=302"
     ],
     "rand": true
+  },
+  {
+    "id": "custom",
+    "allowUpload": true
   }
 ]

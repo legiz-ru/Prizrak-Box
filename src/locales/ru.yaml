@@ -265,6 +265,8 @@ bg:
   comics: Комиксы
   game: Игры
   random: Случайный
+  custom: Своя картинка
+  upload: Загрузить картинку
 
 tray:
   show: Показать окно
