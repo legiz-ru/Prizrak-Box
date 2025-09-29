@@ -374,7 +374,8 @@ func MergeHeaders(primary http.Header, fallback http.Header) http.Header {
 // ParseHeaders 对请求头进行解析
 func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 	// 流量
-	if value := header.Get("Subscription-Userinfo"); value != "" {		subInfo := parseFields(value)
+	if value := header.Get("Subscription-Userinfo"); value != "" {
+		subInfo := parseFields(value)
 		zero := big.NewInt(0)
 
 		total := subInfo["total"]
@@ -419,7 +420,16 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 	// 文件名
 	nameFromDisposition := parseContentDisposition(header, url)
 	if profileTitle := parseProfileTitle(header); profileTitle != "" {
-		profile.Title = profileTitle
+		baseName := strings.TrimSpace(nameFromDisposition)
+		if baseName == "" {
+			baseName = strings.TrimSpace(profile.Title)
+		}
+
+		if baseName != "" && !strings.EqualFold(profileTitle, baseName) {
+			profile.Title = fmt.Sprintf("%s (%s)", profileTitle, baseName)
+		} else {
+			profile.Title = profileTitle
+		}
 	} else if profile.Title == "" {
 		profile.Title = nameFromDisposition
 	}
