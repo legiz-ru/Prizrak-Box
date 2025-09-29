@@ -12,6 +12,12 @@ export const useSettingStore = defineStore('setting', {
         startup: false,
         auth: false,
         hwid: true,
+        hwidHeaders: {
+            hwid: '',
+            os: '',
+            osVersion: '',
+            model: '',
+        },
     }),
     actions: {
         setTestUrl(testUrl: any) {
@@ -40,6 +46,14 @@ export const useSettingStore = defineStore('setting', {
         },
         setHwid(hwid: any) {
             this.hwid = hwid;
+        },
+        setHwidHeaders(headers: { hwid?: string; os?: string; osVersion?: string; model?: string }) {
+            this.hwidHeaders = {
+                hwid: headers?.hwid ?? this.hwidHeaders.hwid,
+                os: headers?.os ?? this.hwidHeaders.os,
+                osVersion: headers?.osVersion ?? this.hwidHeaders.osVersion,
+                model: headers?.model ?? this.hwidHeaders.model,
+            };
         },
     },
     persist: defaultPersist,

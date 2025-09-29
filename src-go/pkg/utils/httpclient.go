@@ -45,8 +45,12 @@ var globalConfig = &HTTPClientConfig{
 	UserAgent:  defaultUserAgent,
 }
 
-// generateHWID 生成唯一设备标识符
-func generateHWID() string {
+func hashString(input string) string {
+	sum := sha256.Sum256([]byte(input))
+	return hex.EncodeToString(sum[:])
+}
+
+func generateRawHWID() string {
 	if id, err := machineid.ProtectedID("prizrak-box"); err == nil && id != "" {
 		return id
 	}
@@ -62,14 +66,6 @@ func generateHWID() string {
 	return uuid.New().String()
 }
 
-func hashString(input string) string {
-	sum := sha256.Sum256([]byte(input))
-	return hex.EncodeToString(sum[:])
-}
-
-// 保存生成的HWID，避免每次重新生成
-var deviceHWID = generateHWID()
-
 // UpdateHTTPClientConfig 更新HTTP客户端配置
 func UpdateHTTPClientConfig(config *HTTPClientConfig) {
 	globalConfig = config
@@ -84,42 +80,55 @@ func UpdateHTTPClientConfig(config *HTTPClientConfig) {
 
 // buildDeviceHeaders 构建设备信息头部
 func buildDeviceHeaders() map[string]string {
-	if !globalConfig.EnableHWID {
-		return nil
-	}
-
-	headers := make(map[string]string)
-	headers["x-hwid"] = deviceHWID
-
-	if osName := normalizeDeviceOS(globalConfig.DeviceOS); osName != "" {
-		headers["x-device-os"] = osName
-	}
-	if globalConfig.DeviceOSVer != "" {
-		headers["x-ver-os"] = globalConfig.DeviceOSVer
-	}
-	if globalConfig.DeviceModel != "" {
-		headers["x-device-model"] = globalConfig.DeviceModel
-	}
-
+	headers, _ := resolveDeviceHeaders(globalConfig.EnableHWID)
 	return headers
 }
 
-func normalizeDeviceOS(osName string) string {
-	if osName == "" {
-		return ""
+func GetResolvedDeviceDetails() DeviceDetails {
+	_, details := resolveDeviceHeaders(true)
+	return details
+}
+
+func resolveDeviceHeaders(enable bool) (map[string]string, DeviceDetails) {
+	details := GetDeviceDetails()
+	resolved := DeviceDetails{
+		HWID:      details.HWID,
+		OS:        firstNonEmpty(globalConfig.DeviceOS, details.OS),
+		OSVersion: firstNonEmpty(globalConfig.DeviceOSVer, details.OSVersion),
+		Model:     firstNonEmpty(globalConfig.DeviceModel, details.Model),
 	}
 
-	lower := strings.ToLower(osName)
-	switch {
-	case strings.Contains(lower, "windows"):
-		return "Windows"
-	case strings.Contains(lower, "linux"):
-		return "Linux"
-	case strings.Contains(lower, "mac") || strings.Contains(lower, "darwin"):
-		return "macOS"
-	default:
-		return osName
+	resolved.OS = normalizeOSName(resolved.OS)
+
+	if !enable {
+		return nil, resolved
 	}
+
+	headers := make(map[string]string)
+
+	if resolved.HWID != "" {
+		headers["x-hwid"] = resolved.HWID
+	}
+	if resolved.OS != "" {
+		headers["x-device-os"] = resolved.OS
+	}
+	if resolved.OSVersion != "" {
+		headers["x-ver-os"] = resolved.OSVersion
+	}
+	if resolved.Model != "" {
+		headers["x-device-model"] = resolved.Model
+	}
+
+	return headers, resolved
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if strings.TrimSpace(v) != "" {
+			return strings.TrimSpace(v)
+		}
+	}
+	return ""
 }
 
 // closeResponseBody 关闭 resp.Body 并处理错误（建议放在 defer 中）

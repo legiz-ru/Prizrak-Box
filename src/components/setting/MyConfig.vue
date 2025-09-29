@@ -65,6 +65,30 @@ const dashboardDialogVisible = ref(false);
 const newDashboard = reactive({name: '', url: ''});
 const dashboardFormError = ref('');
 
+const hwidTooltipContent = computed(() => {
+  const headers = settingStore.hwidHeaders;
+  const lines: string[] = [];
+
+  if (headers.hwid) {
+    lines.push(`HWID=${headers.hwid}`);
+  }
+  if (headers.os) {
+    lines.push(`OS=${headers.os}`);
+  }
+  if (headers.osVersion) {
+    lines.push(`OS Version=${headers.osVersion}`);
+  }
+  if (headers.model) {
+    lines.push(`Model=${headers.model}`);
+  }
+
+  if (lines.length === 0) {
+    return ['HWID=—', 'OS=—', 'OS Version=—', 'Model=—'];
+  }
+
+  return lines;
+});
+
 const openExternalLink = (url: string) => {
   if (!url) {
     return;
@@ -280,7 +304,14 @@ watch(dashboardDialogVisible, (visible) => {
         <hr/>
         <ul class="info-list">
           <li>
-            <strong>HWID :</strong>
+            <el-tooltip placement="top" effect="dark" class="hwid-tooltip__trigger">
+              <template #content>
+                <div class="hwid-tooltip">
+                  <div v-for="line in hwidTooltipContent" :key="line">{{ line }}</div>
+                </div>
+              </template>
+              <strong class="hwid-label">HWID :</strong>
+            </el-tooltip>
             <el-switch
                 v-model="settingStore.hwid"
                 class="set-switch"
