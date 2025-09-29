@@ -84,7 +84,8 @@ func DoRefresh() {
 		err = internal.Resolve(res.Body, profile, true)
 		if err == nil {
 			// 进行请求头解析
-			internal.ParseHeaders(res.Headers, sub, profile)
+			mergedHeaders := internal.MergeHeaders(res.Headers, internal.ParseInlineHeaders(res.Body))
+			internal.ParseHeaders(mergedHeaders, sub, profile)
 			if title != "" {
 				profile.Title = title
 			}

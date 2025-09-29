@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"bufio"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -297,21 +298,120 @@ func parseProfileTitle(header http.Header) string {
 	return trimmed
 }
 
+// ParseInlineHeaders scans the subscription content for metadata style lines such as
+// "#profile-title: example" and converts them into an http.Header instance.
+// These inline headers act as a fallback when the upstream server cannot set
+// the corresponding HTTP headers directly.
+func ParseInlineHeaders(content string) http.Header {
+	headers := http.Header{}
+	scanner := bufio.NewScanner(strings.NewReader(content))
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if !strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		line = strings.TrimLeft(line[1:], " \t")
+		if line == "" {
+			continue
+		}
+
+		idx := strings.Index(line, ":")
+		if idx <= 0 {
+			continue
+		}
+
+		key := http.CanonicalHeaderKey(strings.TrimSpace(line[:idx]))
+		value := strings.TrimSpace(line[idx+1:])
+		if key == "" || value == "" {
+			continue
+		}
+
+		headers.Add(key, value)
+	}
+
+	return headers
+}
+
+// MergeHeaders combines a primary HTTP header map with fallback values. The primary
+// header values (typically obtained from the HTTP response) are preserved, while
+// fallback values (usually parsed from inline subscription metadata) are only
+// applied when a corresponding key is absent in the primary headers.
+func MergeHeaders(primary http.Header, fallback http.Header) http.Header {
+	merged := http.Header{}
+
+	if primary != nil {
+		for key, values := range primary {
+			if len(values) == 0 {
+				continue
+			}
+
+			copied := make([]string, len(values))
+			copy(copied, values)
+			merged[key] = copied
+		}
+	}
+
+	if fallback != nil {
+		for key, values := range fallback {
+			if len(values) == 0 {
+				continue
+			}
+
+			if existing, ok := merged[key]; ok && len(existing) > 0 {
+				continue
+			}
+
+			copied := make([]string, len(values))
+			copy(copied, values)
+			merged[key] = copied
+		}
+	}
+
+	return merged
+}
+
 // ParseHeaders 对请求头进行解析
 func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 	// 流量
-	if value := header.Get("Subscription-Userinfo"); value != "" {
-		subInfo := parseFields(value)
-		profile.Total = subInfo["total"]
-		profile.Used = new(big.Int).Add(subInfo["upload"], subInfo["download"])
-		profile.Available = new(big.Int).Sub(profile.Total, profile.Used)
+	if value := header.Get("Subscription-Userinfo"); value != "" {		subInfo := parseFields(value)
 		zero := big.NewInt(0)
-		if profile.Available.Cmp(zero) <= 0 {
-			profile.Available = zero
+
+		total := subInfo["total"]
+		if total == nil {
+			total = zero
 		}
-		if subInfo["expire"].Cmp(zero) > 0 {
+
+		upload := subInfo["upload"]
+		if upload == nil {
+			upload = zero
+		}
+
+		download := subInfo["download"]
+		if download == nil {
+			download = zero
+		}
+
+		if total.Cmp(zero) <= 0 {
+			profile.Total = nil
+			profile.Used = nil
+			profile.Available = nil
+		} else {
+			profile.Total = new(big.Int).Set(total)
+			used := new(big.Int).Add(upload, download)
+			profile.Used = used
+
+			available := new(big.Int).Sub(total, used)
+			if available.Cmp(zero) <= 0 {
+				available = new(big.Int).Set(zero)
+			}
+			profile.Available = available
+		}
+
+		expire := subInfo["expire"]
+		if expire != nil && expire.Cmp(zero) > 0 {
 			// 转换为时间
-			t := time.Unix(subInfo["expire"].Int64(), 0)
+			t := time.Unix(expire.Int64(), 0)
 			profile.Expire = t.Local().Format("2006-01-02 15:04")
 		}
 	}
@@ -319,16 +419,7 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 	// 文件名
 	nameFromDisposition := parseContentDisposition(header, url)
 	if profileTitle := parseProfileTitle(header); profileTitle != "" {
-		baseName := strings.TrimSpace(nameFromDisposition)
-		if baseName == "" {
-			baseName = strings.TrimSpace(profile.Title)
-		}
-
-		if baseName != "" && !strings.EqualFold(profileTitle, baseName) {
-			profile.Title = fmt.Sprintf("%s (%s)", profileTitle, baseName)
-		} else {
-			profile.Title = profileTitle
-		}
+		profile.Title = profileTitle
 	} else if profile.Title == "" {
 		profile.Title = nameFromDisposition
 	}
