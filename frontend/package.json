@@ -33,6 +33,8 @@
     "@types/chroma-js": "^3.1.1",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
+    "@iconify-json/ep": "^1.2.3",
+    "@iconify-json/mdi": "^1.2.3",
     "@vitejs/plugin-vue": "^5.2.4",
     "typescript": "~5.8.3",
     "unplugin-auto-import": "19.1.2",
