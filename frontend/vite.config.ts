@@ -39,7 +39,7 @@ export default defineConfig({
             dts: path.resolve(pathSrc, 'components.d.ts'),
         }),
         Icons({
-            autoInstall: true,
+            autoInstall: false,
             compiler: "vue3",
         }),
         VueI18nPlugin({

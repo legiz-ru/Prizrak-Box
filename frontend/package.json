@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:wails": "vite --host 127.0.0.1 --strictPort --mode development --clearScreen false",
     "build": "vite build",
     "preview": "vite preview"
   },

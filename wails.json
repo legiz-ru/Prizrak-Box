@@ -3,8 +3,11 @@
   "name": "Prizrak-Box",
   "outputfilename": "prizrak-box",
   "frontend:dir": "frontend",
+  "assetdir": "frontend/dist",
   "frontend:install": "npm install",
   "frontend:build": "npm run build",
-  "frontend:dev:watcher": "npm run dev",
-  "frontend:dev:serverUrl": "auto"
+  "frontend:dev:install": "npm install",
+  "frontend:dev:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev:wails",
+  "frontend:dev:serverUrl": "http://127.0.0.1:5173"
 }
