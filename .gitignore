@@ -92,5 +92,5 @@ typings/
 # Electron-Forge
 out/
 
-src-go/px
-src-go/prizrak-box
+cmd/px/px
+cmd/px/px.exe
