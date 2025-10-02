@@ -20,6 +20,7 @@ var assets embed.FS
 
 func main() {
 	application := app.New()
+	application.SetLaunchArguments(os.Args[1:])
 
 	err := wails.Run(&options.App{
 		Title:            "Prizrak-Box",
@@ -41,6 +42,12 @@ func main() {
 		},
 		OnShutdown: func(ctx context.Context) {
 			application.OnShutdown(ctx)
+		},
+		SingleInstanceLock: &options.SingleInstanceLock{
+			UniqueId: "prizrak-box",
+			OnSecondInstanceLaunch: func(secondInstanceData options.SecondInstanceData) {
+				application.HandleSecondInstanceLaunch(secondInstanceData.Args)
+			},
 		},
 		Bind: []interface{}{
 			application,

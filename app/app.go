@@ -10,6 +10,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
+	"github.com/legiz-ru/prizrak-box/pkg/deeplink"
 	sys "github.com/legiz-ru/prizrak-box/pkg/sys/proxy"
 	"github.com/legiz-ru/prizrak-box/pkg/utils"
 	"github.com/legiz-ru/prizrak-box/prizrak"
@@ -32,11 +33,16 @@ type Environment struct {
 
 // App orchestrates the embedded Mihomo core lifecycle inside the Wails shell.
 type App struct {
-	ctx      context.Context
-	info     ServerInfo
-	env      Environment
-	initOnce sync.Once
-	stopOnce sync.Once
+	ctx        context.Context
+	info       ServerInfo
+	env        Environment
+	initOnce   sync.Once
+	stopOnce   sync.Once
+	launchArgs []string
+
+	deepLinkMutex sync.Mutex
+	deepLinkQueue []deepLinkRequest
+	frontendReady bool
 }
 
 // New constructs a new App instance.
@@ -44,6 +50,14 @@ func New() *App {
 	return &App{
 		info: ServerInfo{Host: "127.0.0.1"},
 	}
+}
+
+// SetLaunchArguments stores the command-line arguments the application was started with.
+func (a *App) SetLaunchArguments(args []string) {
+	a.deepLinkMutex.Lock()
+	defer a.deepLinkMutex.Unlock()
+
+	a.launchArgs = append([]string(nil), args...)
 }
 
 // OnStartup is called by Wails once the application context becomes available.
@@ -63,6 +77,12 @@ func (a *App) OnStartup(ctx context.Context) {
 		prizrak.Init()
 
 		a.registerFrontendEvents(ctx)
+
+		if err := deeplink.RegisterProtocol("prizrak-box", "Prizrak-Box"); err != nil {
+			runtime.LogWarningf(ctx, "Failed to register deeplink protocol: %v", err)
+		}
+
+		a.processDeepLinkArgsLocked()
 
 		port, secret := prizrak.StartCore("")
 		a.info.Port = port
@@ -133,6 +153,123 @@ func (a *App) registerFrontendEvents(ctx context.Context) {
 	runtime.EventsOn(ctx, "hide", func(optionalData ...any) {
 		runtime.WindowHide(ctx)
 	})
+
+	runtime.EventsOn(ctx, "deeplink:ready", func(optionalData ...any) {
+		a.handleFrontendReady()
+	})
+}
+
+// HandleSecondInstanceLaunch is invoked when a secondary instance of the application is launched.
+func (a *App) HandleSecondInstanceLaunch(args []string) {
+	a.processDeepLinkArgs(args)
+
+	if a.ctx == nil {
+		return
+	}
+
+	runtime.WindowShow(a.ctx)
+	runtime.WindowUnminimise(a.ctx)
+}
+
+func (a *App) processDeepLinkArgs(args []string) {
+	if len(args) == 0 {
+		return
+	}
+
+	for _, candidate := range args {
+		a.handleDeepLinkCandidate(candidate)
+	}
+}
+
+func (a *App) processDeepLinkArgsLocked() {
+	a.deepLinkMutex.Lock()
+	args := append([]string(nil), a.launchArgs...)
+	a.launchArgs = nil
+	a.deepLinkMutex.Unlock()
+
+	a.processDeepLinkArgs(args)
+}
+
+func (a *App) handleDeepLinkCandidate(candidate string) {
+	value := strings.TrimSpace(candidate)
+	if value == "" {
+		return
+	}
+
+	lower := strings.ToLower(value)
+	if strings.HasPrefix(lower, "prizrak-box://") {
+		a.enqueueDeepLink(deepLinkRequest{RawURL: value})
+		return
+	}
+
+	// Allow passing direct subscription URLs for automation/debugging purposes.
+	if strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") {
+		a.enqueueDeepLink(deepLinkRequest{DirectURL: value})
+	}
+}
+
+func (a *App) enqueueDeepLink(request deepLinkRequest) {
+	a.deepLinkMutex.Lock()
+	ready := a.frontendReady && a.ctx != nil
+	if !ready {
+		a.deepLinkQueue = append(a.deepLinkQueue, request)
+		a.deepLinkMutex.Unlock()
+		return
+	}
+
+	a.deepLinkMutex.Unlock()
+
+	a.emitDeepLink(request)
+}
+
+func (a *App) handleFrontendReady() {
+	a.deepLinkMutex.Lock()
+	a.frontendReady = true
+	queue := append([]deepLinkRequest(nil), a.deepLinkQueue...)
+	a.deepLinkQueue = nil
+	a.deepLinkMutex.Unlock()
+
+	for _, request := range queue {
+		a.emitDeepLink(request)
+	}
+}
+
+func (a *App) emitDeepLink(request deepLinkRequest) {
+	if a.ctx == nil {
+		return
+	}
+
+	var payload any
+
+	switch {
+	case request.RawURL != "" && request.DirectURL == "" && request.Name == "":
+		payload = request.RawURL
+	default:
+		data := map[string]string{}
+		if request.RawURL != "" {
+			data["rawUrl"] = request.RawURL
+		}
+		if request.DirectURL != "" {
+			data["url"] = request.DirectURL
+		}
+		if request.Name != "" {
+			data["name"] = request.Name
+		}
+
+		if len(data) == 0 {
+			return
+		}
+
+		payload = data
+	}
+
+	runtime.EventsEmit(a.ctx, "deeplink-profile-imported", payload)
+}
+
+type deepLinkRequest struct {
+	RawURL    string
+	DirectURL string
+	Name      string
 }
 
 func titleCase(value string) string {
