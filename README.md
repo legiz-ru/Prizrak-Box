@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="build/appicon.png" width="160px" alt="Prizrak-Box"/>
+  <img src="frontend/public/tray.png" width="160px" alt="Prizrak-Box"/>
 
   <h1>Prizrak-Box</h1>
 
@@ -42,26 +42,24 @@ If you want to contribute or build Prizrak-Box locally, refer to the resources b
 
 ### 🔧 Prerequisites | 前置依赖 | Предварительные требования
 
-- [Node.js](https://nodejs.org/) ≥ 18 (for building UI components or tooling)
-- [Go](https://go.dev/) ≥ 1.24 (for integration with Mihomo or backend modules)
+- [Node.js](https://nodejs.org/) ≥ 18 (for building the Vue UI)
+- [Go](https://go.dev/) ≥ 1.22
+- [Wails CLI](https://wails.io/docs/gettingstarted/installation) (`go install github.com/wailsapp/wails/v2/cmd/wails@latest`)
 
 ### 🧪 Build Instructions | 构建指南 | Инструкции по сборке
 
 ```bash
-# Install dependencies
-npm install
-cd src-go
+# Install frontend dependencies
+npm install --prefix frontend
+
+# Optional: keep Go modules tidy
 go mod tidy
 
-# Build px backend
-CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags "-X github.com/legiz-ru/prizrak-box/api.Version=v-test" -o px(.exe)
-cd ..
+# Run with hot reload
+wails dev
 
-# Build desktop app
-npm run package
-
-# Run in dev mode
-npm run start
+# Build distributable binary
+wails build
 ```
 
 ---

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://wails.io/schemas/v2.json",
+  "name": "Prizrak-Box",
+  "executable": "prizrak-box",
+  "frontend": {
+    "dir": "frontend",
+    "install": "npm install",
+    "build": "npm run build"
+  },
+  "logger": {
+    "level": "info"
+  },
+  "platform": {
+    "windows": {
+      "console": false
+    },
+    "linux": {
+      "icon": "frontend/public/tray.png"
+    },
+    "darwin": {
+      "icon": "frontend/public/tray.png"
+    }
+  }
+}
