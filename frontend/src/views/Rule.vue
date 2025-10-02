@@ -47,7 +47,7 @@ const setActive = function (value: string) {
             :class="getActive('Ignore')"
             @click="setActive('Ignore')"
         >
-          <icon-mdi-cancel class="pre"/>
+          <icon-mdi-close-circle class="pre"/>
           <span class="suf">
             {{ $t('rule.ignore.title') }}
           </span>

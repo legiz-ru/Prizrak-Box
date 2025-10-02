@@ -41,7 +41,6 @@ declare module 'vue' {
     IconMdiArrowExpandRight: typeof import('~icons/mdi/arrow-expand-right')['default']
     IconMdiArrowExpandVertical: typeof import('~icons/mdi/arrow-expand-vertical')['default']
     IconMdiCalendarAlert: typeof import('~icons/mdi/calendar-alert')['default']
-    IconMdiCancel: typeof import('~icons/mdi/cancel')['default']
     IconMdiCardMinusOutline: typeof import('~icons/mdi/card-minus-outline')['default']
     IconMdiChartTimelineVariant: typeof import('~icons/mdi/chart-timeline-variant')['default']
     IconMdiClose: typeof import('~icons/mdi/close')['default']
