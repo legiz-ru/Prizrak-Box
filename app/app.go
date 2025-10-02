@@ -56,7 +56,7 @@ func (a *App) OnStartup(ctx context.Context) {
 		if utils.NotSingleton("px-server.pid") {
 			runtime.LogErrorf(ctx, "Another Prizrak-Box instance is already running")
 			// Request application quit after logging the fatal condition.
-			_ = runtime.Quit(ctx)
+			runtime.Quit(ctx)
 			return
 		}
 
@@ -109,38 +109,29 @@ func (a *App) OpenPath(target string) error {
 		uri = fileURL.String()
 	}
 
-	return runtime.BrowserOpenURL(a.ctx, uri)
+	runtime.BrowserOpenURL(a.ctx, uri)
+	return nil
 }
 
 func (a *App) registerFrontendEvents(ctx context.Context) {
 	runtime.EventsOn(ctx, "close", func(optionalData ...any) {
-		if err := runtime.Quit(ctx); err != nil {
-			runtime.LogErrorf(ctx, "failed to quit application: %v", err)
-		}
+		runtime.Quit(ctx)
 	})
 
 	runtime.EventsOn(ctx, "doQuit", func(optionalData ...any) {
-		if err := runtime.Quit(ctx); err != nil {
-			runtime.LogErrorf(ctx, "failed to quit application: %v", err)
-		}
+		runtime.Quit(ctx)
 	})
 
 	runtime.EventsOn(ctx, "min", func(optionalData ...any) {
-		if err := runtime.WindowMinimise(ctx); err != nil {
-			runtime.LogErrorf(ctx, "failed to minimise window: %v", err)
-		}
+		runtime.WindowMinimise(ctx)
 	})
 
 	runtime.EventsOn(ctx, "max", func(optionalData ...any) {
-		if err := runtime.WindowToggleMaximise(ctx); err != nil {
-			runtime.LogErrorf(ctx, "failed to toggle maximise: %v", err)
-		}
+		runtime.WindowToggleMaximise(ctx)
 	})
 
 	runtime.EventsOn(ctx, "hide", func(optionalData ...any) {
-		if err := runtime.WindowHide(ctx); err != nil {
-			runtime.LogErrorf(ctx, "failed to hide window: %v", err)
-		}
+		runtime.WindowHide(ctx)
 	})
 }
 

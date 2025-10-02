@@ -13,7 +13,6 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 //go:embed all:frontend/dist
@@ -33,11 +32,7 @@ func main() {
 			Assets: assets,
 		},
 		OnStartup: func(ctx context.Context) {
-			dataDir, err := runtime.AppConfigDirectory(ctx)
-			if err != nil {
-				log.Printf("failed to resolve app config directory: %v", err)
-				dataDir = filepath.Join(os.TempDir(), constant.DefaultWorkDir)
-			}
+			dataDir := resolveDataDir()
 			if mkErr := os.MkdirAll(dataDir, 0o755); mkErr != nil {
 				log.Printf("failed to ensure data directory: %v", mkErr)
 			}
@@ -55,4 +50,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func resolveDataDir() string {
+	if configDir, err := os.UserConfigDir(); err == nil {
+		return filepath.Join(configDir, constant.DefaultWorkDir)
+	}
+
+	return filepath.Join(os.TempDir(), constant.DefaultWorkDir)
 }

@@ -50,7 +50,7 @@ If you want to contribute or build Prizrak-Box locally, refer to the resources b
 
 ```bash
 # Install frontend dependencies
-npm install --prefix frontend
+npm --prefix frontend install
 
 # Optional: keep Go modules tidy
 go mod tidy
