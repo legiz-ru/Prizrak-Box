@@ -15,6 +15,7 @@
     "ace-builds": "^1.40.1",
     "apexcharts": "^4.7.0",
     "axios": "^1.8.4",
+    "element-plus": "^2.9.2",
     "chroma-js": "^3.1.2",
     "colorthief": "^2.6.0",
     "date-fns": "^4.1.0",
