@@ -127,6 +127,9 @@ setting:
     url: 链接
     hint: 链接中可使用 %host、%port、%secret
     add: 添加
+    edit: 编辑
+    save: 保存更改
+    cancel: 取消
     remove: 删除
     empty: 暂无自定义面板
     error: 请输入名称和链接

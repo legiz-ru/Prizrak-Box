@@ -127,6 +127,9 @@ setting:
     url: URL
     hint: You can use %host, %port and %secret in the URL.
     add: Add
+    edit: Edit
+    save: Save changes
+    cancel: Cancel
     remove: Remove
     empty: No custom dashboards yet
     error: Please provide both a name and a URL

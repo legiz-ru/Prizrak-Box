@@ -64,6 +64,15 @@ const dashboardOptions = computed<DashboardOption[]>(() =>
 const dashboardDialogVisible = ref(false);
 const newDashboard = reactive({name: '', url: ''});
 const dashboardFormError = ref('');
+const editingDashboardIndex = ref<number | null>(null);
+const isEditingDashboard = computed(() => editingDashboardIndex.value !== null);
+
+const resetDashboardForm = () => {
+  dashboardFormError.value = '';
+  editingDashboardIndex.value = null;
+  newDashboard.name = '';
+  newDashboard.url = '';
+};
 
 const hwidTooltipContent = computed(() => {
   const headers = settingStore.hwidHeaders;
@@ -119,7 +128,7 @@ const handleDashboardCommand = (command: DashboardOption | 'manage') => {
   openDashboard(command);
 };
 
-const addCustomDashboardEntry = () => {
+const submitCustomDashboardEntry = () => {
   const name = newDashboard.name.trim();
   const url = newDashboard.url.trim();
 
@@ -129,13 +138,48 @@ const addCustomDashboardEntry = () => {
   }
 
   dashboardFormError.value = '';
-  webStore.addCustomDashboard({name, url});
-  newDashboard.name = '';
-  newDashboard.url = '';
+
+  if (editingDashboardIndex.value === null) {
+    webStore.addCustomDashboard({name, url});
+  } else {
+    webStore.updateCustomDashboard(editingDashboardIndex.value, {name, url});
+  }
+
+  resetDashboardForm();
 };
 
 const removeCustomDashboardEntry = (index: number) => {
   webStore.removeCustomDashboard(index);
+
+  if (editingDashboardIndex.value === null) {
+    return;
+  }
+
+  if (editingDashboardIndex.value === index) {
+    resetDashboardForm();
+    return;
+  }
+
+  if (index < editingDashboardIndex.value) {
+    editingDashboardIndex.value -= 1;
+  }
+};
+
+const startEditingCustomDashboardEntry = (index: number) => {
+  const dashboard = customDashboards.value[index];
+
+  if (!dashboard) {
+    return;
+  }
+
+  editingDashboardIndex.value = index;
+  newDashboard.name = dashboard.name;
+  newDashboard.url = dashboard.url;
+  dashboardFormError.value = '';
+};
+
+const cancelEditingCustomDashboardEntry = () => {
+  resetDashboardForm();
 };
 
 // 使用路由
@@ -189,9 +233,7 @@ async function checkForUpdatesManually() {
 
 watch(dashboardDialogVisible, (visible) => {
   if (!visible) {
-    dashboardFormError.value = '';
-    newDashboard.name = '';
-    newDashboard.url = '';
+    resetDashboardForm();
   }
 });
 
@@ -365,15 +407,27 @@ watch(dashboardDialogVisible, (visible) => {
       <div class="dashboard-dialog__form">
         <el-form label-position="top" class="dashboard-dialog__form-fields">
           <el-form-item :label="t('setting.dashboard.name')">
-            <el-input v-model="newDashboard.name" placeholder="MetaCubeXD"/>
+            <el-input v-model="newDashboard.name" placeholder="Zashboard"/>
           </el-form-item>
           <el-form-item :label="t('setting.dashboard.url')">
-            <el-input v-model="newDashboard.url" placeholder="https://example.com"/>
+            <el-input
+                v-model="newDashboard.url"
+                placeholder="https://legiz-ru.github.io/zashboard/#/setup?disableUpgradeCore=1&http=true&hostname=%host&port=%port&secret=%secret"
+            />
           </el-form-item>
         </el-form>
         <p class="dashboard-dialog__hint">{{ t('setting.dashboard.hint') }}</p>
         <div class="dashboard-dialog__actions">
-          <el-button type="primary" @click="addCustomDashboardEntry">{{ t('setting.dashboard.add') }}</el-button>
+          <el-button type="primary" plain @click="submitCustomDashboardEntry">
+            <component
+                :is="isEditingDashboard ? 'icon-mdi-content-save' : 'icon-mdi-plus'"
+                class="dashboard-dialog__action-icon dashboard-dialog__action-icon--with-label"
+            />
+            {{ isEditingDashboard ? t('setting.dashboard.save') : t('setting.dashboard.add') }}
+          </el-button>
+          <el-button v-if="isEditingDashboard" link @click="cancelEditingCustomDashboardEntry">
+            {{ t('setting.dashboard.cancel') }}
+          </el-button>
         </div>
         <p v-if="dashboardFormError" class="dashboard-dialog__error">{{ dashboardFormError }}</p>
       </div>
@@ -387,9 +441,28 @@ watch(dashboardDialogVisible, (visible) => {
             <span class="dashboard-dialog__item-name">{{ item.name }}</span>
             <span class="dashboard-dialog__item-url">{{ item.url }}</span>
           </div>
-          <el-button type="danger" link @click="removeCustomDashboardEntry(index)">
-            {{ t('setting.dashboard.remove') }}
-          </el-button>
+          <div class="dashboard-dialog__item-actions">
+            <el-button
+                type="primary"
+                plain
+                circle
+                :title="t('setting.dashboard.edit')"
+                :aria-label="t('setting.dashboard.edit')"
+                @click="startEditingCustomDashboardEntry(index)"
+            >
+              <icon-mdi-pencil class="dashboard-dialog__action-icon"/>
+            </el-button>
+            <el-button
+                type="danger"
+                plain
+                circle
+                :title="t('setting.dashboard.remove')"
+                :aria-label="t('setting.dashboard.remove')"
+                @click="removeCustomDashboardEntry(index)"
+            >
+              <icon-mdi-trash-can-outline class="dashboard-dialog__action-icon"/>
+            </el-button>
+          </div>
         </li>
       </ul>
     </div>
@@ -516,6 +589,21 @@ watch(dashboardDialogVisible, (visible) => {
   margin-top: 4px;
 }
 
+.dashboard-dialog__action-icon {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.dashboard-dialog__action-icon--with-label {
+  margin-right: 6px;
+}
+
+.dashboard-dialog__item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .dashboard-dialog__hint {
   font-size: 0.85rem;
   opacity: 0.75;
@@ -604,6 +692,18 @@ watch(dashboardDialogVisible, (visible) => {
   --el-button-text-color: var(--text-color);
   --el-button-hover-text-color: var(--left-item-selected-bg);
   --el-button-hover-bg-color: var(--text-color)
+}
+
+.dashboard-dialog :deep(.el-button--primary) {
+  --el-button-bg-color: var(--left-item-selected-bg);
+  --el-button-border-color: var(--left-item-selected-bg);
+  --el-button-text-color: #fff;
+  --el-button-hover-bg-color: var(--left-item-selected-bg);
+  --el-button-hover-text-color: #fff;
+}
+
+.dashboard-dialog :deep(.el-button.is-link) {
+  --el-button-bg-color: transparent;
 }
 
 .btn {
