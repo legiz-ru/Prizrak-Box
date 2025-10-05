@@ -67,9 +67,7 @@ jobs:
         shell: pwsh
         run: |
           $arch = "${{ matrix.arch }}"
-          if ($arch -eq "amd64") {
-            $arch = "x64"
-          }
+          if ($arch -eq "amd64") { $arch = "x64" }
           npm dedupe
           npm prune
           npx electron-forge make --arch=$arch
@@ -123,6 +121,11 @@ jobs:
       - name: Install Frontend Dependencies
         run: npm install
 
+      - name: Ensure AppImage maker is present
+        run: |
+          npm ls @forkprince/electron-forge-maker-appimage >/dev/null 2>&1 || \
+          npm i -D @forkprince/electron-forge-maker-appimage
+
       - name: Set Up Go
         uses: actions/setup-go@v6
         with:
@@ -158,12 +161,15 @@ jobs:
       - name: Sync VERSION to package.json
         run: node build/sync-version.js
 
+      - name: Install AppImage runtime deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse2 || true
+
       - name: Build Frontend for ${{ matrix.arch }}
         run: |
           arch="${{ matrix.arch }}"
-          if [ "$arch" = "amd64" ]; then
-            arch="x64"
-          fi
+          if [ "$arch" = "amd64" ]; then arch="x64"; fi
           npm dedupe
           npm prune
           npm run make -- --arch=$arch
@@ -171,12 +177,12 @@ jobs:
       - name: Prepare Release Assets
         run: |
           arch="${{ matrix.arch }}"
-          electron_arch="$arch"
-          if [ "$arch" = "amd64" ]; then
-            electron_arch="x64"
-          fi
+          electron_arch="$arch"; if [ "$arch" = "amd64" ]; then electron_arch="x64"; fi
+          # deb/rpm
           find out/make/deb/$electron_arch -name "*.deb" -exec mv {} linux-${arch}.deb \;
           find out/make/rpm/$electron_arch -name "*.rpm" -exec mv {} linux-${arch}.rpm \;
+          # AppImage
+          find out/make/appimage/$electron_arch -name "*.AppImage" -exec mv {} linux-${arch}.AppImage \;
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -185,6 +191,7 @@ jobs:
           path: |
             linux-${{ matrix.arch }}.deb
             linux-${{ matrix.arch }}.rpm
+            linux-${{ matrix.arch }}.AppImage
 
   build_macos:
     runs-on: macos-latest
@@ -313,8 +320,10 @@ jobs:
               `* [Windows (arm64, Installer)](https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.msi)`,
               `* [Linux (amd64, deb)](https://github.com/${owner}/${repo}/releases/download/${tag}/linux-amd64.deb)`,
               `* [Linux (amd64, rpm)](https://github.com/${owner}/${repo}/releases/download/${tag}/linux-amd64.rpm)`,
+              `* [Linux (amd64, AppImage)](https://github.com/${owner}/${repo}/releases/download/${tag}/linux-amd64.AppImage)`,
               `* [Linux (arm64, deb)](https://github.com/${owner}/${repo}/releases/download/${tag}/linux-arm64.deb)`,
               `* [Linux (arm64, rpm)](https://github.com/${owner}/${repo}/releases/download/${tag}/linux-arm64.rpm)`,
+              `* [Linux (arm64, AppImage)](https://github.com/${owner}/${repo}/releases/download/${tag}/linux-arm64.AppImage)`,
               `* [macOS (amd64, zip)](https://github.com/${owner}/${repo}/releases/download/${tag}/macos-amd64.zip)`,
               `* [macOS (arm64, zip)](https://github.com/${owner}/${repo}/releases/download/${tag}/macos-arm64.zip)`
             ].join('\n');
@@ -322,7 +331,7 @@ jobs:
             // 3. Append links to existing body
             const newBody = (release.body ? release.body + '\n\n' : '') + downloadLinks;
 
-            // 4. Update the release body (name and prerelease status are not changed)
+            // 4. Update the release body
             await github.rest.repos.updateRelease({
               owner,
               repo,
@@ -350,3 +359,81 @@ jobs:
               }
             }
             core.info('All assets uploaded successfully.');
+
+  publish_aur:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get Tag Version (without v)
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+
+      - name: Write PKGBUILD template
+        run: |
+          mkdir -p packaging/aur
+          cat > packaging/aur/PKGBUILD.in <<'EOF'
+          pkgname=prizrak-box-bin
+          pkgver=@VERSION@
+          pkgrel=1
+          pkgdesc="A simple desktop GUI client for mihomo"
+          arch=('x86_64' 'aarch64')
+          url="https://github.com/legiz-ru/prizrak-box"
+          license=('GPL-3.0-only')
+          depends=('fuse2')
+          provides=('prizrak-box')
+          conflicts=('prizrak-box')
+          options=(!strip)
+
+          source_x86_64=("https://github.com/legiz-ru/prizrak-box/releases/download/v${pkgver}/linux-amd64.AppImage")
+          source_aarch64=("https://github.com/legiz-ru/prizrak-box/releases/download/v${pkgver}/linux-arm64.AppImage")
+
+          sha256sums_x86_64=('SKIP')
+          sha256sums_aarch64=('SKIP')
+
+          package() {
+            install -d "$pkgdir/opt/prizrak-box" "$pkgdir/usr/bin" "$pkgdir/usr/share/applications"
+
+            local appimage=""
+            if [[ "$CARCH" == "x86_64" ]]; then
+              appimage="linux-amd64.AppImage"
+            else
+              appimage="linux-arm64.AppImage"
+            fi
+
+            install -m755 "$srcdir/$appimage" "$pkgdir/opt/prizrak-box/Prizrak-Box.AppImage"
+            ln -s "/opt/prizrak-box/Prizrak-Box.AppImage" "$pkgdir/usr/bin/prizrak-box"
+
+            cat > "$pkgdir/usr/share/applications/prizrak-box.desktop" <<'EOD'
+          [Desktop Entry]
+          Type=Application
+          Name=Prizrak Box
+          Exec=prizrak-box
+          Terminal=false
+          Categories=Network;Utility;
+          EOD
+          }
+          EOF
+
+      - name: Render PKGBUILD with version
+        run: |
+          mkdir -p packaging/aur/out
+          sed -e "s/@VERSION@/${VERSION}/g" \
+            packaging/aur/PKGBUILD.in > packaging/aur/out/PKGBUILD
+          cat packaging/aur/out/PKGBUILD
+
+      - name: Publish to AUR via KSXGitHub
+        uses: KSXGitHub/github-actions-deploy-aur@v4
+        with:
+          pkgname: prizrak-box-bin
+          pkgbuild: packaging/aur/out/PKGBUILD
+          commit_message: "prizrak-box-bin ${VERSION}"
+          ssh_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          force_push: false
+          updpkgsums: true
+        env:
+          GIT_USERNAME: ${{ secrets.AUR_USERNAME }}
+          GIT_EMAIL: ${{ secrets.AUR_COMMIT_EMAIL }}
