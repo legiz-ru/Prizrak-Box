@@ -174,15 +174,45 @@ jobs:
           npm prune
           npm run make -- --arch=$arch
 
+      # >>> Updated robust step here <<<
       - name: Prepare Release Assets
         run: |
-          arch="${{ matrix.arch }}"
-          electron_arch="$arch"; if [ "$arch" = "amd64" ]; then electron_arch="x64"; fi
-          # deb/rpm
-          find out/make/deb/$electron_arch -name "*.deb" -exec mv {} linux-${arch}.deb \;
-          find out/make/rpm/$electron_arch -name "*.rpm" -exec mv {} linux-${arch}.rpm \;
-          # AppImage
-          find out/make/appimage/$electron_arch -name "*.AppImage" -exec mv {} linux-${arch}.AppImage \;
+          set -euo pipefail
+          arch="${{ matrix.arch }}"            # amd64 | arm64
+          electron_arch="$arch"
+          if [ "$arch" = "amd64" ]; then electron_arch="x64"; fi
+
+          # deb/rpm (первый найденный артефакт нужной архитектуры)
+          deb_found="$(find out/make/deb -type f -path "*/$electron_arch/*" -name "*.deb" -print -quit || true)"
+          rpm_found="$(find out/make/rpm -type f -path "*/$electron_arch/*" -name "*.rpm" -print -quit || true)"
+          if [ -n "$deb_found" ]; then mv "$deb_found" "linux-${arch}.deb"; fi
+          if [ -n "$rpm_found" ]; then mv "$rpm_found" "linux-${arch}.rpm"; fi
+
+          # AppImage — ищем независимо от точного пути
+          appimage_path=""
+          if [ "$electron_arch" = "x64" ]; then
+            appimage_path="$(find out -type f -name "*AppImage" -iname "*x64*AppImage" -print -quit || true)"
+            # если maker не добавил пометку x64 в имя, берём любой не-arm64
+            if [ -z "$appimage_path" ]; then
+              appimage_path="$(find out -type f -name "*AppImage" ! -iname "*arm64*AppImage" -print -quit || true)"
+            fi
+          else
+            appimage_path="$(find out -type f -name "*AppImage" -iname "*arm64*AppImage" -print -quit || true)"
+          fi
+
+          if [ -z "$appimage_path" ]; then
+            echo "ERROR: AppImage не найден. Содержимое out/ для диагностики:"
+            find out -maxdepth 3 -mindepth 1 -print
+            echo "Подсказка: проверьте, что MakerAppImage действительно подключён в forge.config.js / package.json (makers)."
+            exit 1
+          fi
+
+          echo "Найден AppImage: $appimage_path"
+          mv "$appimage_path" "linux-${arch}.AppImage"
+
+          echo "Итоговые файлы:"
+          ls -l linux-${arch}.*
+      # <<< end updated step >>>
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -372,6 +402,7 @@ jobs:
       - name: Get Tag Version (without v)
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
 
+      # Генерируем PKGBUILD-инплейс с нужной лицензией и описанием
       - name: Write PKGBUILD template
         run: |
           mkdir -p packaging/aur
@@ -423,6 +454,7 @@ jobs:
           mkdir -p packaging/aur/out
           sed -e "s/@VERSION@/${VERSION}/g" \
             packaging/aur/PKGBUILD.in > packaging/aur/out/PKGBUILD
+          echo "Rendered PKGBUILD:"
           cat packaging/aur/out/PKGBUILD
 
       - name: Publish to AUR via KSXGitHub
