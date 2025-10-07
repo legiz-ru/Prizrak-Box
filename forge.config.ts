@@ -33,13 +33,13 @@ const config: ForgeConfig = {
         new MakerSquirrel({
             name: 'Prizrak-Box',
             authors: ['legiz-ru'],
-            setupIcon: 'build/appicon.png',
-            iconUrl: 'https://raw.githubusercontent.com/legiz-ru/Prizrak-Box/prizrak_dev/build/appicon.png',
+            setupIcon: 'build/appicon.ico',
+            iconUrl: 'https://raw.githubusercontent.com/legiz-ru/Prizrak-Box/prizrak_dev/build/appicon.ico',
         }),
         new MakerWix({
             manufacturer: 'legiz-ru',
             description: 'A Simple Mihomo GUI',
-            icon: 'build/appicon.png',
+            icon: 'build/appicon.ico',
             ui: {
                 chooseDirectory: true,
             },
