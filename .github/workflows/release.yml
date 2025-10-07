@@ -327,11 +327,15 @@ jobs:
           
       - name: Generate PKGBUILD
         run: |
+          # Clean version tag: remove 'v' prefix and replace hyphens with underscores, 
+          # as hyphens are illegal in pkgver according to AUR standards.
+          CLEAN_VERSION=$(echo ${{ env.VERSION_TAG }} | sed 's/^v//' | sed 's/-/_/g')
+          
           cat <<EOF > PKGBUILD
           # Maintainer: ${{ secrets.AUR_USERNAME }} <${{ secrets.AUR_COMMIT_EMAIL }}>
           pkgname=prizrak-box-bin
           _pkgname=Prizrak-Box
-          pkgver=$(echo ${{ env.VERSION_TAG }} | sed 's/^v//')
+          pkgver=\${CLEAN_VERSION} # e.g., 1.0.20_alpha2
           pkgrel=1
           pkgdesc="A cross-platform GUI client for Prizrak."
           arch=('x86_64' 'aarch64')
@@ -351,7 +355,8 @@ jobs:
           package() {
             local _deb_file
             
-            # Определяем имя скачанного .deb файла в зависимости от архитектуры
+            # Определяем имя скачанного .deb файла в зависимости от архитектуры.
+            # Название файла в массиве source совпадает с \${_pkgname}-linux-*-\${pkgver}.deb
             if [ "\${CARCH}" = "x86_64" ]; then
               _deb_file="\${_pkgname}-linux-x64-\${pkgver}.deb"
             elif [ "\${CARCH}" = "aarch64" ]; then
