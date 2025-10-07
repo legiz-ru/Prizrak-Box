@@ -25,6 +25,9 @@ jobs:
       - name: Install Frontend Dependencies
         run: npm install
 
+      - name: Install Makers
+        run: npm install --save-dev @electron-forge/maker-squirrel @electron-forge/maker-wix @electron-forge/maker-deb @electron-forge/maker-rpm @electron-forge/maker-zip
+
       - name: Set Up Go
         uses: actions/setup-go@v6
         with:
@@ -72,7 +75,7 @@ jobs:
           }
           npm dedupe
           npm prune
-          npx electron-forge make --arch=$arch --makers=@electron-forge/maker-squirrel,@electron-forge/maker-wix
+          npx electron-forge make --arch=$arch
 
       - name: Prepare Release Assets
         shell: pwsh
@@ -139,6 +142,9 @@ jobs:
 
       - name: Install Frontend Dependencies
         run: npm install
+
+      - name: Install Makers
+        run: npm install --save-dev @electron-forge/maker-squirrel @electron-forge/maker-wix @electron-forge/maker-deb @electron-forge/maker-rpm @electron-forge/maker-zip
 
       - name: Set Up Go
         uses: actions/setup-go@v6
@@ -222,6 +228,9 @@ jobs:
       - name: Install Frontend Dependencies
         run: npm install
 
+      - name: Install Makers
+        run: npm install --save-dev @electron-forge/maker-squirrel @electron-forge/maker-wix @electron-forge/maker-deb @electron-forge/maker-rpm @electron-forge/maker-zip
+
       - name: Set Up Go
         uses: actions/setup-go@v6
         with:
@@ -282,7 +291,7 @@ jobs:
   publish_aur:
     name: Publish to AUR
     runs-on: ubuntu-latest
-    needs: build_linux # Зависит от успешного завершения ВСЕХ сборок linux
+    needs: build_linux
     
     steps:
       - name: Get Tag Version
@@ -292,7 +301,7 @@ jobs:
       - name: Download Linux artifacts
         uses: actions/download-artifact@v4
         with:
-          path: artifacts # Скачиваем все артефакты в одну папку
+          path: artifacts
 
       - name: Calculate Checksums
         id: checksums
