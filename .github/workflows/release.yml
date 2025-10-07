@@ -72,7 +72,7 @@ jobs:
           }
           npm dedupe
           npm prune
-          npx electron-forge make --arch=$arch
+          npx electron-forge make --arch=$arch --makers=@electron-forge/maker-squirrel,@electron-forge/maker-wix
 
       - name: Prepare Release Assets
         shell: pwsh
@@ -96,16 +96,18 @@ jobs:
               exit 1
           }
 
-          $squirrelDir = Join-Path "out\make\squirrel.windows" $electronArch
-          if (Test-Path $squirrelDir) {
-              $setupFile = Get-ChildItem -Path $squirrelDir -Filter "*Setup.exe" | Select-Object -First 1
-              if ($setupFile) {
-                  Copy-Item -Path $setupFile.FullName -Destination "windows-${arch}-setup.exe" -Force
-              } else {
-                  Write-Warning "Squirrel setup executable not found"
+          $squirrelDir = "out\make\squirrel.windows\$electronArch"
+          $exeFile = Get-ChildItem -Path $squirrelDir -Filter "*.exe" | Where-Object { $_.Name -notlike "*Setup*" } | Select-Object -First 1
+          if ($exeFile) {
+              Copy-Item -Path $exeFile.FullName -Destination "windows-${arch}-Setup.exe"
+              Copy-Item -Path "$squirrelDir\RELEASES" -Destination "RELEASES"
+              $nupkgFile = Get-ChildItem -Path $squirrelDir -Filter "*-full.nupkg" | Select-Object -First 1
+              if ($nupkgFile) {
+                  Copy-Item -Path $nupkgFile.FullName -Destination "windows-${arch}-full.nupkg"
               }
           } else {
-              Write-Warning "Squirrel output directory not found"
+              Write-Error "Squirrel.Windows setup file not found in $squirrelDir"
+              exit 1
           }
 
       - name: Upload Artifacts
@@ -115,7 +117,9 @@ jobs:
           path: |
             windows-${{ matrix.arch }}.zip
             windows-${{ matrix.arch }}.msi
-            windows-${{ matrix.arch }}-setup.exe
+            windows-${{ matrix.arch }}-Setup.exe
+            RELEASES
+            windows-${{ matrix.arch }}-full.nupkg
 
   build_linux:
     runs-on: ubuntu-latest
@@ -190,12 +194,6 @@ jobs:
           fi
           find out/make/deb/$electron_arch -name "*.deb" -exec mv {} linux-${arch}.deb \;
           find out/make/rpm/$electron_arch -name "*.rpm" -exec mv {} linux-${arch}.rpm \;
-          portable_dir=$(find out -maxdepth 1 -type d -name "Prizrak-Box-linux-${electron_arch}" -print -quit)
-          if [ -n "$portable_dir" ]; then
-            tar -C "$(dirname "$portable_dir")" -czf "linux-${arch}.tar.gz" "$(basename "$portable_dir")"
-          else
-            echo "Portable directory not found" >&2
-          fi
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -204,7 +202,6 @@ jobs:
           path: |
             linux-${{ matrix.arch }}.deb
             linux-${{ matrix.arch }}.rpm
-            linux-${{ matrix.arch }}.tar.gz
 
   build_macos:
     runs-on: macos-latest
@@ -282,8 +279,67 @@ jobs:
           name: macos-${{ matrix.arch }}
           path: macos-${{ matrix.arch }}.zip
 
+  publish_aur:
+    name: Publish to AUR
+    runs-on: ubuntu-latest
+    needs: build_linux # Зависит от успешного завершения ВСЕХ сборок linux
+    
+    steps:
+      - name: Get Tag Version
+        id: get_version
+        run: echo "VERSION_TAG=${{ github.ref_name }}" >> $GITHUB_ENV
+
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts # Скачиваем все артефакты в одну папку
+
+      - name: Calculate Checksums
+        id: checksums
+        run: |
+          amd64_sum=$(sha256sum artifacts/linux-amd64/linux-amd64.deb | awk '{ print $1 }')
+          arm64_sum=$(sha256sum artifacts/linux-arm64/linux-arm64.deb | awk '{ print $1 }')
+          echo "amd64_sha256=$amd64_sum" >> $GITHUB_OUTPUT
+          echo "arm64_sha256=$arm64_sum" >> $GITHUB_OUTPUT
+          
+      - name: Generate PKGBUILD
+        run: |
+          cat <<EOF > PKGBUILD
+          # Maintainer: ${{ secrets.AUR_USERNAME }} <${{ secrets.AUR_COMMIT_EMAIL }}>
+          pkgname=prizrak-box-bin
+          _pkgname=Prizrak-Box
+          pkgver=$(echo ${{ env.VERSION_TAG }} | sed 's/^v//')
+          pkgrel=1
+          pkgdesc="A cross-platform GUI client for Prizrak."
+          arch=('x86_64' 'aarch64')
+          url="https://github.com/legiz-ru/prizrak-box"
+          license=('MIT')
+          provides=("\${_pkgname}")
+          conflicts=("\${_pkgname}")
+          source_x86_64=("${_pkgname}-linux-x64-\${pkgver}.deb::https://github.com/legiz-ru/prizrak-box/releases/download/${{ env.VERSION_TAG }}/linux-amd64.deb")
+          source_aarch64=("${_pkgname}-linux-arm64-\${pkgver}.deb::https://github.com/legiz-ru/prizrak-box/releases/download/${{ env.VERSION_TAG }}/linux-arm64.deb")
+          sha256sums_x86_64=('${{ steps.checksums.outputs.amd64_sha256 }}')
+          sha256sums_aarch64=('${{ steps.checksums.outputs.arm64_sha256 }}')
+
+          package() {
+            cd "\${srcdir}"
+            tar -xf data.tar.xz -C "\${pkgdir}/"
+          }
+          EOF
+
+      - name: Publish to AUR
+        uses: KSXGitHub/github-actions-deploy-aur@v2.7.0
+        with:
+          pkgname: prizrak-box-bin
+          pkgbuild: ./PKGBUILD
+          commit_username: ${{ secrets.AUR_USERNAME }}
+          commit_email: ${{ secrets.AUR_COMMIT_EMAIL }}
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: "Update to version ${{ env.VERSION_TAG }}"
+          force_push: "true"
+
   release:
-    needs: [build_windows, build_linux, build_macos]
+    needs: [build_windows, build_linux, build_macos, publish_aur]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -310,7 +366,6 @@ jobs:
             const fs = require('fs');
             const path = require('path');
 
-            // 1. Get the release by tag
             let release;
             try {
               const { data } = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
@@ -324,31 +379,24 @@ jobs:
               throw error;
             }
 
-            // 2. Prepare download links
             const downloadLinks = [
               `### Downloads`,
               `* [Windows (amd64, Portable)](https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.zip)`,
-              `* [Windows (amd64, Installer)](https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.msi)`,
               `* [Windows (amd64, MSI Installer)](https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.msi)`,
-              `* [Windows (amd64, Setup)](https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64-setup.exe)`,
+              `* [Windows (amd64, Setup)](https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64-Setup.exe)`,
               `* [Windows (arm64, Portable)](https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.zip)`,
-              `* [Windows (arm64, Installer)](https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.msi)`,
               `* [Windows (arm64, MSI Installer)](https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.msi)`,
-              `* [Windows (arm64, Setup)](https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64-setup.exe)`,
+              `* [Windows (arm64, Setup)](https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64-Setup.exe)`,
               `* [Linux (amd64, deb)](https://github.com/${owner}/${repo}/releases/download/${tag}/linux-amd64.deb)`,
               `* [Linux (amd64, rpm)](https://github.com/${owner}/${repo}/releases/download/${tag}/linux-amd64.rpm)`,
-              `* [Linux (amd64, tar.gz)](https://github.com/${owner}/${repo}/releases/download/${tag}/linux-amd64.tar.gz)`,
               `* [Linux (arm64, deb)](https://github.com/${owner}/${repo}/releases/download/${tag}/linux-arm64.deb)`,
               `* [Linux (arm64, rpm)](https://github.com/${owner}/${repo}/releases/download/${tag}/linux-arm64.rpm)`,
-              `* [Linux (arm64, tar.gz)](https://github.com/${owner}/${repo}/releases/download/${tag}/linux-arm64.tar.gz)`,
               `* [macOS (amd64, zip)](https://github.com/${owner}/${repo}/releases/download/${tag}/macos-amd64.zip)`,
               `* [macOS (arm64, zip)](https://github.com/${owner}/${repo}/releases/download/${tag}/macos-arm64.zip)`
             ].join('\n');
 
-            // 3. Append links to existing body
             const newBody = (release.body ? release.body + '\n\n' : '') + downloadLinks;
 
-            // 4. Update the release body (name and prerelease status are not changed)
             await github.rest.repos.updateRelease({
               owner,
               repo,
@@ -357,7 +405,6 @@ jobs:
             });
             core.info(`Successfully updated release body.`);
             
-            // 5. Upload assets
             const artifactsDir = 'artifacts';
             const platformDirs = fs.readdirSync(artifactsDir);
 
@@ -376,226 +423,3 @@ jobs:
               }
             }
             core.info('All assets uploaded successfully.');
-
-  publish_aur:
-    needs: release
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Configure Git
-        run: |
-          git config --global user.name "${{ secrets.AUR_USERNAME }}"
-          git config --global user.email "${{ secrets.AUR_COMMIT_EMAIL }}"
-
-      - name: Start SSH agent
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-
-      - name: Trust AUR host
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -t rsa aur.archlinux.org >> ~/.ssh/known_hosts
-
-      - name: Generate PKGBUILD and .SRCINFO
-        env:
-          TAG: ${{ github.ref_name }}
-        run: |
-          set -euo pipefail
-
-          pkgname="prizrak-box-bin"
-          _pkgname="Prizrak-Box"
-          tag="$TAG"
-          version="${tag#v}"
-          repo="${GITHUB_REPOSITORY}"
-          workdir="aur-build"
-          mkdir -p "$workdir"
-
-          electron_major=$(python3 - <<'PY'
-import json
-import re
-from pathlib import Path
-
-data = json.loads(Path('package.json').read_text())
-raw = data.get('devDependencies', {}).get('electron') or data.get('dependencies', {}).get('electron')
-if not raw:
-    raise SystemExit(1)
-match = re.search(r'\d+', raw)
-if not match:
-    raise SystemExit(1)
-print(match.group(0))
-PY
-)
-
-          launcher_path="$workdir/${pkgname%-bin}.sh"
-          {
-            printf '%s\n' '#!/bin/bash' \
-              'set -e' \
-              '_APPDIR="/usr/lib/@appname@"' \
-              '_RUNNAME="${_APPDIR}/@runname@"' \
-              '_OPTIONS="@options@"' \
-              'export PATH="${_APPDIR}:${PATH}"' \
-              'export LD_LIBRARY_PATH="${_APPDIR}/swiftshader:${_APPDIR}/lib:${LD_LIBRARY_PATH}"' \
-              'export ELECTRON_IS_DEV=0' \
-              'export ELECTRON_FORCE_IS_PACKAGED=true' \
-              'export ELECTRON_DISABLE_SECURITY_WARNINGS=true' \
-              'export NODE_ENV=production' \
-              'export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"' \
-              '_FLAGS_FILE="${XDG_CONFIG_HOME}/@appname@-flags.conf"' \
-              'declare -a flags' \
-              'if [[ -f "${_FLAGS_FILE}" ]]; then' \
-              '    mapfile -t < "${_FLAGS_FILE}"' \
-              'fi' \
-              'for line in "${MAPFILE[@]}"; do' \
-              '    if [[ ! "${line}" =~ ^[[:space:]]*#.* ]] && [[ -n "${line}" ]]; then' \
-              '        flags+=("${line}")' \
-              '    fi' \
-              'done' \
-              '_WAYLAND_OPTION=false' \
-              'for arg in "$@"; do' \
-              '    if [[ "${arg}" == "--wayland" ]]; then' \
-              '        _WAYLAND_OPTION=true' \
-              '        break' \
-              '    fi' \
-              'done' \
-              'if [[ "${_WAYLAND_OPTION}" == true ]]; then' \
-              '    echo "Forcing Wayland"' \
-              '    flags+=("--enable-features=UseOzonePlatform,WaylandWindowDecorations,VaapiVideoDecodeLinuxGL" "--ozone-platform=wayland")' \
-              'fi' \
-              'cd "${_APPDIR}"' \
-              'if [[ "${EUID}" -ne 0 ]] || [[ "${ELECTRON_RUN_AS_NODE}" ]]; then' \
-              '    exec electron@electronversion@ "${_RUNNAME}" "${_OPTIONS}" "${flags[@]}" "$@" || exit $?' \
-              'else' \
-              '    exec electron@electronversion@ "${_RUNNAME}" "${_OPTIONS}" --no-sandbox "${flags[@]}" "$@" || exit $?' \
-              'fi'
-          } > "$launcher_path"
-
-          chmod +x "$launcher_path"
-          script_sha=$(sha256sum "$launcher_path" | awk '{print $1}')
-
-          declare -A arch_map=( [amd64]=x86_64 [arm64]=aarch64 )
-          declare -A sources
-          declare -A shas
-
-          for build_arch in "${!arch_map[@]}"; do
-            aur_arch="${arch_map[$build_arch]}"
-            asset_url="https://github.com/${repo}/releases/download/${tag}/linux-${build_arch}.rpm"
-            dest_file="$workdir/${pkgname%-bin}-${version}-${aur_arch}.rpm"
-            curl -L "$asset_url" -o "$dest_file"
-            sha=$(sha256sum "$dest_file" | awk '{print $1}')
-            sources[$aur_arch]="${pkgname%-bin}-${version}-${aur_arch}.rpm::${asset_url}"
-            shas[$aur_arch]="$sha"
-          done
-
-          cat > "$workdir/PKGBUILD" <<PKG
-pkgname=${pkgname}
-_pkgname=${_pkgname}
-pkgver=${version}
-_electronversion=${electron_major}
-pkgrel=1
-pkgdesc="A Simple Mihomo GUI.(Prebuilt version.Use system-wide electron)"
-arch=(
-    'aarch64'
-    'x86_64'
-)
-url="https://github.com/${repo}"
-license=('GPL-3.0-only')
-provides=("\${pkgname%-bin}")
-conflicts=("\${pkgname%-bin}")
-depends=(
-    "electron\${_electronversion}"
-)
-makedepends=(
-    'asar'
-)
-source=("\${pkgname%-bin}.sh")
-source_aarch64=("${sources[aarch64]}")
-source_x86_64=("${sources[x86_64]}")
-sha256sums=('${script_sha}')
-sha256sums_aarch64=('${shas[aarch64]}')
-sha256sums_x86_64=('${shas[x86_64]}')
-_get_electron_version() {
-    _elec_ver="$(strings "${srcdir}/usr/lib/${_pkgname}/${_pkgname}" | grep '^Chrome/[0-9.]* Electron/[0-9]' | cut -d'/' -f3 | cut -d'.' -f1)"
-    echo -e "The electron version is: \033[1;31m${_elec_ver}\033[0m"
-}
-prepare() {
-    sed -i -e "
-        s/@electronversion@/${_electronversion}/g
-        s/@appname@/${pkgname%-bin}/g
-        s/@runname@/app.asar/g
-        s/@cfgdirname@/${_pkgname}/g
-        s/@options@/env ELECTRON_OZONE_PLATFORM_HINT=auto/g
-    " "${srcdir}/${pkgname%-bin}.sh"
-    bsdtar -xf "${srcdir}/${_pkgname}-"*.rpm
-    _get_electron_version
-    sed -i -e "
-        s/Exec=${_pkgname}/Exec=${pkgname%-bin}/g
-        s/Icon=${_pkgname}/Icon=${pkgname%-bin}/g
-    " "${srcdir}/usr/share/applications/${_pkgname}.desktop"
-    asar e "${srcdir}/usr/lib/${_pkgname}/resources/app.asar" "${srcdir}/app.asar.unpacked"
-    find "${srcdir}/app.asar.unpacked/.vite" -type f -exec sed -i "s/process.resourcesPath/'\/usr\/lib\/${pkgname%-bin}'/g" {} +
-    asar p "${srcdir}/app.asar.unpacked" "${srcdir}/app.asar"
-}
-package() {
-    install -Dm755 "${srcdir}/${pkgname%-bin}.sh" "${pkgdir}/usr/bin/${pkgname%-bin}"
-    install -Dm644 "${srcdir}/app.asar" -t "${pkgdir}/usr/lib/${pkgname%-bin}"
-    install -Dm755 "${srcdir}/usr/lib/${_pkgname}/resources/px" -t "${pkgdir}/usr/lib/${pkgname%-bin}"
-    install -Dm644 "${srcdir}/usr/share/pixmaps/${_pkgname}.png" "${pkgdir}/usr/share/pixmaps/${pkgname%-bin}.png"
-    install -Dm644 "${srcdir}/usr/share/applications/${_pkgname}.desktop" "${pkgdir}/usr/share/applications/${pkgname%-bin}.desktop"
-    install -Dm644 "${srcdir}/usr/share/doc/${_pkgname}/copyright" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
-}
-PKG
-
-          cat > "$workdir/.SRCINFO" <<SRCINFO
-pkgbase = ${pkgname}
-pkgdesc = A Simple Mihomo GUI.(Prebuilt version.Use system-wide electron)
-pkgver = ${version}
-pkgrel = 1
-url = https://github.com/${repo}
-arch = aarch64
-arch = x86_64
-license = GPL-3.0-only
-makedepends = asar
-depends = electron${electron_major}
-provides = prizrak-box
-conflicts = prizrak-box
-source = ${pkgname%-bin}.sh
-sha256sums = ${script_sha}
-source_aarch64 = ${sources[aarch64]}
-sha256sums_aarch64 = ${shas[aarch64]}
-source_x86_64 = ${sources[x86_64]}
-sha256sums_x86_64 = ${shas[x86_64]}
-
-pkgname = ${pkgname}
-provides = prizrak-box
-conflicts = prizrak-box
-SRCINFO
-
-      - name: Clone AUR repository
-        env:
-          AUR_USERNAME: ${{ secrets.AUR_USERNAME }}
-        run: |
-          git clone ssh://aur@aur.archlinux.org/prizrak-box-bin.git aur-repo
-
-      - name: Publish to AUR
-        env:
-          TAG: ${{ github.ref_name }}
-        run: |
-          set -euo pipefail
-          version="${TAG#v}"
-          cp aur-build/PKGBUILD aur-repo/PKGBUILD
-          cp aur-build/.SRCINFO aur-repo/.SRCINFO
-          cp aur-build/prizrak-box.sh aur-repo/prizrak-box.sh
-          cd aur-repo
-          if git status --porcelain | grep -q .; then
-            git add PKGBUILD .SRCINFO prizrak-box.sh
-            git commit -m "Update to version ${version}"
-            git push
-          else
-            echo "AUR repository already up to date"
-          fi
