@@ -335,7 +335,7 @@ jobs:
           # Maintainer: ${{ secrets.AUR_USERNAME }} <${{ secrets.AUR_COMMIT_EMAIL }}>
           pkgname=prizrak-box-bin
           _pkgname=Prizrak-Box
-          pkgver=\${CLEAN_VERSION} # e.g., 1.0.20_alpha2
+          pkgver=${CLEAN_VERSION} # Embeds the calculated version string directly
           pkgrel=1
           pkgdesc="A cross-platform GUI client for Prizrak."
           arch=('x86_64' 'aarch64')
