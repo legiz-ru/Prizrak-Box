@@ -292,6 +292,7 @@ jobs:
     name: Publish to AUR
     runs-on: ubuntu-latest
     needs: build_linux
+    environment: aur
     
     steps:
       - name: Get Tag Version
