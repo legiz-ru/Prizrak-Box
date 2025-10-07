@@ -1,5 +1,6 @@
 import type {ForgeConfig} from '@electron-forge/shared-types';
 import {MakerWix} from '@electron-forge/maker-wix';
+import {MakerSquirrel} from '@electron-forge/maker-squirrel';
 import {MakerDMG} from '@electron-forge/maker-dmg';
 import {MakerDeb} from '@electron-forge/maker-deb';
 import {MakerRpm} from '@electron-forge/maker-rpm';
@@ -29,10 +30,16 @@ const config: ForgeConfig = {
     },
     rebuildConfig: {},
     makers: [
+        new MakerSquirrel({
+            name: 'Prizrak-Box',
+            authors: ['legiz-ru'],
+            setupIcon: 'build/appicon.png',
+            iconUrl: 'https://raw.githubusercontent.com/legiz-ru/Prizrak-Box/prizrak_dev/build/appicon.png',
+        }),
         new MakerWix({
             manufacturer: 'legiz-ru',
             description: 'A Simple Mihomo GUI',
-            icon: 'build/appicon.ico',
+            icon: 'build/appicon.png',
             ui: {
                 chooseDirectory: true,
             },
