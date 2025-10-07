@@ -80,7 +80,6 @@ jobs:
           $arch = "${{ matrix.arch }}"
           $electronArch = if ($arch -eq "amd64") { "x64" } else { $arch }
           
-
           $portableDir = Get-ChildItem -Path "out" -Directory | Where-Object { $_.Name -like "Prizrak-Box*" } | Select-Object -First 1
           if ($portableDir) {
               Compress-Archive -Path "$($portableDir.FullName)\*" -DestinationPath "windows-${arch}.zip"
@@ -89,7 +88,6 @@ jobs:
               exit 1
           }
           
-
           $msiFile = Get-ChildItem -Path "out\make\wix\$electronArch" -Filter "*.msi" | Select-Object -First 1
           if ($msiFile) {
               Copy-Item -Path $msiFile.FullName -Destination "windows-${arch}.msi"
@@ -407,80 +405,98 @@ jobs:
       - name: Generate PKGBUILD and .SRCINFO
         env:
           TAG: ${{ github.ref_name }}
-          AUR_USERNAME: ${{ secrets.AUR_USERNAME }}
-          AUR_COMMIT_EMAIL: ${{ secrets.AUR_COMMIT_EMAIL }}
         run: |
           set -euo pipefail
+
           pkgname="prizrak-box-bin"
           _pkgname="Prizrak-Box"
           tag="$TAG"
           version="${tag#v}"
-          electron_version="36"
           repo="${GITHUB_REPOSITORY}"
-          release_url="https://github.com/${repo}/releases/download/${tag}"
           workdir="aur-build"
           mkdir -p "$workdir"
 
-          maintainer_name="${AUR_USERNAME:-legiz-ru}"
-          maintainer_email="${AUR_COMMIT_EMAIL:-maintainer@example.com}"
+          electron_major=$(python3 - <<'PY'
+import json
+import re
+from pathlib import Path
+
+data = json.loads(Path('package.json').read_text())
+raw = data.get('devDependencies', {}).get('electron') or data.get('dependencies', {}).get('electron')
+if not raw:
+    raise SystemExit(1)
+match = re.search(r'\d+', raw)
+if not match:
+    raise SystemExit(1)
+print(match.group(0))
+PY
+)
 
           launcher_path="$workdir/${pkgname%-bin}.sh"
-          cat > "$launcher_path" <<'SCRIPT'
-#!/bin/bash
-set -e
-_APPDIR="/usr/lib/@appname@"
-_RUNNAME="${_APPDIR}/@runname@"
-_OPTIONS="@options@"
-export PATH="${_APPDIR}:${PATH}"
-export LD_LIBRARY_PATH="${_APPDIR}/swiftshader:${_APPDIR}/lib:${LD_LIBRARY_PATH}"
-export ELECTRON_IS_DEV=0
-export ELECTRON_FORCE_IS_PACKAGED=true
-export ELECTRON_DISABLE_SECURITY_WARNINGS=true
-export NODE_ENV=production
-export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
-_FLAGS_FILE="${XDG_CONFIG_HOME}/@appname@-flags.conf"
-declare -a flags
-if [[ -f "${_FLAGS_FILE}" ]]; then
-    mapfile -t < "${_FLAGS_FILE}"
-fi
-for line in "${MAPFILE[@]}"; do
-    if [[ ! "${line}" =~ ^[[:space:]]*#.* ]] && [[ -n "${line}" ]]; then
-        flags+=("${line}")
-    fi
-done
-_WAYLAND_OPTION=false
-for arg in "$@"; do
-    if [[ "${arg}" == "--wayland" ]]; then
-        _WAYLAND_OPTION=true
-        break
-    fi
-done
-if [[ "${_WAYLAND_OPTION}" == true ]]; then
-    echo "Forcing Wayland"
-    flags+=("--enable-features=UseOzonePlatform,WaylandWindowDecorations,VaapiVideoDecodeLinuxGL" "--ozone-platform=wayland")
-fi
-cd "${_APPDIR}"
-if [[ "${EUID}" -ne 0 ]] || [[ "${ELECTRON_RUN_AS_NODE}" ]]; then
-    exec electron@electronversion@ "${_RUNNAME}" "${_OPTIONS}" "${flags[@]}" "$@" || exit $?
-else
-    exec electron@electronversion@ "${_RUNNAME}" "${_OPTIONS}" --no-sandbox "${flags[@]}" "$@" || exit $?
-fi
-SCRIPT
+          {
+            printf '%s\n' '#!/bin/bash' \
+              'set -e' \
+              '_APPDIR="/usr/lib/@appname@"' \
+              '_RUNNAME="${_APPDIR}/@runname@"' \
+              '_OPTIONS="@options@"' \
+              'export PATH="${_APPDIR}:${PATH}"' \
+              'export LD_LIBRARY_PATH="${_APPDIR}/swiftshader:${_APPDIR}/lib:${LD_LIBRARY_PATH}"' \
+              'export ELECTRON_IS_DEV=0' \
+              'export ELECTRON_FORCE_IS_PACKAGED=true' \
+              'export ELECTRON_DISABLE_SECURITY_WARNINGS=true' \
+              'export NODE_ENV=production' \
+              'export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"' \
+              '_FLAGS_FILE="${XDG_CONFIG_HOME}/@appname@-flags.conf"' \
+              'declare -a flags' \
+              'if [[ -f "${_FLAGS_FILE}" ]]; then' \
+              '    mapfile -t < "${_FLAGS_FILE}"' \
+              'fi' \
+              'for line in "${MAPFILE[@]}"; do' \
+              '    if [[ ! "${line}" =~ ^[[:space:]]*#.* ]] && [[ -n "${line}" ]]; then' \
+              '        flags+=("${line}")' \
+              '    fi' \
+              'done' \
+              '_WAYLAND_OPTION=false' \
+              'for arg in "$@"; do' \
+              '    if [[ "${arg}" == "--wayland" ]]; then' \
+              '        _WAYLAND_OPTION=true' \
+              '        break' \
+              '    fi' \
+              'done' \
+              'if [[ "${_WAYLAND_OPTION}" == true ]]; then' \
+              '    echo "Forcing Wayland"' \
+              '    flags+=("--enable-features=UseOzonePlatform,WaylandWindowDecorations,VaapiVideoDecodeLinuxGL" "--ozone-platform=wayland")' \
+              'fi' \
+              'cd "${_APPDIR}"' \
+              'if [[ "${EUID}" -ne 0 ]] || [[ "${ELECTRON_RUN_AS_NODE}" ]]; then' \
+              '    exec electron@electronversion@ "${_RUNNAME}" "${_OPTIONS}" "${flags[@]}" "$@" || exit $?' \
+              'else' \
+              '    exec electron@electronversion@ "${_RUNNAME}" "${_OPTIONS}" --no-sandbox "${flags[@]}" "$@" || exit $?' \
+              'fi'
+          } > "$launcher_path"
 
-          sha_launcher=$(sha256sum "$launcher_path" | awk '{print $1}')
+          chmod +x "$launcher_path"
+          script_sha=$(sha256sum "$launcher_path" | awk '{print $1}')
 
-          declare -A sha_arch
-          for arch in amd64 arm64; do
-            curl -L "${release_url}/linux-${arch}.rpm" -o "$workdir/linux-${arch}.rpm"
-            sha_arch[$arch]=$(sha256sum "$workdir/linux-${arch}.rpm" | awk '{print $1}')
+          declare -A arch_map=( [amd64]=x86_64 [arm64]=aarch64 )
+          declare -A sources
+          declare -A shas
+
+          for build_arch in "${!arch_map[@]}"; do
+            aur_arch="${arch_map[$build_arch]}"
+            asset_url="https://github.com/${repo}/releases/download/${tag}/linux-${build_arch}.rpm"
+            dest_file="$workdir/${pkgname%-bin}-${version}-${aur_arch}.rpm"
+            curl -L "$asset_url" -o "$dest_file"
+            sha=$(sha256sum "$dest_file" | awk '{print $1}')
+            sources[$aur_arch]="${pkgname%-bin}-${version}-${aur_arch}.rpm::${asset_url}"
+            shas[$aur_arch]="$sha"
           done
 
           cat > "$workdir/PKGBUILD" <<PKG
-# Maintainer: ${maintainer_name} <${maintainer_email}>
 pkgname=${pkgname}
 _pkgname=${_pkgname}
 pkgver=${version}
-_electronversion=${electron_version}
+_electronversion=${electron_major}
 pkgrel=1
 pkgdesc="A Simple Mihomo GUI.(Prebuilt version.Use system-wide electron)"
 arch=(
@@ -489,20 +505,20 @@ arch=(
 )
 url="https://github.com/${repo}"
 license=('GPL-3.0-only')
-provides=("${pkgname%-bin}")
-conflicts=("${pkgname%-bin}")
+provides=("\${pkgname%-bin}")
+conflicts=("\${pkgname%-bin}")
 depends=(
-    "electron${_electronversion}"
+    "electron\${_electronversion}"
 )
 makedepends=(
     'asar'
 )
-source=("${pkgname%-bin}.sh")
-source_aarch64=("${pkgname%-bin}-${pkgver}-aarch64.rpm::${url}/releases/download/v${pkgver}/linux-arm64.rpm")
-source_x86_64=("${pkgname%-bin}-${pkgver}-x86_64.rpm::${url}/releases/download/v${pkgver}/linux-amd64.rpm")
-sha256sums=('${sha_launcher}')
-sha256sums_aarch64=('${sha_arch[arm64]}')
-sha256sums_x86_64=('${sha_arch[amd64]}')
+source=("\${pkgname%-bin}.sh")
+source_aarch64=("${sources[aarch64]}")
+source_x86_64=("${sources[x86_64]}")
+sha256sums=('${script_sha}')
+sha256sums_aarch64=('${shas[aarch64]}')
+sha256sums_x86_64=('${shas[x86_64]}')
 _get_electron_version() {
     _elec_ver="$(strings "${srcdir}/usr/lib/${_pkgname}/${_pkgname}" | grep '^Chrome/[0-9.]* Electron/[0-9]' | cut -d'/' -f3 | cut -d'.' -f1)"
     echo -e "The electron version is: \033[1;31m${_elec_ver}\033[0m"
@@ -522,7 +538,7 @@ prepare() {
         s/Icon=${_pkgname}/Icon=${pkgname%-bin}/g
     " "${srcdir}/usr/share/applications/${_pkgname}.desktop"
     asar e "${srcdir}/usr/lib/${_pkgname}/resources/app.asar" "${srcdir}/app.asar.unpacked"
-    find "${srcdir}/app.asar.unpacked/.vite" -type f -exec sed -i "s/process.resourcesPath/\'\/usr\/lib\/${pkgname%-bin}\'/g" {} +
+    find "${srcdir}/app.asar.unpacked/.vite" -type f -exec sed -i "s/process.resourcesPath/'\/usr\/lib\/${pkgname%-bin}'/g" {} +
     asar p "${srcdir}/app.asar.unpacked" "${srcdir}/app.asar"
 }
 package() {
@@ -537,28 +553,29 @@ PKG
 
           cat > "$workdir/.SRCINFO" <<SRCINFO
 pkgbase = ${pkgname}
-  pkgdesc = A Simple Mihomo GUI.(Prebuilt version.Use system-wide electron)
-  pkgver = ${version}
-  pkgrel = 1
-  url = https://github.com/${repo}
-  arch = aarch64
-  arch = x86_64
-  license = GPL-3.0-only
-  makedepends = asar
-  depends = electron${electron_version}
-  provides = prizrak-box
-  conflicts = prizrak-box
-  source = prizrak-box.sh
-  sha256sums = ${sha_launcher}
-  source_aarch64 = prizrak-box-${version}-aarch64.rpm::https://github.com/${repo}/releases/download/v${version}/linux-arm64.rpm
-  sha256sums_aarch64 = ${sha_arch[arm64]}
-  source_x86_64 = prizrak-box-${version}-x86_64.rpm::https://github.com/${repo}/releases/download/v${version}/linux-amd64.rpm
-  sha256sums_x86_64 = ${sha_arch[amd64]}
+pkgdesc = A Simple Mihomo GUI.(Prebuilt version.Use system-wide electron)
+pkgver = ${version}
+pkgrel = 1
+url = https://github.com/${repo}
+arch = aarch64
+arch = x86_64
+license = GPL-3.0-only
+makedepends = asar
+depends = electron${electron_major}
+provides = prizrak-box
+conflicts = prizrak-box
+source = ${pkgname%-bin}.sh
+sha256sums = ${script_sha}
+source_aarch64 = ${sources[aarch64]}
+sha256sums_aarch64 = ${shas[aarch64]}
+source_x86_64 = ${sources[x86_64]}
+sha256sums_x86_64 = ${shas[x86_64]}
 
 pkgname = ${pkgname}
-  provides = prizrak-box
-  conflicts = prizrak-box
+provides = prizrak-box
+conflicts = prizrak-box
 SRCINFO
+
       - name: Clone AUR repository
         env:
           AUR_USERNAME: ${{ secrets.AUR_USERNAME }}
@@ -573,9 +590,10 @@ SRCINFO
           version="${TAG#v}"
           cp aur-build/PKGBUILD aur-repo/PKGBUILD
           cp aur-build/.SRCINFO aur-repo/.SRCINFO
+          cp aur-build/prizrak-box.sh aur-repo/prizrak-box.sh
           cd aur-repo
           if git status --porcelain | grep -q .; then
-            git add PKGBUILD .SRCINFO
+            git add PKGBUILD .SRCINFO prizrak-box.sh
             git commit -m "Update to version ${version}"
             git push
           else
