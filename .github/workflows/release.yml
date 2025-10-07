@@ -83,6 +83,7 @@ jobs:
           $arch = "${{ matrix.arch }}"
           $electronArch = if ($arch -eq "amd64") { "x64" } else { $arch }
           
+          # --- Portable Zip ---
           $portableDir = Get-ChildItem -Path "out" -Directory | Where-Object { $_.Name -like "Prizrak-Box*" } | Select-Object -First 1
           if ($portableDir) {
               Compress-Archive -Path "$($portableDir.FullName)\*" -DestinationPath "windows-${arch}.zip"
@@ -91,6 +92,7 @@ jobs:
               exit 1
           }
           
+          # --- MSI Installer ---
           $msiFile = Get-ChildItem -Path "out\make\wix\$electronArch" -Filter "*.msi" | Select-Object -First 1
           if ($msiFile) {
               Copy-Item -Path $msiFile.FullName -Destination "windows-${arch}.msi"
@@ -98,18 +100,28 @@ jobs:
               Write-Error "MSI file not found in out\make\wix\$electronArch"
               exit 1
           }
-
+          
+          # --- Squirrel.Windows Assets (FIXED LOGIC) ---
           $squirrelDir = "out\make\squirrel.windows\$electronArch"
-          $exeFile = Get-ChildItem -Path $squirrelDir -Filter "*.exe" | Where-Object { $_.Name -notlike "*Setup*" } | Select-Object -First 1
-          if ($exeFile) {
-              Copy-Item -Path $exeFile.FullName -Destination "windows-${arch}-Setup.exe"
-              Copy-Item -Path "$squirrelDir\RELEASES" -Destination "RELEASES"
-              $nupkgFile = Get-ChildItem -Path $squirrelDir -Filter "*-full.nupkg" | Select-Object -First 1
-              if ($nupkgFile) {
-                  Copy-Item -Path $nupkgFile.FullName -Destination "windows-${arch}-full.nupkg"
-              }
+          
+          # 1. Find the actual Setup.exe installer file
+          $installerFile = Get-ChildItem -Path $squirrelDir -Filter "*Setup.exe" | Select-Object -First 1
+          if ($installerFile) {
+              Copy-Item -Path $installerFile.FullName -Destination "windows-${arch}-Setup.exe"
           } else {
-              Write-Error "Squirrel.Windows setup file not found in $squirrelDir"
+              Write-Error "Squirrel.Windows installer (*Setup.exe) file not found in $squirrelDir. Ensure the Squirrel maker ran successfully."
+              exit 1
+          }
+          
+          # 2. Copy RELEASES file (required for Squirrel auto-update)
+          Copy-Item -Path "$squirrelDir\RELEASES" -Destination "RELEASES" -Force
+          
+          # 3. Find the full nupkg file
+          $nupkgFile = Get-ChildItem -Path $squirrelDir -Filter "*-full.nupkg" | Select-Object -First 1
+          if ($nupkgFile) {
+              Copy-Item -Path $nupkgFile.FullName -Destination "windows-${arch}-full.nupkg"
+          } else {
+              Write-Error "Squirrel.Windows NUPKG file (*-full.nupkg) not found in $squirrelDir."
               exit 1
           }
 
