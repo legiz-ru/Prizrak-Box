@@ -307,6 +307,7 @@ jobs:
       - name: Calculate Checksums
         id: checksums
         run: |
+          # Используем basename для deb-файла, который содержит актуальный пакет
           amd64_sum=$(sha256sum artifacts/linux-amd64/linux-amd64.deb | awk '{ print $1 }')
           arm64_sum=$(sha256sum artifacts/linux-arm64/linux-arm64.deb | awk '{ print $1 }')
           echo "amd64_sha256=$amd64_sum" >> $GITHUB_OUTPUT
@@ -324,16 +325,40 @@ jobs:
           arch=('x86_64' 'aarch64')
           url="https://github.com/legiz-ru/prizrak-box"
           license=('MIT')
+          depends=('gtk3' 'libappindicator-gtk3')
           provides=("\${_pkgname}")
           conflicts=("\${_pkgname}")
+          
+          # Source files: format is (filename::URL)
           source_x86_64=("${_pkgname}-linux-x64-\${pkgver}.deb::https://github.com/legiz-ru/prizrak-box/releases/download/${{ env.VERSION_TAG }}/linux-amd64.deb")
           source_aarch64=("${_pkgname}-linux-arm64-\${pkgver}.deb::https://github.com/legiz-ru/prizrak-box/releases/download/${{ env.VERSION_TAG }}/linux-arm64.deb")
+          
           sha256sums_x86_64=('${{ steps.checksums.outputs.amd64_sha256 }}')
           sha256sums_aarch64=('${{ steps.checksums.outputs.arm64_sha256 }}')
 
           package() {
+            local _deb_file
+            
+            # Определяем имя скачанного .deb файла в зависимости от архитектуры
+            if [ "\${CARCH}" = "x86_64" ]; then
+              _deb_file="\${_pkgname}-linux-x64-\${pkgver}.deb"
+            elif [ "\${CARCH}" = "aarch64" ]; then
+              _deb_file="\${_pkgname}-linux-arm64-\${pkgver}.deb"
+            else
+              error "Unsupported architecture: \${CARCH}"
+            fi
+
             cd "\${srcdir}"
+            
+            # 1. Извлекаем data.tar.xz (архив с данными) из .deb файла с помощью bsdtar
+            # bsdtar -xf <deb_file> -C <target_dir> <file_to_extract>
+            bsdtar -xf "\${_deb_file}" -C . data.tar.xz
+            
+            # 2. Извлекаем содержимое data.tar.xz в пакетный каталог
             tar -xf data.tar.xz -C "\${pkgdir}/"
+            
+            # Очистка
+            rm data.tar.xz
           }
           EOF
 
@@ -346,6 +371,8 @@ jobs:
           commit_email: ${{ secrets.AUR_COMMIT_EMAIL }}
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
           commit_message: "Update to version ${{ env.VERSION_TAG }}"
+          # Используем обновленный список типов ключей, чтобы избежать предупреждения DSA
+          ssh_keyscan_types: rsa,ecdsa,ed25519
           force_push: "true"
 
   release:
