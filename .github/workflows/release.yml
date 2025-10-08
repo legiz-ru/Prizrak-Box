@@ -331,9 +331,12 @@ jobs:
 
       - name: Generate AUR files (.SRCINFO, PKGBUILD, prizrak-box.sh)
         run: |
-          PKGVER="$(echo ${{ env.VERSION_TAG }} | sed 's/^v//')"
+          # --- version handling ---
+          TAG="${{ env.VERSION_TAG }}"             # e.g. v1.0.20-alpha2
+          PKGVER_RAW="${TAG#v}"                    # 1.0.20-alpha2
+          PKGVER="${PKGVER_RAW//-/_}"              # 1.0.20_alpha2 (AUR-compliant)
 
-          # launcher
+          # --- launcher script (from pandora template, renamed to prizrak) ---
           cat > prizrak-box.sh << 'EOSH'
           #!/bin/bash
           set -e
@@ -385,7 +388,7 @@ jobs:
           URL="https://github.com/legiz-ru/prizrak-box"
           SH_SUM=$(sha256sum prizrak-box.sh | awk '{print $1}')
 
-          # PKGBUILD — source_* указывают .rpm, но ПЕРЕИМЕНОВЫВАЕМ локальный файл через ::
+          # --- PKGBUILD ---
           cat > PKGBUILD <<EOF
           pkgname=${PKGNAME}
           _pkgname=Prizrak-Box
@@ -401,8 +404,8 @@ jobs:
           depends=("electron\${_electronversion}")
           makedepends=('asar')
           source=("\${pkgname%-bin}.sh")
-          source_aarch64=("\${_pkgname}-\${pkgver}-aarch64.rpm::\${url}/releases/download/v\${pkgver}/linux-arm64.rpm")
-          source_x86_64=("\${_pkgname}-\${pkgver}-x86_64.rpm::\${url}/releases/download/v\${pkgver}/linux-amd64.rpm")
+          source_aarch64=("\${_pkgname}-\${pkgver}-aarch64.rpm::\${url}/releases/download/${TAG}/linux-arm64.rpm")
+          source_x86_64=("\${_pkgname}-\${pkgver}-x86_64.rpm::\${url}/releases/download/${TAG}/linux-amd64.rpm")
           sha256sums=('${SH_SUM}')
           sha256sums_aarch64=('${{ steps.checksums.outputs.arm64_sha256 }}')
           sha256sums_x86_64=('${{ steps.checksums.outputs.amd64_sha256 }}')
@@ -446,7 +449,7 @@ jobs:
           }
           EOF
 
-          # .SRCINFO — тоже .rpm
+          # --- .SRCINFO ---
           cat > .SRCINFO <<EOF
           pkgbase = ${PKGNAME}
             pkgdesc = A Simple Mihomo GUI.(Prebuilt version.Use system-wide electron)
@@ -462,9 +465,9 @@ jobs:
             conflicts = ${PKGNAME_BASE}
             source = ${PKGNAME_BASE}.sh
             sha256sums = ${SH_SUM}
-            source_aarch64 = Prizrak-Box-${PKGVER}-aarch64.rpm::${URL}/releases/download/v${PKGVER}/linux-arm64.rpm
+            source_aarch64 = Prizrak-Box-${PKGVER}-aarch64.rpm::${URL}/releases/download/${TAG}/linux-arm64.rpm
             sha256sums_aarch64 = ${{ steps.checksums.outputs.arm64_sha256 }}
-            source_x86_64 = Prizrak-Box-${PKGVER}-x86_64.rpm::${URL}/releases/download/v${PKGVER}/linux-amd64.rpm
+            source_x86_64 = Prizrak-Box-${PKGVER}-x86_64.rpm::${URL}/releases/download/${TAG}/linux-amd64.rpm
             sha256sums_x86_64 = ${{ steps.checksums.outputs.amd64_sha256 }}
 
           pkgname = ${PKGNAME}
@@ -481,6 +484,7 @@ jobs:
           commit_message: "Update to version ${{ env.VERSION_TAG }}"
           ssh_keyscan_types: rsa,ecdsa,ed25519
           force_push: "true"
+
 
   release:
     needs: [build_windows, build_linux, build_macos, publish_aur]
