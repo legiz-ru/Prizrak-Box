@@ -212,6 +212,12 @@ jobs:
           fi
           find out/make/deb/$electron_arch -name "*.deb" -exec mv {} linux-${arch}.deb \;
           find out/make/rpm/$electron_arch -name "*.rpm" -exec mv {} linux-${arch}.rpm \;
+          if [ -f "linux-${arch}.rpm" ]; then
+            aur_root=$(mktemp -d)
+            bsdtar -xf "linux-${arch}.rpm" -C "$aur_root"
+            tar --zstd -cf "linux-${arch}-aur.tar.zst" -C "$aur_root" usr
+            rm -rf "$aur_root"
+          fi
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -220,6 +226,7 @@ jobs:
           path: |
             linux-${{ matrix.arch }}.deb
             linux-${{ matrix.arch }}.rpm
+            linux-${{ matrix.arch }}-aur.tar.zst
 
   build_macos:
     runs-on: macos-latest
@@ -316,16 +323,16 @@ jobs:
         with:
           path: artifacts
 
-      - name: Calculate Checksums (.rpm)
+      - name: Calculate Checksums (AUR archives)
         id: checksums
         run: |
-          amd64_rpm="artifacts/linux-amd64/linux-amd64.rpm"
-          arm64_rpm="artifacts/linux-arm64/linux-arm64.rpm"
-          if [ ! -f "$amd64_rpm" ] || [ ! -f "$arm64_rpm" ]; then
-            echo "Missing linux-*.rpm artifacts"; exit 1
+          amd64_tar="artifacts/linux-amd64/linux-amd64-aur.tar.zst"
+          arm64_tar="artifacts/linux-arm64/linux-arm64-aur.tar.zst"
+          if [ ! -f "$amd64_tar" ] || [ ! -f "$arm64_tar" ]; then
+            echo "Missing linux-*-aur.tar.zst artifacts"; exit 1
           fi
-          amd64_sum=$(sha256sum "$amd64_rpm" | awk '{ print $1 }')
-          arm64_sum=$(sha256sum "$arm64_rpm" | awk '{ print $1 }')
+          amd64_sum=$(sha256sum "$amd64_tar" | awk '{ print $1 }')
+          arm64_sum=$(sha256sum "$arm64_tar" | awk '{ print $1 }')
           echo "amd64_sha256=$amd64_sum" >> $GITHUB_OUTPUT
           echo "arm64_sha256=$arm64_sum" >> $GITHUB_OUTPUT
 
@@ -336,7 +343,7 @@ jobs:
           PKGVER_RAW="${TAG#v}"                    # 1.0.20-alpha2
           PKGVER="${PKGVER_RAW//-/_}"              # 1.0.20_alpha2 (AUR-compliant)
 
-          # --- launcher script (from pandora template, renamed to prizrak) ---
+          # --- launcher script (from pandora template, renamed to prizrak-box) ---
           cat > prizrak-box.sh << 'EOSH'
           #!/bin/bash
           set -e
@@ -403,9 +410,9 @@ jobs:
           conflicts=("\${pkgname%-bin}")
           depends=("electron\${_electronversion}")
           makedepends=('asar')
-          source=("\${pkgname%-bin}.sh")
-          source_aarch64=("\${_pkgname}-\${pkgver}-aarch64.rpm::\${url}/releases/download/${TAG}/linux-arm64.rpm")
-          source_x86_64=("\${_pkgname}-\${pkgver}-x86_64.rpm::\${url}/releases/download/${TAG}/linux-amd64.rpm")
+          source=("prizrak-box.sh")
+          source_aarch64=("\${_pkgname}-\${pkgver}-aarch64.tar.zst::\${url}/releases/download/${TAG}/linux-arm64-aur.tar.zst")
+          source_x86_64=("\${_pkgname}-\${pkgver}-x86_64.tar.zst::\${url}/releases/download/${TAG}/linux-amd64-aur.tar.zst")
           sha256sums=('${SH_SUM}')
           sha256sums_aarch64=('${{ steps.checksums.outputs.arm64_sha256 }}')
           sha256sums_x86_64=('${{ steps.checksums.outputs.amd64_sha256 }}')
@@ -422,10 +429,7 @@ jobs:
               s/@runname@/app.asar/g
               s/@cfgdirname@/\${_pkgname}/g
               s/@options@/env ELECTRON_OZONE_PLATFORM_HINT=auto/g
-            " "\${srcdir}/\${pkgname%-bin}.sh"
-
-            # распакуем .rpm (имя начинается с \${_pkgname}- благодаря локальному имени до '::')
-            bsdtar -xf "\${srcdir}/\${_pkgname}-"*.rpm
+            " "\${srcdir}/prizrak-box.sh"
 
             _get_electron_version
 
@@ -440,7 +444,7 @@ jobs:
           }
 
           package() {
-            install -Dm755 "\${srcdir}/\${pkgname%-bin}.sh" "\${pkgdir}/usr/bin/\${pkgname%-bin}"
+            install -Dm755 "\${srcdir}/prizrak-box.sh" "\${pkgdir}/usr/bin/\${pkgname%-bin}"
             install -Dm644 "\${srcdir}/app.asar" -t "\${pkgdir}/usr/lib/\${pkgname%-bin}"
             install -Dm755 "\${srcdir}/usr/lib/\${_pkgname}/resources/px" -t "\${pkgdir}/usr/lib/\${pkgname%-bin}"
             install -Dm644 "\${srcdir}/usr/share/pixmaps/\${_pkgname}.png" "\${pkgdir}/usr/share/pixmaps/\${pkgname%-bin}.png"
@@ -463,11 +467,11 @@ jobs:
             depends = electron${ELEC_VER}
             provides = ${PKGNAME_BASE}
             conflicts = ${PKGNAME_BASE}
-            source = ${PKGNAME_BASE}.sh
+            source = prizrak-box.sh
             sha256sums = ${SH_SUM}
-            source_aarch64 = Prizrak-Box-${PKGVER}-aarch64.rpm::${URL}/releases/download/${TAG}/linux-arm64.rpm
+            source_aarch64 = Prizrak-Box-${PKGVER}-aarch64.tar.zst::${URL}/releases/download/${TAG}/linux-arm64-aur.tar.zst
             sha256sums_aarch64 = ${{ steps.checksums.outputs.arm64_sha256 }}
-            source_x86_64 = Prizrak-Box-${PKGVER}-x86_64.rpm::${URL}/releases/download/${TAG}/linux-amd64.rpm
+            source_x86_64 = Prizrak-Box-${PKGVER}-x86_64.tar.zst::${URL}/releases/download/${TAG}/linux-amd64-aur.tar.zst
             sha256sums_x86_64 = ${{ steps.checksums.outputs.amd64_sha256 }}
 
           pkgname = ${PKGNAME}
