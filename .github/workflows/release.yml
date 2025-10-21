@@ -28,6 +28,9 @@ jobs:
       - name: Install Makers
         run: npm install --save-dev @electron-forge/maker-squirrel @electron-forge/maker-wix @electron-forge/maker-deb @electron-forge/maker-rpm @electron-forge/maker-zip
 
+      - name: Install packaging tools
+        run: sudo apt-get update && sudo apt-get install -y libarchive-tools
+
       - name: Set Up Go
         uses: actions/setup-go@v6
         with:
@@ -314,10 +317,6 @@ jobs:
     environment: aur
 
     steps:
-      - name: Get Tag Version
-        id: get_version
-        run: echo "VERSION_TAG=${{ github.ref_name }}" >> $GITHUB_ENV
-
       - name: Download Linux artifacts
         uses: actions/download-artifact@v4
         with:
@@ -339,7 +338,7 @@ jobs:
       - name: Generate AUR files (.SRCINFO, PKGBUILD, prizrak-box.sh)
         run: |
           # --- version handling ---
-          TAG="${{ env.VERSION_TAG }}"             # e.g. v1.0.20-alpha2
+          TAG="${GITHUB_REF_NAME}"               # e.g. v1.0.20-alpha3
           PKGVER_RAW="${TAG#v}"                    # 1.0.20-alpha2
           PKGVER="${PKGVER_RAW//-/_}"              # 1.0.20_alpha2 (AUR-compliant)
 
@@ -485,7 +484,7 @@ jobs:
           commit_username: ${{ secrets.AUR_USERNAME }}
           commit_email: ${{ secrets.AUR_COMMIT_EMAIL }}
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          commit_message: "Update to version ${{ env.VERSION_TAG }}"
+          commit_message: "Update to version ${{ github.ref_name }}"
           ssh_keyscan_types: rsa,ecdsa,ed25519
           force_push: "true"
 
