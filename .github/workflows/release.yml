@@ -28,9 +28,6 @@ jobs:
       - name: Install Makers
         run: npm install --save-dev @electron-forge/maker-squirrel @electron-forge/maker-wix @electron-forge/maker-deb @electron-forge/maker-rpm @electron-forge/maker-zip
 
-      - name: Install packaging tools
-        run: sudo apt-get update && sudo apt-get install -y libarchive-tools
-
       - name: Set Up Go
         uses: actions/setup-go@v6
         with:
@@ -160,6 +157,9 @@ jobs:
 
       - name: Install Makers
         run: npm install --save-dev @electron-forge/maker-squirrel @electron-forge/maker-wix @electron-forge/maker-deb @electron-forge/maker-rpm @electron-forge/maker-zip
+
+      - name: Install packaging tools
+        run: sudo apt-get update && sudo apt-get install -y libarchive-tools
 
       - name: Set Up Go
         uses: actions/setup-go@v6
