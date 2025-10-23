@@ -8,9 +8,18 @@ log-level: debug
 ipv6: false
 keep-alive-interval: 30
 unified-delay: true
+
+# enable model auto update, the default is false
+lgbm-auto-update: true
+# model auto update interval, the default is 72 (hours)
+lgbm-update-interval: 72
+# model update url
+lgbm-url: "https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model-middle.bin"
+
 profile:
   store-selected: true
   store-fake-ip: true
+  smart-collector-size: 100
 sniffer:
   enable: true
   force-dns-mapping: true
@@ -67,6 +76,7 @@ proxy-groups:
     include-all: true
     proxies:
       - ⚡️ AUTO
+      - 📊 Smart
       # LEAVE THIS LINE!
   - name: ▶️ YouTube
     icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/YouTube.png
@@ -74,6 +84,7 @@ proxy-groups:
     include-all: true
     proxies:
       - ⚡️ AUTO
+      - 📊 Smart
       # LEAVE THIS LINE!
   - name: ⚡️ AUTO
     icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png
@@ -84,6 +95,20 @@ proxy-groups:
     include-all: true
     proxies:
       # LEAVE THIS LINE!
+  - name: 📊 Smart
+    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Magic.png
+    type: smart
+    hidden: true
+    # uselightgbm: use LightGBM model predict weight
+    uselightgbm: true
+    # collectdata: collect datas for model training
+    collectdata: false
+    # strategy: 'sticky-sessions' or 'round-robin', not support 'consistent-hashing'
+    # the default is 'sticky-sessions' with more stable&smoothly nodes switch logic when datas collecting
+    strategy: sticky-sessions
+    # sample-rate: data acquisition rate, desirable values are 0-1,  the default is 1
+    sample-rate: 1
+    include-all: true
   - name: 🔓 NO VPN
     icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Blackhole.png
     type: select

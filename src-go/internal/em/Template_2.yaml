@@ -1,43 +1,12 @@
-# Ультимативный конфиг с кучей селекторов (Недоступные сайты, YouTube, Discord, Telegram, Cloudflare)
-# Конфиг в первую очередь предназначен для использования внутри России.
-# Может быть немного перегружен, а также содержать ошибки.
-# Автор не является всезнающим экспертом, используйте конфиг только для тестирования и в качестве примера. Редактируйте под себя.
-# Внимательно изучите все комментарии. В основном ориентируйтесь на основную документацию Mihomo —
-# https://wiki.metacubex.one/ru/config/
-
-# В шаблоне не используются мосты и цепочки прокси, только прямые подключения.
-# В шаблоне не используются прокси-группы «Самый быстрый».
-#
-# В шаблоне используется прокси-группа «Любой доступный сервер». Внутри группы — хосты в случайном порядке.
-# По умолчанию выбирается первый из списка, если он недоступен, выбирается второй и т.д.
-# Для прокси-группы «RU сайты» используется только один прокси — «Без ВПН» (т.е. DIRECT).
-#
-# Списки доменов re:filter и itdog — для прокси-группы «Недоступные сайты». Подробнее смотрите в rules.
-
-# Большое спасибо Legiz, PentiumB и itdog, чьи списки используются для правил.
-# Также спасибо за пояснения и идеи для конфигов. Отдельное спасибо сообществу Remnawave и её разработчику.
-
 mixed-port: 7890
 allow-lan: true
 lan-allowed-ips: # Разрешенные ip для подключения к lan
-  - 0.0.0.0/8
-  - 10.0.0.0/8
-  - 100.64.0.0/10
   - 127.0.0.0/8
-  - 169.254.0.0/16
+  - 10.0.0.0/8
   - 172.16.0.0/12
-  - 192.0.0.0/24
-  - 192.0.2.0/24
-  - 192.88.99.0/24
   - 192.168.0.0/16
-  - 198.18.0.0/15
-  - 198.51.100.0/24
-  - 203.0.113.0/24
-  - 224.0.0.0/3
-  - ::/127
+  - ::1/128
   - fc00::/7
-  - fe80::/10
-  - ff00::/8
 tcp-concurrent: true
 enable-process: true
 find-process-mode: always
@@ -48,9 +17,17 @@ bind-address: "*"
 keep-alive-interval: 30
 unified-delay: false
 
+# enable model auto update, the default is false
+lgbm-auto-update: true
+# model auto update interval, the default is 72 (hours)
+lgbm-update-interval: 72
+# model update url
+lgbm-url: "https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model-middle.bin"
+
 profile:
   store-selected: true
   store-fake-ip: true
+  smart-collector-size: 100
 
 sniffer:
   enable: true
@@ -59,7 +36,7 @@ sniffer:
   override-destination: false
   sniff:
     HTTP:
-      ports: 
+      ports:
         - 80
         - 8080-8880
       override-destination: true
@@ -71,7 +48,7 @@ sniffer:
     #QUIC:
     #  ports:
     #    - 443
-    
+
   skip-dst-address: # Пропуск перехвата для целевых IP
     - 0.0.0.0/8
     - 10.0.0.0/8
@@ -102,8 +79,29 @@ tun:
     - tcp://any:53
   strict-route: true
   route-exclude-address:
-    - 127.0.0.0/8
-    - ::1/128
+    # Не пускаем адреса (служебные, приватные, не маршрутизируемые в Интернете) в TUN
+    - 0.0.0.0/8 # 'This' network — текущая сеть; зарезервировано, не маршрутизируется
+    - 10.0.0.0/8 # Local network — частная сеть (RFC1918)
+    - 100.64.0.0/10 # Carrier-grade NAT (CGNAT) — используется операторами связи
+    - 127.0.0.0/8 # Loopback — обратный интерфейс (localhost)
+    - 169.254.0.0/16 # Link-local — автоконфигурация без DHCP
+    - 172.16.0.0/12 # Local network — частная сеть (RFC1918)
+    - 192.0.0.0/24 # IETF protocol assignments — служебные назначения IETF
+    - 192.0.2.0/24 # TEST-NET-1 — используется в документации
+    - 192.88.99.0/24 # 6to4 relay — устаревший IPv6 шлюз, больше не используется
+    - 192.168.0.0/16 # Local network — домашние и офисные сети (RFC1918)
+
+    # Внимание, если планируете использовать fake-ip в dns, то обратите внимание на fake-ip-range
+    # Обычно для fake-ip-range используется именно этот диапазон, если включаете fake-ip, то подумайте внимательно над конфигурацией
+    - 198.18.0.0/15 # Network interconnect device benchmark testing
+
+    - 198.51.100.0/24 # TEST-NET-2 — используется в документации
+    - 203.0.113.0/24 # TEST-NET-3 — используется в документации
+    - 224.0.0.0/3 # Multicast и future reserved — широковещательные/служебные сети
+    - ::/127 # Loopback — обратный интерфейс (localhost)
+    - fc00::/7 # Unique local addresses (ULA)
+    - fe80::/10 # Link-local unicast — локальные адреса на интерфейсе
+    - ff00::/8 # Multicast — многоадресная рассылка
 
 dns:
   enable: true
@@ -152,7 +150,18 @@ dns:
     - tls://94.140.14.14#🚫 Недоступные сайты
     - tls://94.140.14.14#🎲 Любой доступный сервер
     - tls://94.140.15.15#🎲 Любой доступный сервер
-    
+  nameserver-policy:
+    # DNS для сайтов идущих через DIRECT
+    rule-set:ru-inline,ru-outside,yandex,mailru,drweb,geosite-ru:
+      - tls://77.88.8.8#DIRECT
+      - tls://77.88.8.1#DIRECT
+      - tls://8.8.8.8#DIRECT
+    # DNS для сайтов идущих через DIRECT
+    raw.githubusercontent.com,cdn.jsdelivr.net,github.com:
+      - tls://77.88.8.8#DIRECT
+      - tls://77.88.8.1#DIRECT
+      - tls://8.8.8.8#DIRECT
+      
 proxies:
 
 proxy-groups:
@@ -210,18 +219,23 @@ proxy-groups:
 
   - name: PROXY
     type: select
-    include-all: true
     hidden: true
     proxies:
       - 🚫 Недоступные сайты
 
   - name: 🎲 Любой доступный сервер
-    type: fallback
-    include-all: true
-    url: "https://www.gstatic.com/generate_204"
-    interval: 300
+    type: smart
     hidden: true
-    lazy: true
+    # uselightgbm: use LightGBM model predict weight
+    uselightgbm: true
+    # collectdata: collect datas for model training
+    collectdata: false
+    # strategy: 'sticky-sessions' or 'round-robin', not support 'consistent-hashing'
+    # the default is 'sticky-sessions' with more stable&smoothly nodes switch logic when datas collecting
+    strategy: sticky-sessions
+    # sample-rate: data acquisition rate, desirable values are 0-1,  the default is 1
+    sample-rate: 1
+    include-all: true
 
   - name: 🇷🇺 Без VPN
     icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Blackhole.png
@@ -514,13 +528,6 @@ rule-providers:
     url: https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/cloudflare.mrs
     path: ./rule-sets/cloudflare-domains.mrs
     interval: 86400
-  cloudflare-PentiumB:
-    type: http
-    behavior: ipcidr
-    format: text
-    url: https://raw.githubusercontent.com/PentiumB/CDN-RuleSet/refs/heads/main/source/cloudflare.lst
-    path: ./rule-sets/cloudflare-PentiumB.lst
-    interval: 86400
   quic:
     type: inline
     behavior: classical
@@ -544,7 +551,7 @@ rules:
   # Блокировка рекламы (опционально)
   - RULE-SET,oisd_big,REJECT # Списки скомпилированные Legiz
   # Пускаем эти домены твича в директ, чтобы избавиться от рекламы (опционально)
-  - OR,((DOMAIN-SUFFIX,ads.twitch.tv),(DOMAIN-SUFFIX,playlist.ttvnw.net)),DIRECT 
+  - OR,((DOMAIN-SUFFIX,ads.twitch.tv),(DOMAIN-SUFFIX,playlist.ttvnw.net)),DIRECT
   # Отправляем торренты в DIRECT (опционально)
   - RULE-SET,torrent-clients,DIRECT
   - RULE-SET,torrent-trackers,DIRECT
@@ -554,7 +561,15 @@ rules:
   - RULE-SET,quic,REJECT
 
   # Определялки IP пускаем в прокси, чтобы пользователь видел
-  - OR,((DOMAIN,ipwho.is),(DOMAIN,api.ip.sb),(DOMAIN,ipapi.co),(DOMAIN,ipinfo.io),(DOMAIN-SUFFIX,2ip.io),(DOMAIN-SUFFIX,2ipcore.com)),🚫 Недоступные сайты
+  - DOMAIN,ipwho.is,🚫 Недоступные сайты
+  - DOMAIN,api.myip.com,🚫 Недоступные сайты
+  - DOMAIN,ipapi.co,🚫 Недоступные сайты
+  - DOMAIN,ident.me,🚫 Недоступные сайты
+  - DOMAIN,ip-api.com,🚫 Недоступные сайты
+  - DOMAIN,ipinfo.io,🚫 Недоступные сайты
+  - DOMAIN,api.ip.sb,🚫 Недоступные сайты
+  - DOMAIN,2ip.io,🚫 Недоступные сайты
+  - DOMAIN,2ipcore.com,🚫 Недоступные сайты
 
   # -----
 
@@ -570,33 +585,31 @@ rules:
 
   # 💬 Discord
   - AND,((RULE-SET,cloudflare-ips),(NETWORK,udp),(DST-PORT,19200-19500)),💬 Discord
-  - AND,((RULE-SET,cloudflare-PentiumB),(NETWORK,udp),(DST-PORT,19200-19500)),💬 Discord
   - AND,((RULE-SET,discord_voiceips),(NETWORK,udp),(DST-PORT,50000-50100)),💬 Discord
   - RULE-SET,discord_vc,💬 Discord
   - RULE-SET,discord_domains,💬 Discord
   - PROCESS-NAME-REGEX,(?i).*discord.*,💬 Discord
-  
+
   # 🚫 Недоступные сайты
-  - RULE-SET,ru-inside,🚫 Недоступные сайты  # ITDog списки доменов недоступные из РФ - https://github.com/itdoginfo/allow-domains/blob/main/Russia/inside-raw.lst
+  - RULE-SET,ru-inside,🚫 Недоступные сайты # ITDog списки доменов недоступные из РФ - https://github.com/itdoginfo/allow-domains/blob/main/Russia/inside-raw.lst
   - RULE-SET,refilter_domains,🚫 Недоступные сайты # Re:Filter списки доменов недоступные из РФ - https://github.com/1andrevich/Re-filter-lists/blob/main/community.lst
   - RULE-SET,ru-inline-banned,🚫 Недоступные сайты # Домены набитые вручную (смотрите выше)
   - RULE-SET,inline-blocked-ips,🚫 Недоступные сайты # IP набитые вручную (смотрите выше)
   - RULE-SET,category-porn,🚫 Недоступные сайты # Опционально
   - RULE-SET,ai,🚫 Недоступные сайты # Нейросети
   - RULE-SET,google-deepmind,🚫 Недоступные сайты # Google Gemini и AI Studio
-  - RULE-SET,speedtest-net,🚫 Недоступные сайты # speedtest.net 
+  - RULE-SET,speedtest-net,🚫 Недоступные сайты # speedtest.net
 
   # 🟠 Cloudflare
   - RULE-SET,cloudflare-ips,🟠 Cloudflare # Список ip MetaCubeX
   - RULE-SET,cloudflare-domains,🟠 Cloudflare # Домены сервисов Cloudflare
-  - RULE-SET,cloudflare-PentiumB,🟠 Cloudflare # Список ip от PentiumB
 
   # ⚪🔵🔴 RU сайты
   - RULE-SET,ru-inline,⚪🔵🔴 RU сайты # Списки набитые вручную (смотрите выше)
   - RULE-SET,ru-outside,⚪🔵🔴 RU сайты # ITDog списки доменов доступные только внутри РФ - https://github.com/itdoginfo/allow-domains/blob/main/Russia/outside-raw.lst
   - RULE-SET,ru-apps,⚪🔵🔴 RU сайты # Списки РУ приложений от Legiz
   - RULE-SET,yandex,⚪🔵🔴 RU сайты # Яндекс
-  - RULE-SET,mailru,⚪🔵🔴 RU сайты  # mail.ru
+  - RULE-SET,mailru,⚪🔵🔴 RU сайты # mail.ru
   - RULE-SET,drweb,⚪🔵🔴 RU сайты # DrWeb
   - RULE-SET,geosite-ru,⚪🔵🔴 RU сайты
   - RULE-SET,geoip-ru,⚪🔵🔴 RU сайты

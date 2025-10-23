@@ -248,6 +248,10 @@ connections:
   upload: Upload
   rule: Rule
   chains: Chains
+  view-log: View log
+  copy-log: Copy log
+  dialog-title: Connection log
+  dialog-close: Close
 
 log:
   title: Log

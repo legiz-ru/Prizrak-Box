@@ -248,6 +248,10 @@ connections:
   upload: 上传
   rule: 规则
   chains: 节点链
+  view-log: 查看日志
+  copy-log: 复制日志
+  dialog-title: 连接日志
+  dialog-close: 关闭
 
 log:
   title: 日志

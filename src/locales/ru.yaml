@@ -248,6 +248,10 @@ connections:
   upload: Отправка
   rule: Правило
   chains: Цепи
+  view-log: Просмотр лога
+  copy-log: Копировать лог
+  dialog-title: Лог соединения
+  dialog-close: Закрыть
 
 log:
   title: Журнал
