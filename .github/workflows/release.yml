@@ -236,6 +236,11 @@ jobs:
     strategy:
       matrix:
         arch: [amd64, arm64]
+    env:
+      TEAM_ID: ${{ secrets.TEAM_ID }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
+      FORCE_CODE_SIGN: 'true'
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -274,6 +279,35 @@ jobs:
         run: |
           VERSION=$(git describe --tags --abbrev=0)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Configure Code Signing
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN="ci-signing.keychain-db"
+          KEYCHAIN_PATH="$HOME/Library/Keychains/$KEYCHAIN"
+          CERT_PATH="$(mktemp /tmp/cert-XXXXXXXX.p12)"
+          security delete-keychain "$KEYCHAIN" >/dev/null 2>&1 || true
+          if ! echo "$MACOS_CERTIFICATE" | base64 --decode > "$CERT_PATH" 2>/dev/null; then
+            echo "$MACOS_CERTIFICATE" | base64 -d > "$CERT_PATH"
+          fi
+          security create-keychain -p "$MACOS_CERT_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings "$KEYCHAIN"
+          security unlock-keychain -p "$MACOS_CERT_PASSWORD" "$KEYCHAIN"
+          security import "$CERT_PATH" -k "$KEYCHAIN_PATH" -P "$MACOS_CERT_PASSWORD" -A
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | sed 's/"//g')
+          security default-keychain -s "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$MACOS_CERT_PASSWORD" "$KEYCHAIN_PATH"
+          rm "$CERT_PATH"
+          identity=$(security find-identity -v -p codesigning "$KEYCHAIN" | head -n 1 | sed -E 's/^.*"(.+)"$/\1/')
+          if [ -z "$identity" ]; then
+            echo "No signing identity found in keychain" >&2
+            exit 1
+          fi
+          echo "CODESIGN_IDENTITY=$identity" >> "$GITHUB_ENV"
+          echo "SIGNING_KEYCHAIN=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
 
       - name: Build Backend for ${{ matrix.arch }}
         env:
