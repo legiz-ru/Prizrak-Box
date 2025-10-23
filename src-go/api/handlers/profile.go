@@ -124,6 +124,10 @@ func addFromWeb(w http.ResponseWriter, r *http.Request) {
 	// 解析存盘
 	err := internal.Resolve(profile.Content, profile, false)
 	if err == nil {
+		inlineHeaders := internal.ParseInlineHeaders(profile.Content)
+		if len(inlineHeaders) > 0 {
+			internal.ParseHeaders(inlineHeaders, "", profile)
+		}
 		job.UpdateDb(profile, 2)
 		ps = append(ps, profile)
 		render.JSON(w, r, ps)
@@ -152,7 +156,8 @@ func addFromWeb(w http.ResponseWriter, r *http.Request) {
 		err = internal.Resolve(res.Body, subProfile, false)
 		if err == nil {
 			// 进行请求头解析
-			internal.ParseHeaders(res.Headers, sub, subProfile)
+			mergedHeaders := internal.MergeHeaders(res.Headers, internal.ParseInlineHeaders(res.Body))
+			internal.ParseHeaders(mergedHeaders, sub, subProfile)
 			job.UpdateDb(subProfile, 1)
 			ps = append(ps, subProfile)
 			ok = true
@@ -192,7 +197,8 @@ func refreshProfile(w http.ResponseWriter, r *http.Request) {
 	err = internal.Resolve(res.Body, profile, true)
 	if err == nil {
 		// 进行请求头解析
-		internal.ParseHeaders(res.Headers, sub, profile)
+		mergedHeaders := internal.MergeHeaders(res.Headers, internal.ParseInlineHeaders(res.Body))
+		internal.ParseHeaders(mergedHeaders, sub, profile)
 		if title != "" {
 			profile.Title = title
 		}

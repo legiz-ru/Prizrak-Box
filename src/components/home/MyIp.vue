@@ -7,6 +7,7 @@ import createApi from "@/api";
 import {pError} from "@/util/pLoad";
 import {useMenuStore} from "@/store/menuStore";
 import {useSettingStore} from "@/store/settingStore";
+import {Browser} from "@/runtime";
 
 // 获取当前 Vue 实例的 proxy 对象
 const {proxy} = getCurrentInstance()!;
@@ -56,6 +57,47 @@ const ipInfo = ref({
   timezone: '',
   as: '',
 })
+
+const ipInfoLink = computed(() => {
+  if (!ipInfo.value.query) {
+    return ''
+  }
+  return `https://ipinfo.io/${encodeURIComponent(ipInfo.value.query)}`
+})
+
+const asnInfoLink = computed(() => {
+  if (!ipInfo.value.as) {
+    return ''
+  }
+  return `https://ipinfo.io/${encodeURIComponent(ipInfo.value.as)}`
+})
+
+function openExternalLink(raw: any) {
+  if (typeof raw !== 'string') {
+    return
+  }
+
+  const url = raw.trim()
+  if (!url) {
+    return
+  }
+
+  try {
+    Browser.OpenURL(url)
+  } catch (error) {
+    if (typeof window !== 'undefined') {
+      window.open(url, '_blank', 'noopener')
+    }
+  }
+}
+
+function goIpInfo() {
+  openExternalLink(ipInfoLink.value)
+}
+
+function goAsnInfo() {
+  openExternalLink(asnInfoLink.value)
+}
 
 
 // 获取 ip 信息
@@ -160,22 +202,60 @@ onMounted(async () => {
         </div>
         <hr/>
         <ul class="info-list">
-          <li><strong>{{ $t('home.ip.real') }} : </strong>
-            {{ ipInfo['query'] }}
+          <li class="info-item info-item--link">
+            <strong>{{ $t('home.ip.real') }} : </strong>
+            <span
+                class="info-item-value"
+                :class="{'info-item-value--link': Boolean(ipInfoLink)}"
+            >
+              {{ ipInfo['query'] }}
+              <a
+                  v-if="ipInfoLink"
+                  :href="ipInfoLink"
+                  class="info-link"
+                  :aria-label="$t('home.ip.real')"
+                  role="link"
+                  @click.prevent.stop="goIpInfo()"
+                  @keydown.enter.prevent.stop="goIpInfo()"
+                  @keydown.space.prevent.stop="goIpInfo()"
+                  tabindex="0"
+              >
+                <icon-mdi-open-in-new/>
+              </a>
+            </span>
           </li>
-          <li><strong>{{ $t('home.ip.city') }} : </strong>
+          <li class="info-item"><strong>{{ $t('home.ip.city') }} : </strong>
             {{ ipInfo['city'] }}
           </li>
-          <li><strong>{{ $t('home.ip.country') }} : </strong>
+          <li class="info-item"><strong>{{ $t('home.ip.country') }} : </strong>
             {{ ipInfo['country'] }}
           </li>
-          <li><strong>{{ $t('home.ip.isp') }} : </strong>
+          <li class="info-item"><strong>{{ $t('home.ip.isp') }} : </strong>
             {{ ipInfo['isp'] }}
           </li>
-          <li><strong>{{ $t('home.ip.asn') }} : </strong>
-            {{ ipInfo['as'] }}
+          <li class="info-item info-item--link">
+            <strong>{{ $t('home.ip.asn') }} : </strong>
+            <span
+                class="info-item-value"
+                :class="{'info-item-value--link': Boolean(asnInfoLink)}"
+            >
+              {{ ipInfo['as'] }}
+              <a
+                  v-if="asnInfoLink"
+                  :href="asnInfoLink"
+                  class="info-link"
+                  :aria-label="$t('home.ip.asn')"
+                  role="link"
+                  @click.prevent.stop="goAsnInfo()"
+                  @keydown.enter.prevent.stop="goAsnInfo()"
+                  @keydown.space.prevent.stop="goAsnInfo()"
+                  tabindex="0"
+              >
+                <icon-mdi-open-in-new/>
+              </a>
+            </span>
           </li>
-          <li><strong>{{ $t('home.ip.time-zone') }} : </strong>
+          <li class="info-item"><strong>{{ $t('home.ip.time-zone') }} : </strong>
             {{ ipInfo['timezone'] }}
           </li>
         </ul>
@@ -189,16 +269,16 @@ onMounted(async () => {
         </div>
         <hr/>
         <ul class="info-list">
-          <li><strong>{{ $t('home.system.os') }} : </strong> {{ homeStore.os }}</li>
-          <li><strong>{{ $t('home.system.runtime') }} : </strong>
+          <li class="info-item"><strong>{{ $t('home.system.os') }} : </strong> {{ homeStore.os }}</li>
+          <li class="info-item"><strong>{{ $t('home.system.runtime') }} : </strong>
             {{ time }}
           </li>
-          <li><strong>{{ $t('home.system.startup') }} : </strong> {{ settingStore.startup ? $t('on') : $t('off') }}</li>
-          <li><strong>{{ $t('home.system.admin') }} : </strong> {{ $t(admin) }}</li>
-          <li><strong>{{ $t('home.system.port') }} : </strong>
+          <li class="info-item"><strong>{{ $t('home.system.startup') }} : </strong> {{ settingStore.startup ? $t('on') : $t('off') }}</li>
+          <li class="info-item"><strong>{{ $t('home.system.admin') }} : </strong> {{ $t(admin) }}</li>
+          <li class="info-item"><strong>{{ $t('home.system.port') }} : </strong>
             {{ port }}
           </li>
-          <li><strong>{{ $t('home.system.version') }} : </strong>
+          <li class="info-item"><strong>{{ $t('home.system.version') }} : </strong>
             {{ version }}
           </li>
         </ul>
@@ -237,6 +317,24 @@ onMounted(async () => {
   line-height: 20px;
 }
 
+
+.info-item--link {
+  position: static;
+  padding-right: 0;
+}
+
+.info-item-value {
+  position: relative;
+  display: inline-block;
+}
+
+.info-item-value--link .info-link {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 6px);
+  transform: translateY(-50%);
+}
+
 .box1 {
   box-shadow: var(--right-box-shadow);
 }
@@ -253,6 +351,31 @@ onMounted(async () => {
 
 .refreshIp:hover {
   cursor: pointer;
+}
+
+.info-link {
+  margin-left: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  vertical-align: text-bottom;
+  line-height: 1;
+}
+
+.info-link :deep(svg) {
+  display: block;
+  width: 0.9em;
+  height: 0.9em;
+}
+
+.info-link:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
 }
 
 </style>

@@ -149,12 +149,19 @@ async function bootstrap() {
     const updateHttpClientConfig = async () => {
         try {
             const version = await api.getVersion();
-            await api.updateHTTPClientConfig({
+            const details = await api.updateHTTPClientConfig({
                 enableHWID: settingStore.hwid,
                 version,
-                deviceOS: homeStore.os,
+                deviceOS: "",
                 deviceOSVer: "",
                 deviceModel: "",
+            });
+
+            settingStore.setHwidHeaders({
+                hwid: details?.hwid ?? '',
+                os: details?.os ?? '',
+                osVersion: details?.osVersion ?? '',
+                model: details?.model ?? '',
             });
         } catch (error) {
             console.error("Failed to update HTTP client config", error);

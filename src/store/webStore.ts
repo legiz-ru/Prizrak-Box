@@ -42,6 +42,13 @@ export const useWebStore = defineStore('web', {
         addCustomDashboard(dashboard: CustomDashboard) {
             this.customDashboards.push(dashboard);
         },
+        updateCustomDashboard(index: number, dashboard: CustomDashboard) {
+            if (index < 0 || index >= this.customDashboards.length) {
+                return;
+            }
+
+            this.customDashboards.splice(index, 1, dashboard);
+        },
         removeCustomDashboard(index: number) {
             if (index < 0 || index >= this.customDashboards.length) {
                 return;

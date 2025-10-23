@@ -169,8 +169,9 @@ func updateHTTPClientConfig(w http.ResponseWriter, r *http.Request) {
 		DeviceModel: config.DeviceModel,
 		UserAgent:   userAgent,
 	}
-	
+
 	utils.UpdateHTTPClientConfig(httpConfig)
 
-	render.NoContent(w, r)
+	details := utils.GetResolvedDeviceDetails()
+	render.JSON(w, r, details)
 }

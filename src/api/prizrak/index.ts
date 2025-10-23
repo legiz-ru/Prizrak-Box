@@ -24,8 +24,15 @@ const exit = (proxy: any) => async function () {
 }
 
 // 更新HTTP客户端配置
-const updateHTTPClientConfig = (proxy: any) => async function (config: any) {
-    return await proxy.$http.put('/prizrak/httpClientConfig', config);
+type DeviceHeaderDetails = {
+    hwid: string;
+    os: string;
+    osVersion: string;
+    model: string;
+};
+
+const updateHTTPClientConfig = (proxy: any) => async function (config: any): Promise<DeviceHeaderDetails> {
+    return await proxy.$http.put<DeviceHeaderDetails>('/prizrak/httpClientConfig', config);
 }
 
 export default function createPrizrakApi(proxy: any) {

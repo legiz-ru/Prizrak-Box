@@ -67,6 +67,8 @@ home:
   download: Download
   upload: Upload
   memory: Memory
+  profile:
+    empty: No profile selected
   web:
     title: Website Testing
     edit: Website Title
@@ -125,6 +127,9 @@ setting:
     url: URL
     hint: You can use %host, %port and %secret in the URL.
     add: Add
+    edit: Edit
+    save: Save changes
+    cancel: Cancel
     remove: Remove
     empty: No custom dashboards yet
     error: Please provide both a name and a URL
@@ -243,6 +248,10 @@ connections:
   upload: Upload
   rule: Rule
   chains: Chains
+  view-log: View log
+  copy-log: Copy log
+  dialog-title: Connection log
+  dialog-close: Close
 
 log:
   title: Log
@@ -263,6 +272,10 @@ bg:
   comics: Comics
   game: Game
   random: Random
+  custom: Custom image
+  upload: Upload image
+  too-large: Image is too large. Please choose a file smaller than 1 MB.
+  storage-failed: Unable to save the image. Local storage is full.
 
 tray:
   show: Show window
