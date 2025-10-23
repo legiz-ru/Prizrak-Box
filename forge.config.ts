@@ -1,5 +1,5 @@
 import type {ForgeConfig} from '@electron-forge/shared-types';
-import {MakerZIP} from '@electron-forge/maker-zip';
+import MakerZipFixed from './forge/maker-zip-fixed';
 import {MakerWix} from '@electron-forge/maker-wix';
 import {MakerSquirrel} from '@electron-forge/maker-squirrel';
 import {MakerDMG} from '@electron-forge/maker-dmg';
@@ -64,7 +64,7 @@ const config: ForgeConfig = {
     packagerConfig,
     rebuildConfig: {},
     makers: [
-        new MakerZIP({}),
+        new MakerZipFixed({}),
         new MakerSquirrel({
             name: 'Prizrak-Box',
             authors: ['legiz-ru'],
