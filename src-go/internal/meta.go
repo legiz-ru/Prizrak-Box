@@ -2,23 +2,23 @@ package internal
 
 import (
 	"fmt"
-	"github.com/metacubex/mihomo/hub/executor"
-	"github.com/metacubex/mihomo/tunnel"
 	"github.com/legiz-ru/prizrak-box/pkg/constant"
 	sysProxy "github.com/legiz-ru/prizrak-box/pkg/sys/proxy"
+	"github.com/metacubex/mihomo/hub/executor"
+	"github.com/metacubex/mihomo/tunnel"
 	"io"
 	"os"
 	"runtime"
 	"strings"
 	"sync"
 
+	"github.com/legiz-ru/prizrak-box/api/models"
+	"github.com/legiz-ru/prizrak-box/pkg/cache"
+	"github.com/legiz-ru/prizrak-box/pkg/utils"
 	"github.com/metacubex/mihomo/config"
 	C "github.com/metacubex/mihomo/constant"
 	"github.com/metacubex/mihomo/log"
 	plog "github.com/sirupsen/logrus"
-	"github.com/legiz-ru/prizrak-box/api/models"
-	"github.com/legiz-ru/prizrak-box/pkg/cache"
-	"github.com/legiz-ru/prizrak-box/pkg/utils"
 )
 
 // Init meta 启动前的初始化
@@ -79,6 +79,8 @@ func Init() {
 	GeoSite = nil
 	ASN = nil
 	ModelBin = nil
+
+	EnsureBuiltinTemplates()
 }
 
 var NowConfig *config.Config
