@@ -72,8 +72,5 @@
     "vue-router": "^4.5.0",
     "vue3-ace-editor": "^2.2.4",
     "vue3-apexcharts": "^1.8.0"
-  },
-  "config": {
-    "forge": "./forge.config.ts"
   }
 }
