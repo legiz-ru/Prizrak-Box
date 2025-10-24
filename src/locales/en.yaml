@@ -275,6 +275,7 @@ bg:
   custom: Custom image
   upload: Upload image
   too-large: Image is too large. Please choose a file smaller than 1 MB.
+  upload-failed: Failed to process the image. Please try again.
   storage-failed: Unable to save the image. Local storage is full.
 
 tray:
