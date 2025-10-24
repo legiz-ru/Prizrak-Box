@@ -52,6 +52,145 @@ const uploadableThemeIds = new Set(['custom']);
 
 const supportsUpload = (id: string) => uploadableThemeIds.has(id);
 
+const USER_IMAGE_PREFIX = '/user-images/';
+
+const parseHttpOrigin = (value: string | null) => {
+  if (!value || value === 'null' || value === 'undefined') {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return `${parsed.protocol}//${parsed.host}`;
+    }
+  } catch (error) {
+    try {
+      const parsed = new URL(`http://${value}`);
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        return `${parsed.protocol}//${parsed.host}`;
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+};
+
+const rendererOrigin = (() => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const fromParam = parseHttpOrigin(params.get('frontendOrigin'));
+  const fromLocation = parseHttpOrigin(window.location.origin);
+
+  return fromParam ?? fromLocation;
+})();
+
+const buildRendererUrl = (path: string) => {
+  if (!rendererOrigin) {
+    return path;
+  }
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${rendererOrigin}${normalizedPath}`;
+};
+
+const customBackgroundApiUrl = buildRendererUrl('/api/custom-background');
+
+const getRelativeUserImagePath = (value: string | null) => {
+  const url = extractUrlFromCssValue(value);
+  if (!url) {
+    return null;
+  }
+
+  if (url.startsWith(USER_IMAGE_PREFIX)) {
+    return url;
+  }
+
+  if (rendererOrigin && url.startsWith(rendererOrigin)) {
+    const candidate = url.slice(rendererOrigin.length);
+    if (candidate.startsWith(USER_IMAGE_PREFIX)) {
+      return candidate;
+    }
+  }
+
+  try {
+    const parsed = new URL(url);
+    if (parsed.pathname.startsWith(USER_IMAGE_PREFIX)) {
+      return parsed.pathname;
+    }
+  } catch {
+    // ignore invalid urls
+  }
+
+  return null;
+};
+
+const ensureRelativeStorageValue = (value: string | null) => {
+  if (!value) {
+    return null;
+  }
+
+  const relative = getRelativeUserImagePath(value);
+  if (relative) {
+    return `url('${relative}')`;
+  }
+
+  return value;
+};
+
+const makeCssAbsoluteForUse = (value: string) => {
+  const relative = getRelativeUserImagePath(value);
+  if (relative && rendererOrigin) {
+    return `url('${buildRendererUrl(relative)}')`;
+  }
+  return value;
+};
+
+const normalizeResponsePath = (value: string) => {
+  if (value.startsWith(USER_IMAGE_PREFIX)) {
+    return value;
+  }
+
+  try {
+    const parsed = new URL(value);
+    if (parsed.pathname.startsWith(USER_IMAGE_PREFIX)) {
+      return parsed.pathname;
+    }
+  } catch {
+    // ignore
+  }
+
+  throw new Error('Invalid custom background path received from server');
+};
+
+const createStorageValue = (relativePath: string) => `url('${relativePath}')`;
+
+const applyStoredCustomBackground = (themeId: string) => {
+  const key = getCustomBackgroundKey(themeId);
+  const stored = localStorage.getItem(key);
+  if (!stored) {
+    return false;
+  }
+
+  const normalizedForStorage = ensureRelativeStorageValue(stored);
+  if (normalizedForStorage && normalizedForStorage !== stored) {
+    try {
+      localStorage.setItem(key, normalizedForStorage);
+    } catch (error) {
+      console.error('Failed to normalize stored custom background', error);
+    }
+  }
+
+  const cssValue = makeCssAbsoluteForUse(normalizedForStorage ?? stored);
+  menuStore.setBackground(cssValue);
+  return true;
+};
+
 // 存储背景主题
 const menuStore = useMenuStore()
 
@@ -88,20 +227,13 @@ function getRandom(arr: any[]) {
 
 // 切换背景
 const changeBackground = (item: ThemeOption) => {
-  if (supportsUpload(item.id) && !item.bg) {
-    const custom = localStorage.getItem(getCustomBackgroundKey(item.id));
-    if (custom) {
-      menuStore.setBackground(custom);
+  if (supportsUpload(item.id)) {
+    if (applyStoredCustomBackground(item.id)) {
       return;
     }
-    triggerUpload(item);
-    return;
-  }
 
-  if (supportsUpload(item.id)) {
-    const custom = localStorage.getItem(getCustomBackgroundKey(item.id));
-    if (custom) {
-      menuStore.setBackground(custom);
+    if (!item.bg) {
+      triggerUpload(item);
       return;
     }
   }
@@ -132,7 +264,16 @@ const triggerUpload = (item: ThemeOption) => {
   fileInput.value?.click();
 };
 
-const MAX_IMAGE_SIZE = 1024 * 1024; // 1 MB
+const extractUrlFromCssValue = (value: string | null) => {
+  if (!value) {
+    return null;
+  }
+  const match = value.match(/^url\(['"]?(.*?)['"]?\)$/);
+  if (!match) {
+    return null;
+  }
+  return match[1];
+};
 
 const handleFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement;
@@ -141,27 +282,77 @@ const handleFileChange = (event: Event) => {
     target.value = '';
     return;
   }
-  if (file.size > MAX_IMAGE_SIZE) {
-    ElMessage.error(t('bg.too-large'));
+  const themeId = pendingThemeId.value;
+  if (!themeId) {
     target.value = '';
     pendingThemeId.value = null;
     return;
   }
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     const result = reader.result;
-    if (typeof result === 'string' && pendingThemeId.value) {
-      const cssValue = `url('${result}')`;
+    if (typeof result !== 'string') {
+      ElMessage.error(t('bg.upload-failed'));
+      target.value = '';
+      pendingThemeId.value = null;
+      return;
+    }
+
+    const key = getCustomBackgroundKey(themeId);
+    const previousValue = localStorage.getItem(key);
+    const normalizedPrevious = ensureRelativeStorageValue(previousValue);
+    if (normalizedPrevious && normalizedPrevious !== previousValue) {
+      try {
+        localStorage.setItem(key, normalizedPrevious);
+      } catch (error) {
+        console.error('Failed to normalize stored custom background before upload', error);
+      }
+    }
+
+    const previousPath = getRelativeUserImagePath(normalizedPrevious ?? previousValue ?? null);
+
+    try {
+      const response = await fetch(customBackgroundApiUrl, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          themeId,
+          dataUrl: result,
+          fileName: file.name,
+          previousPath: previousPath ?? undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed with status ${response.status}`);
+      }
+
+      const data = await response.json() as {url?: string};
+      if (!data.url) {
+        throw new Error('Missing url in response');
+      }
+
+      const relativePath = normalizeResponsePath(data.url);
+      const storageValue = createStorageValue(relativePath);
+      const cssValue = makeCssAbsoluteForUse(storageValue);
       menuStore.setBackground(cssValue);
       try {
-        localStorage.setItem(getCustomBackgroundKey(pendingThemeId.value), cssValue);
+        localStorage.setItem(key, storageValue);
       } catch (error) {
         console.error('Failed to save custom background', error);
         ElMessage.error(t('bg.storage-failed'));
       }
+    } catch (error) {
+      console.error('Failed to upload custom background', error);
+      ElMessage.error(t('bg.upload-failed'));
+    } finally {
+      target.value = '';
+      pendingThemeId.value = null;
     }
   };
-  reader.onloadend = () => {
+  reader.onerror = () => {
+    console.error('Failed to read custom background file', reader.error);
+    ElMessage.error(t('bg.upload-failed'));
     target.value = '';
     pendingThemeId.value = null;
   };

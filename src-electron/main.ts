@@ -62,9 +62,31 @@ const createWindow = (isBoot: boolean) => {
     initTray(mainWindow);
 
     // 页面加载
+    const listenAddr = storeInfo.listenAddr();
+    const queryParams = new URLSearchParams();
+
+    const port = storeInfo.port();
+    const secret = storeInfo.secret();
+
+    if (port) {
+        queryParams.set('port', port);
+    }
+
+    if (secret) {
+        queryParams.set('secret', secret);
+    }
+
+    if (listenAddr) {
+        queryParams.set('frontendOrigin', `http://${listenAddr}`);
+    }
+
+    const queryString = queryParams.toString();
+    const devBase = 'http://localhost:5173';
+    const prodBase = listenAddr ? `http://${listenAddr}/index.html` : 'index.html';
+
     const filePath = isDev
-        ? `http://localhost:5173?port=${storeInfo.port()}&secret=${storeInfo.secret()}`
-        : `http://${storeInfo.listenAddr()}/index.html?port=${storeInfo.port()}&secret=${storeInfo.secret()}`;
+        ? `${devBase}${queryString ? `?${queryString}` : ''}`
+        : `${prodBase}${queryString ? `?${queryString}` : ''}`;
 
     log.info('准备加载页面');
     mainWindow.loadURL(filePath).catch((err) => {
