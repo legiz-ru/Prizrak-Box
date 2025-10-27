@@ -5,6 +5,8 @@ import (
 )
 
 func TestGenerateHWID(t *testing.T) {
+	resetCachedDeviceDetailsForTest()
+
 	hwid1 := generateHWID()
 	hwid2 := generateHWID()
 
@@ -18,6 +20,8 @@ func TestGenerateHWID(t *testing.T) {
 }
 
 func TestBuildDeviceHeaders(t *testing.T) {
+	resetCachedDeviceDetailsForTest()
+
 	// Test with HWID disabled
 	config := &HTTPClientConfig{
 		EnableHWID: false,

@@ -68,35 +68,64 @@ function openFile() {
   webStore.dnd = true
 }
 
-// 头部显示
-const headerShow = reactive({
-  available: '',
-  used: '',
-  expire: '',
-  update: '',
-})
+function hasValue(value: any) {
+  return value !== undefined && value !== null && value !== ''
+}
 
-function setHeaderShow(item: any) {
-  if (item['available']) {
-    headerShow.available = prettyBytes(item['available'])
-  } else {
-    headerShow.available = ''
+function formatTrafficValue(value: any) {
+  if (!hasValue(value)) {
+    return ''
   }
-  if (item['used']) {
-    headerShow.used = prettyBytes(item['used'])
-  } else {
-    headerShow.used = ''
+  const num = Number(value)
+  if (Number.isFinite(num)) {
+    return prettyBytes(num)
   }
-  if (item['expire']) {
-    headerShow.expire = item['expire']
-  } else {
-    headerShow.expire = ''
+  return String(value)
+}
+
+function formatDateValue(value: any) {
+  if (!hasValue(value)) {
+    return ''
   }
-  if (item['update']) {
-    headerShow.update = item['update']
-  } else {
-    headerShow.update = ''
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    const match = trimmed.match(/^(\d{4})[-/.](\d{2})[-/.](\d{2})$/)
+    if (match) {
+      return `${match[3]}.${match[2]}.${match[1]}`
+    }
+
+    const parsed = Date.parse(trimmed)
+    if (!Number.isNaN(parsed)) {
+      const date = new Date(parsed)
+      const day = String(date.getDate()).padStart(2, '0')
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const year = date.getFullYear()
+      return `${day}.${month}.${year}`
+    }
+
+    return trimmed
   }
+
+  if (typeof value === 'number') {
+    const timestamp = value > 1e12 ? value : value * 1000
+    const date = new Date(timestamp)
+    if (!Number.isNaN(date.getTime())) {
+      const day = String(date.getDate()).padStart(2, '0')
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const year = date.getFullYear()
+      return `${day}.${month}.${year}`
+    }
+  }
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    const day = String(value.getDate()).padStart(2, '0')
+    const month = String(value.getMonth() + 1).padStart(2, '0')
+    const year = value.getFullYear()
+    return `${day}.${month}.${year}`
+  }
+
+  return String(value)
 }
 
 // 列表显示
@@ -110,9 +139,6 @@ async function getProfileList() {
   if (list && list.length != 0) {
     list.forEach(item => {
       profiles.push(item)
-      if (item['selected']) {
-        setHeaderShow(item)
-      }
     })
 
     Events.Emit({
@@ -153,7 +179,6 @@ async function switchProfile(data: any) {
         }
       }
       data['selected'] = true
-      setHeaderShow(data)
 
       api.getRuleNum().then((res) => {
         menuStore.setRuleNum(res);
@@ -189,7 +214,6 @@ watch(() => webStore.fProfile, async (data: any) => {
   }
 
   data['selected'] = true
-  setHeaderShow(data)
 })
 
 
@@ -198,9 +222,6 @@ async function refresh(data: any) {
   await pLoad(t('profiles.refresh.ing'), async () => {
     try {
       const re = await api.refreshProfile(data)
-      if (data['selected']) {
-        setHeaderShow(re)
-      }
       Object.assign(data, re);
       pSuccess(t('profiles.refresh.success'))
     } catch (e) {
@@ -213,12 +234,31 @@ async function refresh(data: any) {
 
 // 几个按钮操作
 // 到主页
+function openExternalLink(raw: any) {
+  if (typeof raw !== 'string') {
+    return
+  }
+
+  const url = raw.trim()
+  if (!url) {
+    return
+  }
+
+  try {
+    Browser.OpenURL(url)
+  } catch (error) {
+    if (typeof window !== 'undefined') {
+      window.open(url, '_blank', 'noopener')
+    }
+  }
+}
+
 function goHome(data: any) {
-  Browser.OpenURL(data.home)
+  openExternalLink(data.home)
 }
 
 function goSupport(data: any) {
-  Browser.OpenURL(data.support)
+  openExternalLink(data.support)
 }
 
 // 修改配置
@@ -452,23 +492,6 @@ watch(() => webStore.dProfile, async (pList) => {
         </div>
       </el-space>
 
-      <div class="sub-title">
-        <template v-if="headerShow.available">
-          <span>{{ $t('profiles.available') }} {{ headerShow.available }}</span>
-          <el-divider direction="vertical" border-style="dashed"/>
-        </template>
-        <template v-if="headerShow.used">
-          <span>{{ $t('profiles.use') }} {{ headerShow.used }}</span>
-          <el-divider direction="vertical" border-style="dashed"/>
-        </template>
-        <template v-if="headerShow.expire">
-          <span>{{ $t('profiles.expire') }} {{ headerShow.expire }}</span>
-          <el-divider direction="vertical" border-style="dashed"/>
-        </template>
-        <template v-if="headerShow.update">
-          <span>{{ $t('profiles.update') }} {{ headerShow.update }}</span>
-        </template>
-      </div>
     </template>
 
     <template #bottom>
@@ -484,7 +507,7 @@ watch(() => webStore.dProfile, async (pList) => {
               :class="data.selected?'sub-card sub-card-select':'sub-card'"
               @click="switchProfile(data)"
           >
-            <div class="row">
+            <div class="row card-header">
               <el-icon
                   @mouseenter.stop="mouseEnter"
                   @mouseleave.stop="mouseLeave"
@@ -492,24 +515,51 @@ watch(() => webStore.dProfile, async (pList) => {
                   class="drag">
                 <icon-mdi-drag/>
               </el-icon>
-              <el-tooltip
-                  v-if="data.type == 1"
-                  :content="$t('refresh')"
-                  placement="top">
-                <el-icon size="22"
-                         class="ops"
-                         @click.stop="refresh(data)">
-                  <icon-mdi-refresh/>
-                </el-icon>
-              </el-tooltip>
-
-            </div>
-            <div
-                class="system-info"
-            >
-              <span :title="data.title">
+              <div class="profile-name" :title="data.title">
                 {{ data.title }}
-              </span>
+              </div>
+              <div class="header-action">
+                <el-tooltip
+                    v-if="data.type == 1"
+                    :content="$t('refresh')"
+                    placement="top">
+                  <el-icon size="22"
+                           class="ops"
+                           @click.stop="refresh(data)">
+                    <icon-mdi-refresh/>
+                  </el-icon>
+                </el-tooltip>
+              </div>
+            </div>
+            <div class="stats">
+              <div class="stat-row" v-if="hasValue(data.used)">
+                <el-icon size="18" class="stat-icon">
+                  <icon-mdi-chart-timeline-variant/>
+                </el-icon>
+                <span class="stat-label">{{ $t('profiles.use') }}</span>
+                <span class="stat-value">{{ formatTrafficValue(data.used) }}</span>
+              </div>
+              <div class="stat-row" v-if="hasValue(data.available)">
+                <el-icon size="18" class="stat-icon">
+                  <icon-mdi-database-check/>
+                </el-icon>
+                <span class="stat-label">{{ $t('profiles.available') }}</span>
+                <span class="stat-value">{{ formatTrafficValue(data.available) }}</span>
+              </div>
+              <div class="stat-row" v-if="hasValue(data.expire)">
+                <el-icon size="18" class="stat-icon">
+                  <icon-mdi-calendar-alert/>
+                </el-icon>
+                <span class="stat-label">{{ $t('profiles.expire') }}</span>
+                <span class="stat-value">{{ formatDateValue(data.expire) }}</span>
+              </div>
+              <div class="stat-row" v-if="hasValue(data.update)">
+                <el-icon size="18" class="stat-icon">
+                  <icon-mdi-update/>
+                </el-icon>
+                <span class="stat-label">{{ $t('profiles.update') }}</span>
+                <span class="stat-value">{{ formatDateValue(data.update) }}</span>
+              </div>
             </div>
             <div class="bottom-row">
               <el-tooltip
@@ -687,13 +737,6 @@ watch(() => webStore.dProfile, async (pList) => {
   margin-left: 10px;
 }
 
-.sub-title {
-  margin-left: 10px;
-  color: var(--top-hr-color);
-  font-size: 14px;
-  margin-top: 15px;
-}
-
 .profile-option {
   margin-left: 10px;
   font-size: 30px;
@@ -747,24 +790,62 @@ watch(() => webStore.dProfile, async (pList) => {
   cursor: pointer;
 }
 
-.system-info {
+.card-header {
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 0 6px;
+}
+
+.profile-name {
+  flex: 1;
+  text-align: center;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  text-align: left;
-  font-size: 14px;
-  padding: 5px 10px 5px 15px;
+  font-weight: 600;
+}
+
+.header-action {
+  min-width: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 6px 0 6px;
+  font-size: 13px;
   color: var(--text-color);
+  min-height: 90px;
+}
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stat-label {
+  flex: 1;
+  color: var(--text-color);
+}
+
+.stat-value {
+  font-weight: 500;
 }
 
 .bottom-row {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 5px;
+  margin-top: 10px;
   margin-bottom: 4px;
   color: var(--text-color);
 }
-
-
+.stat-icon {
+  color: var(--text-color);
+}
 </style>

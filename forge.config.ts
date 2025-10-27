@@ -1,8 +1,11 @@
 import type {ForgeConfig} from '@electron-forge/shared-types';
+import MakerZipFixed from './forge/maker-zip-fixed';
 import {MakerWix} from '@electron-forge/maker-wix';
+import {MakerSquirrel} from '@electron-forge/maker-squirrel';
 import {MakerDMG} from '@electron-forge/maker-dmg';
 import {MakerDeb} from '@electron-forge/maker-deb';
 import {MakerRpm} from '@electron-forge/maker-rpm';
+import {AutoUnpackNativesPlugin} from '@electron-forge/plugin-auto-unpack-natives';
 import {VitePlugin} from '@electron-forge/plugin-vite';
 import {FusesPlugin} from '@electron-forge/plugin-fuses';
 import {FuseV1Options, FuseVersion} from '@electron/fuses';
@@ -10,25 +13,64 @@ import {FuseV1Options, FuseVersion} from '@electron/fuses';
 const isWindows = process.platform === 'win32';
 const extraResource = isWindows ? ['src-go/px.exe'] : ['src-go/px'];
 const arch = process.env.ARCH || process.arch;
+const envProvidedIdentity = process.env.MAC_CODESIGN_IDENTITY
+    || process.env.CODESIGN_IDENTITY
+    || process.env.APPLE_IDENTITY;
+const forceCodeSign = process.env.FORCE_CODE_SIGN === 'true';
+const macSignInputsPresent = Boolean(envProvidedIdentity || forceCodeSign);
+const macIdentity = envProvidedIdentity || 'Developer ID Application: Yaroslav Podieiapolskii (4Q268756HJ)';
+const macNotarizeInputsPresent = macSignInputsPresent
+    && Boolean(process.env.APPLE_ID && process.env.APP_SPECIFIC_PASSWORD && process.env.TEAM_ID);
+
+const packagerConfig: ForgeConfig['packagerConfig'] = {
+    asar: true,
+    name: 'Prizrak-Box',
+    executableName: 'Prizrak-Box',
+    icon: 'build/appicon',
+    extraResource,
+    extendInfo: {
+        LSMinimumSystemVersion: "10.13.0"
+    },
+    appBundleId: 'com.legiz-ru.prizrak-box',
+    protocols: [
+        {
+            name: 'Prizrak-Box Protocol',
+            schemes: ['prizrak-box']
+        }
+    ],
+};
+
+if (process.platform === 'darwin' && macSignInputsPresent) {
+    packagerConfig.osxSign = {
+        identity: macIdentity,
+        hardenedRuntime: true,
+        'gatekeeper-assess': false,
+        entitlements: 'build/entitlements.mac.plist',
+        'entitlements-inherit': 'build/entitlements.mac.plist',
+        'signature-flags': 'library',
+    };
+}
+
+if (process.platform === 'darwin' && macNotarizeInputsPresent) {
+    packagerConfig.osxNotarize = {
+        tool: 'notarytool',
+        appleId: process.env.APPLE_ID,
+        appleIdPassword: process.env.APP_SPECIFIC_PASSWORD,
+        teamId: process.env.TEAM_ID,
+    };
+}
 
 const config: ForgeConfig = {
-    packagerConfig: {
-        asar: true,
-        icon: 'build/appicon',
-        extraResource,
-        extendInfo: {
-            LSMinimumSystemVersion: "10.13.0"
-        },
-        appBundleId: 'com.legiz-ru.prizrak-box',
-        protocols: [
-            {
-                name: 'Prizrak-Box Protocol',
-                schemes: ['prizrak-box']
-            }
-        ],
-    },
+    packagerConfig,
     rebuildConfig: {},
     makers: [
+        new MakerZipFixed({}),
+        new MakerSquirrel({
+            name: 'Prizrak-Box',
+            authors: ['legiz-ru'],
+            setupIcon: 'build/appicon.ico',
+            iconUrl: 'https://raw.githubusercontent.com/legiz-ru/Prizrak-Box/prizrak_dev/build/appicon.ico',
+        }),
         new MakerWix({
             manufacturer: 'legiz-ru',
             description: 'A Simple Mihomo GUI',
@@ -95,6 +137,7 @@ const config: ForgeConfig = {
         })
     ],
     plugins: [
+        new AutoUnpackNativesPlugin({}),
         new VitePlugin({
             // `build` can specify multiple entry builds, which can be Main process, Preload scripts, Worker process, etc.
             // If you are familiar with Vite configuration, it will look really familiar.
