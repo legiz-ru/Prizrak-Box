@@ -7,14 +7,14 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
-	"github.com/metacubex/mihomo/hub/executor"
-	"github.com/metacubex/mihomo/log"
 	"github.com/legiz-ru/prizrak-box/api/models"
 	"github.com/legiz-ru/prizrak-box/internal"
 	"github.com/legiz-ru/prizrak-box/pkg/cache"
 	"github.com/legiz-ru/prizrak-box/pkg/constant"
 	sys "github.com/legiz-ru/prizrak-box/pkg/sys/proxy"
 	"github.com/legiz-ru/prizrak-box/pkg/utils"
+	"github.com/metacubex/mihomo/hub/executor"
+	"github.com/metacubex/mihomo/log"
 )
 
 func Rule(r chi.Router) {
@@ -67,6 +67,8 @@ func updateIgnore(w http.ResponseWriter, r *http.Request) {
 }
 
 func getTemplateList(w http.ResponseWriter, r *http.Request) {
+	internal.EnsureBuiltinTemplates()
+
 	var list []models.Template
 	_ = cache.GetList(constant.PrefixTemplate, &list)
 
