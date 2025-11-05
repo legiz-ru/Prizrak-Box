@@ -159,16 +159,13 @@ func GetCountryName(proxies []map[string]any, need bool) []map[string]any {
 	if NowConfig != nil {
 		c := NowConfig.DNS
 		cfg = dns.Config{
-			Main:         c.NameServer,
-			Fallback:     c.Fallback,
-			IPv6:         false,
-			IPv6Timeout:  c.IPv6Timeout,
-			EnhancedMode: c.EnhancedMode,
-			Pool:         c.FakeIPRange,
-			Hosts:        c.Hosts,
-			Default:      c.DefaultNameserver,
-			Policy:       c.NameServerPolicy,
-			ProxyServer:  c.ProxyServerNameserver,
+			Main:        c.NameServer,
+			Fallback:    c.Fallback,
+			IPv6:        false,
+			IPv6Timeout: c.IPv6Timeout,
+			Default:     c.DefaultNameserver,
+			Policy:      c.NameServerPolicy,
+			ProxyServer: c.ProxyServerNameserver,
 		}
 	}
 
