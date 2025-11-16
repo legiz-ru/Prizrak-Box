@@ -25,6 +25,8 @@ export default function createApi(proxy: any) {
         closeConnection: createConnApi(proxy).closeConnection,
         closeAllConnection: createConnApi(proxy).closeAllConnection,
         getRules: createRuleApi(proxy).getRules,
+        getRuleProviders: createRuleApi(proxy).getRuleProviders,
+        updateRuleProvider: createRuleApi(proxy).updateRuleProvider,
         getRuleNum: createRuleApi(proxy).getRuleNum,
         getIgnore: createRuleApi(proxy).getIgnore,
         updateIgnore: createRuleApi(proxy).updateIgnore,

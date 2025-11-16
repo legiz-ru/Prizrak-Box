@@ -238,6 +238,18 @@ rule:
     title: Ignore these domains
     tip: Split by row
     place: Type Here
+  providers:
+    title: Rule providers
+    refresh: Refresh data
+    updateAll: Update all
+    update: Update
+    updateSuccess: "{name} updated"
+    updateAllSuccess: Updated all rule providers
+    lastUpdate: Last update
+    ruleCount: Rule count
+    path: Local path
+    never: Never updated
+    empty: No rule providers found
 
 connections:
   title: Connections

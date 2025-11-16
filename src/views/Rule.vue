@@ -44,6 +44,15 @@ const setActive = function (value: string) {
           </span>
         </button>
         <button
+            :class="getActive('Providers')"
+            @click="setActive('Providers')"
+        >
+          <icon-mdi-script-text-outline class="pre"/>
+          <span class="suf">
+            {{ $t('rule.providers.title') }}
+          </span>
+        </button>
+        <button
             :class="getActive('Ignore')"
             @click="setActive('Ignore')"
         >

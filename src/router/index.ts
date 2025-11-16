@@ -1,3 +1,4 @@
+import RuleProviders from '@/views/rule/Providers.vue';
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router';
 
 import Home from '@/views/Home.vue';
@@ -63,6 +64,11 @@ const routes: Array<RouteRecordRaw> = [
                 path: 'Ignore',
                 name: 'Ignore',
                 component: Ignore,
+            },
+            {
+                path: 'Providers',
+                name: 'RuleProviders',
+                component: RuleProviders,
             },
         ],
     },

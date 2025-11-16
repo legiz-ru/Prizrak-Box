@@ -238,6 +238,18 @@ rule:
     title: 忽略这些域名
     tip: 按行分割
     place: 在这里输入
+  providers:
+    title: 规则提供者
+    refresh: 刷新数据
+    updateAll: 全部更新
+    update: 更新
+    updateSuccess: 已更新 {name}
+    updateAllSuccess: 所有规则提供者已更新
+    lastUpdate: 上次更新
+    ruleCount: 规则数量
+    path: 本地路径
+    never: 从未更新
+    empty: 暂无规则提供者
 
 connections:
   title: 连接

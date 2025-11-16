@@ -238,6 +238,18 @@ rule:
     title: Игнорируемые домены
     tip: Разделяйте по строкам
     place: Введите здесь
+  providers:
+    title: Провайдеры правил
+    refresh: Обновить данные
+    updateAll: Обновить все
+    update: Обновить
+    updateSuccess: '«{name}» обновлён'
+    updateAllSuccess: Все провайдеры правил обновлены
+    lastUpdate: Последнее обновление
+    ruleCount: Количество правил
+    path: Локальный путь
+    never: Никогда
+    empty: Провайдеры правил не найдены
 
 connections:
   title: Соединения
