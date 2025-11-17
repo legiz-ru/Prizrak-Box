@@ -6,14 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/metacubex/mihomo/adapter"
-	"github.com/metacubex/mihomo/common/convert"
-	"github.com/metacubex/mihomo/config"
-	"github.com/metacubex/mihomo/log"
-	"github.com/legiz-ru/prizrak-box/api/models"
-	"github.com/legiz-ru/prizrak-box/pkg/constant"
-	"github.com/legiz-ru/prizrak-box/pkg/utils"
-	"gopkg.in/yaml.v3"
 	"math/big"
 	"net/http"
 	"net/url"
@@ -22,6 +14,16 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/legiz-ru/prizrak-box/api/models"
+	"github.com/legiz-ru/prizrak-box/pkg/constant"
+	"github.com/legiz-ru/prizrak-box/pkg/proxy"
+	"github.com/legiz-ru/prizrak-box/pkg/utils"
+	"github.com/metacubex/mihomo/adapter"
+	"github.com/metacubex/mihomo/common/convert"
+	"github.com/metacubex/mihomo/config"
+	"github.com/metacubex/mihomo/log"
+	"gopkg.in/yaml.v3"
 )
 
 // 保存文件
@@ -371,6 +373,79 @@ func MergeHeaders(primary http.Header, fallback http.Header) http.Header {
 	return merged
 }
 
+func parseProfileLogo(header http.Header, profile *models.Profile) {
+	logoURL := strings.TrimSpace(header.Get("Profile-Logo"))
+	if logoURL == "" {
+		profile.Logo = ""
+		return
+	}
+
+	data, contentType, err := downloadProfileLogo(logoURL)
+	if err != nil {
+		log.Warnln("[ParseHeaders] failed to download profile logo:", err)
+		return
+	}
+
+	dataURL := buildLogoDataURL(contentType, data)
+	if dataURL != "" {
+		profile.Logo = dataURL
+	}
+}
+
+func downloadProfileLogo(logoURL string) ([]byte, string, error) {
+	parsed, err := url.Parse(logoURL)
+	if err != nil {
+		return nil, "", fmt.Errorf("invalid logo url: %w", err)
+	}
+
+	scheme := strings.ToLower(parsed.Scheme)
+	if scheme != "http" && scheme != "https" {
+		return nil, "", fmt.Errorf("unsupported logo url scheme: %s", parsed.Scheme)
+	}
+
+	data, headers, err := utils.SendGetBytes(logoURL, map[string]string{}, proxy.GetProxyUrl())
+	if err != nil {
+		return nil, "", err
+	}
+
+	if len(data) == 0 {
+		return nil, "", errors.New("logo response is empty")
+	}
+
+	if len(data) > 2*1024*1024 {
+		return nil, "", errors.New("logo file is too large")
+	}
+
+	contentType := normalizeLogoContentType(headers.Get("Content-Type"), data)
+	if contentType == "" {
+		return nil, "", errors.New("logo content type is not supported")
+	}
+
+	return data, contentType, nil
+}
+
+func normalizeLogoContentType(contentType string, data []byte) string {
+	trimmed := strings.ToLower(strings.TrimSpace(strings.Split(contentType, ";")[0]))
+	if trimmed == "" && len(data) > 0 {
+		trimmed = strings.ToLower(strings.TrimSpace(strings.Split(http.DetectContentType(data), ";")[0]))
+	}
+
+	if strings.HasPrefix(trimmed, "image/") {
+		return trimmed
+	}
+
+	return ""
+}
+
+func buildLogoDataURL(contentType string, data []byte) string {
+	if contentType == "" || len(data) == 0 {
+		return ""
+	}
+
+	encoded := base64.StdEncoding.EncodeToString(data)
+	return fmt.Sprintf("data:%s;base64,%s", contentType, encoded)
+}
+
 // ParseHeaders 对请求头进行解析
 func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 	// 流量
@@ -420,6 +495,8 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 	// 文件名
 	nameFromDisposition := parseContentDisposition(header, url)
 	if profileTitle := parseProfileTitle(header); profileTitle != "" {
+		profile.HeaderTitle = profileTitle
+
 		baseName := strings.TrimSpace(nameFromDisposition)
 		if baseName == "" {
 			baseName = strings.TrimSpace(profile.Title)
@@ -430,8 +507,11 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 		} else {
 			profile.Title = profileTitle
 		}
-	} else if profile.Title == "" {
-		profile.Title = nameFromDisposition
+	} else {
+		profile.HeaderTitle = ""
+		if profile.Title == "" {
+			profile.Title = nameFromDisposition
+		}
 	}
 
 	// 更新间隔
@@ -447,5 +527,7 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 	if val := header.Get("Support-Url"); val != "" {
 		profile.Support = val
 	}
+
+	parseProfileLogo(header, profile)
 
 }

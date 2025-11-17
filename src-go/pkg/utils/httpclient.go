@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"encoding/hex"
 	"fmt"
-	"golang.org/x/net/html"
 	"io"
 	"net"
 	"net/http"
@@ -15,6 +14,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"golang.org/x/net/html"
 
 	"github.com/denisbrodbeck/machineid"
 	"github.com/google/uuid"
@@ -222,6 +223,22 @@ func SendGet(requestURL string, headers map[string]string, proxyURL string) (str
 	}
 
 	return html.UnescapeString(string(bodyBytes)), resp.Header, nil
+}
+
+// SendGetBytes 发送 GET 请求并返回原始字节和头部
+func SendGetBytes(requestURL string, headers map[string]string, proxyURL string) ([]byte, http.Header, error) {
+	resp, err := sendRequest("GET", requestURL, headers, proxyURL, ConnTimeOut)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer closeResponseBody(resp.Body)
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, nil, fmt.Errorf("读取响应内容失败: %w", err)
+	}
+
+	return bodyBytes, resp.Header, nil
 }
 
 type ResponseResult struct {

@@ -5,8 +5,11 @@
   >
     <div class="left">
       <div :class="isWindows?'top-title win':'top-title'">
-        <div class="top-icon"></div>
-        <span class="top-title-text">Prizrak-Box</span>
+        <div
+            class="top-icon"
+            :style="topIconStyle"
+        ></div>
+        <span class="top-title-text">{{ topTitle }}</span>
       </div>
       <div v-if="showUpdateBanner" class="update-banner">
         <div class="update-banner__content">
@@ -47,17 +50,48 @@ import {preloadBackgroundImage} from "@/util/theme";
 import DeepLinkImportOverlay from "@/components/DeepLinkImportOverlay.vue";
 import {useUpdateStore} from "@/store/updateStore";
 import {storeToRefs} from "pinia";
-import {Browser} from "@/runtime";
+import {Browser, Events} from "@/runtime";
 import {useI18n} from "vue-i18n";
+import createApi from "@/api";
+import {useWebStore} from "@/store/webStore";
 
 const menuStore = useMenuStore();
 const updateStore = useUpdateStore();
+const webStore = useWebStore();
 const {t} = useI18n();
+const {proxy} = getCurrentInstance()!;
+const api = createApi(proxy);
 
 const {hasVisibleUpdate, latestUrl} = storeToRefs(updateStore);
 
 const showUpdateBanner = computed(() => hasVisibleUpdate.value);
 const updateBannerMessage = computed(() => t('updates.banner.message'));
+const defaultTitle = "Prizrak-Box";
+const defaultLogo = new URL("@/assets/images/appicon.png", import.meta.url).href;
+
+const activeProfile = ref<any | null>(null);
+const hasCustomLogo = computed(() => {
+  const logo = activeProfile.value?.logo;
+  return typeof logo === "string" && logo.trim() !== "";
+});
+const topTitle = computed(() => {
+  if (!hasCustomLogo.value) {
+    return defaultTitle;
+  }
+
+  const title = activeProfile.value?.headerTitle;
+  const trimmed = typeof title === "string" ? title.trim() : "";
+  return trimmed || defaultTitle;
+});
+const topLogo = computed(() => {
+  if (hasCustomLogo.value) {
+    return activeProfile.value.logo;
+  }
+  return defaultLogo;
+});
+const topIconStyle = computed(() => ({
+  backgroundImage: `url(${topLogo.value})`
+}));
 
 const openExternalLink = (url: string) => {
   if (!url) {
@@ -98,9 +132,48 @@ onMounted(() => {
   }
 });
 
+const applyProfile = (data: any | null) => {
+  activeProfile.value = data;
+};
+
+const pickSelectedProfile = (list: any[]) => {
+  if (!Array.isArray(list) || list.length === 0) {
+    applyProfile(null);
+    return;
+  }
+
+  const selected = list.find(item => item?.selected);
+  applyProfile(selected ?? list[0]);
+};
+
+const loadProfiles = async () => {
+  try {
+    const list = await api.getProfileList();
+    pickSelectedProfile(list);
+  } catch (error) {
+    console.error("Failed to load profiles", error);
+  }
+};
+
+watch(
+    () => webStore.fProfile,
+    async (data: any) => {
+      if (data && Object.keys(data).length > 0) {
+        await loadProfiles();
+      }
+    }
+);
+
 // 监控背景切换
 watch(() => menuStore.background, (nextBackground) => {
   preloadBackgroundImage(nextBackground, changeBg);
+});
+
+onMounted(async () => {
+  await loadProfiles();
+  Events.On("profiles", (list: any[]) => {
+    pickSelectedProfile(list);
+  });
 });
 
 </script>
@@ -175,11 +248,10 @@ watch(() => menuStore.background, (nextBackground) => {
   width: 80px;
   height: 80px;
   background-image: url("@/assets/images/appicon.png");
-  background-size: cover;
+  background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 0;
 }
 
 .top-title-text {

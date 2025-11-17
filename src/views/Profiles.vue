@@ -180,6 +180,8 @@ async function switchProfile(data: any) {
       }
       data['selected'] = true
 
+      webStore.fProfile = toRaw(data)
+
       api.getRuleNum().then((res) => {
         menuStore.setRuleNum(res);
       });
@@ -223,6 +225,12 @@ async function refresh(data: any) {
     try {
       const re = await api.refreshProfile(data)
       Object.assign(data, re);
+      webStore.fProfile = toRaw({...data});
+
+      Events.Emit({
+        name: "profiles",
+        data: toRaw(profiles)
+      })
       pSuccess(t('profiles.refresh.success'))
     } catch (e) {
       if (e['message']) {
