@@ -54,6 +54,7 @@ import {Browser, Events} from "@/runtime";
 import {useI18n} from "vue-i18n";
 import createApi from "@/api";
 import {useWebStore} from "@/store/webStore";
+import {getRendererOrigin, normalizeCustomBackground} from "@/util/customBackground";
 
 const menuStore = useMenuStore();
 const updateStore = useUpdateStore();
@@ -61,6 +62,8 @@ const webStore = useWebStore();
 const {t} = useI18n();
 const {proxy} = getCurrentInstance()!;
 const api = createApi(proxy);
+
+const rendererOrigin = getRendererOrigin();
 
 const {hasVisibleUpdate, latestUrl} = storeToRefs(updateStore);
 
@@ -123,9 +126,19 @@ const changeBg = (bg: string, useWhite: boolean) => {
   menuStore.setUseWhite(useWhite);
 }
 
+const applyBackground = (value: string) => {
+  const normalized = normalizeCustomBackground(value, rendererOrigin);
+
+  if (normalized && normalized.storageValue !== value) {
+    menuStore.setBackground(normalized.storageValue);
+  }
+
+  preloadBackgroundImage(normalized?.cssValue ?? value, changeBg);
+};
+
 const isWindows = ref(false)
 onMounted(() => {
-  preloadBackgroundImage(menuStore.background, changeBg);
+  applyBackground(menuStore.background);
   // @ts-ignore
   if (window["pxShowBar"]) {
     isWindows.value = true;
@@ -166,7 +179,7 @@ watch(
 
 // 监控背景切换
 watch(() => menuStore.background, (nextBackground) => {
-  preloadBackgroundImage(nextBackground, changeBg);
+  applyBackground(nextBackground);
 });
 
 onMounted(async () => {
