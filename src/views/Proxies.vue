@@ -452,6 +452,7 @@ watch(() => proxiesStore.now, async () => {
   border-radius: 8px;
   padding: 6px 10px;
   font-size: 15px;
+  font-family: inherit;
   text-align: center;
   cursor: pointer;
   box-shadow: var(--left-nav-shadow);
@@ -543,6 +544,7 @@ watch(() => proxiesStore.now, async () => {
   box-shadow: var(--left-nav-hover-shadow);
   border: 2px solid var(--text-color);
   color: var(--text-color);
+  font-family: inherit;
   padding: 5px 10px;
   cursor: pointer;
   font-size: 15px;
