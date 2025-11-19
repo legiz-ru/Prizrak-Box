@@ -60,6 +60,11 @@ const getDelay = (proxy: any) => {
     return history[history.length - 1]['delay']
 }
 
+export interface ProxyGroupInfo {
+    name: string;
+    icon?: string;
+}
+
 export default function createProxiesApi(proxy: any) {
     return {
         // 获取分组延迟
@@ -67,7 +72,7 @@ export default function createProxiesApi(proxy: any) {
             await proxy.$http.get('/group/' + group + '/delay?timeout=' + timeout + "&url=" + url);
         },
         // 获取分组列表
-        async getGroups() {
+        async getGroups(): Promise<ProxyGroupInfo[]> {
             // 获取所有节点分组列表
             const data = await proxy.$http.get('/proxies');
             const proxies = data['proxies']
@@ -78,7 +83,7 @@ export default function createProxiesApi(proxy: any) {
             }
 
             // 获取分组
-            const proxyGroup: any[] = []
+            const proxyGroup: ProxyGroupInfo[] = []
             for (const name of proxies['GLOBAL']['all']) {
                 if (excludeGroupName[name]) {
                     continue
@@ -90,7 +95,10 @@ export default function createProxiesApi(proxy: any) {
                 if (!!group['hidden']) {
                     continue
                 }
-                proxyGroup.push(name)
+                proxyGroup.push({
+                    name,
+                    icon: typeof group['icon'] === 'string' ? group['icon'] : undefined,
+                })
             }
 
             return proxyGroup
