@@ -497,7 +497,7 @@ rule-providers:
     type: http
     behavior: classical
     format: yaml
-    url: https://github.com/legiz-ru/mihomo-rule-sets/blob/main/other/ru-app-list.yaml
+    url: https://github.com/legiz-ru/mihomo-rule-sets/raw/main/other/ru-app-list.yaml
     path: ./rule-sets/ru-apps.yaml
     interval: 86400
   ru-inside:
