@@ -34,6 +34,19 @@ watch(
     }
 );
 
+// Watch for proxy changes and update tray menu with debounce
+let updateTrayTimeout: any = null;
+watch(
+    () => proxiesStore.now,
+    () => {
+      // Debounce to avoid too frequent updates
+      clearTimeout(updateTrayTimeout);
+      updateTrayTimeout = setTimeout(() => {
+        updateProxyGroupsInTray();
+      }, 500);
+    }
+);
+
 
 // 配置切换
 Events.On("switchProfiles", async (ev: any) => {
@@ -61,6 +74,9 @@ Events.On("switchProfiles", async (ev: any) => {
         }
       })
 
+      // Update proxy groups after profile switch
+      updateProxyGroupsInTray();
+
       pSuccess(t('profiles.switch.success'))
     } catch (e) {
       if (e['message']) {
@@ -69,6 +85,97 @@ Events.On("switchProfiles", async (ev: any) => {
     }
   })
 });
+
+// Switch proxy in group from tray
+Events.On("switchProxyInGroup", async (ev: any) => {
+  const {group, proxy} = ev;
+
+  try {
+    // Use correct API format: {name: proxyName}
+    await api.setProxy(group, {name: proxy});
+    // Don't update store immediately - let API state be the source of truth
+
+    // Poll API to verify the change was applied
+    let retries = 0;
+    const maxRetries = 5;
+    const checkInterval = 200;
+
+    const waitForUpdate = () => {
+      setTimeout(async () => {
+        try {
+          const proxies = await api.getProxies(group, false, false);
+          const current = proxies.find((p: any) => p?.now);
+
+          if (current?.name === proxy || retries >= maxRetries) {
+            // Proxy switched successfully or max retries reached
+            updateProxyGroupsInTray();
+          } else {
+            // Not yet switched, retry
+            retries++;
+            waitForUpdate();
+          }
+        } catch (e) {
+          // On error, just update menu anyway
+          updateProxyGroupsInTray();
+        }
+      }, checkInterval);
+    };
+
+    waitForUpdate();
+  } catch (e) {
+    if (e['message']) {
+      pError(e['message'])
+    }
+  }
+});
+
+// Function to update proxy groups in tray
+const updateProxyGroupsInTray = async () => {
+  try {
+    const groups = await api.getGroups();
+    if (!groups || groups.length === 0) {
+      return;
+    }
+
+    const proxyGroupsData = await Promise.all(
+      groups.map(async (groupItem: any) => {
+        const groupName = typeof groupItem === 'string' ? groupItem : groupItem.name;
+        if (!groupName) {
+          return null;
+        }
+
+        try {
+          const proxies = await api.getProxies(groupName, false, false);
+          // Only include groups that have proxies
+          if (proxies && proxies.length > 0) {
+            return {
+              name: groupName,
+              proxies: proxies.map((p: any) => ({
+                name: p.name,
+                now: p.now || false,
+                type: p.type
+              }))
+            };
+          }
+        } catch (e) {
+          // Ignore errors for individual groups
+        }
+        return null;
+      })
+    );
+
+    const validGroups = proxyGroupsData.filter((g) => g !== null);
+
+    if (validGroups.length > 0) {
+      Events.Emit({
+        name: "proxyGroups",
+        data: validGroups
+      });
+    }
+  } catch (e) {
+    console.error('Failed to update proxy groups in tray:', e);
+  }
+};
 
 onMounted(async () => {
   // 获取初始数据
@@ -101,6 +208,9 @@ onMounted(async () => {
     name: "proxy",
     data: menuStore.proxy
   })
+
+  // Send proxy groups data to tray
+  await updateProxyGroupsInTray();
 })
 
 </script>

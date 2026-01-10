@@ -2,12 +2,9 @@ package handlers
 
 import (
 	"errors"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/render"
-	"github.com/metacubex/mihomo/component/process"
-	"github.com/metacubex/mihomo/hub/executor"
-	"github.com/metacubex/mihomo/log"
-	"github.com/metacubex/mihomo/tunnel/statistic"
+	"net/netip"
+	"os"
+
 	"github.com/legiz-ru/prizrak-box/api"
 	"github.com/legiz-ru/prizrak-box/api/job"
 	"github.com/legiz-ru/prizrak-box/api/models"
@@ -15,9 +12,13 @@ import (
 	"github.com/legiz-ru/prizrak-box/pkg/constant"
 	sys "github.com/legiz-ru/prizrak-box/pkg/sys/proxy"
 	"github.com/legiz-ru/prizrak-box/pkg/utils"
-	"net/http"
-	"net/netip"
-	"os"
+	"github.com/metacubex/chi"
+	"github.com/metacubex/chi/render"
+	"github.com/metacubex/http"
+	"github.com/metacubex/mihomo/component/process"
+	"github.com/metacubex/mihomo/hub/executor"
+	"github.com/metacubex/mihomo/log"
+	"github.com/metacubex/mihomo/tunnel/statistic"
 	"strings"
 )
 

@@ -1,21 +1,20 @@
 package handlers
 
 import (
-	"net/http"
 	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/legiz-ru/prizrak-box/api/job"
-	"github.com/legiz-ru/prizrak-box/pkg/proxy"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/render"
 	"github.com/legiz-ru/prizrak-box/api/models"
 	"github.com/legiz-ru/prizrak-box/internal"
 	"github.com/legiz-ru/prizrak-box/pkg/cache"
 	"github.com/legiz-ru/prizrak-box/pkg/constant"
+	"github.com/legiz-ru/prizrak-box/pkg/proxy"
 	"github.com/legiz-ru/prizrak-box/pkg/utils"
+	"github.com/metacubex/chi"
+	"github.com/metacubex/chi/render"
+	"github.com/metacubex/http"
 	"github.com/metacubex/mihomo/hub/route"
 	"github.com/metacubex/mihomo/log"
 )

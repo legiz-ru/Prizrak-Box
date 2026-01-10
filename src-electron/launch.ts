@@ -67,12 +67,12 @@ export async function enableAutoLaunch(): Promise<void> {
         if (!(await autoLauncher.isEnabled())) {
             await autoLauncher.enable();
             storeSet('autoLaunch.lastRegisteredExe', app.getPath('exe'));
-            log.info('✅ 开启开机自启');
+            log.info('✅ Auto-launch enabled');
         } else {
-            log.info('开机自启已启用');
+            log.info('Auto-launch already enabled');
         }
     } catch (err) {
-        log.error('开启开机自启失败:', err);
+        log.error('Failed to enable auto-launch:', err);
     }
 }
 
@@ -83,10 +83,10 @@ export async function disableAutoLaunch(): Promise<void> {
     try {
         if (await autoLauncher.isEnabled()) {
             await autoLauncher.disable();
-            log.info('🛑 关闭开机自启');
+            log.info('🛑 Auto-launch disabled');
         }
     } catch (err) {
-        log.error('关闭开机自启失败:', err);
+        log.error('Failed to disable auto-launch:', err);
     }
 }
 
@@ -97,7 +97,7 @@ export async function isAutoLaunchEnabled(): Promise<boolean> {
     try {
         return await autoLauncher.isEnabled();
     } catch (err) {
-        log.error('查询开机自启状态失败:', err);
+        log.error('Failed to query auto-launch status:', err);
         return false;
     }
 }
@@ -117,11 +117,11 @@ export async function updateAutoLaunchRegistration(): Promise<void> {
             await autoLauncher.enable();
 
             storeSet('autoLaunch.lastRegisteredExe', currentExe);
-            log.info(`🆕 已更新开机自启路径: ${currentExe}`);
+            log.info(`🆕 Auto-launch path updated: ${currentExe}`);
         } else {
-            log.info('开机自启注册项无需更新');
+            log.info('Auto-launch registration does not need updating');
         }
     } catch (err) {
-        log.error('更新开机自启注册项失败:', err);
+        log.error('Failed to update auto-launch registration:', err);
     }
 }

@@ -55,6 +55,7 @@ const trayMenuId = [
   'tray.global',
   'tray.direct',
   'tray.profiles',
+  'tray.proxyGroups',
   'tray.dashboard',
   'tray.proxy',
   'tray.tun',

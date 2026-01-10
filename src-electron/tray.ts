@@ -4,9 +4,79 @@ import {app, BrowserWindow, ipcMain, Menu, nativeImage, Tray, shell} from 'elect
 import path from "node:path";
 import {storeSet} from "./store";
 import {disableAutoLaunch, enableAutoLaunch} from "./launch";
+import https from 'https';
 
 // 是否在开发模式
 const isDev = !app.isPackaged;
+
+// Function to extract emoji from proxy name
+function extractEmoji(text: string): string | null {
+    // Regex to match emoji characters (including flag emojis which are 2 regional indicator symbols)
+    const emojiRegex = /[\u{1F1E6}-\u{1F1FF}]{2}|[\u{1F300}-\u{1F9FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}]/u;
+    const match = text.match(emojiRegex);
+    return match ? match[0] : null;
+}
+
+// Function to convert emoji to Twemoji codepoint
+function emojiToCodepoint(emoji: string): string {
+    const codePoints = [];
+    for (let i = 0; i < emoji.length; i++) {
+        const code = emoji.codePointAt(i);
+        if (code) {
+            codePoints.push(code.toString(16));
+            // Skip low surrogate for surrogate pairs
+            if (code > 0xFFFF) {
+                i++;
+            }
+        }
+    }
+    return codePoints.join('-');
+}
+
+// Cache for emoji icons
+const emojiIconCache = new Map();
+
+// Function to create emoji icon from Twemoji PNG
+async function createEmojiIcon(emoji: string): Promise<any> {
+    try {
+        // Check cache first
+        if (emojiIconCache.has(emoji)) {
+            return emojiIconCache.get(emoji);
+        }
+
+        // Convert emoji to codepoint for Twemoji URL
+        const codepoint = emojiToCodepoint(emoji);
+
+        // Twemoji CDN URL (72x72 PNG)
+        const url = `https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/${codepoint}.png`;
+
+        // Download icon
+        const buffer = await new Promise<Buffer>((resolve, reject) => {
+            https.get(url, (res) => {
+                const chunks: Buffer[] = [];
+                res.on('data', (chunk) => chunks.push(chunk));
+                res.on('end', () => resolve(Buffer.concat(chunks)));
+                res.on('error', reject);
+            }).on('error', reject);
+        });
+
+        // Create native image and resize to 16x16
+        const icon = nativeImage.createFromBuffer(buffer).resize({width: 16, height: 16});
+
+        // Cache the icon
+        emojiIconCache.set(emoji, icon);
+
+        return icon;
+    } catch (e) {
+        console.error('Failed to create emoji icon:', e);
+        return null;
+    }
+}
+
+// Function to remove emoji from text
+function removeEmoji(text: string): string {
+    return text.replace(/[\u{1F1E6}-\u{1F1FF}]{2}|[\u{1F300}-\u{1F9FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}]/gu, '').trim();
+}
 
 // 托盘
 let tray: Tray;
@@ -125,6 +195,12 @@ function switchProfiles(menuItem, profile) {
     emitWindow("switchProfiles", profile);
 }
 
+// Switch proxy in a group
+function switchProxyInGroup(menuItem, groupName, proxyName) {
+    // Always emit the event to switch proxy, Electron will handle checkbox state
+    emitWindow("switchProxyInGroup", {group: groupName, proxy: proxyName});
+}
+
 const trayMap: Map<any, any> = new Map();
 trayMap.set('tray.show', {
     id: 'tray.show',
@@ -154,6 +230,7 @@ trayMap.set('tray.direct', {
     click: (menuItem) => switchMode(menuItem, 'direct')
 });
 trayMap.set('tray.profiles', {id: 'tray.profiles', label: '订阅', submenu: []});
+trayMap.set('tray.proxyGroups', {id: 'tray.proxyGroups', label: 'Proxy Groups', submenu: []});
 trayMap.set('tray.dashboard', {
     id: 'tray.dashboard',
     label: 'Open Dashboard',
@@ -184,6 +261,7 @@ const createTrayMenu = () => [
     trayMap.get('tray.direct'),
     {type: 'separator'},
     trayMap.get('tray.profiles'),
+    trayMap.get('tray.proxyGroups'),
     trayMap.get('tray.dashboard'),
     {type: 'separator'},
     trayMap.get('tray.proxy'),
@@ -323,6 +401,50 @@ onWindow("dashboards", function (dashboards) {
     const menuItem = trayMap.get(key);
     menuItem.submenu = items;
     menuItem.enabled = items.length > 0;
+    currentMenu = Menu.buildFromTemplate(createTrayMenu());
+    tray.setContextMenu(currentMenu);
+})
+
+onWindow("proxyGroups", async function (proxyGroups) {
+    const key = 'tray.proxyGroups';
+    const groupMenus: any[] = [];
+
+    if (Array.isArray(proxyGroups) && proxyGroups.length > 0) {
+        for (const group of proxyGroups) {
+            if (!group || !group.name || !Array.isArray(group.proxies) || group.proxies.length === 0) {
+                continue;
+            }
+
+            // Create all proxy items with icons loaded in parallel
+            const proxyItems = await Promise.all(group.proxies.map(async (proxy) => {
+                const emoji = extractEmoji(proxy.name);
+                const menuItem: any = {
+                    label: proxy.name,
+                    type: 'radio',
+                    checked: proxy.now || false,
+                    click: (menuItem) => switchProxyInGroup(menuItem, group.name, proxy.name)
+                };
+
+                // If emoji found, create icon from it and remove emoji from label
+                if (emoji) {
+                    const icon = await createEmojiIcon(emoji);
+                    if (icon) {
+                        menuItem.icon = icon;
+                        menuItem.label = removeEmoji(proxy.name);
+                    }
+                }
+
+                return menuItem;
+            }));
+
+            groupMenus.push({
+                label: group.name,
+                submenu: proxyItems
+            });
+        }
+    }
+
+    trayMap.get(key).submenu = groupMenus;
     currentMenu = Menu.buildFromTemplate(createTrayMenu());
     tray.setContextMenu(currentMenu);
 })

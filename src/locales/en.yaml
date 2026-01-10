@@ -112,6 +112,7 @@ setting:
   px:
     auth: Auth Tip
     startup: Boot Startup
+    startMinimized: Start Minimized to Tray
     dir: Config
     open: Open
     import: Import
@@ -298,6 +299,7 @@ tray:
   global: Global
   direct: Direct
   profiles: Profiles
+  proxyGroups: Proxy Groups
   dashboard: Open dashboard
   proxy: Proxy
   tun: TUN

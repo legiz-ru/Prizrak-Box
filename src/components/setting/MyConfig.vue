@@ -367,6 +367,13 @@ watch(dashboardDialogVisible, (visible) => {
             />
           </li>
           <li>
+            <strong>{{ $t('setting.px.startMinimized') }} :</strong>
+            <el-switch
+                v-model="settingStore.startMinimized"
+                class="set-switch"
+            />
+          </li>
+          <li>
             <strong>{{ $t('setting.px.auth') }} :</strong>
             <el-switch
                 v-model="settingStore.auth"

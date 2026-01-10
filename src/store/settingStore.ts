@@ -10,6 +10,7 @@ export const useSettingStore = defineStore('setting', {
         ipv6: false,
         dns: false,
         startup: false,
+        startMinimized: false,
         auth: false,
         hwid: true,
         hwidHeaders: {
@@ -37,6 +38,9 @@ export const useSettingStore = defineStore('setting', {
         },
         setStartup(startup: any) {
             this.startup = startup;
+        },
+        setStartMinimized(startMinimized: any) {
+            this.startMinimized = startMinimized;
         },
         setBindAddress(bindAddress: any) {
             this.bindAddress = bindAddress;

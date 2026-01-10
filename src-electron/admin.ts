@@ -65,28 +65,28 @@ export function startBackend(addr: string) {
     const backendPath = getBackendPath();
     const args = ['-addr=' + addr, '-home=' + encodeURIComponent(log.getHomeDir())];
 
-    // 检查管理权限
+    // Check admin rights
     checkAdminRights((isAdmin: boolean) => {
         if (isAdmin) {
-            log.info('有管理员权限');
+            log.info('Has administrator privileges');
 
             startNormally(backendPath, args);
         } else {
-            log.info('没有管理员权限');
+            log.info('No administrator privileges');
 
-            // 判断是否关闭提权
+            // Check if elevation is disabled
             const setting = storeGet("setting")
             if (!!setting) {
                 const set = JSON.parse(setting as string);
                 if (set.hasOwnProperty("auth") && set["auth"]) {
-                    log.info('开启了提权提示');
+                    log.info('Elevation prompt enabled');
                 } else {
-                    log.info('关闭了提权提示');
+                    log.info('Elevation prompt disabled');
                     startNormally(backendPath, args);
                     return;
                 }
             } else {
-                log.info('未发现setting，不使用提权');
+                log.info('No settings found, skipping elevation');
                 startNormally(backendPath, args);
                 return;
             }
@@ -95,7 +95,7 @@ export function startBackend(addr: string) {
             if (process.platform !== 'darwin') {
                 const confirmed = dialog.showMessageBoxSync({
                     type: 'info',
-                    buttons: ['继续', '取消'],
+                    buttons: ['Continue', 'Cancel'],
                     defaultId: 0,
                     cancelId: 1,
                     title: 'Prizrak-Box',
@@ -103,17 +103,17 @@ export function startBackend(addr: string) {
                 });
 
                 if (confirmed === 1) {
-                    // 用户取消提权 → 普通模式启动
-                    log.info('用户取消了提权，使用普通权限启动');
+                    // User cancelled elevation → start in normal mode
+                    log.info('User cancelled elevation, starting with normal privileges');
                     startNormally(backendPath, args);
                     return;
                 }
             }
 
-            // 尝试以管理员权限运行，失败则降级
+            // Try to run with admin privileges, fallback if failed
             tryRunAsAdmin(backendPath, args, (success) => {
                 if (!success) {
-                    log.info('管理员权限启动失败，使用普通模式启动');
+                    log.info('Failed to start with admin privileges, starting in normal mode');
                     startNormally(backendPath, args);
                 }
             });
@@ -132,7 +132,7 @@ function tryRunAsAdmin(executable: string, args: string[], callback: (success: b
                 do shell script "${command}" with administrator privileges with prompt "${getAuthTip()}"
             `;
             const osa = spawn('osascript', ['-e', script]);
-            log.info("[Admin] 启动px命令行：", osa.spawnargs);
+            log.info("[Admin] Starting PX command line:", osa.spawnargs);
             osa.on('exit', (code) => callback(code === 0));
             osa.on('error', () => callback(false));
             break;
@@ -145,7 +145,7 @@ function tryRunAsAdmin(executable: string, args: string[], callback: (success: b
                 `Start-Process -FilePath '${executable}' -ArgumentList '${args.join(' ')}' -Verb RunAs -WindowStyle Hidden`
             ];
             const ps = spawn('powershell.exe', psArgs);
-            log.info("[Admin] 启动px命令行：", ps.spawnargs);
+            log.info("[Admin] Starting PX command line:", ps.spawnargs);
             ps.on('exit', (code) => callback(code === 0));
             ps.on('error', () => callback(false));
             break;
@@ -193,7 +193,7 @@ function tryRunAsAdmin(executable: string, args: string[], callback: (success: b
                     env,
                     stdio: 'inherit',
                 });
-                log.info("[Admin] 启动px命令行：", elevated.spawnargs);
+                log.info("[Admin] Starting PX command line:", elevated.spawnargs);
 
                 elevated.on('error', (err) => {
                     log.error(`Error using ${method}:`, err);
@@ -216,7 +216,7 @@ function tryRunAsAdmin(executable: string, args: string[], callback: (success: b
 
 
         default:
-            log.error('不支持的平台:', process.platform);
+            log.error('Unsupported platform:', process.platform);
             callback(false);
     }
 }
@@ -226,7 +226,7 @@ function startNormally(executable: string, args: string[]) {
         stdio: ['ignore', 'pipe', 'pipe']
     });
 
-    log.info("[Normal] 启动px命令行：", backend.spawnargs);
+    log.info("[Normal] Starting PX command line:", backend.spawnargs);
 
     backend.stdout.on('data', () => {
         // log.info(`[backend stdout]: ${data}`);

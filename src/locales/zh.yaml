@@ -112,6 +112,7 @@ setting:
   px:
     auth: 授权提示
     startup: 开机自启
+    startMinimized: 启动时最小化到托盘
     dir: 配置目录
     open: 打开
     import: 导入
@@ -298,6 +299,7 @@ tray:
   global: 全局
   direct: 直连
   profiles: 订阅
+  proxyGroups: 代理组
   dashboard: 打开面板
   proxy: 系统代理
   tun: Tun模式

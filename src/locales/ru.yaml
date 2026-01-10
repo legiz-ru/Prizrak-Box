@@ -112,6 +112,7 @@ setting:
   px:
     auth: Совет по аутентификации
     startup: Автозапуск
+    startMinimized: Запускать свернутым в трей
     dir: Конфиг
     open: Открыть
     import: Импортировать
@@ -298,6 +299,7 @@ tray:
   global: Глобальный
   direct: Прямой
   profiles: Профили
+  proxyGroups: Группы прокси
   dashboard: Открыть панель
   proxy: Прокси
   tun: TUN

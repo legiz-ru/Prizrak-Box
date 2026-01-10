@@ -19,6 +19,7 @@ const groupList = ref<string[]>([]);
 const nodeList = ref<any[]>([]);
 const fullViewNodes = ref<Record<string, any[]>>({});
 const groupIcons = ref<Record<string, string>>({});
+const nestedGroupSelections = ref<Record<string, string>>({});
 const handleIconError = (event: Event) => {
   const target = event.target as HTMLImageElement | null;
   if (target) {
@@ -98,11 +99,56 @@ async function groups() {
   }
 }
 
+// Update active connections for nested groups (URLTest, Selector, etc.)
+async function updateNestedGroupSelections() {
+  const groupTypes = ['urltest', 'selector', 'fallback', 'loadbalance', 'relay'];
+  const nestedGroups: string[] = [];
+
+  // Collect all nodes that are groups themselves
+  Object.values(fullViewNodes.value).forEach((nodes) => {
+    if (Array.isArray(nodes)) {
+      nodes.forEach((node) => {
+        if (node.type && groupTypes.includes(node.type.toLowerCase())) {
+          nestedGroups.push(node.name);
+        }
+      });
+    }
+  });
+
+  // Also check current nodeList for non-full view modes
+  if (Array.isArray(nodeList.value)) {
+    nodeList.value.forEach((node) => {
+      if (node.type && groupTypes.includes(node.type.toLowerCase()) && !nestedGroups.includes(node.name)) {
+        nestedGroups.push(node.name);
+      }
+    });
+  }
+
+  // Request active connection for each nested group (without hidden filter)
+  const selections: Record<string, string> = {};
+  await Promise.all(
+      nestedGroups.map(async (groupName) => {
+        try {
+          const proxies = await api.getProxies(groupName, false, false);
+          const current = proxies.find((node) => node?.now);
+          if (current?.name) {
+            selections[groupName] = current.name;
+          }
+        } catch (e) {
+          // Ignore errors for groups that don't exist
+        }
+      })
+  );
+
+  nestedGroupSelections.value = selections;
+}
+
 // 获取节点列表
 async function nodes() {
   if (menuStore.rule == "direct") {
     nodeList.value = [];
     fullViewNodes.value = {};
+    nestedGroupSelections.value = {};
     return;
   }
 
@@ -124,6 +170,9 @@ async function nodes() {
     });
     fullViewNodes.value = mapped;
     nodeList.value = mapped[proxiesStore.active] ?? [];
+
+    // Update nested group selections
+    await updateNestedGroupSelections();
     return;
   }
 
@@ -133,6 +182,9 @@ async function nodes() {
       proxiesStore.isSort
   ); // 更新响应式数据
   fullViewNodes.value = {};
+
+  // Update nested group selections for non-full view
+  await updateNestedGroupSelections();
 }
 
 // 设置活跃分组
@@ -519,7 +571,13 @@ watch(groupList, (list) => {
           </div>
           <div class="proxy-nodes-tags">
             <span class="proxy-nodes-tags-left">
-              {{ node["type"] }}
+              <span>{{ node["type"] }}</span>
+              <template v-if="nestedGroupSelections[node['name']]">
+                <span class="proxy-selected-separator">•</span>
+                <span class="proxy-selected-name" :title="nestedGroupSelections[node['name']]">
+                  {{ nestedGroupSelections[node['name']] }}
+                </span>
+              </template>
             </span>
             <span :class="'proxy-nodes-tags-right ' + node['toClass']">
               {{ node["delay"] }} ms
@@ -587,7 +645,13 @@ watch(groupList, (list) => {
                 </div>
                 <div class="proxy-nodes-tags">
                   <span class="proxy-nodes-tags-left">
-                    {{ node["type"] }}
+                    <span>{{ node["type"] }}</span>
+                    <template v-if="nestedGroupSelections[node['name']]">
+                      <span class="proxy-selected-separator">•</span>
+                      <span class="proxy-selected-name" :title="nestedGroupSelections[node['name']]">
+                        {{ nestedGroupSelections[node['name']] }}
+                      </span>
+                    </template>
                   </span>
                   <span :class="'proxy-nodes-tags-right ' + node['toClass']">
                     {{ node["delay"] }} ms
@@ -758,10 +822,33 @@ watch(groupList, (list) => {
 
 .proxy-nodes-tags-left {
   flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
 }
 
 .proxy-nodes-tags-right {
   text-align: right;
+  flex-shrink: 0;
+}
+
+.proxy-selected-separator {
+  color: var(--text-color);
+  opacity: 0.4;
+  margin: 0 2px;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.proxy-selected-name {
+  font-size: 13px;
+  color: var(--text-color);
+  opacity: 0.75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .toHidden {
