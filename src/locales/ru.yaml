@@ -113,6 +113,7 @@ setting:
     auth: Совет по аутентификации
     startup: Автозапуск
     startMinimized: Запускать свернутым в трей
+    systemProxyMode: Режим системного прокси
     dir: Конфиг
     open: Открыть
     import: Импортировать

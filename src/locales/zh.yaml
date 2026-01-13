@@ -113,6 +113,7 @@ setting:
     auth: 授权提示
     startup: 开机自启
     startMinimized: 启动时最小化到托盘
+    systemProxyMode: 系统代理模式
     dir: 配置目录
     open: 打开
     import: 导入

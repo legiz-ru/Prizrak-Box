@@ -65,11 +65,13 @@ async function doSwitch() {
         "mixed-port": settingStore.port,
         "bind-address": settingStore.bindAddress,
       })
-      // 未被占用开启代理
-      await api.enableProxy({
-        "bindAddress": settingStore.bindAddress,
-        "port": settingStore.port,
-      })
+      // 如果включен режим системного прокси, то включаем системный прокси
+      if (settingStore.systemProxyMode) {
+        await api.enableProxy({
+          "bindAddress": settingStore.bindAddress,
+          "port": settingStore.port,
+        })
+      }
       ok = true
       pSuccess(t("proxy-switch-on"));
     } catch (e) {
@@ -78,6 +80,11 @@ async function doSwitch() {
       }
     }
   } else {
+    // Отключаем mixed-port в Mihomo, чтобы он перестал слушать порт
+    await api.updateConfigs({
+      "mixed-port": 0,
+    })
+    // Всегда отключаем системный прокси при выключении переключателя прокси
     await api.disableProxy()
     ok = true
     pWarning(t("proxy-switch-off"));
@@ -164,6 +171,31 @@ onMounted(async () => {
   if (homeStore.os != "Windows" && menuStore.tun) {
     await api.waitRunning()
     await tunSwitch()
+  }
+})
+
+// Отслеживание изменения настройки "Режим системного прокси"
+watch(() => settingStore.systemProxyMode, async (newValue, oldValue) => {
+  // Применяем изменения только если прокси уже включен
+  if (menuStore.proxy) {
+    if (newValue) {
+      // Включаем системный прокси
+      try {
+        await api.enableProxy({
+          "bindAddress": settingStore.bindAddress,
+          "port": settingStore.port,
+        })
+        pSuccess(t("proxy-switch-on"));
+      } catch (e) {
+        if (e['message']) {
+          pError(e['message'])
+        }
+      }
+    } else {
+      // Выключаем системный прокси
+      await api.disableProxy()
+      pWarning(t("proxy-switch-off"));
+    }
   }
 })
 

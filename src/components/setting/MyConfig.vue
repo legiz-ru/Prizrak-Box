@@ -374,6 +374,13 @@ watch(dashboardDialogVisible, (visible) => {
             />
           </li>
           <li>
+            <strong>{{ $t('setting.px.systemProxyMode') }} :</strong>
+            <el-switch
+                v-model="settingStore.systemProxyMode"
+                class="set-switch"
+            />
+          </li>
+          <li>
             <strong>{{ $t('setting.px.auth') }} :</strong>
             <el-switch
                 v-model="settingStore.auth"

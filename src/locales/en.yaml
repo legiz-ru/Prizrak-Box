@@ -113,6 +113,7 @@ setting:
     auth: Auth Tip
     startup: Boot Startup
     startMinimized: Start Minimized to Tray
+    systemProxyMode: System Proxy Mode
     dir: Config
     open: Open
     import: Import

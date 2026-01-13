@@ -13,6 +13,7 @@ export const useSettingStore = defineStore('setting', {
         startMinimized: false,
         auth: false,
         hwid: true,
+        systemProxyMode: true,
         hwidHeaders: {
             hwid: '',
             os: '',
@@ -50,6 +51,9 @@ export const useSettingStore = defineStore('setting', {
         },
         setHwid(hwid: any) {
             this.hwid = hwid;
+        },
+        setSystemProxyMode(systemProxyMode: any) {
+            this.systemProxyMode = systemProxyMode;
         },
         setHwidHeaders(headers: { hwid?: string; os?: string; osVersion?: string; model?: string }) {
             this.hwidHeaders = {
