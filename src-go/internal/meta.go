@@ -492,9 +492,7 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 						if newName != name {
 							proxy["name"] = newName
 							if _, exists := proxyNameMap[name]; !exists {
-								if _, exists := proxyNameMap[name]; !exists {
-									proxyNameMap[name] = newName
-								}
+								proxyNameMap[name] = newName
 							}
 						}
 					}
@@ -534,7 +532,9 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 							newName := formatProxyName(name, tag, multi, usedProxyNames)
 							if newName != name {
 								proxy["name"] = newName
-								proxyNameMap[name] = newName
+								if _, exists := proxyNameMap[name]; !exists {
+									proxyNameMap[name] = newName
+								}
 							}
 						}
 						proxies = append(proxies, proxy)
