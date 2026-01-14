@@ -72,6 +72,31 @@ function formatDateValue(value: any) {
   return String(value);
 }
 
+const flagEmojiRegex = /[\u{1F1E6}-\u{1F1FF}]{2}/u;
+
+function containsFlagEmoji(value: any) {
+  if (typeof value !== "string") {
+    return false;
+  }
+  return flagEmojiRegex.test(value);
+}
+
+function getProfileDisplayTitle(profile: any) {
+  const title = typeof profile?.title === "string" ? profile.title.trim() : "";
+  const headerTitle = typeof profile?.headerTitle === "string" ? profile.headerTitle.trim() : "";
+
+  if (title) {
+    if (!headerTitle) {
+      return title;
+    }
+    if (containsFlagEmoji(title) || !containsFlagEmoji(headerTitle)) {
+      return title;
+    }
+  }
+
+  return headerTitle || title || "";
+}
+
 function openExternalLink(raw: any) {
   if (typeof raw !== "string") {
     return;
@@ -147,7 +172,7 @@ const profileTitle = computed(() => {
   if (!currentProfile.value) {
     return "";
   }
-  return currentProfile.value.title || currentProfile.value.name || "";
+  return getProfileDisplayTitle(currentProfile.value) || currentProfile.value.name || "";
 });
 
 const hasStats = computed(() => {

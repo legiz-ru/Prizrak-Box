@@ -129,6 +129,31 @@ function formatDateValue(value: any) {
 }
 
 // 列表显示
+const flagEmojiRegex = /[\u{1F1E6}-\u{1F1FF}]{2}/u
+
+function containsFlagEmoji(value: any) {
+  if (typeof value !== 'string') {
+    return false
+  }
+  return flagEmojiRegex.test(value)
+}
+
+function getProfileDisplayTitle(profile: any) {
+  const title = typeof profile?.title === 'string' ? profile.title.trim() : ''
+  const headerTitle = typeof profile?.headerTitle === 'string' ? profile.headerTitle.trim() : ''
+
+  if (title) {
+    if (!headerTitle) {
+      return title
+    }
+    if (containsFlagEmoji(title) || !containsFlagEmoji(headerTitle)) {
+      return title
+    }
+  }
+
+  return headerTitle || title || ''
+}
+
 let profiles = reactive<any[]>([])
 
 async function getProfileList() {
@@ -593,8 +618,8 @@ watch(() => webStore.dProfile, async (pList) => {
                   class="drag">
                 <icon-mdi-drag/>
               </el-icon>
-              <div class="profile-name" :title="data.title">
-                <span class="profile-name-text">{{ data.title }}</span>
+              <div class="profile-name" :title="getProfileDisplayTitle(data)">
+                <span class="profile-name-text">{{ getProfileDisplayTitle(data) }}</span>
                 <span v-if="data.primary" class="profile-primary">
                   {{ $t('profiles.primary') }}
                 </span>

@@ -212,6 +212,61 @@ func applyProviderSuffix(provider map[string]any, suffix string) {
 	override["additional-suffix"] = suffix
 }
 
+func renameProfileProxies(proxies []map[string]any, tag string, applyTag bool, used map[string]int) map[string]string {
+	mapping := map[string]string{}
+	if len(proxies) == 0 {
+		return mapping
+	}
+
+	for _, proxy := range proxies {
+		name, ok := proxy["name"].(string)
+		if !ok || name == "" {
+			continue
+		}
+		newName := formatProxyName(name, tag, applyTag, used)
+		if newName != name {
+			proxy["name"] = newName
+			if _, exists := mapping[name]; !exists {
+				mapping[name] = newName
+			}
+		}
+	}
+
+	if len(mapping) == 0 {
+		return mapping
+	}
+
+	for _, proxy := range proxies {
+		dialer, ok := proxy["dialer-proxy"].(string)
+		if !ok || dialer == "" {
+			continue
+		}
+		if newName, ok := mapping[dialer]; ok {
+			proxy["dialer-proxy"] = newName
+		}
+	}
+
+	return mapping
+}
+
+func applyProviderProxyMapping(provider map[string]any, mapping map[string]string) {
+	if len(mapping) == 0 || len(provider) == 0 {
+		return
+	}
+
+	if dialer, ok := provider["dialer-proxy"].(string); ok {
+		if newName, ok := mapping[dialer]; ok {
+			provider["dialer-proxy"] = newName
+		}
+	}
+
+	if name, ok := provider["proxy"].(string); ok {
+		if newName, ok := mapping[name]; ok {
+			provider["proxy"] = newName
+		}
+	}
+}
+
 func applyProxyNameMapping(rawCfg *config.RawConfig, mapping map[string]string) {
 	if len(mapping) == 0 {
 		return
@@ -471,12 +526,21 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 		usedProviderKeys := map[string]int{}
 		usedProxyNames := map[string]int{}
 
+		if multi && len(primaryRaw.Proxy) > 0 {
+			proxyNameMap = renameProfileProxies(primaryRaw.Proxy, primaryTag, true, usedProxyNames)
+		}
+
+		if len(proxyNameMap) > 0 {
+			applyProxyNameMapping(rawCfg, proxyNameMap)
+		}
+
 		if len(primaryRaw.ProxyProvider) > 0 {
 			providerCount := len(primaryRaw.ProxyProvider)
 			for key, value := range primaryRaw.ProxyProvider {
 				if multi {
 					applyProviderSuffix(value, providerSuffix(primaryTag, key, providerCount))
 				}
+				applyProviderProxyMapping(value, proxyNameMap)
 				providers[key] = value
 				if multi {
 					usedProviderKeys[key] = 1
@@ -485,20 +549,7 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 		}
 
 		if len(primaryRaw.Proxy) > 0 {
-			for _, proxy := range primaryRaw.Proxy {
-				if name, ok := proxy["name"].(string); ok && name != "" {
-					if multi {
-						newName := formatProxyName(name, primaryTag, true, usedProxyNames)
-						if newName != name {
-							proxy["name"] = newName
-							if _, exists := proxyNameMap[name]; !exists {
-								proxyNameMap[name] = newName
-							}
-						}
-					}
-				}
-				proxies = append(proxies, proxy)
-			}
+			proxies = append(proxies, primaryRaw.Proxy...)
 		}
 
 		if multi {
@@ -511,33 +562,25 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 
 				tag := profileTags[extra.Id]
 
+				extraProxyMap := map[string]string{}
+				if len(extraRaw.Proxy) > 0 {
+					extraProxyMap = renameProfileProxies(extraRaw.Proxy, tag, multi, usedProxyNames)
+					proxies = append(proxies, extraRaw.Proxy...)
+				}
+
 				if len(extraRaw.ProxyProvider) > 0 {
 					providerCount := len(extraRaw.ProxyProvider)
 					for key, value := range extraRaw.ProxyProvider {
 						if multi {
 							applyProviderSuffix(value, providerSuffix(tag, key, providerCount))
 						}
+						applyProviderProxyMapping(value, extraProxyMap)
 						newKey := fmt.Sprintf("%s-%s", tag, key)
 						if providerCount == 1 {
 							newKey = tag
 						}
 						newKey = ensureUniqueKey(newKey, usedProviderKeys)
 						providers[newKey] = value
-					}
-				}
-
-				if len(extraRaw.Proxy) > 0 {
-					for _, proxy := range extraRaw.Proxy {
-						if name, ok := proxy["name"].(string); ok && name != "" {
-							newName := formatProxyName(name, tag, multi, usedProxyNames)
-							if newName != name {
-								proxy["name"] = newName
-								if _, exists := proxyNameMap[name]; !exists {
-									proxyNameMap[name] = newName
-								}
-							}
-						}
-						proxies = append(proxies, proxy)
 					}
 				}
 			}
@@ -561,10 +604,6 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 			}
 		}
 
-		if len(proxyNameMap) > 0 {
-			applyProxyNameMapping(rawCfg, proxyNameMap)
-		}
-
 		return rawCfg, nil
 	}
 
@@ -578,24 +617,19 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 	usedProviderKeys := map[string]int{}
 	usedProxyNames := map[string]int{}
 
-	for _, proxy := range rawCfg.Proxy {
-		if name, ok := proxy["name"].(string); ok && name != "" {
-			newName := formatProxyName(name, primaryTag, true, usedProxyNames)
-			if newName != name {
-				proxy["name"] = newName
-				if _, exists := proxyNameMap[name]; !exists {
-					proxyNameMap[name] = newName
-				}
-			}
-		}
-	}
+	proxyNameMap = renameProfileProxies(rawCfg.Proxy, primaryTag, true, usedProxyNames)
 
 	if len(rawCfg.ProxyProvider) > 0 {
 		providerCount := len(rawCfg.ProxyProvider)
 		for key, value := range rawCfg.ProxyProvider {
 			usedProviderKeys[key] = 1
 			applyProviderSuffix(value, providerSuffix(primaryTag, key, providerCount))
+			applyProviderProxyMapping(value, proxyNameMap)
 		}
+	}
+
+	if len(proxyNameMap) > 0 {
+		applyProxyNameMapping(rawCfg, proxyNameMap)
 	}
 
 	for _, extra := range extras {
@@ -607,12 +641,18 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 
 		tag := profileTags[extra.Id]
 
+		extraProxyMap := map[string]string{}
+		if len(extraRaw.Proxy) > 0 {
+			extraProxyMap = renameProfileProxies(extraRaw.Proxy, tag, multi, usedProxyNames)
+		}
+
 		if len(extraRaw.ProxyProvider) > 0 {
 			providerCount := len(extraRaw.ProxyProvider)
 			for key, value := range extraRaw.ProxyProvider {
 				if multi {
 					applyProviderSuffix(value, providerSuffix(tag, key, providerCount))
 				}
+				applyProviderProxyMapping(value, extraProxyMap)
 				newKey := fmt.Sprintf("%s-%s", tag, key)
 				if providerCount == 1 {
 					newKey = tag
@@ -623,18 +663,7 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 		}
 
 		if len(extraRaw.Proxy) > 0 {
-			for _, proxy := range extraRaw.Proxy {
-				if name, ok := proxy["name"].(string); ok && name != "" {
-					newName := formatProxyName(name, tag, multi, usedProxyNames)
-					if newName != name {
-						proxy["name"] = newName
-						if _, exists := proxyNameMap[name]; !exists {
-							proxyNameMap[name] = newName
-						}
-					}
-				}
-				proxies = append(proxies, proxy)
-			}
+			proxies = append(proxies, extraRaw.Proxy...)
 		}
 	}
 
@@ -650,10 +679,6 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 
 	if len(proxies) > 0 {
 		rawCfg.Proxy = append(rawCfg.Proxy, proxies...)
-	}
-
-	if len(proxyNameMap) > 0 {
-		applyProxyNameMapping(rawCfg, proxyNameMap)
 	}
 
 	return rawCfg, nil
