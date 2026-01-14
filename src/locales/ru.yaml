@@ -171,6 +171,7 @@ proxies:
 
 profiles:
   title: Профили
+  primary: Основной
   add: Добавить
   paste: Импорт из буфера обмена
   open: Импорт из файла

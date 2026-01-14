@@ -31,6 +31,29 @@ const includeProxy: any = {
     Smart: true,
 }
 
+const parseOrigin = (name: string) => {
+    if (typeof name !== 'string') {
+        return {displayName: name};
+    }
+
+    const trimmed = name.trim();
+    const match = trimmed.match(/^(.*)\s\[([^\[\]]+)\]$/);
+    if (!match) {
+        return {displayName: name};
+    }
+
+    const displayName = match[1].trim();
+    const origin = match[2].trim();
+    if (!origin) {
+        return {displayName: name};
+    }
+
+    return {
+        displayName: displayName || name,
+        origin,
+    };
+}
+
 // 计算类名
 const getClass = (delay: any) => {
     if (delay === 99999) {
@@ -125,13 +148,16 @@ export default function createProxiesApi(proxy: any) {
                 const proxy = proxies[name]
                 const type = proxy['type'];
                 const delay = getDelay(proxy)
+                const parsed = parseOrigin(name)
                 if (includeProxy[type]) {
                     inProxies.push({
                         name,
                         type,
                         delay: delay,
                         now: name === nowName,
-                        toClass: getClass(delay)
+                        toClass: getClass(delay),
+                        displayName: parsed.displayName,
+                        origin: parsed.origin,
                     })
                 } else {
                     activeProxies.push({
@@ -139,7 +165,9 @@ export default function createProxiesApi(proxy: any) {
                         type,
                         delay,
                         now: name === nowName,
-                        toClass: getClass(delay)
+                        toClass: getClass(delay),
+                        displayName: parsed.displayName,
+                        origin: parsed.origin,
                     })
                 }
             }

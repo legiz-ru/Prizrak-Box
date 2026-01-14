@@ -1,5 +1,5 @@
 import {AxiosRequestConfig} from "axios";
-import {Profile} from "@/types/profile";
+import {Profile, ProfileSelectionPayload} from "@/types/profile";
 
 // 添加配置从input
 const addProfileFromInput = (proxy: any) => async function (profile: Profile, config?: AxiosRequestConfig): Promise<Profile[]> {
@@ -32,8 +32,8 @@ const refreshProfile = (proxy: any) => async function (profile: Profile) {
 }
 
 // 切换配置
-const switchProfile = (proxy: any) => async function (profile: Profile) {
-    return await proxy.$http.patch('/profile', profile);
+const switchProfile = (proxy: any) => async function (payload: Profile | ProfileSelectionPayload) {
+    return await proxy.$http.patch('/profile', payload);
 }
 
 

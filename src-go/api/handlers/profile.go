@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -81,6 +82,39 @@ func getProfile(w http.ResponseWriter, r *http.Request) {
 		// 如果都不在 order 中，按 Order 字段排序
 		return res[i].Order < res[j].Order
 	})
+
+	var primaryId string
+	_ = cache.Get(constant.ProfilePrimary, &primaryId)
+
+	primarySet := false
+	if primaryId != "" {
+		for i := range res {
+			if res[i].Id == primaryId && res[i].Selected {
+				primarySet = true
+				break
+			}
+		}
+	}
+
+	if !primarySet {
+		for i := range res {
+			if res[i].Selected {
+				primaryId = res[i].Id
+				primarySet = true
+				_ = cache.Put(constant.ProfilePrimary, primaryId)
+				break
+			}
+		}
+	}
+
+	if !primarySet && len(res) > 0 {
+		primaryId = res[0].Id
+		_ = cache.Put(constant.ProfilePrimary, primaryId)
+	}
+
+	for i := range res {
+		res[i].Primary = res[i].Id == primaryId
+	}
 
 	render.JSON(w, r, res)
 }
@@ -263,26 +297,120 @@ func deleteProfile(w http.ResponseWriter, r *http.Request) {
 	render.NoContent(w, r)
 }
 
+type switchProfileRequest struct {
+	Id        string `json:"id"`
+	Selected  *bool  `json:"selected,omitempty"`
+	Exclusive *bool  `json:"exclusive,omitempty"`
+}
+
 // 切换配置
 func switchProfile(w http.ResponseWriter, r *http.Request) {
-	var profile models.Profile
-	if err := render.DecodeJSON(r.Body, &profile); err != nil {
+	var req switchProfileRequest
+	if err := render.DecodeJSON(r.Body, &req); err != nil {
 		ErrorResponse(w, r, err)
+		return
+	}
+
+	if req.Id == "" {
+		ErrorResponse(w, r, errors.New("profile id is required"))
 		return
 	}
 
 	var profiles []models.Profile
 	_ = cache.GetList(constant.PrefixProfile, &profiles)
-	for _, p := range profiles {
-		if p.Selected {
-			p.Selected = false
-			_ = cache.Put(p.Id, p)
+	if len(profiles) == 0 {
+		render.NoContent(w, r)
+		return
+	}
+
+	exclusive := true
+	if req.Exclusive != nil {
+		exclusive = *req.Exclusive
+	}
+
+	if exclusive {
+		found := false
+		for _, p := range profiles {
+			if p.Id == req.Id {
+				found = true
+				break
+			}
+		}
+		if !found {
+			ErrorResponse(w, r, errors.New("profile not found"))
+			return
+		}
+
+		for _, p := range profiles {
+			updated := p
+			if p.Id == req.Id {
+				updated.Selected = true
+			} else if p.Selected {
+				updated.Selected = false
+			}
+			if updated.Selected != p.Selected {
+				_ = cache.Put(updated.Id, updated)
+			}
+		}
+		_ = cache.Put(constant.ProfilePrimary, req.Id)
+	} else {
+		var target *models.Profile
+		for i := range profiles {
+			if profiles[i].Id == req.Id {
+				target = &profiles[i]
+				break
+			}
+		}
+		if target == nil {
+			ErrorResponse(w, r, errors.New("profile not found"))
+			return
+		}
+
+		desired := target.Selected
+		if req.Selected != nil {
+			desired = *req.Selected
 		} else {
-			continue
+			desired = !target.Selected
+		}
+
+		if target.Selected != desired {
+			target.Selected = desired
+			_ = cache.Put(target.Id, *target)
+		}
+
+		selectedCount := 0
+		for _, p := range profiles {
+			if p.Id == target.Id {
+				if desired {
+					selectedCount++
+				}
+				continue
+			}
+			if p.Selected {
+				selectedCount++
+			}
+		}
+		if selectedCount == 0 {
+			target.Selected = true
+			desired = true
+			_ = cache.Put(target.Id, *target)
+		}
+
+		if desired {
+			_ = cache.Put(constant.ProfilePrimary, target.Id)
+		} else {
+			var primaryId string
+			_ = cache.Get(constant.ProfilePrimary, &primaryId)
+			if primaryId == target.Id {
+				for _, p := range profiles {
+					if p.Id != target.Id && p.Selected {
+						_ = cache.Put(constant.ProfilePrimary, p.Id)
+						break
+					}
+				}
+			}
 		}
 	}
-	profile.Selected = true
-	_ = cache.Put(profile.Id, profile)
 
 	internal.SwitchProfile(true)
 

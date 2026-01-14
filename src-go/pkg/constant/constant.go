@@ -11,6 +11,7 @@ const (
 	DefaultDownload        = "Download_0.yaml"
 	PrefixProfile          = "Profile_"
 	ProfileOrder           = "ProfileOrder"
+	ProfilePrimary         = "ProfilePrimary"
 	PrefixWebTest          = "WebTest_"
 	WebTestOrder           = "WebTestOrder"
 	PrefixGetter           = "Getter_"

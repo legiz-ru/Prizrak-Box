@@ -35,7 +35,14 @@ const debouncedSearch = debounce((keyword) => {
     if (arr && arr.length === 0) return;
     const result: any[] = [];
     arr.some(item => {
-      if (item.name.toLowerCase().includes(lowerKeyword)) {
+      const rawName = typeof item.name === 'string' ? item.name : '';
+      const displayName = typeof item.displayName === 'string' ? item.displayName : rawName;
+      const origin = typeof item.origin === 'string' ? item.origin : '';
+      if (
+          displayName.toLowerCase().includes(lowerKeyword) ||
+          rawName.toLowerCase().includes(lowerKeyword) ||
+          origin.toLowerCase().includes(lowerKeyword)
+      ) {
         result.push(item);
       }
 
@@ -165,7 +172,8 @@ async function changeProxy(now: any, name: any) {
         <!--        <li class="group">A</li>-->
         <!--        <li>Alice</li>-->
         <li v-for="item in searchList" @click="changeProxy(item['now'], item['name'])">
-          <span class="sName"> {{ item.name }} </span>
+          <span class="sName"> {{ item.displayName ?? item.name }} </span>
+          <span v-if="item.origin" class="sOrigin"> {{ item.origin }} </span>
           <span :class="'sDelay ' + item['toClass']">{{ item.delay }} ms</span>
         </li>
       </ul>
@@ -301,6 +309,18 @@ async function changeProxy(now: any, name: any) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.sOrigin {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--text-color);
+  font-size: 10px;
+  opacity: 0.7;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 .sDelay {

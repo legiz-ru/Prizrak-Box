@@ -171,6 +171,7 @@ proxies:
 
 profiles:
   title: Profiles
+  primary: Primary
   add: Add
   paste: Import from Clipboard
   open: Import from file

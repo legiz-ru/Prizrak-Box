@@ -160,27 +160,77 @@ function mouseLeave() {
   canDrag.value = false
 }
 
-// 切换订阅配置
-async function switchProfile(data: any) {
-  if (data['selected']) {
+const isMultiSelect = (event?: MouseEvent) => {
+  return !!event && (event.ctrlKey || event.metaKey || event.shiftKey)
+}
+
+const applyPrimarySelection = (id?: string) => {
+  if (!id) {
+    for (let profile of profiles) {
+      profile['primary'] = false
+    }
     return
+  }
+  for (let profile of profiles) {
+    profile['primary'] = profile['id'] === id
+  }
+}
+
+// 切换订阅配置
+async function switchProfile(data: any, event?: MouseEvent) {
+  const multi = isMultiSelect(event)
+  const exclusive = !multi
+  const nextSelected = multi ? !data['selected'] : true
+  const wasPrimary = !!data['primary']
+
+  const selectedCount = profiles.filter(profile => profile['selected']).length
+
+  if (exclusive && data['selected'] && selectedCount <= 1) {
+    return
+  }
+
+  if (multi && !nextSelected) {
+    if (selectedCount <= 1) {
+      pWarning(t("select-profile-warning"))
+      return
+    }
   }
 
   await pLoad(t('profiles.switch.ing'), async () => {
     try {
-      await api.switchProfile(data)
+      await api.switchProfile({
+        id: data['id'],
+        selected: nextSelected,
+        exclusive,
+      })
       proxiesStore.active = ""
 
       await api.waitRunning()
 
-      for (let profile of profiles) {
-        if (profile['selected']) {
-          profile['selected'] = false
+      if (exclusive) {
+        for (let profile of profiles) {
+          profile['selected'] = profile['id'] === data['id']
+        }
+        applyPrimarySelection(data['id'])
+      } else {
+        data['selected'] = nextSelected
+        if (nextSelected) {
+          applyPrimarySelection(data['id'])
+        } else if (wasPrimary) {
+          const fallback = profiles.find(profile => profile['selected'])
+          applyPrimarySelection(fallback ? fallback['id'] : undefined)
         }
       }
-      data['selected'] = true
 
-      webStore.fProfile = toRaw(data)
+      const activeProfile = nextSelected
+          ? data
+          : profiles.find(profile => profile['selected'])
+      if (activeProfile) {
+        webStore.fProfile = toRaw({
+          ...activeProfile,
+          exclusive,
+        })
+      }
 
       api.getRuleNum().then((res) => {
         menuStore.setRuleNum(res);
@@ -206,16 +256,36 @@ async function switchProfile(data: any) {
 
 
 watch(() => webStore.fProfile, async (data: any) => {
-  for (let profile of profiles) {
-    if (profile['selected']) {
-      profile['selected'] = false
+  if (!data || !data['id']) {
+    return
+  }
+
+  const exclusive = !!data['exclusive']
+  const desired = typeof data['selected'] === 'boolean' ? data['selected'] : true
+
+  if (exclusive) {
+    for (let profile of profiles) {
+      profile['selected'] = profile['id'] === data['id'] && desired
     }
-    if (profile['id'] == data['id']) {
-      data = profile
+    applyPrimarySelection(desired ? data['id'] : undefined)
+    return
+  }
+
+  let wasPrimary = false
+  for (let profile of profiles) {
+    if (profile['id'] === data['id']) {
+      wasPrimary = !!profile['primary']
+      profile['selected'] = desired
+      break
     }
   }
 
-  data['selected'] = true
+  if (desired) {
+    applyPrimarySelection(data['id'])
+  } else if (wasPrimary) {
+    const fallback = profiles.find(profile => profile['selected'])
+    applyPrimarySelection(fallback ? fallback['id'] : undefined)
+  }
 })
 
 
@@ -513,7 +583,7 @@ watch(() => webStore.dProfile, async (pList) => {
         <template v-slot:VDC="{data,index}">
           <div
               :class="data.selected?'sub-card sub-card-select':'sub-card'"
-              @click="switchProfile(data)"
+              @click="switchProfile(data, $event)"
           >
             <div class="row card-header">
               <el-icon
@@ -524,7 +594,10 @@ watch(() => webStore.dProfile, async (pList) => {
                 <icon-mdi-drag/>
               </el-icon>
               <div class="profile-name" :title="data.title">
-                {{ data.title }}
+                <span class="profile-name-text">{{ data.title }}</span>
+                <span v-if="data.primary" class="profile-primary">
+                  {{ $t('profiles.primary') }}
+                </span>
               </div>
               <div class="header-action">
                 <el-tooltip
@@ -806,11 +879,29 @@ watch(() => webStore.dProfile, async (pList) => {
 
 .profile-name {
   flex: 1;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.profile-name-text {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-weight: 600;
+  min-width: 0;
+}
+
+.profile-primary {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--text-color);
+  opacity: 0.75;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .header-action {
