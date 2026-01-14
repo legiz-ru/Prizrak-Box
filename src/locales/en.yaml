@@ -313,3 +313,29 @@ errors:
   response-empty: Response body is empty
   unknown-reason: Unknown reason
 
+service:
+  dialog-title: TUN Mode
+  dialog-message: TUN mode requires administrator privileges
+  dialog-description: You can install a service that allows TUN mode to work without running the application as administrator. Installing the service requires a one-time administrator confirmation.
+  dialog-restart-admin: If you want to enable TUN without installing the service, restart the app with administrator privileges.
+  admin-title: TUN Mode
+  admin-message: The app is running with administrator privileges
+  admin-description: You can start TUN now or install the service so TUN can run later without admin rights.
+  admin-run-btn: Start TUN
+  admin-install-btn: Install Service
+  install-btn: Install Service
+  installing: Installing service...
+  install-success: Service installed successfully
+  install-failed: Failed to install service
+  uninstall-btn: Uninstall Service
+  uninstalling: Uninstalling service...
+  uninstall-success: Service uninstalled successfully
+  uninstall-failed: Failed to uninstall service
+  restart-required: Please restart the application to apply changes
+  status-running: Service is running
+  status-stopped: Service is stopped
+  status-not-installed: Service is not installed
+  status-no-admin: Running without admin rights
+  check-status: Check service status
+  mode: Service Mode
+  mode-description: Allows TUN mode without administrator privileges

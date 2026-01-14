@@ -109,14 +109,53 @@ Events.On("switchProxy", async () => {
 });
 
 
+// Диалог предложения установки сервиса
+const showServiceDialog = ref(false);
+// Диалог выбора при наличии админских прав
+const showAdminChoiceDialog = ref(false);
+
 // 虚拟网卡开关
 async function tunSwitch() {
-  // 检测是否运行在管理员模式下
+  if (tunOn.value) {
+    await enableTun();
+    return;
+  }
+
+  // Проверяем, есть ли права администратора или сервис в админ-режиме
   const admin = await api.getAdmin();
-  if (!admin.data) {
-    pWarning(t("tun-warning"));
+  const hasAdmin = !!admin.data;
+  let allowTun = hasAdmin;
+
+  if (!allowTun) {
+    try {
+      // @ts-ignore
+      const status = await window.pxService.getStatus();
+      allowTun = status?.running && status?.isAdmin;
+    } catch (e) {
+      allowTun = false;
+    }
+  }
+
+  if (!allowTun) {
+    // Нет прав администратора - предлагаем установить сервис
+    showServiceDialog.value = true;
     Events.Emit({name: "tun", data: false});
-    return
+    return;
+  }
+
+  if (hasAdmin) {
+    try {
+      // @ts-ignore
+      const status = await window.pxService.getStatus();
+      const serviceElevated = status?.running && status?.isAdmin;
+      if (!serviceElevated) {
+        showAdminChoiceDialog.value = true;
+        return;
+      }
+    } catch (e) {
+      showAdminChoiceDialog.value = true;
+      return;
+    }
   }
 
   // 添加配置后执行
@@ -126,7 +165,12 @@ async function tunSwitch() {
     return
   }
 
-  // 检测通过执行后续操作
+  // Включаем TUN
+  await enableTun();
+}
+
+// Включение TUN режима
+async function enableTun() {
   menuStore.setTun(!tunOn.value);
   if (menuStore.tun) {
     api.updateConfigs({
@@ -140,6 +184,7 @@ async function tunSwitch() {
 
       // 同步 mihomo 配置
       pUpdateMihomo(menuStore, settingStore, api)
+      notifyServiceStatusChanged();
 
       // 发送事件通知
       Events.Emit({name: "tun", data: menuStore.tun});
@@ -155,11 +200,85 @@ async function tunSwitch() {
 
       // 同步 mihomo 配置
       pUpdateMihomo(menuStore, settingStore, api)
+      notifyServiceStatusChanged();
 
       // 发送事件通知
       Events.Emit({name: "tun", data: menuStore.tun});
     });
   }
+}
+
+// Установка сервиса
+async function installServiceHandler() {
+  showServiceDialog.value = false;
+  showAdminChoiceDialog.value = false;
+  pLoad(t('service.installing'), async () => {
+    try {
+      // @ts-ignore
+      const installed = await window.pxService.install();
+      if (installed) {
+        pSuccess(t('service.install-success'));
+        const restarted = await restartBackendAfterInstall();
+        await notifyServiceStatusChanged();
+        if (restarted) {
+          await api.waitRunning();
+          const select = await selected();
+          if (select) {
+            await enableTun();
+          }
+        }
+      } else {
+        pError(t('service.install-failed'));
+      }
+    } catch (e) {
+      pError(t('service.install-failed'));
+    }
+  });
+}
+
+async function restartBackendAfterInstall(): Promise<boolean> {
+  try {
+    await api.exit();
+  } catch (e) {
+    // ignore exit errors
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 800));
+
+  try {
+    // @ts-ignore
+    const restarted = await window.pxService.restartBackend();
+    if (!restarted) {
+      pWarning(t('service.restart-required'));
+    }
+    return restarted;
+  } catch (e) {
+    pWarning(t('service.restart-required'));
+    return false;
+  }
+}
+
+async function notifyServiceStatusChanged() {
+  window.dispatchEvent(new CustomEvent('service-status-updated'));
+}
+
+async function runTunWithoutService() {
+  showAdminChoiceDialog.value = false;
+  const select = await selected();
+  if (!select) {
+    Events.Emit({name: "tun", data: false});
+    return;
+  }
+  await enableTun();
+}
+
+// Закрыть диалог
+function closeServiceDialog() {
+  showServiceDialog.value = false;
+}
+
+function closeAdminChoiceDialog() {
+  showAdminChoiceDialog.value = false;
 }
 
 Events.On("switchTun", async () => {
@@ -224,6 +343,51 @@ watch(() => settingStore.systemProxyMode, async (newValue, oldValue) => {
       </div>
     </div>
   </div>
+
+  <!-- Диалог предложения установки сервиса -->
+  <el-dialog
+      v-model="showServiceDialog"
+      :title="$t('service.dialog-title')"
+      width="450px"
+      :close-on-click-modal="true"
+      :append-to-body="true"
+      :modal="true"
+      :z-index="9999"
+  >
+    <div class="service-dialog">
+      <p class="service-dialog__message">{{ $t('service.dialog-message') }}</p>
+      <p class="service-dialog__description">{{ $t('service.dialog-description') }}</p>
+      <p class="service-dialog__description">{{ $t('service.dialog-restart-admin') }}</p>
+    </div>
+    <template #footer>
+      <div class="service-dialog__footer">
+        <el-button @click="closeServiceDialog">{{ $t('cancel') }}</el-button>
+        <el-button type="primary" @click="installServiceHandler">{{ $t('service.install-btn') }}</el-button>
+      </div>
+    </template>
+  </el-dialog>
+
+  <el-dialog
+      v-model="showAdminChoiceDialog"
+      :title="$t('service.admin-title')"
+      width="450px"
+      :close-on-click-modal="true"
+      :append-to-body="true"
+      :modal="true"
+      :z-index="9999"
+  >
+    <div class="service-dialog">
+      <p class="service-dialog__message">{{ $t('service.admin-message') }}</p>
+      <p class="service-dialog__description">{{ $t('service.admin-description') }}</p>
+    </div>
+    <template #footer>
+      <div class="service-dialog__footer">
+        <el-button @click="closeAdminChoiceDialog">{{ $t('cancel') }}</el-button>
+        <el-button @click="runTunWithoutService">{{ $t('service.admin-run-btn') }}</el-button>
+        <el-button type="primary" @click="installServiceHandler">{{ $t('service.admin-install-btn') }}</el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <style scoped>
@@ -284,5 +448,31 @@ watch(() => settingStore.systemProxyMode, async (newValue, oldValue) => {
 
 .switch-on .switch-circle {
   left: 31px;
+}
+
+</style>
+
+<style>
+/* Стили для диалога сервиса (не scoped, т.к. el-dialog рендерится вне компонента) */
+.service-dialog {
+  padding: 10px 0;
+}
+
+.service-dialog__message {
+  font-size: 16px;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.service-dialog__description {
+  font-size: 14px;
+  opacity: 0.8;
+  line-height: 1.6;
+}
+
+.service-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 </style>

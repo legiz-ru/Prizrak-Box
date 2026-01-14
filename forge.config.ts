@@ -11,7 +11,9 @@ import {FusesPlugin} from '@electron-forge/plugin-fuses';
 import {FuseV1Options, FuseVersion} from '@electron/fuses';
 
 const isWindows = process.platform === 'win32';
-const extraResource = isWindows ? ['src-go/px.exe'] : ['src-go/px'];
+const extraResource = isWindows
+    ? ['src-go/px.exe', 'src-service/px-service.exe']
+    : ['src-go/px', 'src-service/px-service'];
 const arch = process.env.ARCH || process.arch;
 const envProvidedIdentity = process.env.MAC_CODESIGN_IDENTITY
     || process.env.CODESIGN_IDENTITY

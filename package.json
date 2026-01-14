@@ -9,7 +9,10 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx ."
+    "lint": "eslint --ext .ts,.tsx .",
+    "build:service": "cd src-service && go build -ldflags=\"-s -w\" -o px-service .",
+    "build:service:windows": "cd src-service && go build -ldflags=\"-s -w\" -o px-service.exe .",
+    "build:all": "npm run build:service && npm run package"
   },
   "keywords": [],
   "author": {

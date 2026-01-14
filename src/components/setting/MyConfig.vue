@@ -3,6 +3,7 @@
 import MyPort from "@/components/setting/MyPort.vue";
 import MyBind from "@/components/setting/MyBind.vue";
 import MyTun from "@/components/setting/MyTun.vue";
+import MyService from "@/components/setting/MyService.vue";
 import {ArrowDown, EditPen} from "@element-plus/icons-vue";
 import {useWebStore} from "@/store/webStore";
 import {useHomeStore} from "@/store/homeStore";
@@ -386,6 +387,9 @@ watch(dashboardDialogVisible, (visible) => {
                 v-model="settingStore.auth"
                 class="set-switch"
             />
+          </li>
+          <li>
+            <MyService />
           </li>
           <li style="height: 30px">
             <strong>{{ $t('setting.px.dir') }} :</strong>

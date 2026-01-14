@@ -4,6 +4,11 @@ import {app, dialog} from "electron";
 import fs from "node:fs";
 import log from './log';
 import {storeGet} from "./store";
+import {
+    isServiceRunning,
+    startPxViaService,
+    isServiceModeEnabled
+} from "./service";
 
 // 是否在开发模式
 const isDev = !app.isPackaged;
@@ -61,11 +66,30 @@ function checkAdminRights(callback: any) {
 }
 
 // 开启后端
-export function startBackend(addr: string) {
+export async function startBackend(addr: string) {
     const backendPath = getBackendPath();
-    const args = ['-addr=' + addr, '-home=' + encodeURIComponent(log.getHomeDir())];
+    const homeDir = encodeURIComponent(log.getHomeDir());
+    const args = ['-addr=' + addr, '-home=' + homeDir];
 
-    // Check admin rights
+    // Проверяем режим сервиса
+    if (isServiceModeEnabled()) {
+        log.info('[Backend] Service mode is enabled, checking service...');
+        const serviceRunning = await isServiceRunning();
+
+        if (serviceRunning) {
+            log.info('[Backend] Service is running, starting px via service...');
+            const started = await startPxViaService(backendPath, addr, homeDir);
+            if (started) {
+                log.info('[Backend] px started via service successfully');
+                return;
+            }
+            log.warn('[Backend] Failed to start px via service, falling back to normal mode');
+        } else {
+            log.warn('[Backend] Service mode enabled but service not running, falling back to normal mode');
+        }
+    }
+
+    // Стандартный режим запуска
     checkAdminRights((isAdmin: boolean) => {
         if (isAdmin) {
             log.info('Has administrator privileges');

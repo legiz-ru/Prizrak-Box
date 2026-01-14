@@ -6,6 +6,14 @@ import {startBackend} from "./admin";
 import log from './log';
 import {initStore, storeGet} from "./store";
 import {isBootAutoLaunch, updateAutoLaunchRegistration, waitForNetworkReady} from "./launch";
+import {
+    getServiceStatus,
+    installService,
+    uninstallService,
+    isServiceRunning,
+    showServiceInstallDialog,
+    ServiceStatus
+} from "./service";
 
 // 是否在开发模式
 const isDev = !app.isPackaged;
@@ -219,6 +227,37 @@ ipcMain.on(DEEP_LINK_READY_EVENT, (event) => {
 
     deepLinkHandlerReady = true;
     processPendingDeepLinks();
+});
+
+// IPC обработчики для сервиса
+ipcMain.handle('service:getStatus', async (): Promise<ServiceStatus> => {
+    return await getServiceStatus();
+});
+
+ipcMain.handle('service:install', async (): Promise<boolean> => {
+    return await installService();
+});
+
+ipcMain.handle('service:uninstall', async (): Promise<boolean> => {
+    return await uninstallService();
+});
+
+ipcMain.handle('service:isRunning', async (): Promise<boolean> => {
+    return await isServiceRunning();
+});
+
+ipcMain.handle('service:restartBackend', async (): Promise<boolean> => {
+    const addr = storeInfo.listenAddr();
+    if (!addr) {
+        log.error('[Service] Backend restart failed: missing listen address');
+        return false;
+    }
+    await startBackend(addr);
+    return true;
+});
+
+ipcMain.handle('service:showInstallDialog', async (): Promise<'install' | 'skip' | 'cancel'> => {
+    return await showServiceInstallDialog();
 });
 
 // 等待 backend 传来的 port 和 secret
