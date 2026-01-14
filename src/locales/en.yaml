@@ -60,8 +60,10 @@ search: Search proxy
 drag:
   hear: Drag the profile here to import
   size: Only allowed to import single file
+  open: Choose file
   add: Importing...
   success: Import Success
+  error: Failed to import profile
 
 home:
   download: Download

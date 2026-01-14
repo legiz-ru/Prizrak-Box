@@ -571,7 +571,7 @@ watch(groupList, (list) => {
           </div>
           <div class="proxy-nodes-tags">
             <span class="proxy-nodes-tags-left">
-              <span>{{ node["type"] }}</span>
+              <span>{{ node["displayType"] ?? node["type"] }}</span>
               <template v-if="nestedGroupSelections[node['name']]">
                 <span class="proxy-selected-separator">•</span>
                 <span class="proxy-selected-name" :title="nestedGroupSelections[node['name']]">
@@ -645,7 +645,7 @@ watch(groupList, (list) => {
                 </div>
                 <div class="proxy-nodes-tags">
                   <span class="proxy-nodes-tags-left">
-                    <span>{{ node["type"] }}</span>
+                    <span>{{ node["displayType"] ?? node["type"] }}</span>
                     <template v-if="nestedGroupSelections[node['name']]">
                       <span class="proxy-selected-separator">•</span>
                       <span class="proxy-selected-name" :title="nestedGroupSelections[node['name']]">

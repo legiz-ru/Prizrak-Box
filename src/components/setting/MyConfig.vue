@@ -7,7 +7,8 @@ import MyService from "@/components/setting/MyService.vue";
 import {ArrowDown, EditPen} from "@element-plus/icons-vue";
 import {useWebStore} from "@/store/webStore";
 import {useHomeStore} from "@/store/homeStore";
-import {copy} from "@/util/pLoad";
+import {copy, pError, pLoad, pSuccess, pWarning} from "@/util/pLoad";
+import {Profile} from "@/types/profile";
 import {useI18n} from "vue-i18n";
 import {useSettingStore} from "@/store/settingStore";
 import createApi from "@/api";
@@ -95,6 +96,66 @@ const hwidTooltipContent = computed(() => {
   if (lines.length === 0) {
     return ['HWID=—', 'OS=—', 'OS Version=—', 'Model=—'];
   }
+const importInputRef = ref<HTMLInputElement | null>(null);
+
+const openImportDialog = () => {
+  importInputRef.value?.click();
+};
+
+const handleImportFile = async (event: Event) => {
+  const target = event.target as HTMLInputElement | null;
+  const files = target?.files ? Array.from(target.files) : [];
+  if (files.length === 0) {
+    return;
+  }
+
+  if (files.length > 1) {
+    pWarning(t("drag.size"));
+    if (target) {
+      target.value = '';
+    }
+    return;
+  }
+
+  const file = files[0];
+  const reader = new FileReader();
+  reader.onload = async (loadEvent) => {
+    await pLoad(t("drag.add"), async () => {
+      const profile = new Profile();
+      profile.content = loadEvent.target?.result ?? '';
+      profile.title = file.name;
+      try {
+        const pList = await api.addProfileFromInput(profile);
+        if (pList && pList.length > 0) {
+          webStore.dProfile = pList;
+          pSuccess(t("drag.success"));
+          api.getProfileList().then((list) => {
+            Events.Emit({
+              name: "profiles",
+              data: list,
+            });
+          });
+        }
+      } catch (e) {
+        if (e && typeof e === 'object' && 'message' in e && typeof e.message === 'string') {
+          pError(e.message);
+        } else {
+          pError(String(e));
+        }
+      }
+    });
+  };
+  reader.onerror = (error) => {
+    console.error(`Error reading ${file.name}:`, error);
+    pError(t("drag.error"));
+  };
+  reader.readAsText(file);
+
+  if (target) {
+    target.value = '';
+  }
+};
+
 
   return lines;
 });
@@ -397,7 +458,16 @@ watch(dashboardDialogVisible, (visible) => {
               {{ $t('setting.px.open') }}
             </el-button>
             <!--            <el-button>{{ $t('setting.px.export') }}</el-button>-->
-            <!--            <el-button>{{ $t('setting.px.import') }}</el-button>-->
+            <el-button @click="openImportDialog" style="margin-left: 10px">
+              {{ $t('setting.px.import') }}
+            </el-button>
+            <input
+                ref="importInputRef"
+                type="file"
+                accept=".yaml,.yml"
+                hidden
+                @change="handleImportFile"
+            />
           </li>
           <li class="update-row">
             <strong>{{ $t('setting.px.update') }} :</strong>

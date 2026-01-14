@@ -1,6 +1,18 @@
 <template>
   <div class="mask" @click="webStore.dnd = false" v-show="webStore.dnd">
-    <h3>{{ t("drag.hear") }}</h3>
+    <div class="mask-card" @click.stop>
+      <h3>{{ t("drag.hear") }}</h3>
+      <el-button class="import-button" @click="openImportDialog">
+        {{ t("drag.open") }}
+      </el-button>
+      <input
+          ref="importInputRef"
+          type="file"
+          accept=".yaml,.yml"
+          hidden
+          @change="handleImportFile"
+      />
+    </div>
   </div>
 </template>
 
@@ -11,12 +23,80 @@ import {useI18n} from "vue-i18n";
 import {Profile} from "@/types/profile.js";
 import createApi from "@/api/index.js";
 import {Events} from "@/runtime";
+import {changeMenu} from "@/util/menu";
+import {useRouter} from "vue-router";
 
 const {t} = useI18n();
 const webStore = useWebStore();
+const router = useRouter();
 // 获取当前 Vue 实例的 proxy 对象
 const {proxy} = getCurrentInstance()!;
 const api = createApi(proxy);
+
+const importInputRef = ref<HTMLInputElement | null>(null);
+
+const openImportDialog = () => {
+  importInputRef.value?.click();
+};
+
+const handleImportFile = async (event: Event) => {
+  const target = event.target as HTMLInputElement | null;
+  const files = target?.files ? Array.from(target.files) : [];
+  if (files.length === 0) {
+    return;
+  }
+
+  if (files.length > 1) {
+    pWarning(t("drag.size"));
+    if (target) {
+      target.value = '';
+    }
+    return;
+  }
+
+  const file = files[0];
+  const reader = new FileReader();
+  reader.onload = async (loadEvent) => {
+    await pLoad(t("drag.add"), async () => {
+      const p = new Profile();
+      p.content = loadEvent.target?.result ?? '';
+      p.title = file.name;
+      try {
+        const pList = await api.addProfileFromInput(p);
+        if (pList && pList.length > 0) {
+          webStore.dProfile = pList;
+          pSuccess(t("drag.success"));
+          webStore.dnd = false;
+          changeMenu("Profiles", router);
+
+          api.getProfileList().then((list) => {
+            Events.Emit({
+              name: "profiles",
+              data: list,
+            });
+          });
+        }
+      } catch (e) {
+        if (e && typeof e === 'object' && 'message' in e && typeof e.message === 'string') {
+          pError(e.message);
+        } else {
+          pError(t("drag.error"));
+        }
+      }
+    });
+  };
+
+  reader.onerror = (error) => {
+    console.error(`Error reading ${file.name}:`, error);
+    pError(t("drag.error"));
+  };
+
+  reader.readAsText(file);
+
+  if (target) {
+    target.value = '';
+  }
+};
 
 onMounted(() => manageDragEvents("add"));
 onUnmounted(() => manageDragEvents("remove"));
@@ -107,6 +187,13 @@ function handleDrop(e: any) {
   font-size: 1.5rem;
 }
 
+.mask-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
 h3 {
   margin: 0;
   width: 450px;
@@ -115,5 +202,9 @@ h3 {
   text-align: center;
   padding-top: 70px;
   border-radius: 10px;
+}
+
+.import-button {
+  min-width: 200px;
 }
 </style>
