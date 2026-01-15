@@ -14,6 +14,8 @@ type Profile struct {
 	HeaderTitle string   `json:"headerTitle,omitempty"`
 	Order       string   `json:"order"`
 	Selected    bool     `json:"selected,omitempty"`
+	Primary     bool     `json:"primary,omitempty"`
+	SelectionOrder int   `json:"selectionOrder,omitempty"`
 	Path        string   `json:"path"`
 	Content     string   `json:"content,omitempty"`
 	Used        *big.Int `json:"used,omitempty"`

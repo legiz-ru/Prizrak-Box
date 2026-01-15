@@ -4,6 +4,8 @@ export class Profile {
     title?: string; // 可选
     headerTitle?: string; // 仅当 profile-title 标头存在时
     order!: string;
+    primary?: boolean;
+    selectionOrder?: number;
     selected?: boolean; // 可选
     path!: string;
     content?: string | ArrayBuffer; // 可选
@@ -17,4 +19,10 @@ export class Profile {
     logo?: string; // 可选
     update?: string; // 可选
     template?: string; // 可选
+}
+
+export interface ProfileSelectionPayload {
+    id: string;
+    selected?: boolean;
+    exclusive?: boolean;
 }

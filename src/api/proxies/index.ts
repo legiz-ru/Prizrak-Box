@@ -31,6 +31,66 @@ const includeProxy: any = {
     Smart: true,
 }
 
+let proxyOriginCache: Record<string, string> | null = null;
+let proxyOriginFetchedAt = 0;
+
+export const resetProxyOriginCache = () => {
+    proxyOriginCache = null;
+    proxyOriginFetchedAt = 0;
+}
+
+const fetchProxyOrigins = async (proxy: any) => {
+    const now = Date.now();
+    if (proxyOriginCache && now - proxyOriginFetchedAt < 2000) {
+        return proxyOriginCache;
+    }
+
+    try {
+        const data = await proxy.$http.get('/profile/proxy-origins');
+        if (data && typeof data === 'object') {
+            proxyOriginCache = data as Record<string, string>;
+        } else {
+            proxyOriginCache = {};
+        }
+    } catch {
+        if (!proxyOriginCache) {
+            proxyOriginCache = {};
+        }
+    }
+
+    proxyOriginFetchedAt = now;
+    return proxyOriginCache;
+}
+
+const formatDisplayName = (name: string, origin?: string) => {
+    if (typeof name !== 'string') {
+        return name as any;
+    }
+    if (!origin) {
+        return name;
+    }
+    const suffix = ` [${origin}]`;
+    if (name.endsWith(suffix)) {
+        return name.slice(0, -suffix.length).trim();
+    }
+    return name;
+}
+
+const parseOriginFromName = (name: string) => {
+    if (typeof name !== 'string') {
+        return undefined;
+    }
+    if (!name.endsWith(']')) {
+        return undefined;
+    }
+    const start = name.lastIndexOf(' [');
+    if (start === -1) {
+        return undefined;
+    }
+    const origin = name.slice(start + 2, -1).trim();
+    return origin || undefined;
+}
+
 // 计算类名
 const getClass = (delay: any) => {
     if (delay === 99999) {
@@ -142,6 +202,9 @@ export default function createProxiesApi(proxy: any) {
             }
 
             // 获取分组节点列表
+            const originMap = await fetchProxyOrigins(proxy);
+            const hasOriginMap = originMap && Object.keys(originMap).length > 0;
+
             const proxiesNames = proxies[active]['all']
             const nowName = proxies[active]['now']
 
@@ -154,6 +217,11 @@ export default function createProxiesApi(proxy: any) {
                 const displayType = getDisplayType(proxy, serverDescriptions[name]);
                 const icon = typeof proxy?.['icon'] === 'string' ? proxy['icon'] : undefined;
                 const delay = getDelay(proxy)
+                let origin = originMap ? originMap[name] : undefined;
+                if (!origin && hasOriginMap) {
+                    origin = parseOriginFromName(name);
+                }
+                const displayName = formatDisplayName(name, origin);
                 if (includeProxy[type]) {
                     inProxies.push({
                         name,
@@ -162,7 +230,9 @@ export default function createProxiesApi(proxy: any) {
                         icon,
                         delay: delay,
                         now: name === nowName,
-                        toClass: getClass(delay)
+                        toClass: getClass(delay),
+                        displayName,
+                        origin,
                     })
                 } else {
                     activeProxies.push({
@@ -172,7 +242,9 @@ export default function createProxiesApi(proxy: any) {
                         icon,
                         delay,
                         now: name === nowName,
-                        toClass: getClass(delay)
+                        toClass: getClass(delay),
+                        displayName,
+                        origin,
                     })
                 }
             }

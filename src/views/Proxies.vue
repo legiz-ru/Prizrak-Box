@@ -615,10 +615,12 @@ watch(groupList, (list) => {
             :key="node['name']"
         >
           <div class="proxy-nodes-title">
-            <span :title="node['name']">
-              {{ node["name"] }}
+            <span class="proxy-node-name" :title="node['name']">
+              {{ node["displayName"] ?? node["name"] }}
             </span>
-
+            <span v-if="node['origin']" class="proxy-origin" :title="node['origin']">
+              {{ node["origin"] }}
+            </span>
           </div>
           <div class="proxy-nodes-tags">
             <span class="proxy-nodes-tags-left">
@@ -689,10 +691,12 @@ watch(groupList, (list) => {
                   :key="group + '-' + node['name']"
               >
                 <div class="proxy-nodes-title">
-                  <span :title="node['name']">
-                    {{ node["name"] }}
+                  <span class="proxy-node-name" :title="node['name']">
+                    {{ node["displayName"] ?? node["name"] }}
                   </span>
-
+                  <span v-if="node['origin']" class="proxy-origin" :title="node['origin']">
+                    {{ node["origin"] }}
+                  </span>
                 </div>
                 <div class="proxy-nodes-tags">
                   <span class="proxy-nodes-tags-left">
@@ -859,9 +863,27 @@ watch(groupList, (list) => {
 
 .proxy-nodes-title {
   font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.proxy-node-name {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.proxy-origin {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--text-color);
+  opacity: 0.7;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .proxy-nodes-tags {

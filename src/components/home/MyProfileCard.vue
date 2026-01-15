@@ -72,6 +72,31 @@ function formatDateValue(value: any) {
   return String(value);
 }
 
+const flagEmojiRegex = /([\u{1F1E6}-\u{1F1FF}]{2}|\u{1F3F3}|\u{1F3F4}|\u{1F6A9})/u;
+
+function containsFlagEmoji(value: any) {
+  if (typeof value !== "string") {
+    return false;
+  }
+  return flagEmojiRegex.test(value);
+}
+
+function getProfileDisplayTitle(profile: any) {
+  const title = typeof profile?.title === "string" ? profile.title.trim() : "";
+  const headerTitle = typeof profile?.headerTitle === "string" ? profile.headerTitle.trim() : "";
+
+  if (title) {
+    if (!headerTitle) {
+      return title;
+    }
+    if (containsFlagEmoji(title) || !containsFlagEmoji(headerTitle)) {
+      return title;
+    }
+  }
+
+  return headerTitle || title || "";
+}
+
 function openExternalLink(raw: any) {
   if (typeof raw !== "string") {
     return;
@@ -114,7 +139,8 @@ function pickSelectedProfile(list: any[]) {
     return;
   }
 
-  const selected = list.find(item => item?.selected);
+  const primary = list.find(item => item?.primary);
+  const selected = primary ?? list.find(item => item?.selected);
   applyProfile(selected ?? list[0]);
 }
 
@@ -147,7 +173,7 @@ const profileTitle = computed(() => {
   if (!currentProfile.value) {
     return "";
   }
-  return currentProfile.value.title || currentProfile.value.name || "";
+  return getProfileDisplayTitle(currentProfile.value) || currentProfile.value.name || "";
 });
 
 const hasStats = computed(() => {
@@ -257,6 +283,7 @@ const hasStats = computed(() => {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  font-variant-emoji: emoji;
 }
 
 .profile-links {

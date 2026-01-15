@@ -7,6 +7,7 @@ import {Events} from "@/runtime";
 import {useI18n} from "vue-i18n";
 import {pError, pLoad, pSuccess} from "@/util/pLoad";
 import {useSettingStore} from "@/store/settingStore";
+import {resetProxyOriginCache} from "@/api/proxies";
 import {useWebStore} from "@/store/webStore";
 
 // i18n
@@ -48,13 +49,35 @@ watch(
 );
 
 
+const normalizeSwitchProfilePayload = (ev: any) => {
+  if (ev && ev.profile) {
+    return {
+      profile: ev.profile,
+      selected: ev.selected,
+      exclusive: ev.exclusive,
+    };
+  }
+
+  return {
+    profile: ev,
+    selected: true,
+    exclusive: true,
+  };
+};
+
 // 配置切换
 Events.On("switchProfiles", async (ev: any) => {
-  const data = ev;
+  const {profile, selected, exclusive} = normalizeSwitchProfilePayload(ev);
+  const nextSelected = typeof selected === 'boolean' ? selected : true;
+  const isExclusive = typeof exclusive === 'boolean' ? exclusive : true;
 
   await pLoad(t('profiles.switch.ing'), async () => {
     try {
-      await api.switchProfile(data)
+      await api.switchProfile({
+        id: profile?.id,
+        selected: nextSelected,
+        exclusive: isExclusive,
+      })
       proxiesStore.active = ""
 
       await api.waitRunning()
@@ -63,16 +86,28 @@ Events.On("switchProfiles", async (ev: any) => {
         menuStore.setRuleNum(res);
       });
 
-      webStore.fProfile = data
+      const list = await api.getProfileList();
+      if (list && list.length != 0) {
+        Events.Emit({
+          name: "profiles",
+          data: list
+        })
+      }
 
-      api.getProfileList().then((list) => {
-        if (list && list.length != 0) {
-          Events.Emit({
-            name: "profiles",
-            data: list
-          })
+      const refreshed = list?.find((item: any) => item?.id === profile?.id);
+      const primaryProfile = list?.find((item: any) => item?.primary);
+      const selectedProfile = list?.find((item: any) => item?.selected);
+      const activeProfile = nextSelected
+          ? (primaryProfile ?? refreshed ?? {...profile, selected: nextSelected, primary: true})
+          : (primaryProfile ?? selectedProfile);
+      if (activeProfile) {
+        webStore.fProfile = {
+          ...activeProfile,
+          exclusive: isExclusive,
         }
-      })
+      }
+
+      resetProxyOriginCache();
 
       // Update proxy groups after profile switch
       updateProxyGroupsInTray();

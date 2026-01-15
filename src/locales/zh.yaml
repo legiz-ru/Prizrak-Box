@@ -173,6 +173,7 @@ proxies:
 
 profiles:
   title: 订阅
+  primary: 主要
   add: 添加订阅
   paste: 从剪贴板导入
   open: 从文件导入

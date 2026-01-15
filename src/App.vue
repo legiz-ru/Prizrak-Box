@@ -155,7 +155,8 @@ const pickSelectedProfile = (list: any[]) => {
     return;
   }
 
-  const selected = list.find(item => item?.selected);
+  const primary = list.find(item => item?.primary);
+  const selected = primary ?? list.find(item => item?.selected);
   applyProfile(selected ?? list[0]);
 };
 
