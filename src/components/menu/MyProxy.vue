@@ -282,6 +282,10 @@ Events.On("switchTun", async () => {
 
 
 onMounted(async () => {
+  if (menuStore.proxy) {
+    await applySystemProxyMode(settingStore.systemProxyMode, false);
+  }
+
   if (homeStore.os != "Windows" && menuStore.tun) {
     await api.waitRunning()
     await tunSwitch()
@@ -309,7 +313,7 @@ async function applySystemProxyMode(enable: boolean, notify: boolean) {
       pWarning(t("proxy-switch-off"));
     }
   } catch (e) {
-    if (e['message']) {
+    if (notify && e['message']) {
       pError(e['message'])
     }
   }
