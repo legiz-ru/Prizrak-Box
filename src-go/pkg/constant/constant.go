@@ -12,6 +12,7 @@ const (
 	PrefixProfile          = "Profile_"
 	ProfileOrder           = "ProfileOrder"
 	ProfilePrimary         = "ProfilePrimary"
+	ProfileSelectionOrder  = "ProfileSelectionOrder"
 	PrefixWebTest          = "WebTest_"
 	WebTestOrder           = "WebTestOrder"
 	PrefixGetter           = "Getter_"

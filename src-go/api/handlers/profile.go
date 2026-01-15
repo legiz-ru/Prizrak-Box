@@ -51,46 +51,120 @@ func ErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	render.JSON(w, r, route.HTTPError{Message: err.Error()})
 }
 
-func getProfile(w http.ResponseWriter, r *http.Request) {
-	var res []models.Profile
-	_ = cache.GetList(constant.PrefixProfile, &res)
+func sortProfilesByOrder(profiles []models.Profile) []models.Profile {
+	ordered := make([]models.Profile, len(profiles))
+	copy(ordered, profiles)
 
 	var order []models.Profile
 	_ = cache.Get(constant.ProfileOrder, &order)
 
-	// 创建一个 map 用于快速查找 order 中的元素
 	orderMap := make(map[string]int)
 	for index, item := range order {
 		orderMap[item.Id] = index
 	}
 
-	// 对 res 进行排序
-	sort.SliceStable(res, func(i, j int) bool {
-		// 如果 res[i] 和 res[j] 都在 order 中，按 order 中的顺序排序
-		indexI, existsI := orderMap[res[i].Id]
-		indexJ, existsJ := orderMap[res[j].Id]
+	sort.SliceStable(ordered, func(i, j int) bool {
+		indexI, existsI := orderMap[ordered[i].Id]
+		indexJ, existsJ := orderMap[ordered[j].Id]
 		if existsI && existsJ {
 			return indexI < indexJ
 		}
-		// 如果只有一个在 order 中，优先排序在 order 中的
 		if existsI {
 			return true
 		}
 		if existsJ {
 			return false
 		}
-		// 如果都不在 order 中，按 Order 字段排序
-		return res[i].Order < res[j].Order
+		return ordered[i].Order < ordered[j].Order
 	})
+
+	return ordered
+}
+
+func updateSelectionOrder(order []string, profiles []models.Profile, targetId string, desired bool, primaryId string) []string {
+	selected := make(map[string]bool, len(profiles))
+	for _, p := range profiles {
+		if p.Selected {
+			selected[p.Id] = true
+		}
+	}
+	if len(selected) == 0 {
+		return nil
+	}
+
+	next := make([]string, 0, len(selected))
+	seen := make(map[string]bool, len(selected))
+	for _, id := range order {
+		if id == targetId && !desired {
+			continue
+		}
+		if selected[id] && !seen[id] {
+			next = append(next, id)
+			seen[id] = true
+		}
+	}
+
+	if desired && selected[targetId] && !seen[targetId] {
+		next = append(next, targetId)
+		seen[targetId] = true
+	}
+
+	if len(next) < len(selected) {
+		orderedProfiles := sortProfilesByOrder(profiles)
+		for _, p := range orderedProfiles {
+			if selected[p.Id] && !seen[p.Id] {
+				next = append(next, p.Id)
+				seen[p.Id] = true
+			}
+		}
+	}
+
+	if primaryId != "" && selected[primaryId] {
+		for i, id := range next {
+			if id == primaryId {
+				if i > 0 {
+					next = append([]string{primaryId}, append(next[:i], next[i+1:]...)...)
+				}
+				break
+			}
+		}
+	}
+
+	return next
+}
+
+func getProfile(w http.ResponseWriter, r *http.Request) {
+	var res []models.Profile
+	_ = cache.GetList(constant.PrefixProfile, &res)
+
+	res = sortProfilesByOrder(res)
 
 	var primaryId string
 	_ = cache.Get(constant.ProfilePrimary, &primaryId)
+	var selectionOrder []string
+	_ = cache.Get(constant.ProfileSelectionOrder, &selectionOrder)
 
 	primarySet := false
 	if primaryId != "" {
 		for i := range res {
 			if res[i].Id == primaryId && res[i].Selected {
 				primarySet = true
+				break
+			}
+		}
+	}
+
+	if !primarySet && len(selectionOrder) > 0 {
+		for _, id := range selectionOrder {
+			for i := range res {
+				if res[i].Id == id && res[i].Selected {
+					primaryId = res[i].Id
+					primarySet = true
+					_ = cache.Put(constant.ProfilePrimary, primaryId)
+					break
+				}
+			}
+			if primarySet {
 				break
 			}
 		}
@@ -353,6 +427,7 @@ func switchProfile(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		_ = cache.Put(constant.ProfilePrimary, req.Id)
+		_ = cache.Put(constant.ProfileSelectionOrder, []string{req.Id})
 	} else {
 		var target *models.Profile
 		for i := range profiles {
@@ -396,29 +471,44 @@ func switchProfile(w http.ResponseWriter, r *http.Request) {
 			_ = cache.Put(target.Id, *target)
 		}
 
-		if desired {
-			var primaryId string
-			_ = cache.Get(constant.ProfilePrimary, &primaryId)
-			primarySelected := false
-			if primaryId != "" {
-				for _, p := range profiles {
-					if p.Id == primaryId && p.Selected {
-						primarySelected = true
-						break
-					}
+		var primaryId string
+		_ = cache.Get(constant.ProfilePrimary, &primaryId)
+
+		var selectionOrder []string
+		_ = cache.Get(constant.ProfileSelectionOrder, &selectionOrder)
+		selectionOrder = updateSelectionOrder(selectionOrder, profiles, target.Id, desired, primaryId)
+		if len(selectionOrder) > 0 {
+			_ = cache.Put(constant.ProfileSelectionOrder, selectionOrder)
+		}
+
+		primarySelected := false
+		if primaryId != "" {
+			for _, p := range profiles {
+				if p.Id == primaryId && p.Selected {
+					primarySelected = true
+					break
 				}
 			}
+		}
+
+		if desired {
 			if !primarySelected {
-				_ = cache.Put(constant.ProfilePrimary, target.Id)
+				if len(selectionOrder) > 0 {
+					_ = cache.Put(constant.ProfilePrimary, selectionOrder[0])
+				} else {
+					_ = cache.Put(constant.ProfilePrimary, target.Id)
+				}
 			}
 		} else {
-			var primaryId string
-			_ = cache.Get(constant.ProfilePrimary, &primaryId)
 			if primaryId == target.Id {
-				for _, p := range profiles {
-					if p.Id != target.Id && p.Selected {
-						_ = cache.Put(constant.ProfilePrimary, p.Id)
-						break
+				if len(selectionOrder) > 0 {
+					_ = cache.Put(constant.ProfilePrimary, selectionOrder[0])
+				} else {
+					for _, p := range profiles {
+						if p.Id != target.Id && p.Selected {
+							_ = cache.Put(constant.ProfilePrimary, p.Id)
+							break
+						}
 					}
 				}
 			}
