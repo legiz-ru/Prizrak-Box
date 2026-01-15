@@ -35,6 +35,7 @@ func profileRouter() http.Handler {
 	r.Put("/", putProfile)
 	// 查找
 	r.Get("/", getProfile)
+	r.Get("/proxy-origins", getProxyOrigins)
 	// 更新订阅
 	r.Put("/refresh", refreshProfile)
 	// 切换订阅
@@ -49,6 +50,15 @@ func profileRouter() http.Handler {
 func ErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	render.Status(r, http.StatusBadRequest)
 	render.JSON(w, r, route.HTTPError{Message: err.Error()})
+}
+
+func getProxyOrigins(w http.ResponseWriter, r *http.Request) {
+	var origins map[string]string
+	if err := cache.Get(constant.ProfileProxyOrigin, &origins); err != nil || origins == nil {
+		origins = map[string]string{}
+	}
+
+	render.JSON(w, r, origins)
 }
 
 func sortProfilesByOrder(profiles []models.Profile) []models.Profile {
@@ -144,6 +154,11 @@ func getProfile(w http.ResponseWriter, r *http.Request) {
 	var selectionOrder []string
 	_ = cache.Get(constant.ProfileSelectionOrder, &selectionOrder)
 
+	selectionOrder = updateSelectionOrder(selectionOrder, res, "", true, primaryId)
+	if len(selectionOrder) > 0 {
+		_ = cache.Put(constant.ProfileSelectionOrder, selectionOrder)
+	}
+
 	primarySet := false
 	if primaryId != "" {
 		for i := range res {
@@ -155,19 +170,9 @@ func getProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !primarySet && len(selectionOrder) > 0 {
-		for _, id := range selectionOrder {
-			for i := range res {
-				if res[i].Id == id && res[i].Selected {
-					primaryId = res[i].Id
-					primarySet = true
-					_ = cache.Put(constant.ProfilePrimary, primaryId)
-					break
-				}
-			}
-			if primarySet {
-				break
-			}
-		}
+		primaryId = selectionOrder[0]
+		primarySet = true
+		_ = cache.Put(constant.ProfilePrimary, primaryId)
 	}
 
 	if !primarySet {
@@ -186,8 +191,22 @@ func getProfile(w http.ResponseWriter, r *http.Request) {
 		_ = cache.Put(constant.ProfilePrimary, primaryId)
 	}
 
+	selectionOrder = updateSelectionOrder(selectionOrder, res, "", true, primaryId)
+	if len(selectionOrder) > 0 {
+		_ = cache.Put(constant.ProfileSelectionOrder, selectionOrder)
+	}
+	selectionIndex := make(map[string]int, len(selectionOrder))
+	for index, id := range selectionOrder {
+		selectionIndex[id] = index + 1
+	}
+
 	for i := range res {
 		res[i].Primary = res[i].Id == primaryId
+		if order, ok := selectionIndex[res[i].Id]; ok && res[i].Selected {
+			res[i].SelectionOrder = order
+		} else {
+			res[i].SelectionOrder = 0
+		}
 	}
 
 	render.JSON(w, r, res)

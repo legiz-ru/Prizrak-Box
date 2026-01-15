@@ -31,27 +31,64 @@ const includeProxy: any = {
     Smart: true,
 }
 
-const parseOrigin = (name: string) => {
+let proxyOriginCache: Record<string, string> | null = null;
+let proxyOriginFetchedAt = 0;
+
+export const resetProxyOriginCache = () => {
+    proxyOriginCache = null;
+    proxyOriginFetchedAt = 0;
+}
+
+const fetchProxyOrigins = async (proxy: any) => {
+    const now = Date.now();
+    if (proxyOriginCache && now - proxyOriginFetchedAt < 2000) {
+        return proxyOriginCache;
+    }
+
+    try {
+        const data = await proxy.$http.get('/profile/proxy-origins');
+        if (data && typeof data === 'object') {
+            proxyOriginCache = data as Record<string, string>;
+        } else {
+            proxyOriginCache = {};
+        }
+    } catch {
+        if (!proxyOriginCache) {
+            proxyOriginCache = {};
+        }
+    }
+
+    proxyOriginFetchedAt = now;
+    return proxyOriginCache;
+}
+
+const formatDisplayName = (name: string, origin?: string) => {
     if (typeof name !== 'string') {
-        return {displayName: name};
+        return name as any;
     }
-
-    const trimmed = name.trim();
-    const match = trimmed.match(/^(.*)\s\[([^\[\]]+)\]$/);
-    if (!match) {
-        return {displayName: name};
-    }
-
-    const displayName = match[1].trim();
-    const origin = match[2].trim();
     if (!origin) {
-        return {displayName: name};
+        return name;
     }
+    const suffix = ` [${origin}]`;
+    if (name.endsWith(suffix)) {
+        return name.slice(0, -suffix.length).trim();
+    }
+    return name;
+}
 
-    return {
-        displayName: displayName || name,
-        origin,
-    };
+const parseOriginFromName = (name: string) => {
+    if (typeof name !== 'string') {
+        return undefined;
+    }
+    if (!name.endsWith(']')) {
+        return undefined;
+    }
+    const start = name.lastIndexOf(' [');
+    if (start === -1) {
+        return undefined;
+    }
+    const origin = name.slice(start + 2, -1).trim();
+    return origin || undefined;
 }
 
 // 计算类名
@@ -138,6 +175,9 @@ export default function createProxiesApi(proxy: any) {
             }
 
             // 获取分组节点列表
+            const originMap = await fetchProxyOrigins(proxy);
+            const hasOriginMap = originMap && Object.keys(originMap).length > 0;
+
             const proxiesNames = proxies[active]['all']
             const nowName = proxies[active]['now']
 
@@ -148,7 +188,11 @@ export default function createProxiesApi(proxy: any) {
                 const proxy = proxies[name]
                 const type = proxy['type'];
                 const delay = getDelay(proxy)
-                const parsed = parseOrigin(name)
+                let origin = originMap ? originMap[name] : undefined;
+                if (!origin && hasOriginMap) {
+                    origin = parseOriginFromName(name);
+                }
+                const displayName = formatDisplayName(name, origin);
                 if (includeProxy[type]) {
                     inProxies.push({
                         name,
@@ -156,8 +200,8 @@ export default function createProxiesApi(proxy: any) {
                         delay: delay,
                         now: name === nowName,
                         toClass: getClass(delay),
-                        displayName: parsed.displayName,
-                        origin: parsed.origin,
+                        displayName,
+                        origin,
                     })
                 } else {
                     activeProxies.push({
@@ -166,8 +210,8 @@ export default function createProxiesApi(proxy: any) {
                         delay,
                         now: name === nowName,
                         toClass: getClass(delay),
-                        displayName: parsed.displayName,
-                        origin: parsed.origin,
+                        displayName,
+                        origin,
                     })
                 }
             }

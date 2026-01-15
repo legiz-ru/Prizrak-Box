@@ -5,6 +5,7 @@ export class Profile {
     headerTitle?: string; // 仅当 profile-title 标头存在时
     order!: string;
     primary?: boolean;
+    selectionOrder?: number;
     selected?: boolean; // 可选
     path!: string;
     content?: string | ArrayBuffer; // 可选

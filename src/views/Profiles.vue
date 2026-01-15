@@ -156,22 +156,36 @@ function getProfileDisplayTitle(profile: any) {
 
 let profiles = reactive<any[]>([])
 
-async function getProfileList() {
-  if (profiles.length != 0) {
-    profiles.splice(0, profiles.length)
+const applyProfileList = (list: any[]) => {
+  profiles.splice(0, profiles.length)
+  if (Array.isArray(list) && list.length > 0) {
+    list.forEach(item => profiles.push(item))
   }
+  selectionOrder.value = []
+  const seeded = seedSelectionOrder()
+  if (seeded) {
+    selectionOrder.value = seeded
+  } else {
+    selectionOrder.value = profiles.filter(profile => profile['selected']).map(profile => profile['id'])
+  }
+  ensurePrimaryFirst()
+  applySelectionOrder()
+}
+
+const handleProfilesEvent = (list: any[]) => {
+  applyProfileList(Array.isArray(list) ? list : [])
+}
+
+async function getProfileList() {
   const list = await api.getProfileList()
   if (list && list.length != 0) {
-    list.forEach(item => {
-      profiles.push(item)
-    })
-    syncSelectionOrder()
-
+    applyProfileList(list)
     Events.Emit({
       name: "profiles",
       data: list
     })
-
+  } else {
+    applyProfileList([])
   }
 }
 
@@ -232,10 +246,33 @@ const applySelectionOrder = () => {
   }
 }
 
+const seedSelectionOrder = () => {
+  const selectedProfiles = profiles.filter(profile => profile['selected'])
+  const ordered = selectedProfiles
+      .filter(profile => typeof profile['selectionOrder'] === 'number' && profile['selectionOrder'] > 0)
+      .sort((a, b) => (a['selectionOrder'] as number) - (b['selectionOrder'] as number))
+
+  if (ordered.length === 0) {
+    return null
+  }
+
+  const ids = ordered.map(profile => profile['id'])
+  const seen = new Set(ids)
+  for (const profile of selectedProfiles) {
+    if (!seen.has(profile['id'])) {
+      ids.push(profile['id'])
+      seen.add(profile['id'])
+    }
+  }
+
+  return ids
+}
+
 const syncSelectionOrder = () => {
   const selectedIds = profiles.filter(profile => profile['selected']).map(profile => profile['id'])
   if (selectionOrder.value.length === 0) {
-    selectionOrder.value = [...selectedIds]
+    const seeded = seedSelectionOrder()
+    selectionOrder.value = seeded ?? [...selectedIds]
     ensurePrimaryFirst()
     applySelectionOrder()
     return
@@ -579,6 +616,7 @@ onBeforeRouteLeave(() => {
 onBeforeUnmount(() => {
   wsOrder.close();
   window.removeEventListener('deeplink-profile-imported', handleProfilesImported as EventListener);
+  Events.Off("profiles", handleProfilesEvent)
 })
 
 // Template列表
@@ -597,6 +635,7 @@ onMounted(async () => {
   });
 
   window.addEventListener('deeplink-profile-imported', handleProfilesImported as EventListener);
+  Events.On("profiles", handleProfilesEvent)
 })
 
 watch(() => webStore.dProfile, async (pList) => {

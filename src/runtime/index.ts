@@ -12,6 +12,19 @@ export const Events = {
         window.pxTray.on(name, callback);
         console.log("on========", name)
     },
+    Off: (name: string, callback: (...args: any[]) => void) => {
+        // @ts-ignore
+        if (window.pxTray?.off) {
+            // @ts-ignore
+            window.pxTray.off(name, callback);
+            return;
+        }
+        // @ts-ignore
+        if (window.pxTray?.removeListener) {
+            // @ts-ignore
+            window.pxTray.removeListener(name, callback);
+        }
+    },
 };
 
 // 获取剪贴板内容

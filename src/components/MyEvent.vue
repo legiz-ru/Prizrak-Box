@@ -7,6 +7,7 @@ import {Events} from "@/runtime";
 import {useI18n} from "vue-i18n";
 import {pError, pLoad, pSuccess} from "@/util/pLoad";
 import {useSettingStore} from "@/store/settingStore";
+import {resetProxyOriginCache} from "@/api/proxies";
 import {useWebStore} from "@/store/webStore";
 
 // i18n
@@ -105,6 +106,8 @@ Events.On("switchProfiles", async (ev: any) => {
           exclusive: isExclusive,
         }
       }
+
+      resetProxyOriginCache();
 
       // Update proxy groups after profile switch
       updateProxyGroupsInTray();

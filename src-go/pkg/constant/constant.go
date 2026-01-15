@@ -13,6 +13,7 @@ const (
 	ProfileOrder           = "ProfileOrder"
 	ProfilePrimary         = "ProfilePrimary"
 	ProfileSelectionOrder  = "ProfileSelectionOrder"
+	ProfileProxyOrigin     = "ProfileProxyOrigin"
 	PrefixWebTest          = "WebTest_"
 	WebTestOrder           = "WebTestOrder"
 	PrefixGetter           = "Getter_"

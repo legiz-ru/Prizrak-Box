@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"sort"
 	"strings"
 	"sync"
 
@@ -20,6 +21,7 @@ import (
 	C "github.com/metacubex/mihomo/constant"
 	"github.com/metacubex/mihomo/log"
 	plog "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 )
 
 // Init meta 启动前的初始化
@@ -247,6 +249,115 @@ func renameProfileProxies(proxies []map[string]any, tag string, applyTag bool, u
 	}
 
 	return mapping
+}
+
+func addProxyOrigins(proxies []map[string]any, tag string, origins map[string]string) {
+	if len(proxies) == 0 || tag == "" || origins == nil {
+		return
+	}
+
+	for _, proxy := range proxies {
+		name, ok := proxy["name"].(string)
+		if !ok || name == "" {
+			continue
+		}
+		origins[name] = tag
+	}
+}
+
+func readProviderProxies(path string) []map[string]any {
+	if path == "" {
+		return nil
+	}
+
+	body, err := os.ReadFile(utils.GetUserHomeDir(path))
+	if err != nil {
+		return nil
+	}
+
+	var yml models.Yml
+	if err := yaml.Unmarshal(body, &yml); err == nil && len(yml.Proxies) > 0 {
+		return yml.Proxies
+	}
+
+	var payload struct {
+		Payload []map[string]any `yaml:"payload"`
+	}
+	if err := yaml.Unmarshal(body, &payload); err == nil && len(payload.Payload) > 0 {
+		return payload.Payload
+	}
+
+	var proxies []map[string]any
+	if err := yaml.Unmarshal(body, &proxies); err == nil && len(proxies) > 0 {
+		return proxies
+	}
+
+	return nil
+}
+
+func providerAdditionalSuffix(provider map[string]any) string {
+	if len(provider) == 0 {
+		return ""
+	}
+
+	if override, ok := provider["override"].(map[string]any); ok {
+		if suffix, ok := override["additional-suffix"].(string); ok {
+			return suffix
+		}
+	} else if legacy, ok := provider["override"].(map[string]string); ok {
+		if suffix, ok := legacy["additional-suffix"]; ok {
+			return suffix
+		}
+	}
+
+	return ""
+}
+
+func parseOriginSuffix(suffix string) string {
+	suffix = strings.TrimSpace(suffix)
+	if !strings.HasSuffix(suffix, "]") {
+		return ""
+	}
+	start := strings.LastIndex(suffix, "[")
+	if start == -1 || start+1 >= len(suffix)-1 {
+		return ""
+	}
+	origin := strings.TrimSpace(suffix[start+1 : len(suffix)-1])
+	return origin
+}
+
+func addProviderProxyOrigins(provider map[string]any, tag string, origins map[string]string) {
+	if len(provider) == 0 || tag == "" || origins == nil {
+		return
+	}
+
+	path, ok := provider["path"].(string)
+	if !ok || path == "" {
+		return
+	}
+
+	proxies := readProviderProxies(path)
+	if len(proxies) == 0 {
+		return
+	}
+
+	suffix := providerAdditionalSuffix(provider)
+	origin := parseOriginSuffix(suffix)
+	if origin == "" {
+		origin = tag
+	}
+
+	for _, proxy := range proxies {
+		name, ok := proxy["name"].(string)
+		if !ok || name == "" {
+			continue
+		}
+		mappedName := name
+		if suffix != "" {
+			mappedName = name + suffix
+		}
+		origins[mappedName] = origin
+	}
 }
 
 func applyProviderProxyMapping(provider map[string]any, mapping map[string]string) {
@@ -496,6 +607,7 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 
 	useTemplate, templateId, templateBuf := getTemplate(primary)
 	multi := len(profiles) > 1
+	proxyOrigins := map[string]string{}
 
 	extras := make([]models.Profile, 0, len(profiles))
 	for _, p := range profiles {
@@ -541,6 +653,9 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 					applyProviderSuffix(value, providerSuffix(primaryTag, key, providerCount))
 				}
 				applyProviderProxyMapping(value, proxyNameMap)
+				if multi {
+					addProviderProxyOrigins(value, primaryTag, proxyOrigins)
+				}
 				providers[key] = value
 				if multi {
 					usedProviderKeys[key] = 1
@@ -549,6 +664,9 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 		}
 
 		if len(primaryRaw.Proxy) > 0 {
+			if multi {
+				addProxyOrigins(primaryRaw.Proxy, primaryTag, proxyOrigins)
+			}
 			proxies = append(proxies, primaryRaw.Proxy...)
 		}
 
@@ -565,6 +683,9 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 				extraProxyMap := map[string]string{}
 				if len(extraRaw.Proxy) > 0 {
 					extraProxyMap = renameProfileProxies(extraRaw.Proxy, tag, multi, usedProxyNames)
+					if multi {
+						addProxyOrigins(extraRaw.Proxy, tag, proxyOrigins)
+					}
 					proxies = append(proxies, extraRaw.Proxy...)
 				}
 
@@ -575,6 +696,9 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 							applyProviderSuffix(value, providerSuffix(tag, key, providerCount))
 						}
 						applyProviderProxyMapping(value, extraProxyMap)
+						if multi {
+							addProviderProxyOrigins(value, tag, proxyOrigins)
+						}
 						newKey := fmt.Sprintf("%s-%s", tag, key)
 						if providerCount == 1 {
 							newKey = tag
@@ -604,11 +728,13 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 			}
 		}
 
+		_ = cache.Put(constant.ProfileProxyOrigin, proxyOrigins)
 		return rawCfg, nil
 	}
 
 	rawCfg := primaryRaw
 	if !multi || len(extras) == 0 {
+		_ = cache.Put(constant.ProfileProxyOrigin, proxyOrigins)
 		return rawCfg, nil
 	}
 
@@ -618,6 +744,9 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 	usedProxyNames := map[string]int{}
 
 	proxyNameMap = renameProfileProxies(rawCfg.Proxy, primaryTag, true, usedProxyNames)
+	if multi {
+		addProxyOrigins(rawCfg.Proxy, primaryTag, proxyOrigins)
+	}
 
 	if len(rawCfg.ProxyProvider) > 0 {
 		providerCount := len(rawCfg.ProxyProvider)
@@ -625,6 +754,7 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 			usedProviderKeys[key] = 1
 			applyProviderSuffix(value, providerSuffix(primaryTag, key, providerCount))
 			applyProviderProxyMapping(value, proxyNameMap)
+			addProviderProxyOrigins(value, primaryTag, proxyOrigins)
 		}
 	}
 
@@ -644,6 +774,9 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 		extraProxyMap := map[string]string{}
 		if len(extraRaw.Proxy) > 0 {
 			extraProxyMap = renameProfileProxies(extraRaw.Proxy, tag, multi, usedProxyNames)
+			if multi {
+				addProxyOrigins(extraRaw.Proxy, tag, proxyOrigins)
+			}
 		}
 
 		if len(extraRaw.ProxyProvider) > 0 {
@@ -653,6 +786,9 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 					applyProviderSuffix(value, providerSuffix(tag, key, providerCount))
 				}
 				applyProviderProxyMapping(value, extraProxyMap)
+				if multi {
+					addProviderProxyOrigins(value, tag, proxyOrigins)
+				}
 				newKey := fmt.Sprintf("%s-%s", tag, key)
 				if providerCount == 1 {
 					newKey = tag
@@ -681,7 +817,87 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 		rawCfg.Proxy = append(rawCfg.Proxy, proxies...)
 	}
 
+	_ = cache.Put(constant.ProfileProxyOrigin, proxyOrigins)
 	return rawCfg, nil
+}
+
+func sortProfilesByOrder(profiles []models.Profile) []models.Profile {
+	ordered := make([]models.Profile, len(profiles))
+	copy(ordered, profiles)
+
+	var order []models.Profile
+	_ = cache.Get(constant.ProfileOrder, &order)
+
+	orderMap := make(map[string]int)
+	for index, item := range order {
+		orderMap[item.Id] = index
+	}
+
+	sort.SliceStable(ordered, func(i, j int) bool {
+		indexI, existsI := orderMap[ordered[i].Id]
+		indexJ, existsJ := orderMap[ordered[j].Id]
+		if existsI && existsJ {
+			return indexI < indexJ
+		}
+		if existsI {
+			return true
+		}
+		if existsJ {
+			return false
+		}
+		return ordered[i].Order < ordered[j].Order
+	})
+
+	return ordered
+}
+
+func orderSelectedProfiles(profiles []models.Profile) []models.Profile {
+	selected := make([]models.Profile, 0, len(profiles))
+	selectedMap := make(map[string]models.Profile, len(profiles))
+	for _, p := range profiles {
+		if p.Selected {
+			selected = append(selected, p)
+			selectedMap[p.Id] = p
+		}
+	}
+	if len(selected) == 0 {
+		return selected
+	}
+
+	var selectionOrder []string
+	_ = cache.Get(constant.ProfileSelectionOrder, &selectionOrder)
+
+	if len(selectionOrder) == 0 {
+		ordered := sortProfilesByOrder(profiles)
+		result := make([]models.Profile, 0, len(selected))
+		for _, p := range ordered {
+			if p.Selected {
+				result = append(result, p)
+			}
+		}
+		return result
+	}
+
+	result := make([]models.Profile, 0, len(selected))
+	seen := make(map[string]bool, len(selected))
+	for _, id := range selectionOrder {
+		if p, ok := selectedMap[id]; ok && !seen[id] {
+			result = append(result, p)
+			seen[id] = true
+		}
+	}
+
+	if len(result) < len(selected) {
+		ordered := sortProfilesByOrder(profiles)
+		for _, p := range ordered {
+			if p.Selected && !seen[p.Id] {
+				result = append(result, p)
+				seen[p.Id] = true
+			}
+		}
+	}
+
+	return result
 }
 
 // startCore 函数用于启动核心功能
@@ -853,12 +1069,7 @@ func SwitchProfile(reload bool) {
 		return
 	}
 
-	selected := make([]models.Profile, 0, len(profiles))
-	for _, p := range profiles {
-		if p.Selected {
-			selected = append(selected, p)
-		}
-	}
+	selected := orderSelectedProfiles(profiles)
 
 	if len(selected) == 0 {
 		profile := profiles[0]
