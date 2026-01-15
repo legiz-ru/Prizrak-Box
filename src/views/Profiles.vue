@@ -287,14 +287,14 @@ const syncSelectionOrder = () => {
   applySelectionOrder()
 }
 
-async function switchProfile(data: any, desired?: boolean) {
+async function switchProfile(data: any, desired?: boolean, exclusive = false) {
   const nextSelected = typeof desired === 'boolean' ? desired : !data['selected']
   const wasPrimary = !!data['primary']
 
   const selectedCount = profiles.filter(profile => profile['selected']).length
   const hasPrimarySelected = profiles.some(profile => profile['selected'] && profile['primary'])
 
-  if (!nextSelected && selectedCount <= 1) {
+  if (!exclusive && !nextSelected && selectedCount <= 1) {
     pWarning(t("select-profile-warning"))
     return
   }
@@ -304,22 +304,30 @@ async function switchProfile(data: any, desired?: boolean) {
       await api.switchProfile({
         id: data['id'],
         selected: nextSelected,
-        exclusive: false,
+        exclusive,
       })
       proxiesStore.active = ""
 
       await api.waitRunning()
 
-      data['selected'] = nextSelected
-      if (nextSelected) {
-        appendSelectionOrder(data['id'])
-        if (selectedCount == 0 || !hasPrimarySelected) {
-          applyPrimarySelection(data['id'])
+      if (exclusive) {
+        for (let profile of profiles) {
+          profile['selected'] = profile['id'] === data['id'] && nextSelected
         }
+        selectionOrder.value = nextSelected ? [data['id']] : []
+        applyPrimarySelection(nextSelected ? data['id'] : undefined)
       } else {
-        removeSelectionOrder(data['id'])
-        if (wasPrimary) {
-          applyPrimarySelection(selectionOrder.value[0])
+        data['selected'] = nextSelected
+        if (nextSelected) {
+          appendSelectionOrder(data['id'])
+          if (selectedCount == 0 || !hasPrimarySelected) {
+            applyPrimarySelection(data['id'])
+          }
+        } else {
+          removeSelectionOrder(data['id'])
+          if (wasPrimary) {
+            applyPrimarySelection(selectionOrder.value[0])
+          }
         }
       }
       ensurePrimaryFirst()
@@ -330,7 +338,7 @@ async function switchProfile(data: any, desired?: boolean) {
       if (activeProfile) {
         webStore.fProfile = toRaw({
           ...activeProfile,
-          exclusive: false,
+          exclusive,
         })
       }
 
@@ -338,10 +346,10 @@ async function switchProfile(data: any, desired?: boolean) {
         menuStore.setRuleNum(res);
       });
 
-      Events.Emit({
-        name: "profiles",
-        data: toRaw(profiles)
-      })
+        Events.Emit({
+          name: "profiles",
+          data: toRaw(profiles)
+        })
 
       // 关闭之前的连接
       api.closeAllConnection()
@@ -699,11 +707,13 @@ watch(() => webStore.dProfile, async (pList) => {
         <template v-slot:VDC="{data,index}">
           <div
               :class="data.selected?'sub-card sub-card-select':'sub-card'"
+              @click="switchProfile(data, true, true)"
           >
             <div class="row card-header">
               <el-icon
                   @mouseenter.stop="mouseEnter"
                   @mouseleave.stop="mouseLeave"
+                  @click.stop
                   size="22"
                   class="drag">
                 <icon-mdi-drag/>
