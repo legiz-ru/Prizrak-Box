@@ -319,6 +319,51 @@ const scrollRight = () => {
   }
 };
 
+const scrollGroupIntoView = async (groupName: string) => {
+  await nextTick();
+  const container = proxyGroup.value as HTMLElement | null;
+  if (!container) {
+    return;
+  }
+  const buttons = Array.from(container.querySelectorAll<HTMLButtonElement>('button[data-group]'));
+  const target = buttons.find((button) => button.dataset.group === groupName);
+  if (!target) {
+    return;
+  }
+  target.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'center'});
+};
+
+let wheelAccumulator = 0;
+let wheelResetTimer: ReturnType<typeof setTimeout> | null = null;
+const handleGroupWheel = async (event: WheelEvent) => {
+  if (proxiesStore.viewMode !== 'horizontal' || groupList.value.length === 0) {
+    return;
+  }
+  if (event.deltaY === 0) {
+    return;
+  }
+  wheelAccumulator += event.deltaY;
+  if (wheelResetTimer) {
+    clearTimeout(wheelResetTimer);
+  }
+  wheelResetTimer = setTimeout(() => {
+    wheelAccumulator = 0;
+  }, 150);
+  if (Math.abs(wheelAccumulator) < 40) {
+    return;
+  }
+  const direction = wheelAccumulator > 0 ? 1 : -1;
+  wheelAccumulator = 0;
+  const groups = groupList.value;
+  const currentIndex = Math.max(0, groups.indexOf(proxiesStore.active));
+  const nextIndex = Math.min(groups.length - 1, Math.max(0, currentIndex + direction));
+  if (nextIndex === currentIndex) {
+    return;
+  }
+  await setActive(groups[nextIndex]);
+  await scrollGroupIntoView(groups[nextIndex]);
+};
+
 let isScrolling: any;
 const handleScroll = () => {
   clearTimeout(isScrolling);
@@ -517,7 +562,12 @@ watch(groupList, (list) => {
         <el-icon v-if="!atStart" @click="scrollLeft" class="scroll-left">
           <icon-mdi-arrow-expand-left/>
         </el-icon>
-        <div @scroll="handleScroll" ref="proxyGroup" class="proxy-group">
+        <div
+            @scroll="handleScroll"
+            @wheel.prevent="handleGroupWheel"
+            ref="proxyGroup"
+            class="proxy-group"
+        >
           <button
               :class="
               proxiesStore.active == item
@@ -527,6 +577,7 @@ watch(groupList, (list) => {
               @click="setActive(item)"
               v-for="item in groupList"
               :key="item + '-g'"
+              :data-group="item"
           >
             <span class="proxy-group-content">
               <span
@@ -573,7 +624,7 @@ watch(groupList, (list) => {
           </div>
           <div class="proxy-nodes-tags">
             <span class="proxy-nodes-tags-left">
-              <span>{{ node["type"] }}</span>
+              <span>{{ node["displayType"] ?? node["type"] }}</span>
               <template v-if="nestedGroupSelections[node['name']]">
                 <span class="proxy-selected-separator">•</span>
                 <span class="proxy-selected-name" :title="nestedGroupSelections[node['name']]">
@@ -649,7 +700,7 @@ watch(groupList, (list) => {
                 </div>
                 <div class="proxy-nodes-tags">
                   <span class="proxy-nodes-tags-left">
-                    <span>{{ node["type"] }}</span>
+                    <span>{{ node["displayType"] ?? node["type"] }}</span>
                     <template v-if="nestedGroupSelections[node['name']]">
                       <span class="proxy-selected-separator">•</span>
                       <span class="proxy-selected-name" :title="nestedGroupSelections[node['name']]">

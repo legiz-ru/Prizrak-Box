@@ -120,6 +120,24 @@ const getDelay = (proxy: any) => {
     return history[history.length - 1]['delay']
 }
 
+const getDisplayType = (proxy: any, fallbackDescription?: string) => {
+    const serverDescription = proxy?.['serverDescription']
+        ?? proxy?.['server_description']
+        ?? proxy?.['server-description']
+        ?? proxy?.extra?.['serverDescription']
+        ?? proxy?.extra?.['server_description']
+        ?? proxy?.extra?.['server-description']
+        ?? fallbackDescription;
+    if (typeof serverDescription === 'string') {
+        const trimmed = serverDescription.trim();
+        if (trimmed.length > 0) {
+            return trimmed.slice(0, 25);
+        }
+    }
+
+    return proxy?.['type'];
+}
+
 export interface ProxyGroupInfo {
     name: string;
     icon?: string;
@@ -168,6 +186,15 @@ export default function createProxiesApi(proxy: any) {
             // 获取所有节点分组列表
             const data = await proxy.$http.get('/proxies')
             const proxies = data['proxies']
+            let serverDescriptions: Record<string, string> = {}
+            try {
+                const descriptions = await proxy.$http.get('/profile/serverDescriptions')
+                if (descriptions && typeof descriptions === 'object') {
+                    serverDescriptions = descriptions
+                }
+            } catch (e) {
+                serverDescriptions = {}
+            }
 
             // 判空
             if (!proxies[active]) {
@@ -187,6 +214,8 @@ export default function createProxiesApi(proxy: any) {
             for (const name of proxiesNames) {
                 const proxy = proxies[name]
                 const type = proxy['type'];
+                const displayType = getDisplayType(proxy, serverDescriptions[name]);
+                const icon = typeof proxy?.['icon'] === 'string' ? proxy['icon'] : undefined;
                 const delay = getDelay(proxy)
                 let origin = originMap ? originMap[name] : undefined;
                 if (!origin && hasOriginMap) {
@@ -197,6 +226,8 @@ export default function createProxiesApi(proxy: any) {
                     inProxies.push({
                         name,
                         type,
+                        displayType,
+                        icon,
                         delay: delay,
                         now: name === nowName,
                         toClass: getClass(delay),
@@ -207,6 +238,8 @@ export default function createProxiesApi(proxy: any) {
                     activeProxies.push({
                         name,
                         type,
+                        displayType,
+                        icon,
                         delay,
                         now: name === nowName,
                         toClass: getClass(delay),

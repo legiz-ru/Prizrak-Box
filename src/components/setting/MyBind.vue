@@ -7,6 +7,7 @@ import {pError} from "@/util/pLoad";
 import {pUpdateMihomo} from "@/util/mihomo";
 import createApi from "@/api";
 import {useMenuStore} from "@/store/menuStore";
+import {updateSystemProxy} from "@/util/systemProxy";
 
 // 使用 store
 const menuStore = useMenuStore()
@@ -71,11 +72,7 @@ const saveBind = async () => {
     pUpdateMihomo(menuStore, settingStore, api)
 
     if (menuStore.proxy) {
-      // 未被占用开启代理
-      api.enableProxy({
-        "bindAddress": settingStore.bindAddress,
-        "port": settingStore.port,
-      })
+      updateSystemProxy(api, settingStore, settingStore.systemProxyMode);
     }
   });
 };

@@ -160,10 +160,20 @@ func Resolve(content string, profile *models.Profile, refresh bool) error {
 			// 防止重排序，重新赋值
 			rawCfg, _ = config.UnmarshalRawConfig(tempBytes)
 			// 对 provider 进行路径替换
-			findProvider := changeProvidersPath("profiles", profile.Order, rawCfg)
+			findProvider := false
+			rawConfigMap := map[string]any{}
+			if err := yaml.Unmarshal(tempBytes, &rawConfigMap); err == nil {
+				findProvider = updateProvidersPathRaw("profiles", profile.Order, rawConfigMap)
+			} else {
+				findProvider = changeProvidersPath("profiles", profile.Order, rawCfg)
+			}
 			var yml []byte
 			if findProvider {
-				yml, _ = yaml.Marshal(rawCfg)
+				if len(rawConfigMap) > 0 {
+					yml, _ = yaml.Marshal(rawConfigMap)
+				} else {
+					yml, _ = yaml.Marshal(rawCfg)
+				}
 				profile.Path = fmt.Sprintf("./profiles/%s/%s.yaml", profile.Order, profile.Id)
 			} else {
 				yml = tempBytes
@@ -215,6 +225,60 @@ func changeProvidersPath(baseDir, subDir string, config *config.RawConfig) (find
 	}
 
 	return
+}
+
+func updateProvidersPathRaw(baseDir, subDir string, raw map[string]any) (findProvider bool) {
+	findProvider = false
+	dir := fmt.Sprintf("./%s/%s/", baseDir, subDir)
+
+	if providers, ok := raw["proxy-providers"]; ok {
+		if updateProviderPaths(dir, "provider", providers) {
+			findProvider = true
+		}
+	}
+	if providers, ok := raw["proxyProviders"]; ok {
+		if updateProviderPaths(dir, "provider", providers) {
+			findProvider = true
+		}
+	}
+	if providers, ok := raw["rule-providers"]; ok {
+		if updateProviderPaths(dir, "ruleset", providers) {
+			findProvider = true
+		}
+	}
+	if providers, ok := raw["ruleProviders"]; ok {
+		if updateProviderPaths(dir, "ruleset", providers) {
+			findProvider = true
+		}
+	}
+
+	return
+}
+
+func updateProviderPaths(dir, kind string, providers any) bool {
+	providerMap, ok := providers.(map[string]any)
+	if !ok {
+		return false
+	}
+	updated := false
+	for key, value := range providerMap {
+		provider, ok := value.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		if path, findPath := provider["path"].(string); findPath {
+			provider["path"] = dir + getProviderBase(kind, path)
+			updated = true
+		} else if u, findUrl := provider["url"].(string); findUrl {
+			provider["path"] = dir + kind + "/" + utils.MD5(u)
+			updated = true
+		}
+
+		providerMap[key] = provider
+	}
+
+	return updated
 }
 
 func getProviderBase(provider, path string) string {

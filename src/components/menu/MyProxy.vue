@@ -7,6 +7,7 @@ import {pError, pLoad, pSuccess, pWarning} from "@/util/pLoad";
 import {useSettingStore} from "@/store/settingStore";
 import {pUpdateMihomo} from "@/util/mihomo";
 import {useHomeStore} from "@/store/homeStore";
+import {updateSystemProxy} from "@/util/systemProxy";
 
 // 使用store
 const menuStore = useMenuStore();
@@ -65,13 +66,7 @@ async function doSwitch() {
         "mixed-port": settingStore.port,
         "bind-address": settingStore.bindAddress,
       })
-      // 如果включен режим системного прокси, то включаем системный прокси
-      if (settingStore.systemProxyMode) {
-        await api.enableProxy({
-          "bindAddress": settingStore.bindAddress,
-          "port": settingStore.port,
-        })
-      }
+      await applySystemProxyMode(settingStore.systemProxyMode, false);
       ok = true
       pSuccess(t("proxy-switch-on"));
     } catch (e) {
@@ -85,7 +80,7 @@ async function doSwitch() {
       "mixed-port": 0,
     })
     // Всегда отключаем системный прокси при выключении переключателя прокси
-    await api.disableProxy()
+    await applySystemProxyMode(false, false);
     ok = true
     pWarning(t("proxy-switch-off"));
   }
@@ -287,6 +282,10 @@ Events.On("switchTun", async () => {
 
 
 onMounted(async () => {
+  if (menuStore.proxy) {
+    await applySystemProxyMode(settingStore.systemProxyMode, false);
+  }
+
   if (homeStore.os != "Windows" && menuStore.tun) {
     await api.waitRunning()
     await tunSwitch()
@@ -297,26 +296,28 @@ onMounted(async () => {
 watch(() => settingStore.systemProxyMode, async (newValue, oldValue) => {
   // Применяем изменения только если прокси уже включен
   if (menuStore.proxy) {
-    if (newValue) {
-      // Включаем системный прокси
-      try {
-        await api.enableProxy({
-          "bindAddress": settingStore.bindAddress,
-          "port": settingStore.port,
-        })
-        pSuccess(t("proxy-switch-on"));
-      } catch (e) {
-        if (e['message']) {
-          pError(e['message'])
-        }
-      }
-    } else {
-      // Выключаем системный прокси
-      await api.disableProxy()
-      pWarning(t("proxy-switch-off"));
-    }
+    await applySystemProxyMode(newValue, true);
   }
 })
+
+async function applySystemProxyMode(enable: boolean, notify: boolean) {
+  try {
+    await updateSystemProxy(api, settingStore, enable);
+    if (!notify) {
+      return;
+    }
+
+    if (enable) {
+      pSuccess(t("proxy-switch-on"));
+    } else {
+      pWarning(t("proxy-switch-off"));
+    }
+  } catch (e) {
+    if (notify && e['message']) {
+      pError(e['message'])
+    }
+  }
+}
 
 
 </script>

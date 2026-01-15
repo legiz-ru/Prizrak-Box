@@ -7,6 +7,7 @@ import {useI18n} from "vue-i18n";
 import {pUpdateMihomo} from "@/util/mihomo";
 import {useMenuStore} from "@/store/menuStore";
 import createApi from "@/api";
+import {updateSystemProxy} from "@/util/systemProxy";
 
 // 使用 store
 const menuStore = useMenuStore()
@@ -62,11 +63,7 @@ const savePort = async () => {
       pUpdateMihomo(menuStore, settingStore, api)
 
       if (menuStore.proxy) {
-        // 未被占用开启代理
-        api.enableProxy({
-          "bindAddress": settingStore.bindAddress,
-          "port": settingStore.port,
-        })
+        updateSystemProxy(api, settingStore, settingStore.systemProxyMode);
       }
     });
 
