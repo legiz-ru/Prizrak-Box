@@ -350,8 +350,9 @@ watch(() => webStore.fProfile, async (data: any) => {
 
   if (desired) {
     appendSelectionOrder(data['id'])
+    const isPrimary = !!data['primary']
     const hasPrimarySelected = profiles.some(profile => profile['selected'] && profile['primary'])
-    if (!hasPrimarySelected) {
+    if (isPrimary || !hasPrimarySelected) {
       applyPrimarySelection(data['id'])
     }
   } else {
