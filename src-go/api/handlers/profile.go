@@ -397,7 +397,20 @@ func switchProfile(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if desired {
-			_ = cache.Put(constant.ProfilePrimary, target.Id)
+			var primaryId string
+			_ = cache.Get(constant.ProfilePrimary, &primaryId)
+			primarySelected := false
+			if primaryId != "" {
+				for _, p := range profiles {
+					if p.Id == primaryId && p.Selected {
+						primarySelected = true
+						break
+					}
+				}
+			}
+			if !primarySelected {
+				_ = cache.Put(constant.ProfilePrimary, target.Id)
+			}
 		} else {
 			var primaryId string
 			_ = cache.Get(constant.ProfilePrimary, &primaryId)

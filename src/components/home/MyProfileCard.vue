@@ -72,7 +72,7 @@ function formatDateValue(value: any) {
   return String(value);
 }
 
-const flagEmojiRegex = /[\u{1F1E6}-\u{1F1FF}]{2}/u;
+const flagEmojiRegex = /([\u{1F1E6}-\u{1F1FF}]{2}|\u{1F3F3}|\u{1F3F4}|\u{1F6A9})/u;
 
 function containsFlagEmoji(value: any) {
   if (typeof value !== "string") {
@@ -139,7 +139,8 @@ function pickSelectedProfile(list: any[]) {
     return;
   }
 
-  const selected = list.find(item => item?.selected);
+  const primary = list.find(item => item?.primary);
+  const selected = primary ?? list.find(item => item?.selected);
   applyProfile(selected ?? list[0]);
 }
 
@@ -282,6 +283,7 @@ const hasStats = computed(() => {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  font-variant-emoji: emoji;
 }
 
 .profile-links {

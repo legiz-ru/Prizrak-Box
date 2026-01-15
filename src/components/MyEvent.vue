@@ -94,9 +94,11 @@ Events.On("switchProfiles", async (ev: any) => {
       }
 
       const refreshed = list?.find((item: any) => item?.id === profile?.id);
+      const primaryProfile = list?.find((item: any) => item?.primary);
+      const selectedProfile = list?.find((item: any) => item?.selected);
       const activeProfile = nextSelected
-          ? (refreshed ?? {...profile, selected: nextSelected, primary: true})
-          : list?.find((item: any) => item?.selected);
+          ? (primaryProfile ?? refreshed ?? {...profile, selected: nextSelected, primary: true})
+          : (primaryProfile ?? selectedProfile);
       if (activeProfile) {
         webStore.fProfile = {
           ...activeProfile,

@@ -129,7 +129,7 @@ function formatDateValue(value: any) {
 }
 
 // 列表显示
-const flagEmojiRegex = /[\u{1F1E6}-\u{1F1FF}]{2}/u
+const flagEmojiRegex = /([\u{1F1E6}-\u{1F1FF}]{2}|\u{1F3F3}|\u{1F3F4}|\u{1F6A9})/u
 
 function containsFlagEmoji(value: any) {
   if (typeof value !== 'string') {
@@ -165,6 +165,7 @@ async function getProfileList() {
     list.forEach(item => {
       profiles.push(item)
     })
+    syncSelectionOrder()
 
     Events.Emit({
       name: "profiles",
@@ -185,10 +186,6 @@ function mouseLeave() {
   canDrag.value = false
 }
 
-const isMultiSelect = (event?: MouseEvent) => {
-  return !!event && (event.ctrlKey || event.metaKey || event.shiftKey)
-}
-
 const applyPrimarySelection = (id?: string) => {
   if (!id) {
     for (let profile of profiles) {
@@ -202,23 +199,67 @@ const applyPrimarySelection = (id?: string) => {
 }
 
 // 切换订阅配置
-async function switchProfile(data: any, event?: MouseEvent) {
-  const multi = isMultiSelect(event)
-  const exclusive = !multi
-  const nextSelected = multi ? !data['selected'] : true
+const selectionOrder = ref<string[]>([])
+
+const ensurePrimaryFirst = () => {
+  const primaryId = profiles.find(profile => profile['selected'] && profile['primary'])?.['id']
+  if (!primaryId) {
+    return
+  }
+  selectionOrder.value = [primaryId, ...selectionOrder.value.filter(id => id !== primaryId)]
+}
+
+const appendSelectionOrder = (id: string) => {
+  if (!id || selectionOrder.value.includes(id)) {
+    return
+  }
+  selectionOrder.value.push(id)
+}
+
+const removeSelectionOrder = (id: string) => {
+  selectionOrder.value = selectionOrder.value.filter(item => item !== id)
+}
+
+const applySelectionOrder = () => {
+  const orderMap = new Map(selectionOrder.value.map((id, index) => [id, index + 1]))
+  for (const profile of profiles) {
+    const order = orderMap.get(profile['id'])
+    if (profile['selected'] && order) {
+      profile['selectionOrder'] = order
+    } else {
+      profile['selectionOrder'] = undefined
+    }
+  }
+}
+
+const syncSelectionOrder = () => {
+  const selectedIds = profiles.filter(profile => profile['selected']).map(profile => profile['id'])
+  if (selectionOrder.value.length === 0) {
+    selectionOrder.value = [...selectedIds]
+    ensurePrimaryFirst()
+    applySelectionOrder()
+    return
+  }
+  selectionOrder.value = selectionOrder.value.filter(id => selectedIds.includes(id))
+  for (const id of selectedIds) {
+    if (!selectionOrder.value.includes(id)) {
+      selectionOrder.value.push(id)
+    }
+  }
+  ensurePrimaryFirst()
+  applySelectionOrder()
+}
+
+async function switchProfile(data: any, desired?: boolean) {
+  const nextSelected = typeof desired === 'boolean' ? desired : !data['selected']
   const wasPrimary = !!data['primary']
 
   const selectedCount = profiles.filter(profile => profile['selected']).length
+  const hasPrimarySelected = profiles.some(profile => profile['selected'] && profile['primary'])
 
-  if (exclusive && data['selected'] && selectedCount <= 1) {
+  if (!nextSelected && selectedCount <= 1) {
+    pWarning(t("select-profile-warning"))
     return
-  }
-
-  if (multi && !nextSelected) {
-    if (selectedCount <= 1) {
-      pWarning(t("select-profile-warning"))
-      return
-    }
   }
 
   await pLoad(t('profiles.switch.ing'), async () => {
@@ -226,34 +267,33 @@ async function switchProfile(data: any, event?: MouseEvent) {
       await api.switchProfile({
         id: data['id'],
         selected: nextSelected,
-        exclusive,
+        exclusive: false,
       })
       proxiesStore.active = ""
 
       await api.waitRunning()
 
-      if (exclusive) {
-        for (let profile of profiles) {
-          profile['selected'] = profile['id'] === data['id']
-        }
-        applyPrimarySelection(data['id'])
-      } else {
-        data['selected'] = nextSelected
-        if (nextSelected) {
+      data['selected'] = nextSelected
+      if (nextSelected) {
+        appendSelectionOrder(data['id'])
+        if (selectedCount == 0 || !hasPrimarySelected) {
           applyPrimarySelection(data['id'])
-        } else if (wasPrimary) {
-          const fallback = profiles.find(profile => profile['selected'])
-          applyPrimarySelection(fallback ? fallback['id'] : undefined)
+        }
+      } else {
+        removeSelectionOrder(data['id'])
+        if (wasPrimary) {
+          applyPrimarySelection(selectionOrder.value[0])
         }
       }
+      ensurePrimaryFirst()
+      applySelectionOrder()
 
-      const activeProfile = nextSelected
-          ? data
-          : profiles.find(profile => profile['selected'])
+      const activeProfile = profiles.find(profile => profile['primary'])
+          ?? profiles.find(profile => profile['selected'])
       if (activeProfile) {
         webStore.fProfile = toRaw({
           ...activeProfile,
-          exclusive,
+          exclusive: false,
         })
       }
 
@@ -292,7 +332,10 @@ watch(() => webStore.fProfile, async (data: any) => {
     for (let profile of profiles) {
       profile['selected'] = profile['id'] === data['id'] && desired
     }
+    selectionOrder.value = desired ? [data['id']] : []
     applyPrimarySelection(desired ? data['id'] : undefined)
+    ensurePrimaryFirst()
+    applySelectionOrder()
     return
   }
 
@@ -306,11 +349,19 @@ watch(() => webStore.fProfile, async (data: any) => {
   }
 
   if (desired) {
-    applyPrimarySelection(data['id'])
-  } else if (wasPrimary) {
-    const fallback = profiles.find(profile => profile['selected'])
-    applyPrimarySelection(fallback ? fallback['id'] : undefined)
+    appendSelectionOrder(data['id'])
+    const hasPrimarySelected = profiles.some(profile => profile['selected'] && profile['primary'])
+    if (!hasPrimarySelected) {
+      applyPrimarySelection(data['id'])
+    }
+  } else {
+    removeSelectionOrder(data['id'])
+    if (wasPrimary) {
+      applyPrimarySelection(selectionOrder.value[0])
+    }
   }
+  ensurePrimaryFirst()
+  applySelectionOrder()
 })
 
 
@@ -608,7 +659,6 @@ watch(() => webStore.dProfile, async (pList) => {
         <template v-slot:VDC="{data,index}">
           <div
               :class="data.selected?'sub-card sub-card-select':'sub-card'"
-              @click="switchProfile(data, $event)"
           >
             <div class="row card-header">
               <el-icon
@@ -620,9 +670,6 @@ watch(() => webStore.dProfile, async (pList) => {
               </el-icon>
               <div class="profile-name" :title="getProfileDisplayTitle(data)">
                 <span class="profile-name-text">{{ getProfileDisplayTitle(data) }}</span>
-                <span v-if="data.primary" class="profile-primary">
-                  {{ $t('profiles.primary') }}
-                </span>
               </div>
               <div class="header-action">
                 <el-tooltip
@@ -668,48 +715,75 @@ watch(() => webStore.dProfile, async (pList) => {
               </div>
             </div>
             <div class="bottom-row">
-              <el-tooltip
-                  v-if="data.support"
-                  :content="$t('profiles.support')"
-                  placement="top">
-                <el-icon
-                    class="ops"
-                    @click.stop="goSupport(data)"
-                    size="20">
-                  <icon-mdi-face-agent/>
-                </el-icon>
-              </el-tooltip>
-              <el-tooltip
-                  v-if="data.home"
-                  :content="$t('profiles.home')"
-                  placement="top">
-                <el-icon
-                    class="ops"
-                    @click.stop="goHome(data)"
-                    size="20">
-                  <icon-mdi-home-import-outline/>
-                </el-icon>
-              </el-tooltip>
-              <el-tooltip
-                  :content="$t('edit')"
-                  placement="top">
-                <el-icon
-                    class="ops"
-                    @click.stop="updateProfile(data)"
-                    size="20">
-                  <icon-mdi-square-edit-outline/>
-                </el-icon>
-              </el-tooltip>
-              <el-tooltip
-                  :content="$t('delete')"
-                  placement="top">
-                <el-icon
-                    class="ops"
-                    @click.stop="deleteProfile(data,index)"
-                    size="20">
-                  <icon-mdi-trash-can/>
-                </el-icon>
-              </el-tooltip>
+              <div class="profile-select">
+                <button
+                    type="button"
+                    class="profile-select-btn"
+                    :class="{ 'is-selected': data.selected }"
+                    @click.stop="switchProfile(data, !data.selected)"
+                >
+                  <el-icon class="profile-select-icon" size="18">
+                    <icon-mdi-check-circle v-if="data.selected"/>
+                    <icon-mdi-circle-outline v-else/>
+                  </el-icon>
+                  <el-icon v-if="data.selected" class="profile-select-order-icon" size="18">
+                    <icon-mdi-numeric-1-circle v-if="data.selectionOrder === 1"/>
+                    <icon-mdi-numeric-2-circle v-else-if="data.selectionOrder === 2"/>
+                    <icon-mdi-numeric-3-circle v-else-if="data.selectionOrder === 3"/>
+                    <icon-mdi-numeric-4-circle v-else-if="data.selectionOrder === 4"/>
+                    <icon-mdi-numeric-5-circle v-else-if="data.selectionOrder === 5"/>
+                    <icon-mdi-numeric-6-circle v-else-if="data.selectionOrder === 6"/>
+                    <icon-mdi-numeric-7-circle v-else-if="data.selectionOrder === 7"/>
+                    <icon-mdi-numeric-8-circle v-else-if="data.selectionOrder === 8"/>
+                    <icon-mdi-numeric-9-circle v-else-if="data.selectionOrder === 9"/>
+                    <icon-mdi-numeric-10-circle v-else/>
+                  </el-icon>
+                </button>
+              </div>
+              <div class="bottom-actions">
+                <el-tooltip
+                    v-if="data.support"
+                    :content="$t('profiles.support')"
+                    placement="top">
+                  <el-icon
+                      class="ops"
+                      @click.stop="goSupport(data)"
+                      size="20">
+                    <icon-mdi-face-agent/>
+                  </el-icon>
+                </el-tooltip>
+                <el-tooltip
+                    v-if="data.home"
+                    :content="$t('profiles.home')"
+                    placement="top">
+                  <el-icon
+                      class="ops"
+                      @click.stop="goHome(data)"
+                      size="20">
+                    <icon-mdi-home-import-outline/>
+                  </el-icon>
+                </el-tooltip>
+                <el-tooltip
+                    :content="$t('edit')"
+                    placement="top">
+                  <el-icon
+                      class="ops"
+                      @click.stop="updateProfile(data)"
+                      size="20">
+                    <icon-mdi-square-edit-outline/>
+                  </el-icon>
+                </el-tooltip>
+                <el-tooltip
+                    :content="$t('delete')"
+                    placement="top">
+                  <el-icon
+                      class="ops"
+                      @click.stop="deleteProfile(data,index)"
+                      size="20">
+                    <icon-mdi-trash-can/>
+                  </el-icon>
+                </el-tooltip>
+              </div>
             </div>
           </div>
         </template>
@@ -917,16 +991,11 @@ watch(() => webStore.dProfile, async (pList) => {
   white-space: nowrap;
   text-overflow: ellipsis;
   min-width: 0;
-}
-
-.profile-primary {
-  font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 999px;
-  border: 1px solid var(--text-color);
-  opacity: 0.75;
-  white-space: nowrap;
-  flex-shrink: 0;
+  font-variant-emoji: emoji;
+  font-family: 'Twemoji', "Nunito", 'Microsoft YaHei', '微软雅黑', 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB',
+  Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+  "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+  sans-serif;
 }
 
 .header-action {
@@ -963,11 +1032,54 @@ watch(() => webStore.dProfile, async (pList) => {
 
 .bottom-row {
   display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
   margin-top: 10px;
   margin-bottom: 4px;
   color: var(--text-color);
+}
+
+.profile-select {
+  display: flex;
+  align-items: center;
+}
+
+.profile-select-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-color);
+  border-radius: 999px;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.profile-select-btn:hover {
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.profile-select-icon {
+  color: var(--text-color);
+  opacity: 0.85;
+}
+
+.profile-select-order-icon {
+  color: var(--text-color);
+  opacity: 0.9;
+}
+
+.profile-select-btn.is-selected .profile-select-icon,
+.profile-select-btn.is-selected .profile-select-order-icon {
+  opacity: 1;
+}
+
+.bottom-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .stat-icon {
   color: var(--text-color);
