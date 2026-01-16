@@ -14,6 +14,8 @@ export const useSettingStore = defineStore('setting', {
         auth: false,
         hwid: true,
         systemProxyMode: true,
+        multiProfileEnabled: false,
+        multiProfileHintShown: false,
         hwidHeaders: {
             hwid: '',
             os: '',
@@ -54,6 +56,12 @@ export const useSettingStore = defineStore('setting', {
         },
         setSystemProxyMode(systemProxyMode: any) {
             this.systemProxyMode = systemProxyMode;
+        },
+        setMultiProfileEnabled(enabled: any) {
+            this.multiProfileEnabled = !!enabled;
+        },
+        setMultiProfileHintShown(shown: any) {
+            this.multiProfileHintShown = !!shown;
         },
         setHwidHeaders(headers: { hwid?: string; os?: string; osVersion?: string; model?: string }) {
             this.hwidHeaders = {

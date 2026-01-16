@@ -471,6 +471,106 @@ func updateProxyGroupProxies(groups []map[string]any, mapping map[string]string)
 	}
 }
 
+func isTruthy(value any) bool {
+	switch typed := value.(type) {
+	case bool:
+		return typed
+	case string:
+		return strings.EqualFold(strings.TrimSpace(typed), "true")
+	default:
+		return false
+	}
+}
+
+func isGroupIncludeAll(group map[string]any) bool {
+	if group == nil {
+		return false
+	}
+	if isTruthy(group["include-all"]) {
+		return true
+	}
+	if isTruthy(group["include-all-proxies"]) {
+		return true
+	}
+	return false
+}
+
+func extractProxyNames(proxies []map[string]any) []string {
+	names := make([]string, 0, len(proxies))
+	for _, proxy := range proxies {
+		name, ok := proxy["name"].(string)
+		if !ok || name == "" {
+			continue
+		}
+		names = append(names, name)
+	}
+	return names
+}
+
+func mergeGroupProxies(groups []map[string]any, proxyNames []string) {
+	if len(groups) == 0 || len(proxyNames) == 0 {
+		return
+	}
+
+	for _, group := range groups {
+		if isGroupIncludeAll(group) {
+			continue
+		}
+		if _, ok := group["use"]; ok {
+			continue
+		}
+
+		value, ok := group["proxies"]
+		if !ok {
+			continue
+		}
+
+		switch proxies := value.(type) {
+		case []string:
+			seen := make(map[string]bool, len(proxies))
+			merged := make([]string, 0, len(proxies)+len(proxyNames))
+			for _, name := range proxies {
+				if name == "" || seen[name] {
+					continue
+				}
+				seen[name] = true
+				merged = append(merged, name)
+			}
+			for _, name := range proxyNames {
+				if name == "" || seen[name] {
+					continue
+				}
+				seen[name] = true
+				merged = append(merged, name)
+			}
+			group["proxies"] = merged
+		case []any:
+			seen := make(map[string]bool, len(proxies))
+			merged := make([]any, 0, len(proxies)+len(proxyNames))
+			for _, item := range proxies {
+				name, ok := item.(string)
+				if !ok {
+					merged = append(merged, item)
+					continue
+				}
+				if name == "" || seen[name] {
+					continue
+				}
+				seen[name] = true
+				merged = append(merged, name)
+			}
+			for _, name := range proxyNames {
+				if name == "" || seen[name] {
+					continue
+				}
+				seen[name] = true
+				merged = append(merged, name)
+			}
+			group["proxies"] = merged
+		}
+	}
+}
+
 func updateRuleList(rules []string, mapping map[string]string) []string {
 	if len(rules) == 0 {
 		return rules
@@ -728,6 +828,10 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 			}
 		}
 
+		if multi {
+			mergeGroupProxies(rawCfg.ProxyGroup, extractProxyNames(rawCfg.Proxy))
+		}
+
 		_ = cache.Put(constant.ProfileProxyOrigin, proxyOrigins)
 		return rawCfg, nil
 	}
@@ -815,6 +919,10 @@ func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*c
 
 	if len(proxies) > 0 {
 		rawCfg.Proxy = append(rawCfg.Proxy, proxies...)
+	}
+
+	if multi {
+		mergeGroupProxies(rawCfg.ProxyGroup, extractProxyNames(rawCfg.Proxy))
 	}
 
 	_ = cache.Put(constant.ProfileProxyOrigin, proxyOrigins)

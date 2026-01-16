@@ -65,60 +65,71 @@ const normalizeSwitchProfilePayload = (ev: any) => {
   };
 };
 
+let isSwitchingProfiles = false;
+
 // 配置切换
 Events.On("switchProfiles", async (ev: any) => {
+  if (isSwitchingProfiles) {
+    return;
+  }
   const {profile, selected, exclusive} = normalizeSwitchProfilePayload(ev);
-  const nextSelected = typeof selected === 'boolean' ? selected : true;
-  const isExclusive = typeof exclusive === 'boolean' ? exclusive : true;
+  const allowMulti = settingStore.multiProfileEnabled;
+  const nextSelected = allowMulti ? (typeof selected === 'boolean' ? selected : true) : true;
+  const isExclusive = allowMulti ? (typeof exclusive === 'boolean' ? exclusive : true) : true;
 
-  await pLoad(t('profiles.switch.ing'), async () => {
-    try {
-      await api.switchProfile({
-        id: profile?.id,
-        selected: nextSelected,
-        exclusive: isExclusive,
-      })
-      proxiesStore.active = ""
-
-      await api.waitRunning()
-
-      api.getRuleNum().then((res) => {
-        menuStore.setRuleNum(res);
-      });
-
-      const list = await api.getProfileList();
-      if (list && list.length != 0) {
-        Events.Emit({
-          name: "profiles",
-          data: list
-        })
-      }
-
-      const refreshed = list?.find((item: any) => item?.id === profile?.id);
-      const primaryProfile = list?.find((item: any) => item?.primary);
-      const selectedProfile = list?.find((item: any) => item?.selected);
-      const activeProfile = nextSelected
-          ? (primaryProfile ?? refreshed ?? {...profile, selected: nextSelected, primary: true})
-          : (primaryProfile ?? selectedProfile);
-      if (activeProfile) {
-        webStore.fProfile = {
-          ...activeProfile,
+  isSwitchingProfiles = true;
+  try {
+    await pLoad(t('profiles.switch.ing'), async () => {
+      try {
+        await api.switchProfile({
+          id: profile?.id,
+          selected: nextSelected,
           exclusive: isExclusive,
+        })
+        proxiesStore.active = ""
+
+        await api.waitRunning()
+
+        api.getRuleNum().then((res) => {
+          menuStore.setRuleNum(res);
+        });
+
+        const list = await api.getProfileList();
+        if (list && list.length != 0) {
+          Events.Emit({
+            name: "profiles",
+            data: list
+          })
+        }
+
+        const refreshed = list?.find((item: any) => item?.id === profile?.id);
+        const primaryProfile = list?.find((item: any) => item?.primary);
+        const selectedProfile = list?.find((item: any) => item?.selected);
+        const activeProfile = nextSelected
+            ? (primaryProfile ?? refreshed ?? {...profile, selected: nextSelected, primary: true})
+            : (primaryProfile ?? selectedProfile);
+        if (activeProfile) {
+          webStore.fProfile = {
+            ...activeProfile,
+            exclusive: isExclusive,
+          }
+        }
+
+        resetProxyOriginCache();
+
+        // Update proxy groups after profile switch
+        updateProxyGroupsInTray();
+
+        pSuccess(t('profiles.switch.success'))
+      } catch (e) {
+        if (e['message']) {
+          pError(e['message'])
         }
       }
-
-      resetProxyOriginCache();
-
-      // Update proxy groups after profile switch
-      updateProxyGroupsInTray();
-
-      pSuccess(t('profiles.switch.success'))
-    } catch (e) {
-      if (e['message']) {
-        pError(e['message'])
-      }
-    }
-  })
+    })
+  } finally {
+    isSwitchingProfiles = false;
+  }
 });
 
 // Switch proxy in group from tray

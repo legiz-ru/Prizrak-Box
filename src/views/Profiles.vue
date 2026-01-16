@@ -4,6 +4,7 @@ import createApi from "@/api";
 import {pError, pLoad, pSuccess, pWarning} from "@/util/pLoad";
 import {useProxiesStore} from "@/store/proxiesStore";
 import {useMenuStore} from "@/store/menuStore";
+import {useSettingStore} from "@/store/settingStore";
 import {getTemplateTitle, isHttpOrHttps, prettyBytes} from "@/util/format";
 import {useI18n} from "vue-i18n";
 import {Browser, Clipboard, Events} from "@/runtime"
@@ -22,6 +23,7 @@ const api = createApi(proxy);
 const menuStore = useMenuStore();
 const proxiesStore = useProxiesStore();
 const webStore = useWebStore();
+const settingStore = useSettingStore();
 
 // 头部几个按钮操作
 const addFormVisible = ref(false)
@@ -170,6 +172,22 @@ const applyProfileList = (list: any[]) => {
   }
   ensurePrimaryFirst()
   applySelectionOrder()
+  if (multiProfileEnabled.value && !settingStore.multiProfileHintShown) {
+    const selectedProfiles = profiles.filter(profile => profile['selected'])
+    if (selectedProfiles.length > 1) {
+      multiProfileInfoVisible.value = true
+    }
+  }
+  if (!multiProfileEnabled.value && !isSwitchingProfile.value) {
+    const selectedProfiles = profiles.filter(profile => profile['selected'])
+    if (selectedProfiles.length > 1) {
+      const primary = profiles.find(profile => profile['primary'])
+          ?? profiles.find(profile => profile['selected'])
+      if (primary) {
+        void switchProfile(primary, true, true)
+      }
+    }
+  }
 }
 
 const handleProfilesEvent = (list: any[]) => {
@@ -214,6 +232,12 @@ const applyPrimarySelection = (id?: string) => {
 
 // 切换订阅配置
 const selectionOrder = ref<string[]>([])
+const multiProfileInfoVisible = ref(false)
+const multiProfileEnabled = computed({
+  get: () => settingStore.multiProfileEnabled,
+  set: (value: boolean) => settingStore.setMultiProfileEnabled(value),
+})
+const isSwitchingProfile = ref(false)
 
 const ensurePrimaryFirst = () => {
   const primaryId = profiles.find(profile => profile['selected'] && profile['primary'])?.['id']
@@ -288,7 +312,14 @@ const syncSelectionOrder = () => {
 }
 
 async function switchProfile(data: any, desired?: boolean, exclusive = false) {
-  const nextSelected = typeof desired === 'boolean' ? desired : !data['selected']
+  if (isSwitchingProfile.value) {
+    return
+  }
+  let nextSelected = typeof desired === 'boolean' ? desired : !data['selected']
+  if (!multiProfileEnabled.value && !exclusive) {
+    exclusive = true
+    nextSelected = true
+  }
   const wasPrimary = !!data['primary']
 
   const selectedCount = profiles.filter(profile => profile['selected']).length
@@ -299,69 +330,118 @@ async function switchProfile(data: any, desired?: boolean, exclusive = false) {
     return
   }
 
-  await pLoad(t('profiles.switch.ing'), async () => {
-    try {
-      await api.switchProfile({
-        id: data['id'],
-        selected: nextSelected,
-        exclusive,
-      })
-      proxiesStore.active = ""
-
-      await api.waitRunning()
-
-      if (exclusive) {
-        for (let profile of profiles) {
-          profile['selected'] = profile['id'] === data['id'] && nextSelected
-        }
-        selectionOrder.value = nextSelected ? [data['id']] : []
-        applyPrimarySelection(nextSelected ? data['id'] : undefined)
-      } else {
-        data['selected'] = nextSelected
-        if (nextSelected) {
-          appendSelectionOrder(data['id'])
-          if (selectedCount == 0 || !hasPrimarySelected) {
-            applyPrimarySelection(data['id'])
-          }
-        } else {
-          removeSelectionOrder(data['id'])
-          if (wasPrimary) {
-            applyPrimarySelection(selectionOrder.value[0])
-          }
-        }
-      }
-      ensurePrimaryFirst()
-      applySelectionOrder()
-
-      const activeProfile = profiles.find(profile => profile['primary'])
-          ?? profiles.find(profile => profile['selected'])
-      if (activeProfile) {
-        webStore.fProfile = toRaw({
-          ...activeProfile,
+  isSwitchingProfile.value = true
+  try {
+    await pLoad(t('profiles.switch.ing'), async () => {
+      try {
+        await api.switchProfile({
+          id: data['id'],
+          selected: nextSelected,
           exclusive,
         })
-      }
+        proxiesStore.active = ""
 
-      api.getRuleNum().then((res) => {
-        menuStore.setRuleNum(res);
-      });
+        await api.waitRunning()
+
+        if (exclusive) {
+          for (let profile of profiles) {
+            profile['selected'] = profile['id'] === data['id'] && nextSelected
+          }
+          selectionOrder.value = nextSelected ? [data['id']] : []
+          applyPrimarySelection(nextSelected ? data['id'] : undefined)
+        } else {
+          data['selected'] = nextSelected
+          if (nextSelected) {
+            appendSelectionOrder(data['id'])
+            if (selectedCount == 0 || !hasPrimarySelected) {
+              applyPrimarySelection(data['id'])
+            }
+          } else {
+            removeSelectionOrder(data['id'])
+            if (wasPrimary) {
+              applyPrimarySelection(selectionOrder.value[0])
+            }
+          }
+        }
+        ensurePrimaryFirst()
+        applySelectionOrder()
+        if (multiProfileEnabled.value && !settingStore.multiProfileHintShown) {
+          const selectedProfiles = profiles.filter(profile => profile['selected'])
+          if (selectedProfiles.length > 1) {
+            multiProfileInfoVisible.value = true
+          }
+        }
+
+        const activeProfile = profiles.find(profile => profile['primary'])
+            ?? profiles.find(profile => profile['selected'])
+        if (activeProfile) {
+          webStore.fProfile = toRaw({
+            ...activeProfile,
+            exclusive,
+          })
+        }
+
+        api.getRuleNum().then((res) => {
+          menuStore.setRuleNum(res);
+        });
 
         Events.Emit({
           name: "profiles",
           data: toRaw(profiles)
         })
 
-      // 关闭之前的连接
-      api.closeAllConnection()
+        // 关闭之前的连接
+        api.closeAllConnection()
 
-      pSuccess(t('profiles.switch.success'))
-    } catch (e) {
-      if (e['message']) {
-        pError(e['message'])
+        pSuccess(t('profiles.switch.success'))
+      } catch (e) {
+        if (e['message']) {
+          pError(e['message'])
+        }
       }
-    }
-  })
+    })
+  } finally {
+    isSwitchingProfile.value = false
+  }
 
+}
+
+const confirmMultiProfileInfo = () => {
+  multiProfileInfoVisible.value = false
+  settingStore.setMultiProfileHintShown(true)
+}
+
+const showMultiProfileInfo = () => {
+  multiProfileInfoVisible.value = true
+}
+
+const disableMultiProfile = async () => {
+  multiProfileEnabled.value = false
+  const primary = profiles.find(profile => profile['primary'])
+      ?? profiles.find(profile => profile['selected'])
+  const selectedCount = profiles.filter(profile => profile['selected']).length
+  if (primary && selectedCount > 1) {
+    await switchProfile(primary, true, true)
+  }
+}
+
+const declineMultiProfileInfo = async () => {
+  multiProfileInfoVisible.value = false
+  await disableMultiProfile()
+}
+
+const toggleMultiProfile = async () => {
+  const next = !multiProfileEnabled.value
+  multiProfileEnabled.value = next
+  if (!next) {
+    await disableMultiProfile()
+    return
+  }
+
+  const selectedCount = profiles.filter(profile => profile['selected']).length
+  if (selectedCount > 1 && !settingStore.multiProfileHintShown) {
+    multiProfileInfoVisible.value = true
+  }
 }
 
 
@@ -657,16 +737,35 @@ watch(() => webStore.dProfile, async (pList) => {
 <template>
   <MyLayout>
     <template #top>
-      <el-space class="space">
-        <div class="title">
-          {{ $t('profiles.title') }}
-        </div>
-        <div class="profile-option">
-          <el-tooltip
-              :content="$t('profiles.add')"
-              placement="top">
-            <el-icon
-                @click="handleAdd"
+        <el-space class="space">
+          <div class="title">
+            {{ $t('profiles.title') }}
+          </div>
+          <div class="profile-option">
+            <el-tooltip
+                :content="multiProfileEnabled ? t('profiles.multi-select.disable') : t('profiles.multi-select.enable')"
+                placement="top">
+              <el-icon
+                  @click="toggleMultiProfile"
+                  class="profile-option-btn">
+                <icon-mdi-checkbox-multiple-marked v-if="multiProfileEnabled"/>
+                <icon-mdi-checkbox-multiple-blank-outline v-else/>
+              </el-icon>
+            </el-tooltip>
+            <el-tooltip
+                :content="t('profiles.multi-select.info')"
+                placement="top">
+              <el-icon
+                  @click="showMultiProfileInfo"
+                  class="profile-option-btn">
+                <icon-mdi-information-outline/>
+              </el-icon>
+            </el-tooltip>
+            <el-tooltip
+                :content="$t('profiles.add')"
+                placement="top">
+              <el-icon
+                  @click="handleAdd"
                 class="profile-option-btn">
               <icon-mdi-plus-thick/>
             </el-icon>
@@ -764,8 +863,8 @@ watch(() => webStore.dProfile, async (pList) => {
                 <span class="stat-value">{{ formatDateValue(data.update) }}</span>
               </div>
             </div>
-            <div class="bottom-row">
-              <div class="profile-select">
+              <div class="bottom-row" :class="{ 'multi-disabled': !multiProfileEnabled }">
+              <div class="profile-select" v-if="multiProfileEnabled">
                 <button
                     type="button"
                     class="profile-select-btn"
@@ -953,6 +1052,35 @@ watch(() => webStore.dProfile, async (pList) => {
     </template>
   </el-dialog>
 
+  <el-dialog
+      v-model="multiProfileInfoVisible"
+      :title="t('profiles.multi-select.title')"
+      width="520"
+      draggable
+      center
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :show-close="false"
+    >
+      <div class="multi-profile-info">
+        <p>{{ t('profiles.multi-select.description') }}</p>
+        <p>{{ t('profiles.multi-select.description-secondary') }}</p>
+        <p>{{ t('profiles.multi-select.description-tertiary') }}</p>
+        <p>{{ t('profiles.multi-select.description-warning') }}</p>
+        <p class="multi-profile-question">{{ t('profiles.multi-select.question') }}</p>
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="declineMultiProfileInfo">
+            {{ t('profiles.multi-select.decline') }}
+          </el-button>
+          <el-button type="primary" @click="confirmMultiProfileInfo">
+            {{ t('profiles.multi-select.accept') }}
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
+
 
 </template>
 
@@ -980,6 +1108,18 @@ watch(() => webStore.dProfile, async (pList) => {
 .profile-option-btn:hover {
   cursor: pointer;
   color: var(--hr-color);
+}
+
+.multi-profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--el-text-color-regular);
+  line-height: 1.4;
+}
+
+.multi-profile-question {
+  font-weight: 600;
 }
 
 :deep(.vdc-item-container) {
@@ -1087,6 +1227,10 @@ watch(() => webStore.dProfile, async (pList) => {
   margin-top: 10px;
   margin-bottom: 4px;
   color: var(--text-color);
+}
+
+.bottom-row.multi-disabled {
+  justify-content: flex-end;
 }
 
 .profile-select {
