@@ -283,6 +283,13 @@ connections:
   copy-log: Копировать лог
   dialog-title: Лог соединения
   dialog-close: Закрыть
+  toggleView: Переключить режим просмотра
+  topology: Топология соединений
+  noData: Нет данных
+  pause: Пауза
+  resume: Возобновить
+  list: Список
+  topology-view: Топология
 
 log:
   title: Журнал

@@ -283,6 +283,13 @@ connections:
   copy-log: 复制日志
   dialog-title: 连接日志
   dialog-close: 关闭
+  toggleView: 切换视图模式
+  topology: 连接拓扑
+  noData: 无数据
+  pause: 暂停
+  resume: 恢复
+  list: 列表
+  topology-view: 拓扑
 
 log:
   title: 日志

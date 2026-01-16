@@ -8,6 +8,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    ConnectionTopology: typeof import('./components/topology/ConnectionTopology.vue')['default']
     DeepLinkImportOverlay: typeof import('./components/DeepLinkImportOverlay.vue')['default']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCol: typeof import('element-plus/es')['ElCol']
@@ -86,7 +87,9 @@ declare module 'vue' {
     IconMdiNumeric8Circle: typeof import('~icons/mdi/numeric8-circle')['default']
     IconMdiNumeric9Circle: typeof import('~icons/mdi/numeric9-circle')['default']
     IconMdiOpenInNew: typeof import('~icons/mdi/open-in-new')['default']
+    IconMdiPause: typeof import('~icons/mdi/pause')['default']
     IconMdiPencil: typeof import('~icons/mdi/pencil')['default']
+    IconMdiPlay: typeof import('~icons/mdi/play')['default']
     IconMdiPlusThick: typeof import('~icons/mdi/plus-thick')['default']
     IconMdiPower: typeof import('~icons/mdi/power')['default']
     IconMdiRefresh: typeof import('~icons/mdi/refresh')['default']

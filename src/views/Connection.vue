@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import {getCurrentInstance, onBeforeUnmount, onMounted, ref} from "vue";
+import {computed, getCurrentInstance, onBeforeUnmount, onMounted, ref} from "vue";
 import MySimpleInput from "@/components/MySimpleInput.vue";
+import ConnectionTopology from "@/components/topology/ConnectionTopology.vue";
 import {WS} from "@/util/ws";
 import {useWebStore} from "@/store/webStore";
+import {useConnectionStore} from "@/store/connectionStore";
 import {prettyBytes, rJoin} from "@/util/format";
 import {onBeforeRouteLeave} from "vue-router";
 import {formatDistance, Locale} from 'date-fns';
@@ -95,6 +97,20 @@ async function copyLog(item?: any) {
 }
 
 const webStore = useWebStore()
+const connectionStore = useConnectionStore()
+
+// View mode options for segmented control
+const viewModeOptions = computed(() => [
+  {
+    label: t('connections.list'),
+    value: 'list',
+  },
+  {
+    label: t('connections.topology-view'),
+    value: 'topology',
+  },
+]);
+
 let wsConn: WS | null = null
 onMounted(() => {
   const urlTraffic = webStore.wsUrl + "/connections?token=" + webStore.secret;
@@ -143,7 +159,7 @@ function closeAll() {
     <template #bottom>
       <div class="conn">
         <el-space class="op">
-          <div class="search">
+          <div class="search" v-if="connectionStore.viewMode === 'list'">
             <MySimpleInput
                 :onInputChange="handleInputChange"
                 :placeholder="$t('connections.search')"
@@ -153,10 +169,19 @@ function closeAll() {
           <el-button @click="closeAll">
             {{ $t('connections.close') }}
           </el-button>
+          <div class="view-mode-switch">
+            <el-segmented v-model="connectionStore.viewMode" :options="viewModeOptions">
+              <template #default="scope">
+                <div>
+                  {{ (scope as any).item["label"] }}
+                </div>
+              </template>
+            </el-segmented>
+          </div>
         </el-space>
       </div>
 
-      <div class="content">
+      <div class="content" v-if="connectionStore.viewMode === 'list'">
         <div class="info-list">
           <el-row
               class="info"
@@ -224,6 +249,10 @@ function closeAll() {
             </el-col>
           </el-row>
         </div>
+      </div>
+
+      <div class="content topology-content" v-else-if="connectionStore.viewMode === 'topology'">
+        <ConnectionTopology :connections="paginatedData" />
       </div>
 
       <el-dialog
@@ -486,6 +515,36 @@ function closeAll() {
 .info-list::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-hover-bg);
   box-shadow: var(--scrollbar-hover-shadow);
+}
+
+.topology-content {
+  min-height: calc(100vh - 220px);
+  height: calc(100vh - 220px);
+  border: none;
+  background: transparent;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.view-mode-switch .el-segmented {
+  min-width: 150px;
+  border: 1px solid var(--sub-card-border);
+  background: var(--left-proxy-bg);
+  box-shadow: var(--left-nav-shadow);
+  --el-segmented-item-selected-color: var(--text-color);
+  --el-segmented-item-selected-bg-color: var(--left-item-selected-bg);
+  --el-border-radius-base: 5px;
+  color: var(--text-color);
+  font-size: 14px;
+}
+
+.view-mode-switch .el-segmented:hover {
+  box-shadow: var(--left-nav-hover-shadow);
+}
+
+.view-mode-switch :deep(.el-segmented__item) {
+  padding: 0 12px;
 }
 
 

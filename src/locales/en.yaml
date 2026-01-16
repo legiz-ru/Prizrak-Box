@@ -283,6 +283,13 @@ connections:
   copy-log: Copy log
   dialog-title: Connection log
   dialog-close: Close
+  toggleView: Toggle view mode
+  topology: Connection Topology
+  noData: No data available
+  pause: Pause
+  resume: Resume
+  list: List
+  topology-view: Topology
 
 log:
   title: Log
