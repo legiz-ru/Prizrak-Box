@@ -177,6 +177,18 @@ profiles:
   add: 添加订阅
   paste: 从剪贴板导入
   open: 从文件导入
+  multi-select:
+    enable: 启用多选
+    disable: 关闭多选
+    info: 查看说明
+    title: 多订阅选择
+    description: 多订阅是一项高级功能。
+    description-secondary: 启用多选后，不同订阅的节点可能会进入同一个规则组。
+    description-tertiary: 如果主订阅使用复杂或动态规则，可能导致流量路由不正确（例如选择了位置不合适的节点）。
+    description-warning: 建议仅在你了解组和规则如何工作时使用多订阅。
+    question: 确定要继续吗？
+    accept: 是
+    decline: 否
   available: 可用
   use: 已用
   expire: 到期时间

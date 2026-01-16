@@ -86,15 +86,33 @@ const topTitle = computed(() => {
   const trimmed = typeof title === "string" ? title.trim() : "";
   return trimmed || defaultTitle;
 });
+const logoUrl = computed(() => {
+  const logo = activeProfile.value?.logo;
+  const trimmed = typeof logo === "string" ? logo.trim() : "";
+  return trimmed;
+});
+const logoFallback = ref(false);
 const topLogo = computed(() => {
-  if (hasCustomLogo.value) {
-    return activeProfile.value.logo;
+  if (!logoUrl.value || logoFallback.value) {
+    return defaultLogo;
   }
-  return defaultLogo;
+  return logoUrl.value;
 });
 const topIconStyle = computed(() => ({
   backgroundImage: `url(${topLogo.value})`
 }));
+
+const preloadLogo = (url: string) => new Promise<boolean>((resolve) => {
+  const img = new Image();
+  const done = (ok: boolean) => {
+    img.onload = null;
+    img.onerror = null;
+    resolve(ok);
+  };
+  img.onload = () => done(true);
+  img.onerror = () => done(false);
+  img.src = url;
+});
 
 const openExternalLink = (url: string) => {
   if (!url) {
@@ -148,6 +166,17 @@ onMounted(() => {
 const applyProfile = (data: any | null) => {
   activeProfile.value = data;
 };
+
+watch(logoUrl, async (url) => {
+  logoFallback.value = false;
+  if (!url) {
+    return;
+  }
+  const ok = await preloadLogo(url);
+  if (!ok) {
+    logoFallback.value = true;
+  }
+});
 
 const pickSelectedProfile = (list: any[]) => {
   if (!Array.isArray(list) || list.length === 0) {

@@ -44,6 +44,7 @@ let now = reactive({
 const innerTemplate = ['m1', 'm2', 'm3']
 // 是否可删除
 const canDelete = ref(false)
+const isSwitchingTemplate = ref(false)
 
 function isDefault(data: any) {
   return innerTemplate.indexOf(data) !== -1
@@ -179,24 +180,32 @@ const switchTemplate = async () => {
   if (!now.id) {
     return
   }
-  await pLoad(t('rule.group.switch.ing'), async () => {
-    try {
-      await api.switchTemplate(now);
-      tList = await api.getTemplateList();
+  if (isSwitchingTemplate.value) {
+    return
+  }
+  isSwitchingTemplate.value = true
+  try {
+    await pLoad(t('rule.group.switch.ing'), async () => {
+      try {
+        await api.switchTemplate(now);
+        tList = await api.getTemplateList();
 
-      await api.waitRunning()
-      pSuccess(t('rule.group.switch.success'))
+        await api.waitRunning()
+        pSuccess(t('rule.group.switch.success'))
 
-      proxiesStore.active = ""
-      api.getRuleNum().then((res) => {
-        menuStore.setRuleNum(res);
-      });
-    } catch (e) {
-      if (e['message']) {
-        pError(e['message'])
+        proxiesStore.active = ""
+        api.getRuleNum().then((res) => {
+          menuStore.setRuleNum(res);
+        });
+      } catch (e) {
+        if (e['message']) {
+          pError(e['message'])
+        }
       }
-    }
-  })
+    })
+  } finally {
+    isSwitchingTemplate.value = false
+  }
 }
 
 

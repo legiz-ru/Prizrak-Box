@@ -177,6 +177,18 @@ profiles:
   add: Add
   paste: Import from Clipboard
   open: Import from file
+  multi-select:
+    enable: Enable multi-select
+    disable: Disable multi-select
+    info: Show help
+    title: Multi-profile selection
+    description: Multi-profile is an advanced feature.
+    description-secondary: When multi-select is enabled, servers from different profiles can end up in the same rule groups.
+    description-tertiary: If the primary subscription uses complex or dynamic rules, this can lead to incorrect traffic routing (for example, selecting a server with an unsuitable location).
+    description-warning: Use multi-profile only if you understand how groups and rules work.
+    question: Are you sure you want to continue?
+    accept: Yes
+    decline: No
   available: Available
   use: Used
   expire: Expiration
