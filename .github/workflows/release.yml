@@ -32,6 +32,9 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.25'
+          cache-dependency-path: |
+            src-go/go.sum
+            src-service/go.sum
 
       - name: Install Backend Dependencies
         shell: pwsh
@@ -62,6 +65,16 @@ jobs:
           go build -tags=with_gvisor -trimpath `
             -ldflags "-s -w -X github.com/legiz-ru/prizrak-box/api.Version=$env:VERSION" `
             -o px.exe
+
+      - name: Build px-service for ${{ matrix.arch }}
+        shell: pwsh
+        env:
+          CGO_ENABLED: 0
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          cd src-service
+          go mod download
+          go build -ldflags "-s -w" -o px-service.exe .
 
       - name: Sync VERSION to package.json
         run: node build/sync-version.js
@@ -165,6 +178,9 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.25'
+          cache-dependency-path: |
+            src-go/go.sum
+            src-service/go.sum
 
       - name: Install Backend Dependencies
         run: |
@@ -192,6 +208,15 @@ jobs:
           go build -tags=with_gvisor -trimpath \
             -ldflags "-s -w -X github.com/legiz-ru/prizrak-box/api.Version=${{ env.VERSION }}" \
             -o px
+
+      - name: Build px-service for ${{ matrix.arch }}
+        env:
+          CGO_ENABLED: 0
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          cd src-service
+          go mod download
+          go build -ldflags "-s -w" -o px-service .
 
       - name: Sync VERSION to package.json
         run: node build/sync-version.js
@@ -262,6 +287,9 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.25'
+          cache-dependency-path: |
+            src-go/go.sum
+            src-service/go.sum
 
       - name: Install Backend Dependencies
         run: |
@@ -318,6 +346,15 @@ jobs:
           go build -tags=with_gvisor -trimpath \
             -ldflags "-s -w -X github.com/legiz-ru/prizrak-box/api.Version=${{ env.VERSION }}" \
             -o px
+
+      - name: Build px-service for ${{ matrix.arch }}
+        env:
+          CGO_ENABLED: 0
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          cd src-service
+          go mod download
+          go build -ldflags "-s -w" -o px-service .
 
       - name: Sync VERSION to package.json
         run: node build/sync-version.js
