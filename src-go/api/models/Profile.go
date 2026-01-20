@@ -26,6 +26,8 @@ type Profile struct {
 	Home        string   `json:"home,omitempty"`
 	Support     string   `json:"support,omitempty"`
 	Logo        string   `json:"logo,omitempty"`
+	Announce    string   `json:"announce,omitempty"`
+	AnnounceUrl string   `json:"announceUrl,omitempty"`
 	Update      string   `json:"update,omitempty"`
 	Template    string   `json:"template,omitempty"`
 }

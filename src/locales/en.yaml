@@ -196,6 +196,8 @@ profiles:
   placeholder: Subscription, ShareLink, Yaml, Base64, Json
   home: Visit the Subscription Home Page
   support: Visit the Support Page
+  announce: Announcement
+  announce-url: Go to Link
   del-tip: In use, cannot be deleted
   edit:
     title: Title
@@ -328,6 +330,10 @@ tray:
   tun: TUN
   quit: Quit
 
+proxySelector:
+  group: Group
+  proxy: Proxy
+
 errors:
   request-failed: Request failed
   request-send-failed: Failed to send request
@@ -361,3 +367,32 @@ service:
   check-status: Check service status
   mode: Service Mode
   mode-description: Allows TUN mode without administrator privileges
+
+onboarding:
+  service-setup:
+    title: Service Setup
+    description: Installing the service will allow you to use TUN mode without constant administrator privilege requests
+    install-btn: Install Service
+    skip-btn: Skip
+    installing: Installing service...
+    install-success: Service installed successfully
+    install-warning: Failed to install service. You can continue without installation.
+  welcome:
+    title: Welcome!
+    subtitle: Add your first profile to get started
+    add-profile: Add Profile
+  active-profile:
+    current-profile: "Current profile:"
+    switch-profiles: Switch profiles
+    refresh-profile: Refresh profile
+    add-from-clipboard: Add from clipboard
+    clipboard-empty: Clipboard is empty
+    stats:
+      used: Used
+      available: Available
+      expire: Expiration
+      update: Updated
+  first-profile-info:
+    title: Information
+    message: You can now enable proxy mode or network adapter mode (TUN)
+    ok: Ok

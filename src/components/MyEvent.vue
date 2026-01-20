@@ -119,6 +119,14 @@ Events.On("switchProfiles", async (ev: any) => {
 
         // Update proxy groups after profile switch
         updateProxyGroupsInTray();
+        Events.Emit({
+          name: "profileChanged",
+          data: {
+            profile: activeProfile,
+            exclusive: isExclusive,
+          }
+        })
+        window.dispatchEvent(new CustomEvent('profile-changed'))
 
         pSuccess(t('profiles.switch.success'))
       } catch (e) {
@@ -139,7 +147,10 @@ Events.On("switchProxyInGroup", async (ev: any) => {
   try {
     // Use correct API format: {name: proxyName}
     await api.setProxy(group, {name: proxy});
-    // Don't update store immediately - let API state be the source of truth
+
+    // Update store to trigger watchers in other components
+    proxiesStore.setActive(group);
+    proxiesStore.setNow(proxy);
 
     // Poll API to verify the change was applied
     let retries = 0;

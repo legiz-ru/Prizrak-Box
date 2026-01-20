@@ -196,6 +196,8 @@ profiles:
   placeholder: Подписка, ShareLink, Yaml, Base64, Json
   home: Перейти на страницу подписки
   support: Перейти на страницу поддержки
+  announce: Анонс
+  announce-url: Перейти по ссылке
   del-tip: Используется, нельзя удалить
   edit:
     title: Название
@@ -328,6 +330,10 @@ tray:
   tun: TUN
   quit: Выйти
 
+proxySelector:
+  group: Группа
+  proxy: Прокси
+
 errors:
   request-failed: Не удалось выполнить запрос
   request-send-failed: Не удалось отправить запрос
@@ -361,3 +367,32 @@ service:
   check-status: Проверка статуса сервиса
   mode: Режим сервиса
   mode-description: Позволяет использовать TUN без прав администратора
+
+onboarding:
+  service-setup:
+    title: Настройка службы
+    description: Установка сервиса позволит использовать режим TUN без постоянного запроса администраторских прав
+    install-btn: Установить сервис
+    skip-btn: Пропустить
+    installing: Установка сервиса...
+    install-success: Сервис успешно установлен
+    install-warning: Не удалось установить сервис. Вы можете продолжить без установки.
+  welcome:
+    title: Добро пожаловать!
+    subtitle: Добавьте свой первый профиль для начала работы
+    add-profile: Добавить профиль
+  active-profile:
+    current-profile: "Текущий профиль:"
+    switch-profiles: Переключить профили
+    refresh-profile: Обновить профиль
+    add-from-clipboard: Добавить из буфера обмена
+    clipboard-empty: Буфер обмена пуст
+    stats:
+      used: Использовано
+      available: Доступно
+      expire: Истекает
+      update: Обновлено
+  first-profile-info:
+    title: Информация
+    message: Теперь вы можете включить режим прокси или режим сетевого адаптера (TUN)
+    ok: Ок

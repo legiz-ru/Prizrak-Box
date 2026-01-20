@@ -17,6 +17,8 @@ export class Profile {
     home?: string; // 可选
     support?: string; // 可选
     logo?: string; // 可选
+    announce?: string; // 可选
+    announceUrl?: string; // 可选
     update?: string; // 可选
     template?: string; // 可选
 }

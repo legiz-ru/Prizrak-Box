@@ -38,3 +38,13 @@ export const Browser = {
     // @ts-ignore
     OpenURL: (url: string) => window["pxOpen"](url)
 }
+
+// Сервис TUN
+export const Service = {
+    // @ts-ignore
+    Install: () => window["pxService"]?.install(),
+    // @ts-ignore
+    GetStatus: () => window["pxService"]?.getStatus(),
+    // @ts-ignore
+    IsRunning: () => window["pxService"]?.isRunning(),
+}

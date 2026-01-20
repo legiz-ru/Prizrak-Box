@@ -189,6 +189,17 @@ const pickSelectedProfile = (list: any[]) => {
   applyProfile(selected ?? list[0]);
 };
 
+const handleVueProfilesUpdate = (event: Event) => {
+  const customEvent = event as CustomEvent;
+  const detail = customEvent.detail;
+
+  if (!detail || !Array.isArray(detail.profiles)) {
+    return;
+  }
+
+  pickSelectedProfile(detail.profiles);
+};
+
 const loadProfiles = async () => {
   try {
     const list = await api.getProfileList();
@@ -217,6 +228,11 @@ onMounted(async () => {
   Events.On("profiles", (list: any[]) => {
     pickSelectedProfile(list);
   });
+  window.addEventListener('vue-profiles-updated', handleVueProfilesUpdate as EventListener);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('vue-profiles-updated', handleVueProfilesUpdate as EventListener);
 });
 
 </script>

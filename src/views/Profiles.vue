@@ -11,6 +11,7 @@ import {Browser, Clipboard, Events} from "@/runtime"
 import {useWebStore} from "@/store/webStore";
 import {WS} from "@/util/ws";
 import {onBeforeRouteLeave} from "vue-router";
+import AnnounceText from "@/components/home/AnnounceText.vue";
 
 // i18n
 const {t} = useI18n();
@@ -389,6 +390,11 @@ async function switchProfile(data: any, desired?: boolean, exclusive = false) {
           name: "profiles",
           data: toRaw(profiles)
         })
+        Events.Emit({
+          name: "profileChanged",
+          data: toRaw(webStore.fProfile)
+        })
+        window.dispatchEvent(new CustomEvent('profile-changed'))
 
         // 关闭之前的连接
         api.closeAllConnection()
@@ -539,6 +545,28 @@ function goHome(data: any) {
 
 function goSupport(data: any) {
   openExternalLink(data.support)
+}
+
+// Announce dialog
+const announceDialogVisible = ref(false)
+let announceDialogData = reactive<any>({
+  text: '',
+  url: ''
+})
+
+function showAnnounce(data: any) {
+  announceDialogData = reactive<any>({})
+  Object.assign(announceDialogData, {
+    text: data.announce || '',
+    url: data.announceUrl || ''
+  })
+  announceDialogVisible.value = true
+}
+
+function goAnnounceUrl() {
+  if (announceDialogData.url) {
+    openExternalLink(announceDialogData.url)
+  }
 }
 
 // 修改配置
@@ -891,6 +919,17 @@ watch(() => webStore.dProfile, async (pList) => {
               </div>
               <div class="bottom-actions">
                 <el-tooltip
+                    v-if="data.announce"
+                    :content="$t('profiles.announce')"
+                    placement="top">
+                  <el-icon
+                      class="ops"
+                      @click.stop="showAnnounce(data)"
+                      size="20">
+                    <icon-mdi-bullhorn-variant-outline/>
+                  </el-icon>
+                </el-tooltip>
+                <el-tooltip
                     v-if="data.support"
                     :content="$t('profiles.support')"
                     placement="top">
@@ -1081,6 +1120,35 @@ watch(() => webStore.dProfile, async (pList) => {
       </template>
     </el-dialog>
 
+  <!-- Announce Dialog -->
+  <el-dialog
+      v-model="announceDialogVisible"
+      :title="t('profiles.announce')"
+      width="520"
+      draggable
+      center
+  >
+    <div class="announce-dialog-content">
+      <AnnounceText
+          :text="announceDialogData.text"
+          :url="announceDialogData.url"
+      />
+    </div>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="announceDialogVisible = false">
+          {{ t('close') }}
+        </el-button>
+        <el-button
+            v-if="announceDialogData.url"
+            type="primary"
+            @click="goAnnounceUrl"
+        >
+          {{ t('profiles.announce-url') }}
+        </el-button>
+      </div>
+    </template>
+  </el-dialog>
 
 </template>
 
@@ -1277,5 +1345,15 @@ watch(() => webStore.dProfile, async (pList) => {
 }
 .stat-icon {
   color: var(--text-color);
+}
+
+.announce-dialog-content {
+  padding: 20px;
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+  text-align: center;
+  line-height: 1.6;
+  word-wrap: break-word;
+  white-space: pre-wrap;
 }
 </style>

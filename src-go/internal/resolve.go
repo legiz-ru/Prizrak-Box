@@ -510,6 +510,47 @@ func buildLogoDataURL(contentType string, data []byte) string {
 	return fmt.Sprintf("data:%s;base64,%s", contentType, encoded)
 }
 
+// limitAnnounceText limits the announce text to maxVisible displayed characters
+// excluding color codes in format #RRGGBB
+func limitAnnounceText(text string, maxVisible int) string {
+	if text == "" {
+		return text
+	}
+
+	runes := []rune(text)
+	visibleCount := 0
+	i := 0
+
+	for i < len(runes) {
+		// Check if this is a color code #RRGGBB
+		if runes[i] == '#' && i+6 < len(runes) {
+			isColorCode := true
+			for j := 1; j <= 6; j++ {
+				r := runes[i+j]
+				if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')) {
+					isColorCode = false
+					break
+				}
+			}
+			if isColorCode {
+				// Skip the color code (#RRGGBB = 7 characters)
+				i += 7
+				continue
+			}
+		}
+
+		// This is a visible character
+		visibleCount++
+		if visibleCount > maxVisible {
+			// Return text up to this position
+			return string(runes[:i])
+		}
+		i++
+	}
+
+	return text
+}
+
 // ParseHeaders 对请求头进行解析
 func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 	// 流量
@@ -590,6 +631,25 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 
 	if val := header.Get("Support-Url"); val != "" {
 		profile.Support = val
+	}
+
+	// Announce
+	if val := header.Get("Announce"); val != "" {
+		announce := val
+		// Check if base64 encoded
+		if strings.HasPrefix(val, "base64:") {
+			decoded, err := base64.StdEncoding.DecodeString(val[7:])
+			if err == nil {
+				announce = string(decoded)
+			}
+		}
+		// Limit to 200 visible characters (excluding color codes)
+		announce = limitAnnounceText(announce, 200)
+		profile.Announce = announce
+	}
+
+	if val := header.Get("Announce-Url"); val != "" {
+		profile.AnnounceUrl = val
 	}
 
 	parseProfileLogo(header, profile)

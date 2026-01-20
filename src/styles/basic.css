@@ -52,6 +52,7 @@
     --skin-bg-color: rgba(0, 0, 0, 0.8);
     --skin-hover-color: rgba(160, 160, 160, 0.5);
     --skin-box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --dropdown-list-bg: #1a1d2e;
 
     --sub-card-border: rgba(255, 255, 255, 0.3);
     --sub-card-bg: rgba(255, 255, 255, 0.1);
@@ -102,6 +103,7 @@
     --skin-bg-color: rgba(255, 255, 255, 0.9);
     --skin-hover-color: rgba(90, 90, 90, 0.5);
     --skin-box-shadow: 0 4px 6px rgba(255, 255, 255, 0.1);
+    --dropdown-list-bg: #ffffff;
 
     --sub-card-border: rgba(0, 0, 0, 0.25);
 

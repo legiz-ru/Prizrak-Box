@@ -184,119 +184,141 @@ onMounted(async () => {
 </script>
 
 <template>
-  <el-row :gutter="20" class="spark"
-          style="margin-left: 2px;">
-    <el-col :span="12">
-      <div class="box box1">
-        <div class="title">
-          {{ $t('home.ip.title') }}
-          <el-tooltip
-              :content="$t('refresh')"
-              placement="top">
-            <el-icon size="22"
-                     @click="getIpInfo(false)"
-                     class="refreshIp">
-              <icon-mdi-refresh/>
-            </el-icon>
-          </el-tooltip>
+  <div class="ip-system-wrapper">
+    <div class="spark">
+      <div class="spark-col">
+        <div class="box box1">
+          <div class="title title-left">
+            {{ $t('home.ip.title') }}
+            <el-tooltip
+                :content="$t('refresh')"
+                placement="top">
+              <el-icon size="18"
+                       @click="getIpInfo(false)"
+                       class="refreshIp">
+                <icon-mdi-refresh/>
+              </el-icon>
+            </el-tooltip>
+          </div>
+          <hr/>
+          <ul class="info-list info-list-left">
+            <li class="info-item info-item--link">
+              <strong>{{ $t('home.ip.real') }} : </strong>
+              <span
+                  class="info-item-value"
+                  :class="{'info-item-value--link': Boolean(ipInfoLink)}"
+              >
+                {{ ipInfo['query'] }}
+                <a
+                    v-if="ipInfoLink"
+                    :href="ipInfoLink"
+                    class="info-link"
+                    :aria-label="$t('home.ip.real')"
+                    role="link"
+                    @click.prevent.stop="goIpInfo()"
+                    @keydown.enter.prevent.stop="goIpInfo()"
+                    @keydown.space.prevent.stop="goIpInfo()"
+                    tabindex="0"
+                >
+                  <icon-mdi-open-in-new/>
+                </a>
+              </span>
+            </li>
+            <li class="info-item"><strong>{{ $t('home.ip.city') }} : </strong>
+              {{ ipInfo['city'] }}
+            </li>
+            <li class="info-item"><strong>{{ $t('home.ip.country') }} : </strong>
+              {{ ipInfo['country'] }}
+            </li>
+            <li class="info-item"><strong>{{ $t('home.ip.isp') }} : </strong>
+              {{ ipInfo['isp'] }}
+            </li>
+            <li class="info-item info-item--link">
+              <strong>{{ $t('home.ip.asn') }} : </strong>
+              <span
+                  class="info-item-value"
+                  :class="{'info-item-value--link': Boolean(asnInfoLink)}"
+              >
+                {{ ipInfo['as'] }}
+                <a
+                    v-if="asnInfoLink"
+                    :href="asnInfoLink"
+                    class="info-link"
+                    :aria-label="$t('home.ip.asn')"
+                    role="link"
+                    @click.prevent.stop="goAsnInfo()"
+                    @keydown.enter.prevent.stop="goAsnInfo()"
+                    @keydown.space.prevent.stop="goAsnInfo()"
+                    tabindex="0"
+                >
+                  <icon-mdi-open-in-new/>
+                </a>
+              </span>
+            </li>
+            <li class="info-item"><strong>{{ $t('home.ip.time-zone') }} : </strong>
+              {{ ipInfo['timezone'] }}
+            </li>
+          </ul>
         </div>
-        <hr/>
-        <ul class="info-list">
-          <li class="info-item info-item--link">
-            <strong>{{ $t('home.ip.real') }} : </strong>
-            <span
-                class="info-item-value"
-                :class="{'info-item-value--link': Boolean(ipInfoLink)}"
-            >
-              {{ ipInfo['query'] }}
-              <a
-                  v-if="ipInfoLink"
-                  :href="ipInfoLink"
-                  class="info-link"
-                  :aria-label="$t('home.ip.real')"
-                  role="link"
-                  @click.prevent.stop="goIpInfo()"
-                  @keydown.enter.prevent.stop="goIpInfo()"
-                  @keydown.space.prevent.stop="goIpInfo()"
-                  tabindex="0"
-              >
-                <icon-mdi-open-in-new/>
-              </a>
-            </span>
-          </li>
-          <li class="info-item"><strong>{{ $t('home.ip.city') }} : </strong>
-            {{ ipInfo['city'] }}
-          </li>
-          <li class="info-item"><strong>{{ $t('home.ip.country') }} : </strong>
-            {{ ipInfo['country'] }}
-          </li>
-          <li class="info-item"><strong>{{ $t('home.ip.isp') }} : </strong>
-            {{ ipInfo['isp'] }}
-          </li>
-          <li class="info-item info-item--link">
-            <strong>{{ $t('home.ip.asn') }} : </strong>
-            <span
-                class="info-item-value"
-                :class="{'info-item-value--link': Boolean(asnInfoLink)}"
-            >
-              {{ ipInfo['as'] }}
-              <a
-                  v-if="asnInfoLink"
-                  :href="asnInfoLink"
-                  class="info-link"
-                  :aria-label="$t('home.ip.asn')"
-                  role="link"
-                  @click.prevent.stop="goAsnInfo()"
-                  @keydown.enter.prevent.stop="goAsnInfo()"
-                  @keydown.space.prevent.stop="goAsnInfo()"
-                  tabindex="0"
-              >
-                <icon-mdi-open-in-new/>
-              </a>
-            </span>
-          </li>
-          <li class="info-item"><strong>{{ $t('home.ip.time-zone') }} : </strong>
-            {{ ipInfo['timezone'] }}
-          </li>
-        </ul>
       </div>
-    </el-col>
 
-    <el-col :span="12">
-      <div class="box box2">
-        <div class="title">
-          {{ $t('home.system.title') }}
+      <div class="spark-col">
+        <div class="box box2">
+          <div class="title title-right">
+            {{ $t('home.system.title') }}
+          </div>
+          <hr/>
+          <ul class="info-list info-list-right">
+            <li class="info-item"><strong>{{ $t('home.system.os') }} : </strong> {{ homeStore.os }}</li>
+            <li class="info-item"><strong>{{ $t('home.system.runtime') }} : </strong>
+              {{ time }}
+            </li>
+            <li class="info-item"><strong>{{ $t('home.system.startup') }} : </strong> {{ settingStore.startup ? $t('on') : $t('off') }}</li>
+            <li class="info-item"><strong>{{ $t('home.system.admin') }} : </strong> {{ $t(admin) }}</li>
+            <li class="info-item"><strong>{{ $t('home.system.port') }} : </strong>
+              {{ port }}
+            </li>
+            <li class="info-item"><strong>{{ $t('home.system.version') }} : </strong>
+              {{ version }}
+            </li>
+          </ul>
         </div>
-        <hr/>
-        <ul class="info-list">
-          <li class="info-item"><strong>{{ $t('home.system.os') }} : </strong> {{ homeStore.os }}</li>
-          <li class="info-item"><strong>{{ $t('home.system.runtime') }} : </strong>
-            {{ time }}
-          </li>
-          <li class="info-item"><strong>{{ $t('home.system.startup') }} : </strong> {{ settingStore.startup ? $t('on') : $t('off') }}</li>
-          <li class="info-item"><strong>{{ $t('home.system.admin') }} : </strong> {{ $t(admin) }}</li>
-          <li class="info-item"><strong>{{ $t('home.system.port') }} : </strong>
-            {{ port }}
-          </li>
-          <li class="info-item"><strong>{{ $t('home.system.version') }} : </strong>
-            {{ version }}
-          </li>
-        </ul>
       </div>
-    </el-col>
-  </el-row>
+    </div>
+  </div>
 </template>
 
 <style scoped>
+.ip-system-wrapper {
+  width: 100%;
+  display: flex;
+  margin-top: auto;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
 .spark {
-  max-width: 95%;
-  margin-top: 30px;
+  width: 100%;
+  max-width: 100%;
+  margin-top: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+  padding: 0;
+}
+
+.spark-col {
+  min-width: 0;
 }
 
 .box {
-  padding: 10px;
+  padding: 12px 20px;
   border-radius: 8px;
+  background: var(--sub-card-bg);
+  border: 1px solid var(--sub-card-border);
+  box-shadow: var(--right-box-shadow);
   text-align: left;
+  box-sizing: border-box;
 }
 
 .box hr {
@@ -306,9 +328,37 @@ onMounted(async () => {
   margin: 10px 0;
 }
 
+.title {
+  position: relative;
+  font-weight: 500;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title-left {
+  text-align: left;
+  justify-content: flex-start;
+}
+
+.title-right {
+  text-align: right;
+  justify-content: flex-end;
+}
+
 .info-list {
   list-style: none;
   padding: 0;
+  margin: 0;
+}
+
+.info-list-left {
+  text-align: left;
+}
+
+.info-list-right {
+  text-align: right;
 }
 
 .info-list li {
@@ -316,7 +366,6 @@ onMounted(async () => {
   margin: 8px 0;
   line-height: 20px;
 }
-
 
 .info-item--link {
   position: static;
@@ -335,22 +384,16 @@ onMounted(async () => {
   transform: translateY(-50%);
 }
 
-.box1 {
-  box-shadow: var(--right-box-shadow);
-}
-
-.box2 {
-  box-shadow: var(--right-box-shadow);
-}
-
 .refreshIp {
-  position: absolute;
-  margin-left: 8px;
-  margin-top: -4px
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .refreshIp:hover {
   cursor: pointer;
+  opacity: 0.8;
 }
 
 .info-link {
@@ -377,5 +420,4 @@ onMounted(async () => {
   outline: 2px solid var(--el-color-primary);
   outline-offset: 2px;
 }
-
 </style>

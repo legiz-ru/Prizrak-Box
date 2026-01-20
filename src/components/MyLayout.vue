@@ -45,11 +45,13 @@ const upFromTop = function (distance: number) {
 .bottom {
   flex-grow: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   height: calc(100% - var(--layout-bottom-height));
   padding-top: 10px;
   padding-bottom: 20px;
   overscroll-behavior: none;
   padding-left: 18px;
+  padding-right: 18px;
 }
 
 .bottom::-webkit-scrollbar {
