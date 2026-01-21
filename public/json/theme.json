@@ -85,10 +85,9 @@
   {
     "id": "random",
     "bg": [
-      "https://bing.img.run/rand.php?a=1",
-      "https://picsum.photos/1920/1080?a=1",
-      "https://cdn.seovx.com/?mom=302",
-      "https://cdn.seovx.com/ha/?mom=302"
+      "https://img.fanpx.com/random.php?orientation=landscape",
+      "https://img.fanpx.com/random1.php?orientation=landscape",
+      "https://picsum.photos/1920/1080?a=1"
     ],
     "rand": true
   },

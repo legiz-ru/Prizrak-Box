@@ -53,19 +53,12 @@ async function addProfile() {
   try {
     const newProfiles = await api.addProfileFromInput(p);
 
+    let firstProfileId = null;
+
     // Если профили добавлены, активируем первый из них
     if (newProfiles && newProfiles.length > 0) {
       const firstProfile = newProfiles[0];
-
-      // Переключаемся на новый профиль (эксклюзивно)
-      await api.switchProfile({
-        id: firstProfile.id,
-        selected: true,
-        exclusive: true,
-      });
-
-      // Ждём, пока прокси запустится
-      await api.waitRunning();
+      firstProfileId = firstProfile.id;
 
       // Обновляем профиль для получения полной информации (логотип, имя и т.д.)
       if (firstProfile.type === 1) {
@@ -76,10 +69,57 @@ async function addProfile() {
           console.warn('Failed to refresh profile:', e);
         }
       }
+
+      // Переключаемся на новый профиль (эксклюзивно)
+      await api.switchProfile({
+        id: firstProfile.id,
+        selected: true,
+        exclusive: true,
+      });
+
+      // Ждём, пока прокси запустится
+      await api.waitRunning();
     }
 
-    // Получаем обновленный список профилей
+    // Получаем обновленный список профилей ПОСЛЕ refresh
     const fullList = await api.getProfileList();
+
+    // Находим активный профиль в списке
+    let activeProfile = fullList?.find((item: any) => item?.primary)
+      ?? fullList?.find((item: any) => item?.selected)
+      ?? fullList?.[0];
+
+    // Если профиль все еще без логотипа, делаем refresh еще раз для профиля из списка
+    if (firstProfileId && activeProfile?.id === firstProfileId && activeProfile?.type === 1) {
+      if (!activeProfile?.logo && !activeProfile?.icon) {
+        try {
+          const refreshed = await api.refreshProfile(activeProfile);
+          Object.assign(activeProfile, refreshed);
+        } catch (e) {
+          console.warn('Failed to re-refresh profile:', e);
+        }
+      }
+    }
+
+    // Обновляем webStore.fProfile для корректного отображения в UI
+    if (activeProfile) {
+      webStore.fProfile = toRaw({
+        ...activeProfile,
+        exclusive: true,
+      });
+    }
+
+    // Отправляем события ПОСЛЕ того как activeProfile точно обновлен
+    if (activeProfile) {
+      Events.Emit({
+        name: "profileChanged",
+        data: {
+          profile: toRaw(activeProfile),
+          exclusive: true,
+        }
+      });
+      window.dispatchEvent(new CustomEvent('profile-changed'));
+    }
 
     // Отправляем событие обновления профилей (через IPC в Electron)
     // Используем toRaw для избежания ошибки клонирования

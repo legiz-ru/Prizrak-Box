@@ -44,11 +44,19 @@ async function refreshProfile() {
       const refreshed = await api.refreshProfile(activeProfile.value);
       Object.assign(activeProfile.value, refreshed);
 
+      // Получаем обновленный список профилей для синхронизации
+      const fullList = await api.getProfileList();
+
       // Используем toRaw для избежания ошибки клонирования
       Events.Emit({
         name: "profiles",
-        data: toRaw(props.profiles)
+        data: toRaw(fullList)
       });
+
+      // Также отправляем событие внутри Vue для немедленного обновления
+      window.dispatchEvent(new CustomEvent('vue-profiles-updated', {
+        detail: { profiles: toRaw(fullList) }
+      }));
 
       pSuccess(t('profiles.refresh.success'));
     } catch (e) {

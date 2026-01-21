@@ -337,6 +337,21 @@ watch(
   { deep: true }
 );
 
+watch(
+  () => sankeyData.value.nodes.length,
+  (nodeCount) => {
+    if (nodeCount > 0) {
+      nextTick(() => {
+        if (!chart.value) {
+          initChart();
+        } else {
+          updateChart();
+        }
+      });
+    }
+  }
+);
+
 // Lifecycle hooks
 onMounted(() => {
   nextTick(() => {

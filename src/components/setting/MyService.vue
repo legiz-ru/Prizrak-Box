@@ -62,6 +62,8 @@ async function uninstallService() {
     const success = await window.pxService.uninstall();
     if (success) {
       pSuccess(t('service.uninstall-success'));
+      // После удаления сервиса перезапускаем backend в обычном режиме
+      await restartBackendAfterUninstall();
       notifyServiceStatusChanged();
       await fetchServiceStatus();
     } else {
@@ -89,6 +91,26 @@ async function restartBackendAfterInstall() {
       pWarning(t('service.restart-required'));
     }
   } catch (e) {
+    pWarning(t('service.restart-required'));
+  }
+}
+
+async function restartBackendAfterUninstall() {
+  try {
+    // Останавливаем текущий backend (который работал через сервис)
+    await api.exit();
+  } catch (e) {
+    // ignore exit errors - процесс может быть уже остановлен
+  }
+
+  // Ждём, пока Electron автоматически перезапустит backend в обычном режиме
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+
+  try {
+    // Проверяем, что backend успешно запустился
+    await api.waitRunning();
+  } catch (e) {
+    // Backend не запустился автоматически, требуется ручной перезапуск приложения
     pWarning(t('service.restart-required'));
   }
 }
