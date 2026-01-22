@@ -263,9 +263,10 @@ export async function uninstallService(): Promise<boolean> {
     return new Promise((resolve) => {
         switch (process.platform) {
             case 'win32': {
+                // Останавливаем и удаляем сервис через sc.exe
                 const psArgs = [
                     '-Command',
-                    `Start-Process -FilePath '${servicePath}' -ArgumentList '-uninstall' -Verb RunAs -Wait`
+                    `Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile', '-Command', 'sc.exe stop PrizrakBoxService; sc.exe delete PrizrakBoxService') -Verb RunAs -Wait`
                 ];
                 const ps = spawn('powershell.exe', psArgs);
 

@@ -87,6 +87,9 @@
     "bg": [
       "https://img.fanpx.com/random.php?orientation=landscape",
       "https://img.fanpx.com/random1.php?orientation=landscape",
+      "https://img.fanpx.com/random2.php?resolution=regular",
+      "https://img.fanpx.com/random3.php?resolution=regular",
+      "https://img.fanpx.com/random5.php?resolution=regular",
       "https://picsum.photos/1920/1080?a=1"
     ],
     "rand": true

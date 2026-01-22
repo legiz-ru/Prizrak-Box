@@ -286,9 +286,40 @@ onMounted(async () => {
     await applySystemProxyMode(settingStore.systemProxyMode, false);
   }
 
+  // Restore TUN state silently if it was previously enabled
   if (homeStore.os != "Windows" && menuStore.tun) {
-    await api.waitRunning()
-    await tunSwitch()
+    await api.waitRunning();
+
+    // Check if we have permission to enable TUN without showing dialogs
+    const admin = await api.getAdmin();
+    const hasAdmin = !!admin.data;
+    let allowTun = hasAdmin;
+
+    if (!allowTun) {
+      try {
+        // @ts-ignore
+        const status = await window.pxService.getStatus();
+        allowTun = status?.running && status?.isAdmin;
+      } catch (e) {
+        allowTun = false;
+      }
+    }
+
+    if (allowTun) {
+      // Silently enable TUN without showing dialogs
+      const select = await selected();
+      if (select) {
+        await enableTun();
+      } else {
+        // No profile selected - silently disable TUN
+        menuStore.setTun(false);
+        tunOn.value = false;
+      }
+    } else {
+      // No permission - silently disable TUN without showing dialog
+      menuStore.setTun(false);
+      tunOn.value = false;
+    }
   }
 })
 
@@ -331,7 +362,8 @@ async function applySystemProxyMode(enable: boolean, notify: boolean) {
     >
       <span class="mode-left">
         <span class="mode-icon">
-          <icon-mdi-wifi/>
+          <icon-mdi-access-point-network-off v-if="!menuStore.proxy"/>
+          <icon-mdi-access-point-network v-else/>
         </span>
         <span class="mode-label">
           {{ $t("proxy-switch") }}
@@ -352,7 +384,8 @@ async function applySystemProxyMode(enable: boolean, notify: boolean) {
     >
       <span class="mode-left">
         <span class="mode-icon">
-          <icon-mdi-antenna/>
+          <icon-mdi-help-network-outline v-if="!tunOn"/>
+          <icon-mdi-security-network v-else/>
         </span>
         <span class="mode-label mode-label--tun">
           {{ $t("tun-switch") }}
