@@ -323,26 +323,49 @@ async function applySystemProxyMode(enable: boolean, notify: boolean) {
 </script>
 
 <template>
-  <div class="sub">
-    <div class="switch-container">
-      <span class="switch-label">
-        {{ $t("proxy-switch") }}
+  <div class="mode-switches">
+    <button
+        type="button"
+        :class="['mode-button', { 'is-active': menuStore.proxy }]"
+        @click="proxySwitch"
+    >
+      <span class="mode-left">
+        <span class="mode-icon">
+          <icon-mdi-wifi/>
+        </span>
+        <span class="mode-label">
+          {{ $t("proxy-switch") }}
+        </span>
       </span>
-      <div
-          :class="['switch', { 'switch-on': menuStore.proxy }]"
-          @click="proxySwitch"
+      <span
+          class="mode-indicator"
+          :class="{ 'is-visible': menuStore.proxy }"
+          aria-hidden="true"
       >
-        <div class="switch-circle"></div>
-      </div>
-    </div>
-    <div class="switch-container">
-      <span class="switch-label">
-        {{ $t("tun-switch") }}
+        <span class="mode-indicator__pulse"></span>
       </span>
-      <div :class="['switch', { 'switch-on': tunOn }]" @click="tunSwitch">
-        <div class="switch-circle"></div>
-      </div>
-    </div>
+    </button>
+    <button
+        type="button"
+        :class="['mode-button', { 'is-active': tunOn }]"
+        @click="tunSwitch"
+    >
+      <span class="mode-left">
+        <span class="mode-icon">
+          <icon-mdi-antenna/>
+        </span>
+        <span class="mode-label mode-label--tun">
+          {{ $t("tun-switch") }}
+        </span>
+      </span>
+      <span
+          class="mode-indicator"
+          :class="{ 'is-visible': tunOn }"
+          aria-hidden="true"
+      >
+        <span class="mode-indicator__pulse"></span>
+      </span>
+    </button>
   </div>
 
   <!-- Диалог предложения установки сервиса -->
@@ -392,63 +415,105 @@ async function applySystemProxyMode(enable: boolean, notify: boolean) {
 </template>
 
 <style scoped>
-.sub {
-  width: 184px; /* 卡片宽度 */
-  background-color: var(--left-proxy-bg); /* 半透明白色背景 */
-  border: 1px solid var(--sub-card-border);
-  border-radius: 8px;
-  box-shadow: var(--left-nav-shadow);
-  line-height: 1.5;
+.mode-switches {
   margin-left: 22px;
-  margin-top: 25px;
-  padding-bottom: 12px;
+  margin-top: 23px;
+  width: 185px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.sub:hover {
+.mode-button {
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--left-nav-btn-bg);
+  box-shadow: var(--left-nav-shadow);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--left-nav-text);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.mode-button:hover {
+  background-color: var(--left-nav-btn-hover-bg);
   box-shadow: var(--left-nav-hover-shadow);
 }
 
-.switch-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 16px;
-  padding-left: 10px;
-  margin-top: 10px;
-}
-
-.switch-label {
-  color: var(--text-color);
-}
-
-.switch {
-  width: 54px;
-  height: 26px;
-  border: 2px solid var(--text-color);
-  border-radius: 15px;
-  position: relative;
-  background-color: transparent;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.switch.switch-on {
+.mode-button.is-active {
   background-color: var(--left-item-selected-bg);
 }
 
-.switch-circle {
-  width: 20px;
-  height: 20px;
-  background-color: var(--text-color);
-  border-radius: 50%;
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  transition: left 0.3s ease;
+.mode-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
 }
 
-.switch-on .switch-circle {
-  left: 31px;
+.mode-icon {
+  display: inline-flex;
+  font-size: 18px;
+}
+
+.mode-label--tun {
+  text-transform: uppercase;
+}
+
+.mode-indicator {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.5);
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.mode-indicator.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+  box-shadow: 
+    0 0 0 2px color-mix(in srgb, currentColor 20%, transparent),
+    0 0 6px 1px currentColor,
+    0 0 12px 3px color-mix(in srgb, currentColor 50%, transparent);
+}
+
+.mode-indicator__pulse {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, currentColor 60%, transparent) 0%,
+    transparent 70%
+  );
+  animation: pulse-indicator 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-indicator {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.2;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.2;
+  }
 }
 
 </style>

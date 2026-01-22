@@ -1115,9 +1115,13 @@ func startCore(profile models.Profile, profiles []models.Profile, reload bool) {
 	// 激活配置
 	go executor.ApplyConfig(NowConfig, !reload)
 
-	// 代理开启
-	if mi.Proxy {
-		_ = sysProxy.EnableProxy(mi.BindAddress, mi.Port)
+	// 代理开启 - включаем системный прокси только если включен режим системного прокси
+	if mi.Proxy && mi.SystemProxyMode {
+		if mi.Username != "" {
+			_ = sysProxy.EnableProxyForUser(mi.BindAddress, mi.Port, mi.Username)
+		} else {
+			_ = sysProxy.EnableProxy(mi.BindAddress, mi.Port)
+		}
 	}
 	// 存储配置
 	_ = cache.Put(constant.Mihomo, mi)

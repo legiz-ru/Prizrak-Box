@@ -48,3 +48,9 @@ export const Service = {
     // @ts-ignore
     IsRunning: () => window["pxService"]?.isRunning(),
 }
+
+// Получить имя текущего пользователя
+export const GetUsername = (): string => {
+    // @ts-ignore
+    return window["pxUsername"] ? window["pxUsername"]() : '';
+}

@@ -21,6 +21,7 @@ import {useUpdateStore} from "@/store/updateStore";
 import {storeToRefs} from "pinia";
 import type {DashboardOption} from "@/util/dashboard";
 import {formatDashboardUrl as buildDashboardUrl, resolveDashboardOptions} from "@/util/dashboard";
+import {updateSystemProxy} from "@/util/systemProxy";
 
 // 获取当前 Vue 实例的 proxy 对象 和 api
 const {proxy} = getCurrentInstance()!;
@@ -273,6 +274,28 @@ watch(() => settingStore.startup, (newValue) => {
   Events.Emit({name: "boot", data: newValue});
   // 同步 mihomo 配置
   pUpdateMihomo(menuStore, settingStore, api)
+});
+
+// Порт - обновляем системный прокси если он включен и прокси активен
+watch(() => settingStore.port, async (newValue, oldValue) => {
+  if (menuStore.proxy && settingStore.systemProxyMode && newValue !== oldValue) {
+    try {
+      await updateSystemProxy(api, settingStore, true);
+    } catch (e) {
+      console.error('Failed to update system proxy port:', e);
+    }
+  }
+});
+
+// Адрес привязки - обновляем системный прокси если он включен и прокси активен
+watch(() => settingStore.bindAddress, async (newValue, oldValue) => {
+  if (menuStore.proxy && settingStore.systemProxyMode && newValue !== oldValue) {
+    try {
+      await updateSystemProxy(api, settingStore, true);
+    } catch (e) {
+      console.error('Failed to update system proxy bind address:', e);
+    }
+  }
 });
 
 // 打开配置目录

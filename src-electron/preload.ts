@@ -47,6 +47,16 @@ contextBridge.exposeInMainWorld('pxOs', () => {
     }
 });
 
+// Получить имя текущего пользователя
+contextBridge.exposeInMainWorld('pxUsername', () => {
+    try {
+        return os.userInfo().username;
+    } catch (e) {
+        console.error('Failed to get username:', e);
+        return '';
+    }
+});
+
 // 打开配置目录
 contextBridge.exposeInMainWorld('pxConfigDir', (url: string) => shell.openPath(url));
 

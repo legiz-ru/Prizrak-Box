@@ -31,7 +31,7 @@ func PrizrakRouter() chi.Router {
 	r := chi.NewRouter()
 	// 代理相关
 	r.Put("/enableProxy", enableProxy)
-	r.Get("/disableProxy", disableProxy)
+	r.Put("/disableProxy", disableProxy)
 
 	// 地址相关
 	r.Put("/checkAddressPort", checkAddressPort)
@@ -57,21 +57,60 @@ func enableProxy(w http.ResponseWriter, r *http.Request) {
 	mi := struct {
 		BindAddress string `json:"bindAddress"`
 		Port        int    `json:"port"`
+		Username    string `json:"username"`
 	}{}
 	if err := render.DecodeJSON(r.Body, &mi); err != nil {
 		ErrorResponse(w, r, err)
 		return
 	}
 
-	// 开启
-	_ = sys.EnableProxy(mi.BindAddress, mi.Port)
+	log.Infoln("EnableProxy request: bindAddress=", mi.BindAddress, ", port=", mi.Port, ", username=", mi.Username)
+
+	// 开启 - если указан username, используем EnableProxyForUser
+	var err error
+	if mi.Username != "" {
+		log.Infoln("Enabling system proxy for user:", mi.Username)
+		err = sys.EnableProxyForUser(mi.BindAddress, mi.Port, mi.Username)
+		if err == nil {
+			log.Infoln("System proxy successfully enabled for user", mi.Username)
+		}
+	} else {
+		log.Infoln("Enabling system proxy for current user (no username provided)")
+		err = sys.EnableProxy(mi.BindAddress, mi.Port)
+		if err == nil {
+			log.Infoln("System proxy successfully enabled")
+		}
+	}
+
+	if err != nil {
+		log.Errorln("Failed to enable system proxy:", err)
+		ErrorResponse(w, r, err)
+		return
+	}
 
 	render.NoContent(w, r)
 }
 
 func disableProxy(w http.ResponseWriter, r *http.Request) {
-	sys.DisableProxy()
-	log.Warnln("System proxy disabled")
+	// Читаем username из тела запроса
+	mi := struct {
+		Username string `json:"username"`
+	}{}
+	// Игнорируем ошибку чтения body - если body пустой, username будет пустым
+	_ = render.DecodeJSON(r.Body, &mi)
+
+	log.Infoln("DisableProxy request: username=", mi.Username)
+
+	if mi.Username != "" {
+		log.Infoln("Disabling system proxy for user:", mi.Username)
+		sys.DisableProxyForUser(mi.Username)
+		log.Infoln("System proxy successfully disabled for user", mi.Username)
+	} else {
+		log.Infoln("Disabling system proxy for current user (no username provided)")
+		sys.DisableProxy()
+		log.Infoln("System proxy successfully disabled")
+	}
+
 	if !executor.GetGeneral().Tun.Enable {
 		statistic.DefaultManager.Range(func(c statistic.Tracker) bool {
 			_ = c.Close()
