@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"runtime"
 	"syscall"
 
 	"github.com/kardianos/service"
@@ -42,6 +44,39 @@ func (p *program) Stop(s service.Service) error {
 	return nil
 }
 
+func buildServiceConfig() *service.Config {
+	execPath, err := os.Executable()
+	if err != nil {
+		execPath = ""
+	}
+	execDir := ""
+	if execPath != "" {
+		execDir = filepath.Dir(execPath)
+	}
+
+	cfg := &service.Config{
+		Name:             "PrizrakBoxService",
+		DisplayName:      "Prizrak Box TUN Service",
+		Description:      "Enables TUN mode for Prizrak Box without requiring administrator privileges for the main application",
+		WorkingDirectory: execDir,
+	}
+
+	switch runtime.GOOS {
+	case "darwin":
+		cfg.Option = service.KeyValue{
+			"RunAtLoad": true,
+			"KeepAlive": true,
+		}
+	case "linux":
+		cfg.Option = service.KeyValue{
+			"Restart":    "on-failure",
+			"RestartSec": "5s",
+		}
+	}
+
+	return cfg
+}
+
 func main() {
 	// Флаги командной строки
 	install := flag.Bool("install", false, "Install the service")
@@ -60,11 +95,7 @@ func main() {
 	}
 
 	// Конфигурация сервиса
-	svcConfig := &service.Config{
-		Name:        "PrizrakBoxService",
-		DisplayName: "Prizrak Box TUN Service",
-		Description: "Enables TUN mode for Prizrak Box without requiring administrator privileges for the main application",
-	}
+	svcConfig := buildServiceConfig()
 
 	prg := &program{
 		server: ipc.NewServer(),
@@ -77,14 +108,14 @@ func main() {
 
 	// Обработка команд
 	if *install {
-		err = s.Install()
+		err = service.Control(s, "install")
 		if err != nil {
 			log.Fatalf("Failed to install service: %v", err)
 		}
 		fmt.Println("Service installed successfully")
 
 		// Автоматически запускаем сервис после установки
-		err = s.Start()
+		err = service.Control(s, "start")
 		if err != nil {
 			log.Printf("Warning: Failed to start service after install: %v", err)
 		} else {
@@ -95,9 +126,9 @@ func main() {
 
 	if *uninstall {
 		// Сначала останавливаем сервис
-		_ = s.Stop()
+		_ = service.Control(s, "stop")
 
-		err = s.Uninstall()
+		err = service.Control(s, "uninstall")
 		if err != nil {
 			log.Fatalf("Failed to uninstall service: %v", err)
 		}
@@ -106,7 +137,7 @@ func main() {
 	}
 
 	if *start {
-		err = s.Start()
+		err = service.Control(s, "start")
 		if err != nil {
 			log.Fatalf("Failed to start service: %v", err)
 		}
@@ -115,7 +146,7 @@ func main() {
 	}
 
 	if *stop {
-		err = s.Stop()
+		err = service.Control(s, "stop")
 		if err != nil {
 			log.Fatalf("Failed to stop service: %v", err)
 		}
@@ -141,7 +172,7 @@ func main() {
 	}
 
 	// Standalone режим - запуск без сервиса (для отладки)
-	if *standalone {
+	if *standalone || service.Interactive() {
 		log.Println("[Standalone] Starting px-service in standalone mode...")
 		prg.run()
 
