@@ -51,6 +51,8 @@ if (process.platform === 'darwin' && macSignInputsPresent) {
         'entitlements-inherit': 'build/entitlements.mac.plist',
         'signature-flags': 'library',
     };
+    // afterSign hook для подписи Go бинарников внутри .app bundle
+    packagerConfig.afterSign = require('./build/afterSign.js');
 }
 
 if (process.platform === 'darwin' && macNotarizeInputsPresent) {

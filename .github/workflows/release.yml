@@ -346,30 +346,6 @@ jobs:
           go mod download
           go build -ldflags "-s -w" -o px-service .
 
-      - name: Sign Go Binaries
-        run: |
-          echo "Signing Go binaries with identity: $CODESIGN_IDENTITY"
-
-          # Sign px binary (without entitlements - CLI tools don't need them)
-          codesign --force \
-            --sign "$CODESIGN_IDENTITY" \
-            --options runtime \
-            --timestamp \
-            src-go/px
-
-          # Sign px-service binary
-          codesign --force \
-            --sign "$CODESIGN_IDENTITY" \
-            --options runtime \
-            --timestamp \
-            src-service/px-service
-
-          # Verify signatures
-          codesign --verify --verbose src-go/px
-          codesign --verify --verbose src-service/px-service
-
-          echo "Go binaries signed successfully"
-
       - name: Sync VERSION to package.json
         run: node build/sync-version.js
 
