@@ -100,13 +100,29 @@ func installServiceDarwin() error {
 
 	fmt.Printf("Created temporary plist file: %s\n", tmpPath)
 
-	// Копируем файл с привилегиями администратора
-	installScript := fmt.Sprintf("cp '%s' '%s' && chmod 644 '%s' && launchctl load '%s'",
-		tmpPath, plistPath, plistPath, plistPath)
+	// Проверяем запущены ли мы уже с правами root (через Electron osascript)
+	isRoot := os.Geteuid() == 0
 
-	fmt.Println("Requesting administrator privileges...")
-	if err := executeWithPrivilege(installScript); err != nil {
-		return fmt.Errorf("failed to install service: %w", err)
+	if isRoot {
+		// Уже root - выполняем команды напрямую
+		if err := exec.Command("cp", tmpPath, plistPath).Run(); err != nil {
+			return fmt.Errorf("failed to copy plist: %w", err)
+		}
+		if err := exec.Command("chmod", "644", plistPath).Run(); err != nil {
+			return fmt.Errorf("failed to chmod plist: %w", err)
+		}
+		if err := exec.Command("launchctl", "load", plistPath).Run(); err != nil {
+			return fmt.Errorf("failed to load service: %w", err)
+		}
+	} else {
+		// Не root - используем osascript для запроса прав
+		installScript := fmt.Sprintf("cp '%s' '%s' && chmod 644 '%s' && launchctl load '%s'",
+			tmpPath, plistPath, plistPath, plistPath)
+
+		fmt.Println("Requesting administrator privileges...")
+		if err := executeWithPrivilege(installScript); err != nil {
+			return fmt.Errorf("failed to install service: %w", err)
+		}
 	}
 
 	fmt.Printf("Installed and loaded service: %s\n", plistPath)
@@ -116,14 +132,26 @@ func installServiceDarwin() error {
 
 // uninstallServiceDarwin удаляет сервис на macOS
 func uninstallServiceDarwin() error {
-	fmt.Println("Requesting administrator privileges...")
+	isRoot := os.Geteuid() == 0
 
-	// Останавливаем и выгружаем сервис, затем удаляем plist файл
-	uninstallScript := fmt.Sprintf("launchctl unload '%s' 2>/dev/null || true && rm -f '%s'",
-		plistPath, plistPath)
+	if isRoot {
+		// Уже root - выполняем команды напрямую
+		// Останавливаем сервис (игнорируем ошибки)
+		exec.Command("launchctl", "unload", plistPath).Run()
 
-	if err := executeWithPrivilege(uninstallScript); err != nil {
-		return fmt.Errorf("failed to uninstall service: %w", err)
+		// Удаляем plist файл
+		if err := os.Remove(plistPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to remove plist: %w", err)
+		}
+	} else {
+		// Не root - используем osascript
+		fmt.Println("Requesting administrator privileges...")
+		uninstallScript := fmt.Sprintf("launchctl unload '%s' 2>/dev/null || true && rm -f '%s'",
+			plistPath, plistPath)
+
+		if err := executeWithPrivilege(uninstallScript); err != nil {
+			return fmt.Errorf("failed to uninstall service: %w", err)
+		}
 	}
 
 	fmt.Printf("Uninstalled service: %s\n", plistPath)
@@ -133,12 +161,21 @@ func uninstallServiceDarwin() error {
 
 // startServiceDarwin запускает сервис на macOS
 func startServiceDarwin() error {
-	fmt.Println("Requesting administrator privileges...")
+	isRoot := os.Geteuid() == 0
 
-	startScript := fmt.Sprintf("launchctl load '%s'", plistPath)
+	if isRoot {
+		// Уже root - выполняем команду напрямую
+		if err := exec.Command("launchctl", "load", plistPath).Run(); err != nil {
+			return fmt.Errorf("failed to start service: %w", err)
+		}
+	} else {
+		// Не root - используем osascript
+		fmt.Println("Requesting administrator privileges...")
+		startScript := fmt.Sprintf("launchctl load '%s'", plistPath)
 
-	if err := executeWithPrivilege(startScript); err != nil {
-		return fmt.Errorf("failed to start service: %w", err)
+		if err := executeWithPrivilege(startScript); err != nil {
+			return fmt.Errorf("failed to start service: %w", err)
+		}
 	}
 
 	return nil
@@ -146,12 +183,21 @@ func startServiceDarwin() error {
 
 // stopServiceDarwin останавливает сервис на macOS
 func stopServiceDarwin() error {
-	fmt.Println("Requesting administrator privileges...")
+	isRoot := os.Geteuid() == 0
 
-	stopScript := fmt.Sprintf("launchctl unload '%s'", plistPath)
+	if isRoot {
+		// Уже root - выполняем команду напрямую
+		if err := exec.Command("launchctl", "unload", plistPath).Run(); err != nil {
+			return fmt.Errorf("failed to stop service: %w", err)
+		}
+	} else {
+		// Не root - используем osascript
+		fmt.Println("Requesting administrator privileges...")
+		stopScript := fmt.Sprintf("launchctl unload '%s'", plistPath)
 
-	if err := executeWithPrivilege(stopScript); err != nil {
-		return fmt.Errorf("failed to stop service: %w", err)
+		if err := executeWithPrivilege(stopScript); err != nil {
+			return fmt.Errorf("failed to stop service: %w", err)
+		}
 	}
 
 	return nil
