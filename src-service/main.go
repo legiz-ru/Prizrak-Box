@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 
 	"github.com/kardianos/service"
@@ -77,15 +78,13 @@ func main() {
 
 	// Обработка команд
 	if *install {
-		err = s.Install()
-		if err != nil {
+		if err := handleInstall(s); err != nil {
 			log.Fatalf("Failed to install service: %v", err)
 		}
 		fmt.Println("Service installed successfully")
 
 		// Автоматически запускаем сервис после установки
-		err = s.Start()
-		if err != nil {
+		if err := handleStart(s); err != nil {
 			log.Printf("Warning: Failed to start service after install: %v", err)
 		} else {
 			fmt.Println("Service started successfully")
@@ -94,11 +93,7 @@ func main() {
 	}
 
 	if *uninstall {
-		// Сначала останавливаем сервис
-		_ = s.Stop()
-
-		err = s.Uninstall()
-		if err != nil {
+		if err := handleUninstall(s); err != nil {
 			log.Fatalf("Failed to uninstall service: %v", err)
 		}
 		fmt.Println("Service uninstalled successfully")
@@ -106,8 +101,7 @@ func main() {
 	}
 
 	if *start {
-		err = s.Start()
-		if err != nil {
+		if err := handleStart(s); err != nil {
 			log.Fatalf("Failed to start service: %v", err)
 		}
 		fmt.Println("Service started successfully")
@@ -115,8 +109,7 @@ func main() {
 	}
 
 	if *stop {
-		err = s.Stop()
-		if err != nil {
+		if err := handleStop(s); err != nil {
 			log.Fatalf("Failed to stop service: %v", err)
 		}
 		fmt.Println("Service stopped successfully")
@@ -124,19 +117,12 @@ func main() {
 	}
 
 	if *status {
-		st, err := s.Status()
+		status, err := handleStatus(s)
 		if err != nil {
 			fmt.Printf("Service status: unknown (%v)\n", err)
 			return
 		}
-		switch st {
-		case service.StatusRunning:
-			fmt.Println("Service status: running")
-		case service.StatusStopped:
-			fmt.Println("Service status: stopped")
-		default:
-			fmt.Println("Service status: unknown")
-		}
+		fmt.Printf("Service status: %s\n", status)
 		return
 	}
 
@@ -159,5 +145,75 @@ func main() {
 	err = s.Run()
 	if err != nil {
 		log.Fatalf("Service run error: %v", err)
+	}
+}
+
+// handleInstall обрабатывает установку сервиса в зависимости от платформы
+func handleInstall(s service.Service) error {
+	switch runtime.GOOS {
+	case "linux":
+		return installServiceLinux()
+	case "darwin":
+		return installServiceDarwin()
+	case "windows":
+		return installServiceWindows(s)
+	default:
+		return fmt.Errorf("unsupported platform: %s", runtime.GOOS)
+	}
+}
+
+// handleUninstall обрабатывает удаление сервиса в зависимости от платформы
+func handleUninstall(s service.Service) error {
+	switch runtime.GOOS {
+	case "linux":
+		return uninstallServiceLinux()
+	case "darwin":
+		return uninstallServiceDarwin()
+	case "windows":
+		return uninstallServiceWindows(s)
+	default:
+		return fmt.Errorf("unsupported platform: %s", runtime.GOOS)
+	}
+}
+
+// handleStart обрабатывает запуск сервиса в зависимости от платформы
+func handleStart(s service.Service) error {
+	switch runtime.GOOS {
+	case "linux":
+		return startServiceLinux()
+	case "darwin":
+		return startServiceDarwin()
+	case "windows":
+		return startServiceWindows(s)
+	default:
+		return fmt.Errorf("unsupported platform: %s", runtime.GOOS)
+	}
+}
+
+// handleStop обрабатывает остановку сервиса в зависимости от платформы
+func handleStop(s service.Service) error {
+	switch runtime.GOOS {
+	case "linux":
+		return stopServiceLinux()
+	case "darwin":
+		return stopServiceDarwin()
+	case "windows":
+		return stopServiceWindows(s)
+	default:
+		return fmt.Errorf("unsupported platform: %s", runtime.GOOS)
+	}
+}
+
+// handleStatus обрабатывает проверку статуса сервиса в зависимости от платформы
+func handleStatus(s service.Service) (string, error) {
+	switch runtime.GOOS {
+	case "linux":
+		return statusServiceLinux()
+	case "darwin":
+		return statusServiceDarwin()
+	case "windows":
+		return statusServiceWindows(s)
+	default:
+		return "", fmt.Errorf("unsupported platform: %s", runtime.GOOS)
 	}
 }
