@@ -350,12 +350,11 @@ jobs:
         run: |
           echo "Signing Go binaries with identity: $CODESIGN_IDENTITY"
 
-          # Sign px binary
+          # Sign px binary (without entitlements - CLI tools don't need them)
           codesign --force \
             --sign "$CODESIGN_IDENTITY" \
             --options runtime \
             --timestamp \
-            --entitlements build/entitlements.mac.plist \
             src-go/px
 
           # Sign px-service binary
@@ -363,7 +362,6 @@ jobs:
             --sign "$CODESIGN_IDENTITY" \
             --options runtime \
             --timestamp \
-            --entitlements build/entitlements.mac.plist \
             src-service/px-service
 
           # Verify signatures
