@@ -68,7 +68,7 @@ function checkAdminRights(callback: any) {
 // 开启后端
 export async function startBackend(addr: string) {
     const backendPath = getBackendPath();
-    const homeDir = encodeURIComponent(log.getHomeDir());
+    const homeDir = encodeURIComponent(log.getAppConfigDir());
     const args = ['-addr=' + addr, '-home=' + homeDir];
 
     // Проверяем режим сервиса

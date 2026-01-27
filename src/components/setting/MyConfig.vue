@@ -304,6 +304,34 @@ function pxConfigDir() {
   api.configDir().then(res => window["pxConfigDir"](res))
 }
 
+// 修改配置目录
+async function changeConfigDir() {
+  try {
+    // @ts-ignore
+    const preConfigDir = await window["pxPreConfigDir"]();
+
+    if (!preConfigDir.endsWith("Prizrak-Box-V3")) {
+      pWarning(t('setting.px.change-warn'))
+    }
+
+    // @ts-ignore
+    const newDir = await window.electron.invoke('select-directory');
+    if (!newDir) {
+      return;
+    }
+
+    // @ts-ignore
+    await window["pxChangeConfigDir"](newDir);
+    pSuccess(t('setting.px.change-success'));
+  } catch (e) {
+    if (e && typeof e === 'object' && 'message' in e && typeof e.message === 'string') {
+      pError(e.message);
+    } else {
+      pError(String(e));
+    }
+  }
+}
+
 const releasesPageUrl = 'https://github.com/legiz-ru/Prizrak-Box/releases/latest'
 
 // 打开更新页面
@@ -479,6 +507,9 @@ watch(dashboardDialogVisible, (visible) => {
             <strong>{{ $t('setting.px.dir') }} :</strong>
             <el-button @click="pxConfigDir" style="margin-left: 10px">
               {{ $t('setting.px.open') }}
+            </el-button>
+            <el-button @click="changeConfigDir" style="margin-left: 10px">
+              {{ $t('setting.px.change') }}
             </el-button>
             <!--            <el-button>{{ $t('setting.px.export') }}</el-button>-->
             <el-button @click="openImportDialog" style="margin-left: 10px">

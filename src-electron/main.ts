@@ -14,6 +14,8 @@ import {
     showServiceInstallDialog,
     ServiceStatus
 } from "./service";
+import {selectDirectory} from "./selector";
+import {doChange} from "./change";
 
 // 是否在开发模式
 const isDev = !app.isPackaged;
@@ -260,6 +262,25 @@ ipcMain.handle('service:showInstallDialog', async (): Promise<'install' | 'skip'
     return await showServiceInstallDialog();
 });
 
+// IPC обработчик для выбора директории
+ipcMain.handle('select-directory', async () => {
+    return await selectDirectory();
+});
+
+// IPC обработчик для получения текущей директории конфигурации
+ipcMain.handle('pre-config-dir', () => {
+    return log.getAppConfigDir();
+});
+
+// IPC обработчик для изменения директории конфигурации
+ipcMain.handle('change-config-dir', async (_event, dir: string) => {
+    const addr = storeInfo.listenAddr();
+    if (!addr) {
+        throw new Error('Listen address not found');
+    }
+    await doChange(dir, addr);
+});
+
 // 等待 backend 传来的 port 和 secret
 let resolveReady: () => void;
 const waitForReady = new Promise<void>((resolve) => {
@@ -349,8 +370,11 @@ if (!gotTheLock) {
             }
         }
 
-        // Initialize frontend store
+        // Initialize frontend store first (needed before log.initLog)
         initStore(log.getHomeDir())
+
+        // Initialize log system with stored config directory
+        log.initLog()
 
         // Start frontend static server
         startServer(resolveReady, startBackend)

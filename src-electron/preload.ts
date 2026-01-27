@@ -80,3 +80,14 @@ contextBridge.exposeInMainWorld('pxService', {
     restartBackend: () => ipcRenderer.invoke('service:restartBackend'),
     showInstallDialog: () => ipcRenderer.invoke('service:showInstallDialog'),
 });
+
+// Получить текущую директорию конфигурации
+contextBridge.exposeInMainWorld('pxPreConfigDir', () => ipcRenderer.invoke('pre-config-dir'));
+
+// Изменить директорию конфигурации
+contextBridge.exposeInMainWorld('pxChangeConfigDir', (dir: string) => ipcRenderer.invoke('change-config-dir', dir));
+
+// Добавить electron объект для вызова IPC
+contextBridge.exposeInMainWorld('electron', {
+    invoke: (channel: string, ...args: any[]) => ipcRenderer.invoke(channel, ...args)
+});
