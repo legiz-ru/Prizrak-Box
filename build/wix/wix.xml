@@ -234,7 +234,17 @@
     </Feature> 
 <!-- {{AutoRun}} -->
 
+    <!-- Automatically close running Prizrak-Box before installation/upgrade -->
+    <util:CloseApplication Id="CloseMainApp"
+                           Target="{{ApplicationBinary}}.exe"
+                           CloseMessage="yes"
+                           RebootPrompt="no"
+                           TerminateProcess="0" />
+
     <InstallExecuteSequence>
+      <!-- Close running application before updating files -->
+      <Custom Action="WixCloseApplications" Before="InstallValidate" />
+
       <!-- INSTALL: Stop old service if exists (before installing new one) -->
       <Custom Action="StopOldTunService" After="InstallFiles">
         NOT Installed AND &amp;TunService=3 AND TUNSERVICEEXISTS
