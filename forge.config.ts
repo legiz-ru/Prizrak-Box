@@ -83,8 +83,7 @@ const config: ForgeConfig = {
             ui: {
                 chooseDirectory: true,
             },
-            cultures: 'en-US;ru-RU',
-            language: 1049,
+            cultures: 'ru-RU',
             beforeCreate: async (creator) => {
                 creator.wixTemplate = await fs.readFile(
                     path.resolve(__dirname, 'build', 'wix', 'wix.xml'),
@@ -132,7 +131,7 @@ const config: ForgeConfig = {
         }),
         new MakerDMG({
             icon: 'build/appicon.icns',
-            title: `Prizrak-Box-${arch}`,  // dmg 挂载卷名称
+            format: 'ULFO',
         }),
         new MakerRpm({
             options: {

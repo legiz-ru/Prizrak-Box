@@ -87,10 +87,6 @@
 
     <!-- Localization -->
     <WixVariable Id="WixUILicenseRtf" Value="build\wix\license.rtf" />
-    <?if $(var.Language) = 1049 ?>
-      <UIRef Id="WixUI_InstallDir" />
-      <Property Id="WIXUI_INSTALLDIR" Value="APPLICATIONROOTDIRECTORY" />
-    <?endif?>
 
 <!-- {{Icon}}-->
 <!-- {{UI}} -->
