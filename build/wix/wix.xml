@@ -246,11 +246,8 @@
       </Custom>
 
       <!-- INSTALL: Install new service (always when feature is selected) -->
-      <Custom Action="InstallTunService" After="InstallFiles">
-        NOT Installed AND &amp;TunService=3 AND NOT TUNSERVICEEXISTS
-      </Custom>
       <Custom Action="InstallTunService" After="DeleteOldTunService">
-        NOT Installed AND &amp;TunService=3 AND TUNSERVICEEXISTS
+        NOT Installed AND &amp;TunService=3
       </Custom>
 
       <!-- UNINSTALL: Stop service before removing -->
