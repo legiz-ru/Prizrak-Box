@@ -89,6 +89,11 @@
     <WixVariable Id="WixUILicenseRtf" Value="build\wix\license.rtf" />
 
 <!-- {{Icon}}-->
+
+    <!-- UI with feature selection -->
+    <UIRef Id="WixUI_FeatureTree" />
+    <UIRef Id="WixUI_ErrorProgressText" />
+
 <!-- {{UI}} -->
 
     <!-- Define path to resources directory -->
