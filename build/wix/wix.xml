@@ -122,15 +122,17 @@
                   Impersonate="no"
                   Return="ignore" />
 
-    <!-- Set CustomActionData for InstallTunService -->
-    <SetProperty Id="InstallTunService" Value="[RESOURCESDIR]" Sequence="execute" Before="InstallTunService">
-      <![CDATA[NOT Installed AND &TunService=3]]>
-    </SetProperty>
-
-    <!-- Install new service -->
+    <!-- Set command for service installation (immediate) -->
     <CustomAction Id="InstallTunService"
-                  Directory="APPLICATIONROOTDIRECTORY"
-                  ExeCommand="cmd.exe /c &quot;&quot;[CustomActionData]px-service.exe&quot; -install&quot;"
+                  Property="InstallTunServiceDeferred"
+                  Value='"[RESOURCESDIR]px-service.exe" -install'
+                  Execute="immediate"
+                  Return="ignore" />
+
+    <!-- Execute service installation (deferred) -->
+    <CustomAction Id="InstallTunServiceDeferred"
+                  BinaryKey="WixCA"
+                  DllEntry="CAQuietExec"
                   Execute="deferred"
                   Impersonate="no"
                   Return="ignore" />
@@ -267,8 +269,13 @@
         NOT Installed AND &amp;TunService=3 AND TUNSERVICEEXISTS
       </Custom>
 
-      <!-- INSTALL: Install new service AFTER copying new files (always when feature is selected) -->
+      <!-- INSTALL: Prepare service installation command (immediate) -->
       <Custom Action="InstallTunService" After="InstallFiles">
+        NOT Installed AND &amp;TunService=3
+      </Custom>
+
+      <!-- INSTALL: Install new service (deferred) -->
+      <Custom Action="InstallTunServiceDeferred" After="InstallTunService">
         NOT Installed AND &amp;TunService=3
       </Custom>
 
