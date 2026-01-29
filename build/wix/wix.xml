@@ -122,10 +122,15 @@
                   Impersonate="no"
                   Return="ignore" />
 
+    <!-- Set CustomActionData for InstallTunService -->
+    <SetProperty Id="InstallTunService" Value="[RESOURCESDIR]" Sequence="execute" Before="InstallTunService">
+      <![CDATA[NOT Installed AND &TunService=3]]>
+    </SetProperty>
+
     <!-- Install new service -->
     <CustomAction Id="InstallTunService"
                   Directory="APPLICATIONROOTDIRECTORY"
-                  ExeCommand="&quot;[RESOURCESDIR]px-service.exe&quot; -install"
+                  ExeCommand="cmd.exe /c &quot;&quot;[CustomActionData]px-service.exe&quot; -install&quot;"
                   Execute="deferred"
                   Impersonate="no"
                   Return="ignore" />
@@ -241,22 +246,29 @@
                            RebootPrompt="no"
                            TerminateProcess="0" />
 
+    <!-- Automatically close px-service.exe process before installation/upgrade -->
+    <util:CloseApplication Id="CloseServiceApp"
+                           Target="px-service.exe"
+                           CloseMessage="no"
+                           RebootPrompt="no"
+                           TerminateProcess="5" />
+
     <InstallExecuteSequence>
-      <!-- Close running application before updating files -->
+      <!-- Close running application and service before updating files -->
       <Custom Action="WixCloseApplications" Before="InstallValidate" />
 
-      <!-- INSTALL: Stop old service if exists (before installing new one) -->
-      <Custom Action="StopOldTunService" After="InstallFiles">
+      <!-- INSTALL: Stop old service BEFORE copying new files (if exists) -->
+      <Custom Action="StopOldTunService" Before="InstallFiles">
         NOT Installed AND &amp;TunService=3 AND TUNSERVICEEXISTS
       </Custom>
 
-      <!-- INSTALL: Delete old service if exists (before installing new one) -->
+      <!-- INSTALL: Delete old service BEFORE copying new files (if exists) -->
       <Custom Action="DeleteOldTunService" After="StopOldTunService">
         NOT Installed AND &amp;TunService=3 AND TUNSERVICEEXISTS
       </Custom>
 
-      <!-- INSTALL: Install new service (always when feature is selected) -->
-      <Custom Action="InstallTunService" After="DeleteOldTunService">
+      <!-- INSTALL: Install new service AFTER copying new files (always when feature is selected) -->
+      <Custom Action="InstallTunService" After="InstallFiles">
         NOT Installed AND &amp;TunService=3
       </Custom>
 
