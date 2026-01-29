@@ -184,7 +184,7 @@
 <!-- {{AutoRun}} -->
 
     <InstallExecuteSequence>
-      <Custom Action="InstallTunService" After="InstallFiles">NOT Installed AND &TunService=3</Custom>
+      <Custom Action="InstallTunService" After="InstallFiles">NOT Installed AND &amp;TunService=3</Custom>
       <Custom Action="UninstallTunService" Before="RemoveFiles">REMOVE="ALL" AND $TunService=3</Custom>
     </InstallExecuteSequence>
   </Product>
