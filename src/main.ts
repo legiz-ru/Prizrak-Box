@@ -57,7 +57,7 @@ async function bootstrap() {
     // 加载缓存数据
     // @ts-ignore
     if (window["pxStore"]) {
-        const keys = ['menu', 'home', 'proxies', 'setting', 'web', 'onboarding'];
+        const keys = ['menu', 'home', 'proxies', 'setting', 'web', 'onboarding', 'updates'];
         for (const key of keys) {
             // @ts-ignore
             const val = await window["pxStore"].get(key);
@@ -511,6 +511,5 @@ function safeDecode(value?: string) {
 
 // 🚀 启动应用
 bootstrap().then(() => app.mount("#app"));
-
 
 
