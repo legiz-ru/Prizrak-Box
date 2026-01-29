@@ -79,9 +79,12 @@ const config: ForgeConfig = {
             manufacturer: 'legiz-ru',
             description: 'A Simple Mihomo GUI',
             icon: 'build/appicon.ico',
+            arch: 'x64',
             ui: {
                 chooseDirectory: true,
             },
+            cultures: 'en-US;ru-RU',
+            language: 1049,
             beforeCreate: async (creator) => {
                 creator.wixTemplate = await fs.readFile(
                     path.resolve(__dirname, 'build', 'wix', 'wix.xml'),

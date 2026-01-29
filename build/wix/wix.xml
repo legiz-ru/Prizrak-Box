@@ -55,18 +55,23 @@
     we have to look in both places. First successful search wins. -->
     <Property Id="INSTALLPATH">
       <RegistrySearch Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{{{ProductCode}}}.msq"
-                      Root="HKCU" 
+                      Root="HKCU"
                       Type="raw"
                       Id="INSTALLPATH_REGSEARCH_HKCU"
                       Name="InstallPath"
                       Win64="{{Win64YesNo}}"/>
       <RegistrySearch Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{{{ProductCode}}}.msq"
-                      Root="HKLM" 
+                      Root="HKLM"
                       Type="raw"
                       Id="INSTALLPATH_REGSEARCH_HKLM"
                       Name="InstallPath"
                       Win64="{{Win64YesNo}}"/>
     </Property>
+
+    <!-- Set INSTALLPATH to APPLICATIONROOTDIRECTORY if not found in registry (first install) -->
+    <SetProperty Action="SetInstallPath" Id="INSTALLPATH" Sequence="both" Before="AppSearch" Value="[APPLICATIONROOTDIRECTORY]">
+      <![CDATA[NOT INSTALLPATH]]>
+    </SetProperty>
     <!-- Lets change the product name depending on the perUser installMode. 
     This way the user and admins can see in which scope the MSI was installed. -->
     <SetProperty Action="SetVisibleProductName" Id="VisibleProductName" Sequence="both" Before="AppSearch"  Value="{{ApplicationName}} (User)">
@@ -79,21 +84,35 @@
     </SetProperty>
 
     <Media Id="1" Cabinet="product.cab" EmbedCab="yes"/>
+
+    <!-- Localization -->
+    <WixVariable Id="WixUILicenseRtf" Value="build\wix\license.rtf" />
+    <?if $(var.Language) = 1049 ?>
+      <UIRef Id="WixUI_InstallDir" />
+      <Property Id="WIXUI_INSTALLDIR" Value="APPLICATIONROOTDIRECTORY" />
+    <?endif?>
+
 <!-- {{Icon}}-->
 <!-- {{UI}} -->
 
+    <!-- Define path to resources directory -->
+    <Property Id="RESOURCESDIR" Value="[APPLICATIONROOTDIRECTORY]" />
+    <SetProperty Action="SetResourcesDir" Id="RESOURCESDIR" Sequence="execute" Before="InstallFiles" Value="[APPLICATIONROOTDIRECTORY]app-{{SemanticVersion}}\resources\">
+      <![CDATA[NOT Installed]]>
+    </SetProperty>
+
     <CustomAction Id="InstallTunService"
                   Directory="APPLICATIONROOTDIRECTORY"
-                  ExeCommand="&quot;[APPLICATIONROOTDIRECTORY]px-service.exe&quot; -install"
+                  ExeCommand="&quot;[RESOURCESDIR]px-service.exe&quot; -install"
                   Execute="deferred"
                   Impersonate="no"
-                  Return="check" />
+                  Return="ignore" />
     <CustomAction Id="UninstallTunService"
                   Directory="APPLICATIONROOTDIRECTORY"
-                  ExeCommand="&quot;[APPLICATIONROOTDIRECTORY]px-service.exe&quot; -uninstall"
+                  ExeCommand="&quot;[RESOURCESDIR]px-service.exe&quot; -uninstall"
                   Execute="deferred"
                   Impersonate="no"
-                  Return="check" />
+                  Return="ignore" />
 
     <!-- Step 2: Add files and directories -->
     <Directory Id="TARGETDIR" Name="SourceDir">
