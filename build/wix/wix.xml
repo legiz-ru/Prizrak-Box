@@ -97,15 +97,32 @@
       <![CDATA[NOT Installed]]>
     </SetProperty>
 
+    <!-- Check if service already exists -->
+    <Property Id="TUNSERVICEEXISTS">
+      <RegistrySearch Id="FindTunService"
+                      Root="HKLM"
+                      Key="SYSTEM\CurrentControlSet\Services\PrizrakBoxService"
+                      Type="raw"
+                      Win64="{{Win64YesNo}}" />
+    </Property>
+
     <CustomAction Id="InstallTunService"
                   Directory="APPLICATIONROOTDIRECTORY"
                   ExeCommand="&quot;[RESOURCESDIR]px-service.exe&quot; -install"
                   Execute="deferred"
                   Impersonate="no"
                   Return="ignore" />
+
+    <CustomAction Id="StopTunService"
+                  Directory="APPLICATIONROOTDIRECTORY"
+                  ExeCommand="cmd.exe /c &quot;net stop PrizrakBoxService&quot;"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
     <CustomAction Id="UninstallTunService"
                   Directory="APPLICATIONROOTDIRECTORY"
-                  ExeCommand="&quot;[RESOURCESDIR]px-service.exe&quot; -uninstall"
+                  ExeCommand="cmd.exe /c &quot;sc delete PrizrakBoxService&quot;"
                   Execute="deferred"
                   Impersonate="no"
                   Return="ignore" />
@@ -199,8 +216,20 @@
 <!-- {{AutoRun}} -->
 
     <InstallExecuteSequence>
-      <Custom Action="InstallTunService" After="InstallFiles">NOT Installed AND &amp;TunService=3</Custom>
-      <Custom Action="UninstallTunService" Before="RemoveFiles">REMOVE="ALL" AND &amp;TunService=3</Custom>
+      <!-- Install service only if feature is selected and service doesn't exist -->
+      <Custom Action="InstallTunService" After="InstallFiles">
+        NOT Installed AND &amp;TunService=3 AND NOT TUNSERVICEEXISTS
+      </Custom>
+
+      <!-- Stop service before uninstall -->
+      <Custom Action="StopTunService" Before="RemoveFiles">
+        (REMOVE="ALL" OR (&amp;TunService=2 AND !TunService=3)) AND TUNSERVICEEXISTS
+      </Custom>
+
+      <!-- Delete service after stopping it, but before removing files -->
+      <Custom Action="UninstallTunService" After="StopTunService">
+        (REMOVE="ALL" OR (&amp;TunService=2 AND !TunService=3)) AND TUNSERVICEEXISTS
+      </Custom>
     </InstallExecuteSequence>
   </Product>
 </Wix>
