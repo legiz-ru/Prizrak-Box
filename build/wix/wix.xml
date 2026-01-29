@@ -109,7 +109,7 @@
     <!-- Stop existing service before install (if exists) -->
     <CustomAction Id="StopOldTunService"
                   Directory="APPLICATIONROOTDIRECTORY"
-                  ExeCommand="cmd.exe /c &quot;net stop PrizrakBoxService 2&gt;nul&quot;"
+                  ExeCommand="cmd.exe /c &quot;sc stop PrizrakBoxService 2&gt;nul&quot;"
                   Execute="deferred"
                   Impersonate="no"
                   Return="ignore" />
@@ -133,7 +133,7 @@
     <!-- Stop service before uninstall -->
     <CustomAction Id="StopTunService"
                   Directory="APPLICATIONROOTDIRECTORY"
-                  ExeCommand="cmd.exe /c &quot;net stop PrizrakBoxService&quot;"
+                  ExeCommand="cmd.exe /c &quot;sc stop PrizrakBoxService&quot;"
                   Execute="deferred"
                   Impersonate="no"
                   Return="ignore" />
@@ -252,12 +252,12 @@
 
       <!-- UNINSTALL: Stop service before removing -->
       <Custom Action="StopTunService" Before="RemoveFiles">
-        (REMOVE="ALL" OR (&amp;TunService=2 AND !TunService=3)) AND TUNSERVICEEXISTS
+        REMOVE="ALL" OR (&amp;TunService=2 AND !TunService=3)
       </Custom>
 
       <!-- UNINSTALL: Delete service after stopping -->
       <Custom Action="UninstallTunService" After="StopTunService">
-        (REMOVE="ALL" OR (&amp;TunService=2 AND !TunService=3)) AND TUNSERVICEEXISTS
+        REMOVE="ALL" OR (&amp;TunService=2 AND !TunService=3)
       </Custom>
     </InstallExecuteSequence>
   </Product>
