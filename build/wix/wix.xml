@@ -106,6 +106,23 @@
                       Win64="{{Win64YesNo}}" />
     </Property>
 
+    <!-- Stop existing service before install (if exists) -->
+    <CustomAction Id="StopOldTunService"
+                  Directory="APPLICATIONROOTDIRECTORY"
+                  ExeCommand="cmd.exe /c &quot;net stop PrizrakBoxService 2&gt;nul&quot;"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- Delete existing service before install (if exists) -->
+    <CustomAction Id="DeleteOldTunService"
+                  Directory="APPLICATIONROOTDIRECTORY"
+                  ExeCommand="cmd.exe /c &quot;sc delete PrizrakBoxService 2&gt;nul&quot;"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- Install new service -->
     <CustomAction Id="InstallTunService"
                   Directory="APPLICATIONROOTDIRECTORY"
                   ExeCommand="&quot;[RESOURCESDIR]px-service.exe&quot; -install"
@@ -113,6 +130,7 @@
                   Impersonate="no"
                   Return="ignore" />
 
+    <!-- Stop service before uninstall -->
     <CustomAction Id="StopTunService"
                   Directory="APPLICATIONROOTDIRECTORY"
                   ExeCommand="cmd.exe /c &quot;net stop PrizrakBoxService&quot;"
@@ -120,6 +138,7 @@
                   Impersonate="no"
                   Return="ignore" />
 
+    <!-- Delete service on uninstall -->
     <CustomAction Id="UninstallTunService"
                   Directory="APPLICATIONROOTDIRECTORY"
                   ExeCommand="cmd.exe /c &quot;sc delete PrizrakBoxService&quot;"
@@ -216,17 +235,30 @@
 <!-- {{AutoRun}} -->
 
     <InstallExecuteSequence>
-      <!-- Install service only if feature is selected and service doesn't exist -->
+      <!-- INSTALL: Stop old service if exists (before installing new one) -->
+      <Custom Action="StopOldTunService" After="InstallFiles">
+        NOT Installed AND &amp;TunService=3 AND TUNSERVICEEXISTS
+      </Custom>
+
+      <!-- INSTALL: Delete old service if exists (before installing new one) -->
+      <Custom Action="DeleteOldTunService" After="StopOldTunService">
+        NOT Installed AND &amp;TunService=3 AND TUNSERVICEEXISTS
+      </Custom>
+
+      <!-- INSTALL: Install new service (always when feature is selected) -->
       <Custom Action="InstallTunService" After="InstallFiles">
         NOT Installed AND &amp;TunService=3 AND NOT TUNSERVICEEXISTS
       </Custom>
+      <Custom Action="InstallTunService" After="DeleteOldTunService">
+        NOT Installed AND &amp;TunService=3 AND TUNSERVICEEXISTS
+      </Custom>
 
-      <!-- Stop service before uninstall -->
+      <!-- UNINSTALL: Stop service before removing -->
       <Custom Action="StopTunService" Before="RemoveFiles">
         (REMOVE="ALL" OR (&amp;TunService=2 AND !TunService=3)) AND TUNSERVICEEXISTS
       </Custom>
 
-      <!-- Delete service after stopping it, but before removing files -->
+      <!-- UNINSTALL: Delete service after stopping -->
       <Custom Action="UninstallTunService" After="StopTunService">
         (REMOVE="ALL" OR (&amp;TunService=2 AND !TunService=3)) AND TUNSERVICEEXISTS
       </Custom>
