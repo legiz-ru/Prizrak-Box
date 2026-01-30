@@ -111,18 +111,28 @@
                       Win64="{{Win64YesNo}}" />
     </Property>
 
-    <!-- Stop existing service before install (if exists) -->
+    <!-- Prepare and stop existing service before install (if exists) -->
+    <CustomAction Id="PrepareStopOldTunService"
+                  Property="StopOldTunService"
+                  Value="&quot;[SystemFolder]sc.exe&quot; stop PrizrakBoxService"
+                  Execute="immediate"
+                  Return="ignore" />
     <CustomAction Id="StopOldTunService"
-                  Directory="APPLICATIONROOTDIRECTORY"
-                  ExeCommand="cmd.exe /c &quot;sc stop PrizrakBoxService 2&gt;nul&quot;"
+                  BinaryKey="WixCA"
+                  DllEntry="CAQuietExec"
                   Execute="deferred"
                   Impersonate="no"
                   Return="ignore" />
 
-    <!-- Delete existing service before install (if exists) -->
+    <!-- Prepare and delete existing service before install (if exists) -->
+    <CustomAction Id="PrepareDeleteOldTunService"
+                  Property="DeleteOldTunService"
+                  Value="&quot;[SystemFolder]sc.exe&quot; delete PrizrakBoxService"
+                  Execute="immediate"
+                  Return="ignore" />
     <CustomAction Id="DeleteOldTunService"
-                  Directory="APPLICATIONROOTDIRECTORY"
-                  ExeCommand="cmd.exe /c &quot;sc delete PrizrakBoxService 2&gt;nul&quot;"
+                  BinaryKey="WixCA"
+                  DllEntry="CAQuietExec"
                   Execute="deferred"
                   Impersonate="no"
                   Return="ignore" />
@@ -142,18 +152,28 @@
                   Impersonate="no"
                   Return="ignore" />
 
-    <!-- Stop service before uninstall -->
+    <!-- Prepare and stop service before uninstall -->
+    <CustomAction Id="PrepareStopTunService"
+                  Property="StopTunService"
+                  Value="&quot;[SystemFolder]sc.exe&quot; stop PrizrakBoxService"
+                  Execute="immediate"
+                  Return="ignore" />
     <CustomAction Id="StopTunService"
-                  Directory="APPLICATIONROOTDIRECTORY"
-                  ExeCommand="cmd.exe /c &quot;sc stop PrizrakBoxService&quot;"
+                  BinaryKey="WixCA"
+                  DllEntry="CAQuietExec"
                   Execute="deferred"
                   Impersonate="no"
                   Return="ignore" />
 
-    <!-- Delete service on uninstall -->
+    <!-- Prepare and delete service on uninstall -->
+    <CustomAction Id="PrepareUninstallTunService"
+                  Property="UninstallTunService"
+                  Value="&quot;[SystemFolder]sc.exe&quot; delete PrizrakBoxService"
+                  Execute="immediate"
+                  Return="ignore" />
     <CustomAction Id="UninstallTunService"
-                  Directory="APPLICATIONROOTDIRECTORY"
-                  ExeCommand="cmd.exe /c &quot;sc delete PrizrakBoxService&quot;"
+                  BinaryKey="WixCA"
+                  DllEntry="CAQuietExec"
                   Execute="deferred"
                   Impersonate="no"
                   Return="ignore" />
@@ -265,11 +285,17 @@
       <Custom Action="WixCloseApplications" Before="InstallValidate" />
 
       <!-- INSTALL: Stop old service BEFORE copying new files (if exists) -->
+      <Custom Action="PrepareStopOldTunService" Before="StopOldTunService">
+        NOT Installed AND &amp;TunService=3 AND TUNSERVICEEXISTS
+      </Custom>
       <Custom Action="StopOldTunService" Before="InstallFiles">
         NOT Installed AND &amp;TunService=3 AND TUNSERVICEEXISTS
       </Custom>
 
       <!-- INSTALL: Delete old service BEFORE copying new files (if exists) -->
+      <Custom Action="PrepareDeleteOldTunService" Before="DeleteOldTunService">
+        NOT Installed AND &amp;TunService=3 AND TUNSERVICEEXISTS
+      </Custom>
       <Custom Action="DeleteOldTunService" After="StopOldTunService">
         NOT Installed AND &amp;TunService=3 AND TUNSERVICEEXISTS
       </Custom>
@@ -285,11 +311,17 @@
       </Custom>
 
       <!-- UNINSTALL: Stop service before removing -->
+      <Custom Action="PrepareStopTunService" Before="StopTunService">
+        REMOVE="ALL" OR (&amp;TunService=2 AND !TunService=3)
+      </Custom>
       <Custom Action="StopTunService" Before="RemoveFiles">
         REMOVE="ALL" OR (&amp;TunService=2 AND !TunService=3)
       </Custom>
 
       <!-- UNINSTALL: Delete service after stopping -->
+      <Custom Action="PrepareUninstallTunService" Before="UninstallTunService">
+        REMOVE="ALL" OR (&amp;TunService=2 AND !TunService=3)
+      </Custom>
       <Custom Action="UninstallTunService" After="StopTunService">
         REMOVE="ALL" OR (&amp;TunService=2 AND !TunService=3)
       </Custom>
