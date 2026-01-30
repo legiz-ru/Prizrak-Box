@@ -1,6 +1,5 @@
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
      xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
-  <?define WixCA=$(env.WIX)\bin\WixCA.dll ?>
   <!-- http://wixtoolset.org/documentation/manual/v3/xsd/wix/product.html -->
   <Product Id="{{ProductCode}}" 
            UpgradeCode="{{UpgradeCode}}"
@@ -86,7 +85,7 @@
 
     <Media Id="1" Cabinet="product.cab" EmbedCab="yes"/>
 
-    <Binary Id="WixCA" SourceFile="$(var.WixCA)" />
+    <!-- WixCA binary is provided by WixUtilExtension -->
 
     <!-- Localization -->
     <WixVariable Id="WixUILicenseRtf" Value="build\wix\license.rtf" />
