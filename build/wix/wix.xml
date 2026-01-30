@@ -92,9 +92,7 @@
 
 <!-- {{Icon}}-->
 
-    <!-- UI with feature selection -->
-    <UIRef Id="WixUI_FeatureTree" />
-    <UIRef Id="WixUI_ErrorProgressText" />
+    <!-- UI is injected by electron-wix-msi via the {{UI}} template block. -->
 
 <!-- {{UI}} -->
 
