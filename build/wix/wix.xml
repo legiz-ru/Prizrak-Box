@@ -85,6 +85,8 @@
 
     <Media Id="1" Cabinet="product.cab" EmbedCab="yes"/>
 
+    <Binary Id="WixCA" SourceFile="$(var.WixCA)" />
+
     <!-- Localization -->
     <WixVariable Id="WixUILicenseRtf" Value="build\wix\license.rtf" />
 
