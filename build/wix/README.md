@@ -92,7 +92,27 @@ npm run build:service:windows
 npm run make
 ```
 
-The output will be in the `out/make/wix/` directory.
+The output will be in the `out/make/wix/x64/` directory.
+
+## Testing the Installer
+
+**IMPORTANT:** Always test the `.msi` file directly, NOT the `.exe` wrapper!
+
+```cmd
+# Navigate to output directory
+cd out/make/wix/x64/
+
+# Run the MSI directly (shows full UI)
+Prizrak-Box-1.0.x-alpha8.msi
+
+# Or with msiexec
+msiexec /i Prizrak-Box-1.0.x-alpha8.msi
+
+# With logging for debugging
+msiexec /i Prizrak-Box-1.0.x-alpha8.msi /l*v install.log
+```
+
+If the installer runs silently (no dialogs), see `INSTALL_INSTRUCTIONS.md` in the project root.
 
 ## Technical Details
 

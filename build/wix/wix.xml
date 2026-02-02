@@ -15,10 +15,13 @@
              Compressed="yes"
              Comments="Windows Installer Package"
              Platform="{{Platform}}"
-             InstallScope="{{PackageScope}}"/>
+             InstallScope="{{PackageScope}}"
+             InstallPrivileges="elevated"
+             AdminImage="no"/>
 
-    <!-- Don't allow downgrades -->
+    <!-- Don't allow downgrades, but always show UI -->
     <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  Schedule="afterInstallInitialize"
                   DowngradeErrorMessage="!(loc.DowngradeError)"/>
 
     <!-- Hide the MSI entry in Apps & Features -->
@@ -82,6 +85,9 @@
 
 <!-- {{Icon}}-->
 
+    <!-- Disable silent installation - always show UI -->
+    <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT" Value="Thank you for installing {{ApplicationName}}." />
+
     <!-- Custom UI with license and feature selection -->
     <UIRef Id="WixUI_FeatureTree" />
     <UIRef Id="WixUI_ErrorProgressText" />
@@ -98,9 +104,15 @@
       <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="LicenseAgreementDlg" Order="2">1</Publish>
       <Publish Dialog="LicenseAgreementDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg">1</Publish>
       <Publish Dialog="LicenseAgreementDlg" Control="Next" Event="NewDialog" Value="CustomizeDlg">LicenseAccepted = "1"</Publish>
+
+      <!-- Ensure UI is shown for both install and upgrade scenarios -->
+      <Property Id="_BrowseProperty" Value="WIXUI_INSTALLDIR" />
     </UI>
 
-<!-- {{UI}} -->
+    <!-- Force UI to be shown -->
+    <InstallUISequence>
+      <Show Dialog="WelcomeDlg" Before="ProgressDlg" />
+    </InstallUISequence>
 
     <!-- Custom Actions: Stop processes and service before installation -->
 
