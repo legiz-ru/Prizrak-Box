@@ -9,7 +9,6 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "make:msi": "npm run package && node installer/build-msi.js",
-    "launch:msi": "node installer/launcher.js",
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx .",
     "build:service": "cd src-service && go build -ldflags=\"-s -w\" -o px-service .",

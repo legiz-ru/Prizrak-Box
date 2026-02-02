@@ -32,21 +32,21 @@ async function harvestFiles() {
   }
 }
 
-async function buildMSI(language = 'en-us') {
-  console.log(`\n🔧 Building MSI installer for ${ARCH} (${language})...`);
+async function buildMultiLanguageMSI() {
+  console.log(`\n🔧 Building multi-language MSI installer for ${ARCH}...`);
 
   // Ensure output directory exists
   await fs.ensureDir(PATHS.msiOut);
 
-  // Prepare WiX variables
+  // Prepare WiX variables (use English as primary language)
   const wixVars = {
-    ProductVersion: VERSION.replace(/-.*$/, '').replace(/^(\d+\.\d+\.\d+).*/, '$1'), // Keep only major.minor.patch
+    ProductVersion: VERSION.replace(/-.*$/, '').replace(/^(\d+\.\d+\.\d+).*/, '$1'),
     Platform: IS_ARM64 ? 'arm64' : 'x64',
     Win64: 'yes',
     ProgramFilesFolder: 'ProgramFiles64Folder',
     SourceDir: PATHS.appFiles,
-    Language: language === 'ru-ru' ? '1049' : '1033',
-    Culture: language
+    Language: '1033', // Primary language: English
+    Culture: 'en-us'
   };
 
   const wixDefines = Object.entries(wixVars)
@@ -64,6 +64,7 @@ async function buildMSI(language = 'en-us') {
       path.join(PATHS.installer, 'Product.wxs'),
       path.join(PATHS.installer, 'UI.wxs'),
       path.join(PATHS.installer, 'Files.wxs'),
+      path.join(PATHS.installer, 'dialogs', 'LanguageSelectionDlg.wxs'),
       harvestedWxs
     ];
 
@@ -79,17 +80,22 @@ async function buildMSI(language = 'en-us') {
       execSync(candleCmd, { stdio: 'inherit', cwd: PATHS.installer });
     }
 
-    // Step 3: Link WiX objects (.wixobj -> .msi)
-    console.log('🔗 Linking MSI package...');
+    // Step 3: Link WiX objects with multiple cultures (.wixobj -> .msi)
+    console.log('🔗 Linking multi-language MSI package...');
+    console.log('   Languages: English, Russian');
 
-    const msiFile = path.join(PATHS.msiOut, `Prizrak-Box-${VERSION}-${ARCH}-${language}.msi`);
-    const locFile = path.join(PATHS.installer, 'localization', `${language}.wxl`);
+    const msiFile = path.join(PATHS.msiOut, `Prizrak-Box-${VERSION}-${ARCH}.msi`);
+    const enLocFile = path.join(PATHS.installer, 'localization', 'en-us.wxl');
+    const ruLocFile = path.join(PATHS.installer, 'localization', 'ru-ru.wxl');
 
-    const lightCmd = `light.exe -nologo ${wixobjFiles.map(f => `"${f}"`).join(' ')} -ext WixUIExtension -ext WixUtilExtension -cultures:${language} -loc "${locFile}" -out "${msiFile}" -sval`;
+    // Build with multiple cultures
+    const lightCmd = `light.exe -nologo ${wixobjFiles.map(f => `"${f}"`).join(' ')} -ext WixUIExtension -ext WixUtilExtension -cultures:en-us;ru-ru -loc "${enLocFile}" -loc "${ruLocFile}" -out "${msiFile}" -sval`;
 
     execSync(lightCmd, { stdio: 'inherit', cwd: PATHS.installer });
 
-    console.log(`✅ MSI created: ${msiFile}\n`);
+    console.log(`✅ Multi-language MSI created: ${msiFile}`);
+    console.log(`   Supported languages: English, Russian`);
+    console.log(`   Language selection dialog included in installer\n`);
     return msiFile;
 
   } catch (error) {
@@ -99,7 +105,7 @@ async function buildMSI(language = 'en-us') {
 }
 
 async function main() {
-  console.log('🚀 Prizrak-Box MSI Installer Builder\n');
+  console.log('🚀 Prizrak-Box Multi-Language MSI Installer Builder\n');
 
   // Check if app is built
   if (!fs.existsSync(PATHS.appFiles)) {
@@ -108,14 +114,17 @@ async function main() {
     process.exit(1);
   }
 
-  // Build MSI for both languages
-  console.log('Building MSI installers for all languages...\n');
-
   try {
-    await buildMSI('en-us');
-    await buildMSI('ru-ru');
+    // Build single multi-language MSI
+    await buildMultiLanguageMSI();
 
-    console.log('🎉 All MSI installers built successfully!\n');
+    console.log('🎉 Multi-language MSI installer built successfully!\n');
+    console.log('ℹ️  The installer includes:');
+    console.log('   - Language selection dialog (English/Russian)');
+    console.log('   - GPL3 license agreement');
+    console.log('   - Feature selection (Main App + TUN Service)');
+    console.log('   - Automatic process/service cleanup');
+    console.log('   - TUN service installation\n');
   } catch (error) {
     console.error('❌ Build failed');
     process.exit(1);
@@ -126,4 +135,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { buildMSI };
+module.exports = { buildMultiLanguageMSI };

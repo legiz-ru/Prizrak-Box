@@ -19,6 +19,12 @@
   <String Id="ProgressStopProcesses">Stopping running Prizrak-Box processes and services...</String>
   <String Id="ProgressInstallTUNService">Installing TUN Service...</String>
 
+  <!-- Language Selection Dialog -->
+  <String Id="LanguageSelectionTitle">Select Installation Language</String>
+  <String Id="LanguageSelectionDescription">Please select the language for the installation.</String>
+  <String Id="LanguageSelectionLabel">Choose your preferred language:</String>
+  <String Id="LanguageSelectionBannerBitmap">WixUI_Bmp_Banner</String>
+
   <!-- Dialog Texts -->
   <String Id="WelcomeDlgTitle">Welcome to the Prizrak-Box Setup Wizard</String>
   <String Id="WelcomeDlgDescription">The Setup Wizard will install [ProductName] on your computer. Click Next to continue or Cancel to exit.</String>

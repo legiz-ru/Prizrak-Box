@@ -19,6 +19,12 @@
   <String Id="ProgressStopProcesses">Остановка запущенных процессов и служб Prizrak-Box...</String>
   <String Id="ProgressInstallTUNService">Установка службы TUN...</String>
 
+  <!-- Диалог выбора языка -->
+  <String Id="LanguageSelectionTitle">Выбор языка установки</String>
+  <String Id="LanguageSelectionDescription">Пожалуйста, выберите язык для установки.</String>
+  <String Id="LanguageSelectionLabel">Выберите предпочитаемый язык:</String>
+  <String Id="LanguageSelectionBannerBitmap">WixUI_Bmp_Banner</String>
+
   <!-- Тексты диалогов -->
   <String Id="WelcomeDlgTitle">Добро пожаловать в мастер установки Prizrak-Box</String>
   <String Id="WelcomeDlgDescription">Мастер установки установит [ProductName] на ваш компьютер. Нажмите "Далее" для продолжения или "Отмена" для выхода.</String>

@@ -4,8 +4,9 @@ This directory contains a custom MSI installer built with WiX Toolset, independe
 
 ## Features
 
+✅ **Built-in Language Selection** - First dialog allows choosing English or Russian
+✅ **Single MSI File** - One installer with both languages embedded
 ✅ **GPL3 License Agreement** - Shows during installation
-✅ **Multi-language Support** - English and Russian with language selection
 ✅ **Feature Selection** - Choose which components to install:
    - Main Application (required)
    - TUN Service Mode (optional, enabled by default)
@@ -15,7 +16,7 @@ This directory contains a custom MSI installer built with WiX Toolset, independe
 
 ## Installation Dialog Sequence
 
-1. **Language Selection** - Choose English or Russian (via launcher)
+1. **Language Selection** - Choose English or Russian (inside MSI)
 2. **Welcome** - Welcome to Prizrak-Box Setup Wizard
 3. **License Agreement** - GPL3 with "I accept" checkbox
 4. **Custom Setup** - Feature Tree with selectable components
@@ -41,7 +42,7 @@ npm run package
 
 This will create packaged Electron app in `out/Prizrak-Box-win32-{arch}/`
 
-### 2. Build MSI Installers
+### 2. Build MSI Installer
 
 ```bash
 npm run make:msi
@@ -49,19 +50,12 @@ npm run make:msi
 
 This will:
 - Compile WiX sources for both English and Russian
-- Generate MSI files for both languages
-- Output to `out/msi/{arch}/`
+- Generate **ONE** multi-language MSI file
+- Output to `out/msi/{arch}/Prizrak-Box-{version}-{arch}.msi`
 
-### 3. Launch Installer with Language Selection
+### 3. Run the Installer
 
-```bash
-npm run launch:msi
-```
-
-This will:
-- Detect system language
-- Show language selection dialog
-- Launch the selected MSI installer
+Simply double-click the generated MSI file. The first dialog will ask you to choose the language.
 
 ## Manual Building
 
@@ -71,11 +65,8 @@ If you want to build manually:
 # 1. Package the app
 npm run package
 
-# 2. Build MSI
+# 2. Build multi-language MSI
 node installer/build-msi.js
-
-# 3. Launch with language selection
-node installer/launcher.js
 ```
 
 ## File Structure
@@ -83,32 +74,36 @@ node installer/launcher.js
 ```
 installer/
 ├── wix/
-│   ├── Product.wxs          # Main product definition
-│   ├── UI.wxs               # UI dialogs and sequence
-│   ├── Files.wxs            # File components
+│   ├── Product.wxs                    # Main product definition
+│   ├── UI.wxs                         # UI dialogs and sequence
+│   ├── Files.wxs                      # File components
+│   ├── dialogs/
+│   │   └── LanguageSelectionDlg.wxs   # Custom language selection dialog
 │   └── localization/
-│       ├── License.rtf      # GPL3 license
-│       ├── en-us.wxl        # English strings
-│       └── ru-ru.wxl        # Russian strings
-├── build-msi.js             # MSI build script
-├── launcher.js              # Language selection launcher
-└── README.md                # This file
+│       ├── License.rtf                # GPL3 license
+│       ├── en-us.wxl                  # English strings
+│       └── ru-ru.wxl                  # Russian strings
+├── build-msi.js                       # MSI build script
+└── README.md                          # This file
 ```
 
 ## How It Works
 
 ### 1. Build Script (`build-msi.js`)
 
+- Harvests all application files using `heat.exe`
 - Compiles WiX sources using `candle.exe`
-- Links compiled objects using `light.exe`
-- Generates separate MSI files for each language
+- Links compiled objects using `light.exe` with multiple cultures
+- Generates **ONE** MSI file with embedded English and Russian languages
 - Uses variables for version, architecture, paths
 
-### 2. Launcher (`launcher.js`)
+### 2. Language Selection
 
-- Detects system language
-- Presents language selection menu
-- Launches appropriate MSI with `msiexec`
+The installer starts with a custom dialog (`LanguageSelectionDlg`) that presents:
+- Radio button for English
+- Radio button for Русский (Russian)
+
+After selection, all subsequent dialogs use the chosen language.
 
 ### 3. Custom Actions
 
@@ -127,29 +122,30 @@ installer/
 Add to `.github/workflows/release.yml`:
 
 ```yaml
-- name: Build Custom MSI Installers
+- name: Build Custom MSI Installer
   if: matrix.os == 'windows-latest'
   run: |
     npm run make:msi
   env:
     ARCH: ${{ matrix.arch }}
 
-- name: Upload MSI Installers
+- name: Upload MSI Installer
   if: matrix.os == 'windows-latest'
   uses: actions/upload-artifact@v3
   with:
-    name: msi-installers-${{ matrix.arch }}
+    name: msi-installer-${{ matrix.arch }}
     path: out/msi/${{ matrix.arch }}/*.msi
 ```
 
 ## Language Selection
 
-Unlike electron-forge's WiX maker, this custom installer supports true language selection:
+**IMPORTANT:** Unlike the previous version, this installer has:
+- ✅ **One MSI file** instead of two separate files
+- ✅ **Built-in language selection** dialog at the start
+- ✅ **No external launcher** needed
+- ✅ **Automatic language switching** based on user choice
 
-1. **Automatic Detection** - Detects system language (Russian/English)
-2. **Manual Selection** - User can choose preferred language via launcher
-3. **Separate MSI Files** - Each language has its own MSI file
-4. **Fully Localized** - All UI strings translated
+The language selection happens inside the MSI installer itself, not via an external script.
 
 ## Troubleshooting
 
@@ -172,13 +168,22 @@ The installer requires administrator privileges to:
 - Create registry entries
 - Install Windows service
 
-## Advantages Over electron-forge Maker
+## Advantages Over Previous Approach
 
-✅ Full control over UI dialogs and flow
-✅ True multi-language support with language selection
-✅ Custom actions with PowerShell scripts
-✅ Feature selection with FeatureTree dialog
-✅ Process and service management
-✅ Separate MSI files per language
-✅ Better control over upgrade logic
-✅ Easier to customize and extend
+✅ **Single MSI file** - Easier distribution and management
+✅ **Built-in language selection** - No external launcher needed
+✅ **Multi-language support** - Both languages embedded in one file
+✅ **Cleaner user experience** - Choose language at the start
+✅ **Full control over UI** - Custom dialogs and flow
+✅ **Feature selection** with FeatureTree dialog
+✅ **Process and service management**
+✅ **Better control over upgrade logic**
+✅ **Easier to customize and extend**
+
+## Output
+
+After building, you will have:
+- `out/msi/x64/Prizrak-Box-{version}-x64.msi` (for 64-bit systems)
+- `out/msi/arm64/Prizrak-Box-{version}-arm64.msi` (for ARM64 systems)
+
+Each MSI file contains both English and Russian languages with a selection dialog at the start.
