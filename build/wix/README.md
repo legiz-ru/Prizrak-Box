@@ -138,6 +138,13 @@ If the installer runs silently (no dialogs), see `INSTALL_INSTRUCTIONS.md` in th
 
 ## Troubleshooting
 
+### No UI dialogs showing (installer runs silently)
+
+If the installer runs silently without showing any dialogs:
+- Ensure `WixUIExtension` is included in the `extensions` array in `forge.config.ts`
+- Without WixUIExtension, the Dialog table won't be included in the MSI
+- The log will show: `Note: 1: 2205 2:  3: Dialog` (table missing)
+
 ### License not showing
 
 If the license agreement dialog doesn't appear, ensure that:

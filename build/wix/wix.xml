@@ -109,11 +109,6 @@
       <Property Id="_BrowseProperty" Value="WIXUI_INSTALLDIR" />
     </UI>
 
-    <!-- Force UI to be shown -->
-    <InstallUISequence>
-      <Show Dialog="WelcomeDlg" Before="ProgressDlg" />
-    </InstallUISequence>
-
     <!-- Custom Actions: Stop processes and service before installation -->
 
     <!-- VBScript to stop processes -->
