@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WixLocalization Culture="ru-ru" Codepage="1251" xmlns="http://schemas.microsoft.com/wix/2006/localization">
+
+  <!-- Информация о продукте -->
+  <String Id="ProductDescription">Простой GUI для Mihomo</String>
+  <String Id="ProtocolDescription">Обработчик протокола Prizrak-Box</String>
+
+  <!-- Компоненты -->
+  <String Id="FeatureMainTitle">Приложение Prizrak-Box</String>
+  <String Id="FeatureMainDescription">Основные файлы приложения и ярлыки (обязательно)</String>
+  <String Id="FeatureTUNTitle">Режим службы TUN</String>
+  <String Id="FeatureTUNDescription">Установить службу TUN для расширенных сетевых функций (рекомендуется)</String>
+
+  <!-- Сообщения об ошибках -->
+  <String Id="OSVersionError">Это приложение требует Windows 7 или выше.</String>
+  <String Id="NewerVersionInstalled">Уже установлена более новая версия [ProductName].</String>
+
+  <!-- Сообщения о прогрессе -->
+  <String Id="ProgressStopProcesses">Остановка запущенных процессов и служб Prizrak-Box...</String>
+  <String Id="ProgressInstallTUNService">Установка службы TUN...</String>
+
+  <!-- Тексты диалогов -->
+  <String Id="WelcomeDlgTitle">Добро пожаловать в мастер установки Prizrak-Box</String>
+  <String Id="WelcomeDlgDescription">Мастер установки установит [ProductName] на ваш компьютер. Нажмите "Далее" для продолжения или "Отмена" для выхода.</String>
+
+  <String Id="LicenseAgreementDlgTitle">Лицензионное соглашение</String>
+  <String Id="LicenseAgreementDlgDescription">Пожалуйста, внимательно прочитайте следующее лицензионное соглашение.</String>
+
+  <String Id="CustomizeDlgTitle">Выборочная установка</String>
+  <String Id="CustomizeDlgDescription">Выберите способ установки компонентов.</String>
+
+  <String Id="VerifyReadyDlgTitle">Готов к установке</String>
+  <String Id="VerifyReadyDlgDescription">Нажмите "Установить" для начала установки.</String>
+
+  <String Id="ProgressDlgTitleInstalling">Установка [ProductName]</String>
+  <String Id="ProgressDlgTextInstalling">Пожалуйста, подождите, пока мастер установки устанавливает [ProductName]. Это может занять несколько минут.</String>
+
+  <String Id="ExitDlgTitle">Завершение работы мастера установки Prizrak-Box</String>
+  <String Id="ExitDlgDescription">[ProductName] успешно установлен. Нажмите "Готово" для выхода из мастера.</String>
+
+</WixLocalization>

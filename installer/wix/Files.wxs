@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+
+  <Fragment>
+    <!-- Application Files ComponentGroup -->
+    <ComponentGroup Id="ApplicationFiles">
+      <!-- This will be auto-generated or manually populated -->
+      <!-- For now, we'll use heat.exe to harvest files during build -->
+    </ComponentGroup>
+
+    <!-- TUN Service Files -->
+    <ComponentGroup Id="TUNServiceFiles">
+      <ComponentRef Id="PxServiceExecutable" />
+      <ComponentRef Id="PxExecutable" />
+    </ComponentGroup>
+  </Fragment>
+
+  <Fragment>
+    <DirectoryRef Id="RESOURCESDIR">
+      <!-- px-service.exe -->
+      <Component Id="PxServiceExecutable" Guid="45678901-1234-1234-1234-123456789abc" Win64="$(var.Win64)">
+        <File Id="PxServiceEXE"
+              Source="$(var.SourceDir)\resources\px-service.exe"
+              KeyPath="yes"
+              Checksum="yes" />
+      </Component>
+
+      <!-- px.exe -->
+      <Component Id="PxExecutable" Guid="56789012-1234-1234-1234-123456789abc" Win64="$(var.Win64)">
+        <File Id="PxEXE"
+              Source="$(var.SourceDir)\resources\px.exe"
+              KeyPath="yes"
+              Checksum="yes" />
+      </Component>
+    </DirectoryRef>
+  </Fragment>
+
+</Wix>

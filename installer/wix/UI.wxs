@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+
+  <Fragment>
+    <UI Id="CustomUI">
+      <!-- Use FeatureTree base UI -->
+      <UIRef Id="WixUI_FeatureTree" />
+      <UIRef Id="WixUI_ErrorProgressText" />
+
+      <!-- License -->
+      <WixVariable Id="WixUILicenseRtf" Value="localization\License.rtf" />
+
+      <!-- Custom dialogs flow -->
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="LicenseAgreementDlg">1</Publish>
+      <Publish Dialog="LicenseAgreementDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg">1</Publish>
+      <Publish Dialog="LicenseAgreementDlg" Control="Next" Event="NewDialog" Value="CustomizeDlg">
+        <![CDATA[LicenseAccepted = "1"]]>
+      </Publish>
+
+      <Publish Dialog="CustomizeDlg" Control="Back" Event="NewDialog" Value="LicenseAgreementDlg">1</Publish>
+      <Publish Dialog="CustomizeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg">1</Publish>
+
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="CustomizeDlg">1</Publish>
+
+      <!-- Progress text for custom actions -->
+      <ProgressText Action="StopProcessesBeforeInstall">!(loc.ProgressStopProcesses)</ProgressText>
+      <ProgressText Action="InstallTunService">!(loc.ProgressInstallTUNService)</ProgressText>
+      <ProgressText Action="StopProcessesBeforeUninstall">!(loc.ProgressStopProcesses)</ProgressText>
+    </UI>
+
+  </Fragment>
+
+</Wix>

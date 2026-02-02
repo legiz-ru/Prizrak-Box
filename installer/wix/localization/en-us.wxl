@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WixLocalization Culture="en-us" Codepage="1252" xmlns="http://schemas.microsoft.com/wix/2006/localization">
+
+  <!-- Product Information -->
+  <String Id="ProductDescription">A Simple Mihomo GUI</String>
+  <String Id="ProtocolDescription">Prizrak-Box Protocol Handler</String>
+
+  <!-- Features -->
+  <String Id="FeatureMainTitle">Prizrak-Box Application</String>
+  <String Id="FeatureMainDescription">Main application files and shortcuts (required)</String>
+  <String Id="FeatureTUNTitle">TUN Service Mode</String>
+  <String Id="FeatureTUNDescription">Install TUN Service for advanced networking features (recommended)</String>
+
+  <!-- Error Messages -->
+  <String Id="OSVersionError">This application requires Windows 7 or higher.</String>
+  <String Id="NewerVersionInstalled">A newer version of [ProductName] is already installed.</String>
+
+  <!-- Progress Messages -->
+  <String Id="ProgressStopProcesses">Stopping running Prizrak-Box processes and services...</String>
+  <String Id="ProgressInstallTUNService">Installing TUN Service...</String>
+
+  <!-- Dialog Texts -->
+  <String Id="WelcomeDlgTitle">Welcome to the Prizrak-Box Setup Wizard</String>
+  <String Id="WelcomeDlgDescription">The Setup Wizard will install [ProductName] on your computer. Click Next to continue or Cancel to exit.</String>
+
+  <String Id="LicenseAgreementDlgTitle">End-User License Agreement</String>
+  <String Id="LicenseAgreementDlgDescription">Please read the following license agreement carefully.</String>
+
+  <String Id="CustomizeDlgTitle">Custom Setup</String>
+  <String Id="CustomizeDlgDescription">Select the way you want features to be installed.</String>
+
+  <String Id="VerifyReadyDlgTitle">Ready to Install</String>
+  <String Id="VerifyReadyDlgDescription">Click Install to begin the installation.</String>
+
+  <String Id="ProgressDlgTitleInstalling">Installing [ProductName]</String>
+  <String Id="ProgressDlgTextInstalling">Please wait while the Setup Wizard installs [ProductName]. This may take several minutes.</String>
+
+  <String Id="ExitDlgTitle">Completing the Prizrak-Box Setup Wizard</String>
+  <String Id="ExitDlgDescription">[ProductName] has been successfully installed. Click Finish to exit the wizard.</String>
+
+</WixLocalization>
