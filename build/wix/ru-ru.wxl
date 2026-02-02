@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WixLocalization Culture="ru-ru" xmlns="http://schemas.microsoft.com/wix/2006/localization">
+  <String Id="Language">1049</String>
+
+  <!-- Feature descriptions -->
+  <String Id="CompleteFeatureDescription">Полный пакет.</String>
+  <String Id="MainApplicationTitle">Основное приложение</String>
+  <String Id="MainApplicationDescription">Основные компоненты для запуска приложения.</String>
+  <String Id="TunServiceTitle">Режим службы TUN</String>
+  <String Id="TunServiceDescription">Установить px-service для запуска TUN без прав администратора.</String>
+
+  <!-- Error messages -->
+  <String Id="DowngradeError">Более новая версия этого продукта уже установлена. Установка будет прервана.</String>
+</WixLocalization>

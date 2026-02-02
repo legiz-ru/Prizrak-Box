@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+
+  <!-- Product definition -->
+  <Product Id="{{ProductCode}}"
+           UpgradeCode="{{UpgradeCode}}"
+           Name="{{ApplicationName}} (Machine - MSI)"
+           Version="{{Version}}"
+           Manufacturer="{{Manufacturer}}"
+           Language="{{Language}}">
+
+    <!-- Package definition -->
+    <Package InstallerVersion="405"
+             Compressed="yes"
+             Comments="Windows Installer Package"
+             Platform="{{Platform}}"
+             InstallScope="{{PackageScope}}"/>
+
+    <!-- Don't allow downgrades -->
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="!(loc.DowngradeError)"/>
+
+    <!-- Hide the MSI entry in Apps & Features -->
+    <Property Id="ARPSYSTEMCOMPONENT" Value="1" />
+
+    <!-- Visible product name -->
+    <Property Id="VisibleProductName" Value="{{ApplicationName}} (Machine)" />
+
+    <!-- Install per user or per machine -->
+    <Property Id="MSIINSTALLPERUSER" Secure="yes" Value="{{InstallPerUser}}" />
+
+    <!-- Reinstall mode -->
+    <Property Id="REINSTALLMODE" Value="emus" />
+
+    <!-- Reboot behavior -->
+    <Property Id="REBOOT" Value="{{RebootMode}}" />
+
+    <!-- Installation level -->
+    <Property Id="INSTALLLEVEL" Value="{{InstallLevel}}" />
+
+    <!-- Auto-updater user group -->
+    <Property Id="UPDATERUSERGROUP" Value="Users" />
+
+    <!-- Auto-update enabled -->
+    <Property Id="AUTOUPDATEENABLED" Value="1" />
+
+    <!-- Find install path from registry -->
+    <Property Id="INSTALLPATH">
+      <RegistrySearch Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{{{ProductCode}}}.msq"
+                      Root="HKCU"
+                      Type="raw"
+                      Id="INSTALLPATH_REGSEARCH_HKCU"
+                      Name="InstallPath"
+                      Win64="{{Win64YesNo}}"/>
+      <RegistrySearch Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{{{ProductCode}}}.msq"
+                      Root="HKLM"
+                      Type="raw"
+                      Id="INSTALLPATH_REGSEARCH_HKLM"
+                      Name="InstallPath"
+                      Win64="{{Win64YesNo}}"/>
+    </Property>
+
+    <!-- Set product name for per-user install -->
+    <SetProperty Action="SetVisibleProductName"
+                 Id="VisibleProductName"
+                 Sequence="both"
+                 Before="AppSearch"
+                 Value="{{ApplicationName}} (User)">
+      <![CDATA[MSIINSTALLPERUSER = "1"]]>
+    </SetProperty>
+
+    <SetProperty Action="SetProductName"
+                 Id="ProductName"
+                 Sequence="both"
+                 Before="AppSearch"
+                 Value="{{ApplicationName}} (User - MSI)">
+      <![CDATA[MSIINSTALLPERUSER = "1"]]>
+    </SetProperty>
+
+    <Media Id="1" Cabinet="product.cab" EmbedCab="yes"/>
+
+<!-- {{Icon}}-->
+<!-- {{UI}} -->
+
+    <!-- WixUI for installation -->
+    <Property Id="WIXUI_INSTALLDIR" Value="APPLICATIONROOTDIRECTORY" />
+    <UIRef Id="WixUI_FeatureTree" />
+    <WixVariable Id="WixUILicenseRtf" Value="build/wix/license.rtf" />
+
+    <!-- Custom Actions: Stop processes and service before installation -->
+
+    <!-- VBScript to stop processes -->
+    <CustomAction Id="StopProcessesBeforeInstall"
+                  Script="vbscript"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore">
+      <![CDATA[
+        On Error Resume Next
+        Dim objWMIService, colProcesses, objProcess
+        Set objWMIService = GetObject("winmgmts:\\.\root\cimv2")
+
+        ' Stop Prizrak-Box.exe
+        Set colProcesses = objWMIService.ExecQuery("Select * from Win32_Process Where Name = 'Prizrak-Box.exe'")
+        For Each objProcess in colProcesses
+          objProcess.Terminate()
+        Next
+
+        ' Stop px.exe
+        Set colProcesses = objWMIService.ExecQuery("Select * from Win32_Process Where Name = 'px.exe'")
+        For Each objProcess in colProcesses
+          objProcess.Terminate()
+        Next
+
+        ' Stop px-service.exe
+        Set colProcesses = objWMIService.ExecQuery("Select * from Win32_Process Where Name = 'px-service.exe'")
+        For Each objProcess in colProcesses
+          objProcess.Terminate()
+        Next
+      ]]>
+    </CustomAction>
+
+    <!-- Stop and delete service before installation -->
+    <CustomAction Id="StopServiceBeforeInstall"
+                  Directory="TARGETDIR"
+                  ExeCommand="cmd.exe /c &quot;sc stop PrizrakBoxService &amp; sc delete PrizrakBoxService&quot;"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- Install TUN Service -->
+    <CustomAction Id="InstallTunService"
+                  Directory="APPLICATIONROOTDIRECTORY"
+                  ExeCommand="&quot;[APPLICATIONROOTDIRECTORY]resources\px-service.exe&quot; -install"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- Stop processes before uninstall -->
+    <CustomAction Id="StopProcessesBeforeUninstall"
+                  Script="vbscript"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore">
+      <![CDATA[
+        On Error Resume Next
+        Dim objWMIService, colProcesses, objProcess
+        Set objWMIService = GetObject("winmgmts:\\.\root\cimv2")
+
+        ' Stop Prizrak-Box.exe
+        Set colProcesses = objWMIService.ExecQuery("Select * from Win32_Process Where Name = 'Prizrak-Box.exe'")
+        For Each objProcess in colProcesses
+          objProcess.Terminate()
+        Next
+
+        ' Stop px.exe
+        Set colProcesses = objWMIService.ExecQuery("Select * from Win32_Process Where Name = 'px.exe'")
+        For Each objProcess in colProcesses
+          objProcess.Terminate()
+        Next
+
+        ' Stop px-service.exe
+        Set colProcesses = objWMIService.ExecQuery("Select * from Win32_Process Where Name = 'px-service.exe'")
+        For Each objProcess in colProcesses
+          objProcess.Terminate()
+        Next
+      ]]>
+    </CustomAction>
+
+    <!-- Stop and delete service before uninstall -->
+    <CustomAction Id="UninstallTunService"
+                  Directory="TARGETDIR"
+                  ExeCommand="cmd.exe /c &quot;sc stop PrizrakBoxService &amp; sc delete PrizrakBoxService&quot;"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- Directory structure -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <!-- Installation files to %PROGRAMFILES% -->
+      <Directory Id="{{ProgramFilesFolder}}">
+<!-- {{Directories}} -->
+      </Directory>
+
+      <!-- Desktop -->
+      <Directory Id="DesktopFolder" Name="Desktop" />
+
+      <!-- Start Menu -->
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="{{ShortcutFolderName}}"/>
+      </Directory>
+    </Directory>
+
+    <!-- Start Menu Shortcut -->
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="ApplicationShortcut" Guid="{{ApplicationShortcutGuid}}" Win64="{{Win64YesNo}}">
+        <Shortcut Id="ApplicationStartMenuShortcut"
+                  Name="{{ShortcutName}}"
+                  Description="{{ApplicationDescription}}"
+                  Target="[APPLICATIONROOTDIRECTORY]{{ApplicationBinary}}.exe"
+                  WorkingDirectory="APPLICATIONROOTDIRECTORY">
+<!-- {{ShortcutProperties}} -->
+        </Shortcut>
+        <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall"/>
+        <RegistryValue Root="HKCU"
+                       Key="Software\Microsoft\{{ApplicationShortName}}"
+                       Name="installed"
+                       Type="integer"
+                       Value="1"
+                       KeyPath="yes"/>
+      </Component>
+    </DirectoryRef>
+
+    <!-- Desktop Shortcut -->
+    <DirectoryRef Id="DesktopFolder">
+      <Component Id="DesktopShortcut" Guid="{{DesktopShortcutGuid}}">
+        <Shortcut Id="MyDesktopShortcut"
+                  Name="{{ShortcutName}}"
+                  Description="{{ApplicationDescription}}"
+                  Target="[APPLICATIONROOTDIRECTORY]{{ApplicationBinary}}.exe"
+                  WorkingDirectory="APPLICATIONROOTDIRECTORY"/>
+        <RegistryValue Root="HKCU"
+                       Key="Software\Microsoft\{{ApplicationShortName}}"
+                       Name="installed"
+                       Type="integer"
+                       Value="1"
+                       KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+<!-- {{AutoUpdatePermissions}} -->
+
+    <!-- Cleanup files on uninstall -->
+    <DirectoryRef Id="APPLICATIONROOTDIRECTORY">
+      <Component Id="PurgeOnUninstall" Guid="{{RandomGuid}}" Win64="{{Win64YesNo}}">
+        <CreateFolder/>
+        <util:RemoveFolderEx On="uninstall" Property="INSTALLPATH" />
+      </Component>
+      <Component Id="TunServiceInstallMarker" Guid="1b9c3ede-4d15-434c-96bc-ca511a873e66" Win64="{{Win64YesNo}}">
+        <RegistryValue Root="HKMU"
+                       Key="Software\Prizrak-Box"
+                       Name="TunServiceInstalled"
+                       Type="integer"
+                       Value="1"
+                       KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- Features -->
+    <Feature Id="Complete"
+             Title="{{ApplicationName}} ({{SemanticVersion}})"
+             Description="!(loc.CompleteFeatureDescription)"
+             Display="expand"
+             Level="1"
+             {{ConfigurableDirectory}}>
+
+      <!-- Main Application -->
+      <Feature Id="MainApplication"
+               Title="!(loc.MainApplicationTitle)"
+               Level="1"
+               Description="!(loc.MainApplicationDescription)">
+<!-- {{ComponentRefs}} -->
+        <ComponentRef Id="ApplicationShortcut" />
+        <ComponentRef Id="DesktopShortcut" />
+        <ComponentRef Id="PurgeOnUninstall" />
+      </Feature>
+
+      <!-- TUN Service Mode (enabled by default) -->
+      <Feature Id="TunService"
+               Title="!(loc.TunServiceTitle)"
+               Level="1"
+               Description="!(loc.TunServiceDescription)">
+        <ComponentRef Id="TunServiceInstallMarker" />
+      </Feature>
+
+<!-- {{AutoLaunchFeature}} -->
+<!-- {{AutoUpdateFeature}} -->
+    </Feature>
+
+<!-- {{AutoRun}} -->
+
+    <!-- Installation sequence -->
+    <InstallExecuteSequence>
+      <!-- Stop processes and service before installation -->
+      <Custom Action="StopProcessesBeforeInstall" Before="InstallFiles">NOT Installed</Custom>
+      <Custom Action="StopServiceBeforeInstall" Before="InstallFiles">NOT Installed</Custom>
+
+      <!-- Install TUN service if feature is selected -->
+      <Custom Action="InstallTunService" After="InstallFiles">NOT Installed AND &amp;TunService=3</Custom>
+
+      <!-- Stop processes and service before uninstall -->
+      <Custom Action="StopProcessesBeforeUninstall" Before="RemoveFiles">REMOVE="ALL"</Custom>
+      <Custom Action="UninstallTunService" Before="RemoveFiles">REMOVE="ALL"</Custom>
+    </InstallExecuteSequence>
+  </Product>
+</Wix>

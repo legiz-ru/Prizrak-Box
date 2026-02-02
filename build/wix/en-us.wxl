@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WixLocalization Culture="en-us" xmlns="http://schemas.microsoft.com/wix/2006/localization">
+  <String Id="Language">1033</String>
+
+  <!-- Feature descriptions -->
+  <String Id="CompleteFeatureDescription">The complete package.</String>
+  <String Id="MainApplicationTitle">Main Application</String>
+  <String Id="MainApplicationDescription">The main components to run the application.</String>
+  <String Id="TunServiceTitle">TUN Service Mode</String>
+  <String Id="TunServiceDescription">Install px-service so TUN can run without administrator privileges.</String>
+
+  <!-- Error messages -->
+  <String Id="DowngradeError">A later version of this product is already installed. Setup will now exit.</String>
+</WixLocalization>
