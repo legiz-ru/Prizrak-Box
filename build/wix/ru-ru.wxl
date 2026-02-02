@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<WixLocalization Culture="ru-ru" xmlns="http://schemas.microsoft.com/wix/2006/localization">
+<WixLocalization Culture="ru-ru" xmlns="http://schemas.microsoft.com/wix/2006/localization" Codepage="1251">
   <String Id="Language">1049</String>
+  <String Id="LCID">1049</String>
 
   <!-- Feature descriptions -->
   <String Id="CompleteFeatureDescription">Полный пакет.</String>
@@ -11,4 +12,9 @@
 
   <!-- Error messages -->
   <String Id="DowngradeError">Более новая версия этого продукта уже установлена. Установка будет прервана.</String>
+
+  <!-- Setup type descriptions -->
+  <String Id="TypicalSetupDescription">Установить приложение с наиболее часто используемыми функциями, включая режим службы TUN.</String>
+  <String Id="CustomSetupDescription">Выберите, какие функции установить. Рекомендуется для опытных пользователей.</String>
+  <String Id="CompleteSetupDescription">Установить все компоненты программы.</String>
 </WixLocalization>

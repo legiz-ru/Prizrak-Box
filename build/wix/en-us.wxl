@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<WixLocalization Culture="en-us" xmlns="http://schemas.microsoft.com/wix/2006/localization">
+<WixLocalization Culture="en-us" xmlns="http://schemas.microsoft.com/wix/2006/localization" Codepage="1252">
   <String Id="Language">1033</String>
+  <String Id="LCID">1033</String>
 
   <!-- Feature descriptions -->
   <String Id="CompleteFeatureDescription">The complete package.</String>
@@ -11,4 +12,9 @@
 
   <!-- Error messages -->
   <String Id="DowngradeError">A later version of this product is already installed. Setup will now exit.</String>
+
+  <!-- Setup type descriptions -->
+  <String Id="TypicalSetupDescription">Install the application with the most common features, including TUN Service Mode.</String>
+  <String Id="CustomSetupDescription">Choose which features to install. Recommended for advanced users.</String>
+  <String Id="CompleteSetupDescription">Install all program features.</String>
 </WixLocalization>
