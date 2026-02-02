@@ -9,8 +9,6 @@ import {AutoUnpackNativesPlugin} from '@electron-forge/plugin-auto-unpack-native
 import {VitePlugin} from '@electron-forge/plugin-vite';
 import {FusesPlugin} from '@electron-forge/plugin-fuses';
 import {FuseV1Options, FuseVersion} from '@electron/fuses';
-import fs from 'node:fs/promises';
-import path from 'node:path';
 
 const isWindows = process.platform === 'win32';
 const extraResource = isWindows
@@ -81,12 +79,6 @@ const config: ForgeConfig = {
             icon: 'build/appicon.ico',
             ui: {
                 chooseDirectory: true,
-            },
-            beforeCreate: async (creator) => {
-                creator.wixTemplate = await fs.readFile(
-                    path.resolve(__dirname, 'build', 'wix', 'wix.xml'),
-                    'utf8'
-                );
             },
             upgradeCode: 'c1d377b2-2c61-4c5e-8773-8e3c703b8b41',
             registry: [

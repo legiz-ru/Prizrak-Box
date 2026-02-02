@@ -1,6 +1,6 @@
 module github.com/legiz-ru/prizrak-box-service
 
-go 1.24.0
+go 1.22
 
 require (
 	github.com/Microsoft/go-winio v0.6.2
