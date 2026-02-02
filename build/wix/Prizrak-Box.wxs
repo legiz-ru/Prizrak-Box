@@ -17,6 +17,7 @@
     <Property Id="ARPCOMMENTS" Value="!(loc.Description)" />
 
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
+    <Property Id="WixUILanguage" Value="1033" />
     <WixVariable Id="WixUILicenseRtf" Value="gpl3.rtf" />
 
     <Directory Id="TARGETDIR" Name="SourceDir">
@@ -34,19 +35,29 @@
 
     <Feature Id="MainFeature" Title="!(loc.ProductName)" Level="1" Display="expand">
       {{{components}}}
-    </Feature>
-    <Feature
-      Id="ServiceFeature"
-      Title="!(loc.ServiceFeatureTitle)"
-      Description="!(loc.ServiceFeatureDescription)"
-      Level="1"
-      Absent="allow"
-    >
-      <ComponentRef Id="ServiceInstallMarker" />
+      <Feature
+        Id="ServiceFeature"
+        Title="!(loc.ServiceFeatureTitle)"
+        Description="!(loc.ServiceFeatureDescription)"
+        Level="1"
+        Absent="allow"
+      >
+        <ComponentRef Id="ServiceInstallMarker" />
+      </Feature>
     </Feature>
 
     <UIRef Id="WixUI_FeatureTree" />
     <UIRef Id="WixUI_ErrorProgressText" />
+    <UIRef Id="WixUI_Language" />
+
+    <UI>
+      <Publish Dialog="LanguageDlg" Control="Next" Event="NewDialog" Value="WelcomeDlg">1</Publish>
+      <Publish Dialog="WelcomeDlg" Control="Back" Event="NewDialog" Value="LanguageDlg">1</Publish>
+
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="LicenseAgreementDlg">1</Publish>
+      <Publish Dialog="LicenseAgreementDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg">1</Publish>
+      <Publish Dialog="LicenseAgreementDlg" Control="Next" Event="NewDialog" Value="CustomizeDlg">LicenseAccepted = "1"</Publish>
+    </UI>
 
     <CustomAction
       Id="StopPrizrakProcesses"
