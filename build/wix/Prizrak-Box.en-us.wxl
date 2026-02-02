@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WixLocalization Culture="en-US" xmlns="http://schemas.microsoft.com/wix/2006/localization">
+  <String Id="ProductName">Prizrak-Box</String>
+  <String Id="Manufacturer">legiz-ru</String>
+  <String Id="Description">A Simple Mihomo GUI</String>
+  <String Id="ServiceFeatureTitle">PrizrakBoxService (Windows service)</String>
+  <String Id="ServiceFeatureDescription">Install and register the PrizrakBoxService used for TUN mode.</String>
+  <String Id="ProductLanguage">1033</String>
+</WixLocalization>

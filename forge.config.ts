@@ -80,6 +80,11 @@ const config: ForgeConfig = {
             ui: {
                 chooseDirectory: true,
             },
+            customWixTemplate: 'build/wix/Prizrak-Box.wxs',
+            locales: [
+                'build/wix/Prizrak-Box.en-us.wxl',
+                'build/wix/Prizrak-Box.ru-ru.wxl',
+            ],
             upgradeCode: 'c1d377b2-2c61-4c5e-8773-8e3c703b8b41',
             registry: [
                 {

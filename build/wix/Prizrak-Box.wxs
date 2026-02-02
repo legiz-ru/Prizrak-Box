@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product
+    Id="*"
+    Name="!(loc.ProductName)"
+    Manufacturer="!(loc.Manufacturer)"
+    Language="!(loc.ProductLanguage)"
+    Version="{{version}}"
+    UpgradeCode="{{upgradeCode}}"
+  >
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of !(loc.ProductName) is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="appIcon.ico" SourceFile="{{icon}}" />
+    <Property Id="ARPPRODUCTICON" Value="appIcon.ico" />
+    <Property Id="ARPCOMMENTS" Value="!(loc.Description)" />
+
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
+    <WixVariable Id="WixUILicenseRtf" Value="gpl3.rtf" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLDIR" Name="!(loc.ProductName)" />
+      </Directory>
+    </Directory>
+
+    <DirectoryRef Id="INSTALLDIR">
+      {{{files}}}
+      <Component Id="ServiceInstallMarker" Guid="*">
+        <RegistryValue Root="HKLM" Key="Software\legiz-ru\Prizrak-Box" Name="InstallService" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <Feature Id="MainFeature" Title="!(loc.ProductName)" Level="1" Display="expand">
+      {{{components}}}
+    </Feature>
+    <Feature
+      Id="ServiceFeature"
+      Title="!(loc.ServiceFeatureTitle)"
+      Description="!(loc.ServiceFeatureDescription)"
+      Level="1"
+      Absent="allow"
+    >
+      <ComponentRef Id="ServiceInstallMarker" />
+    </Feature>
+
+    <UIRef Id="WixUI_FeatureTree" />
+    <UIRef Id="WixUI_ErrorProgressText" />
+
+    <CustomAction
+      Id="StopPrizrakProcesses"
+      Execute="deferred"
+      Impersonate="no"
+      Return="ignore"
+      ExeCommand="&quot;[SystemFolder]cmd.exe&quot; /c &quot;taskkill /F /IM Prizrak-Box.exe /T &amp; taskkill /F /IM px.exe /T &amp; taskkill /F /IM px-service.exe /T&quot;"
+    />
+    <CustomAction
+      Id="StopPrizrakService"
+      Execute="deferred"
+      Impersonate="no"
+      Return="ignore"
+      ExeCommand="&quot;[SystemFolder]cmd.exe&quot; /c &quot;sc stop PrizrakBoxService&quot;"
+    />
+    <CustomAction
+      Id="DeletePrizrakService"
+      Execute="deferred"
+      Impersonate="no"
+      Return="ignore"
+      ExeCommand="&quot;[SystemFolder]cmd.exe&quot; /c &quot;sc delete PrizrakBoxService&quot;"
+    />
+    <CustomAction
+      Id="InstallPrizrakService"
+      Execute="deferred"
+      Impersonate="no"
+      Return="check"
+      ExeCommand="&quot;[INSTALLDIR]resources\px-service.exe&quot; -install"
+    />
+
+    <InstallExecuteSequence>
+      <Custom Action="StopPrizrakProcesses" Before="InstallFiles">NOT REMOVE</Custom>
+      <Custom Action="StopPrizrakService" Before="InstallFiles">NOT REMOVE</Custom>
+      <Custom Action="DeletePrizrakService" Before="InstallFiles">NOT REMOVE</Custom>
+
+      <Custom Action="InstallPrizrakService" After="InstallFiles">NOT REMOVE AND &amp;ServiceFeature=3</Custom>
+
+      <Custom Action="StopPrizrakProcesses" Before="RemoveFiles">REMOVE="ALL"</Custom>
+      <Custom Action="StopPrizrakService" Before="RemoveFiles">REMOVE="ALL"</Custom>
+      <Custom Action="DeletePrizrakService" Before="RemoveFiles">REMOVE="ALL"</Custom>
+    </InstallExecuteSequence>
+  </Product>
+</Wix>
