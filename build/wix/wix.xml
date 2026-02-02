@@ -81,20 +81,26 @@
     <Media Id="1" Cabinet="product.cab" EmbedCab="yes"/>
 
 <!-- {{Icon}}-->
-<!-- {{UI}} -->
 
-    <!-- WixUI for installation with license and custom setup -->
+    <!-- Custom UI with license and feature selection -->
+    <UIRef Id="WixUI_FeatureTree" />
+    <UIRef Id="WixUI_ErrorProgressText" />
+
+    <!-- Directory selection property -->
     <Property Id="WIXUI_INSTALLDIR" Value="APPLICATIONROOTDIRECTORY" />
 
-    <!-- Use WixUI_Mondo for complete installation UI with license -->
-    <UIRef Id="WixUI_Mondo" />
-
-    <!-- License file for WixUI - must be in same directory as wxs during compile -->
+    <!-- License file -->
     <WixVariable Id="WixUILicenseRtf" Value="license.rtf" />
 
-    <!-- Banner and dialog bitmaps (optional, uses defaults if not specified) -->
-    <!-- <WixVariable Id="WixUIBannerBmp" Value="banner.bmp" /> -->
-    <!-- <WixVariable Id="WixUIDialogBmp" Value="dialog.bmp" /> -->
+    <!-- Custom UI sequence to show license -->
+    <UI>
+      <!-- Override the default Welcome dialog navigation to show license first -->
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="LicenseAgreementDlg" Order="2">1</Publish>
+      <Publish Dialog="LicenseAgreementDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg">1</Publish>
+      <Publish Dialog="LicenseAgreementDlg" Control="Next" Event="NewDialog" Value="CustomizeDlg">LicenseAccepted = "1"</Publish>
+    </UI>
+
+<!-- {{UI}} -->
 
     <!-- Custom Actions: Stop processes and service before installation -->
 
@@ -261,12 +267,14 @@
              Description="!(loc.CompleteFeatureDescription)"
              Display="expand"
              Level="1"
-             ConfigurableDirectory="APPLICATIONROOTDIRECTORY">
+             ConfigurableDirectory="APPLICATIONROOTDIRECTORY"
+             AllowAdvertise="no">
 
-      <!-- Main Application -->
+      <!-- Main Application (Required) -->
       <Feature Id="MainApplication"
                Title="!(loc.MainApplicationTitle)"
                Level="1"
+               Display="expand"
                AllowAdvertise="no"
                Absent="disallow"
                Description="!(loc.MainApplicationDescription)">
@@ -276,11 +284,13 @@
         <ComponentRef Id="PurgeOnUninstall" />
       </Feature>
 
-      <!-- TUN Service Mode (enabled by default, can be disabled) -->
+      <!-- TUN Service Mode (Optional, enabled by default) -->
       <Feature Id="TunService"
                Title="!(loc.TunServiceTitle)"
                Level="1"
+               Display="expand"
                AllowAdvertise="no"
+               TypicalDefault="install"
                Description="!(loc.TunServiceDescription)">
         <ComponentRef Id="TunServiceInstallMarker" />
       </Feature>

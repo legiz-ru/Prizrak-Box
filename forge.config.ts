@@ -77,9 +77,6 @@ const config: ForgeConfig = {
             manufacturer: 'legiz-ru',
             description: 'A Simple Mihomo GUI',
             icon: 'build/appicon.ico',
-            ui: {
-                chooseDirectory: true,
-            },
             upgradeCode: 'c1d377b2-2c61-4c5e-8773-8e3c703b8b41',
             extensions: ['WixUtilExtension'],
             cultures: 'en-us;ru-ru',

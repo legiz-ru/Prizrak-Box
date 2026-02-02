@@ -41,11 +41,22 @@ msiexec /i Prizrak-Box-Setup.msi PRODUCTLANGUAGE=1049
    - Allows TUN mode to run without administrator privileges
    - Can be disabled during Custom Setup
 
-### Setup Types
+### Feature Selection
 
-- **Typical**: Installs all features (recommended for most users)
-- **Custom**: Choose which features to install
-- **Complete**: Installs all features
+The installer uses a feature tree interface where you can select which components to install:
+
+- **Main Application** (required, cannot be disabled)
+  - Core application files
+  - Desktop and Start Menu shortcuts
+  - Protocol handler
+
+- **TUN Service Mode** (optional, enabled by default)
+  - Windows service for TUN mode
+  - Allows running TUN without admin rights
+
+You can click on the icons next to each feature to:
+- Install the feature (hard drive icon)
+- Skip the feature (red X icon)
 
 ## Pre-Installation Actions
 
@@ -86,12 +97,24 @@ The output will be in the `out/make/wix/` directory.
 ## Technical Details
 
 - **Installer Type**: Windows Installer (MSI) using WiX Toolset
-- **UI Flow**: WixUI_Mondo (Welcome → License → Setup Type → Features → Directory → Install)
+- **UI Flow**: WixUI_FeatureTree with custom navigation (Welcome → **License** → Features → Directory → Install)
 - **Languages**: English (1033), Russian (1049)
-- **License**: GNU GPL v3
+- **License**: GNU GPL v3 (displayed in License Agreement dialog)
 - **Upgrade Code**: c1d377b2-2c61-4c5e-8773-8e3c703b8b41
 - **Service Name**: PrizrakBoxService
 - **Service Binary**: resources\px-service.exe
+
+### UI Navigation Flow
+
+1. **Welcome Dialog** - Introduction
+2. **License Agreement** - GPL3 license (must accept to continue)
+3. **Custom Setup** - Feature selection tree:
+   - Main Application (required)
+   - TUN Service Mode (optional, enabled by default)
+4. **Installation Directory** - Choose install location
+5. **Ready to Install** - Confirm settings
+6. **Installation Progress** - Installing files and configuring service
+7. **Completion** - Finish
 
 ## Troubleshooting
 
@@ -101,11 +124,13 @@ If the license agreement dialog doesn't appear, ensure that:
 - `build/wix/license.rtf` exists
 - The file is accessible during the build process
 
-### TUN Service not visible in Custom Setup
+### TUN Service not visible in Feature Selection
 
-If the TUN Service option doesn't appear in Custom Setup:
-- Make sure you selected "Custom" setup type (not "Typical")
-- The feature is located under the main application in the feature tree
+If the TUN Service option doesn't appear in the feature tree:
+- The feature should be visible directly in the Custom Setup dialog
+- Look for "TUN Service Mode" at the same level as "Main Application"
+- Both features are children of the main "Prizrak-Box" feature
+- Click on the feature icons to toggle installation (enable/disable)
 
 ### Language not changing
 
