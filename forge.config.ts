@@ -1,4 +1,6 @@
 import type {ForgeConfig} from '@electron-forge/shared-types';
+import fs from 'node:fs';
+import path from 'node:path';
 import MakerZipFixed from './forge/maker-zip-fixed';
 import {MakerWix} from '@electron-forge/maker-wix';
 import {MakerSquirrel} from '@electron-forge/maker-squirrel';
@@ -23,6 +25,7 @@ const macSignInputsPresent = Boolean(envProvidedIdentity || forceCodeSign);
 const macIdentity = envProvidedIdentity || 'Developer ID Application: Yaroslav Podieiapolskii (4Q268756HJ)';
 const macNotarizeInputsPresent = macSignInputsPresent
     && Boolean(process.env.APPLE_ID && process.env.APP_SPECIFIC_PASSWORD && process.env.TEAM_ID);
+const wixTemplatePath = path.resolve('build/wix/wix.xml');
 
 const packagerConfig: ForgeConfig['packagerConfig'] = {
     asar: true,
@@ -82,6 +85,10 @@ const config: ForgeConfig = {
             cultures: 'en-us;ru-ru',
             language: 1033,
             wixTemplate: 'build/wix/wix.xml',
+            ui: true,
+            beforeCreate: (creator) => {
+                creator.wixTemplate = fs.readFileSync(wixTemplatePath, 'utf-8');
+            },
             registry: [
                 {
                     key: 'HKEY_CLASSES_ROOT\\prizrak-box',
