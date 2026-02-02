@@ -88,26 +88,13 @@
     <!-- Disable silent installation - always show UI -->
     <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT" Value="Thank you for installing {{ApplicationName}}." />
 
-    <!-- Custom UI with license and feature selection -->
+    <!-- Custom UI with feature selection -->
+    <!-- {{UI}} -->
     <UIRef Id="WixUI_FeatureTree" />
     <UIRef Id="WixUI_ErrorProgressText" />
 
     <!-- Directory selection property -->
     <Property Id="WIXUI_INSTALLDIR" Value="APPLICATIONROOTDIRECTORY" />
-
-    <!-- License file -->
-    <WixVariable Id="WixUILicenseRtf" Value="license.rtf" />
-
-    <!-- Custom UI sequence to show license -->
-    <UI>
-      <!-- Override the default Welcome dialog navigation to show license first -->
-      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="LicenseAgreementDlg" Order="2">1</Publish>
-      <Publish Dialog="LicenseAgreementDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg">1</Publish>
-      <Publish Dialog="LicenseAgreementDlg" Control="Next" Event="NewDialog" Value="CustomizeDlg">LicenseAccepted = "1"</Publish>
-
-      <!-- Ensure UI is shown for both install and upgrade scenarios -->
-      <Property Id="_BrowseProperty" Value="WIXUI_INSTALLDIR" />
-    </UI>
 
     <!-- Custom Actions: Stop processes and service before installation -->
 
