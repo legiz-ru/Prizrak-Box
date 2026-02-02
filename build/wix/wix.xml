@@ -185,7 +185,7 @@
 
     <InstallExecuteSequence>
       <Custom Action="InstallTunService" After="InstallFiles">NOT Installed AND &amp;TunService=3</Custom>
-      <Custom Action="UninstallTunService" Before="RemoveFiles">REMOVE="ALL" AND &amp;TunService=3</Custom>
+      <Custom Action="UninstallTunService" Before="RemoveFiles">REMOVE="ALL" AND $TunService=3</Custom>
     </InstallExecuteSequence>
   </Product>
 </Wix>
