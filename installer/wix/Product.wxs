@@ -35,8 +35,8 @@
 
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
 
-    <!-- Icon for Add/Remove Programs -->
-    <Icon Id="AppIcon" SourceFile="$(var.SourceDir)\Prizrak-Box.exe" />
+    <!-- Icon for Add/Remove Programs - use dedicated .ico file instead of extracting from .exe -->
+    <Icon Id="AppIcon" SourceFile="..\..\build\appicon.ico" />
     <Property Id="ARPPRODUCTICON" Value="AppIcon" />
     <Property Id="ARPHELPLINK" Value="$(var.HelpLink)" />
     <Property Id="ARPNOREPAIR" Value="yes" Secure="yes" />
