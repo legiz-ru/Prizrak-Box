@@ -98,3 +98,4 @@ src-go/px.exe
 
 src-service/px-service
 src-service/px-service.exe
+src-service/px-service-*

@@ -118,6 +118,9 @@ setting:
     systemProxyMode: System Proxy Mode
     dir: Config
     open: Open
+    change: Change
+    change-warn: The selected directory does not end with "Prizrak-Box-V3", it is recommended to select a folder that will contain the Prizrak-Box-V3 subfolder
+    change-success: Config directory changed successfully
     import: Import
     export: Export
     update: Update

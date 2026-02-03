@@ -118,6 +118,9 @@ setting:
     systemProxyMode: 系统代理模式
     dir: 配置目录
     open: 打开
+    change: 更改
+    change-warn: 所选目录未以"Prizrak-Box-V3"结尾，建议选择将包含Prizrak-Box-V3子文件夹的文件夹
+    change-success: 配置目录更改成功
     import: 导入
     export: 导出
     update: 软件更新

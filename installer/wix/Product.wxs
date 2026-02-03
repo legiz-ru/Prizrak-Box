@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+
+  <?define ProductName = "Prizrak-Box" ?>
+  <?define Manufacturer = "legiz-ru" ?>
+  <?define UpgradeCode = "c1d377b2-2c61-4c5e-8773-8e3c703b8b41" ?>
+  <?define HelpLink = "https://github.com/legiz-ru/Prizrak-Box" ?>
+
+  <Product Id="*"
+           Name="$(var.ProductName)"
+           Language="$(var.Language)"
+           Version="$(var.ProductVersion)"
+           Manufacturer="$(var.Manufacturer)"
+           UpgradeCode="$(var.UpgradeCode)">
+
+    <Package Id="*"
+             InstallerVersion="500"
+             Compressed="yes"
+             InstallScope="perMachine"
+             InstallPrivileges="elevated"
+             Platform="$(var.Platform)"
+             Description="!(loc.PB_ProductDescription)"
+             Manufacturer="$(var.Manufacturer)" />
+
+    <!-- Require Windows 7 or higher -->
+    <Condition Message="!(loc.PB_OSVersionError)">
+      <![CDATA[Installed OR (VersionNT >= 601)]]>
+    </Condition>
+
+    <!-- Major Upgrade -->
+    <MajorUpgrade DowngradeErrorMessage="!(loc.PB_NewerVersionInstalled)"
+                  Schedule="afterInstallInitialize"
+                  AllowSameVersionUpgrades="yes" />
+
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- Icon for Add/Remove Programs - use dedicated .ico file instead of extracting from .exe -->
+    <Icon Id="AppIcon" SourceFile="..\..\build\appicon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPHELPLINK" Value="$(var.HelpLink)" />
+    <Property Id="ARPNOREPAIR" Value="yes" Secure="yes" />
+    <Property Id="ARPCOMMENTS" Value="Version $(var.FullVersion)" />
+
+    <!-- Properties -->
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
+    <Property Id="INSTALLTUNSERVICE" Value="1" />
+    <Property Id="SELECTEDLANGUAGE" Value="$(var.Culture)" />
+
+    <!-- Directory Structure -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="$(var.ProgramFilesFolder)">
+        <Directory Id="INSTALLDIR" Name="$(var.ProductName)">
+          <Directory Id="RESOURCESDIR" Name="resources" />
+        </Directory>
+      </Directory>
+
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="$(var.ProductName)" />
+      </Directory>
+
+      <Directory Id="DesktopFolder" Name="Desktop" />
+    </Directory>
+
+    <!-- Protocol Handler and App Registration -->
+    <DirectoryRef Id="INSTALLDIR">
+      <Component Id="AppRegistration" Guid="12345678-1234-1234-1234-123456789abc" Win64="$(var.Win64)">
+        <!-- Registry for Protocol Handler prizrak-box:// -->
+        <RegistryKey Root="HKCR" Key="prizrak-box">
+          <RegistryValue Type="string" Value="URL:Prizrak-Box Protocol" />
+          <RegistryValue Type="string" Name="URL Protocol" Value="" />
+          <RegistryKey Key="DefaultIcon">
+            <RegistryValue Type="string" Value="[INSTALLDIR]Prizrak-Box.exe,0" />
+          </RegistryKey>
+          <RegistryKey Key="shell\open\command">
+            <RegistryValue Type="string" Value='"[INSTALLDIR]Prizrak-Box.exe" "%1"' />
+          </RegistryKey>
+        </RegistryKey>
+
+        <!-- Installation marker -->
+        <RegistryValue Root="HKLM"
+                       Key="Software\$(var.Manufacturer)\$(var.ProductName)"
+                       Name="InstallPath"
+                       Type="string"
+                       Value="[INSTALLDIR]"
+                       KeyPath="yes" />
+
+        <RegistryValue Root="HKLM"
+                       Key="Software\$(var.Manufacturer)\$(var.ProductName)"
+                       Name="Version"
+                       Type="string"
+                       Value="$(var.ProductVersion)"
+                       KeyPath="no" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- Desktop Shortcut -->
+    <DirectoryRef Id="DesktopFolder">
+      <Component Id="DesktopShortcut" Guid="23456789-1234-1234-1234-123456789abc">
+        <Shortcut Id="DesktopShortcut"
+                  Name="$(var.ProductName)"
+                  Description="!(loc.PB_ProductDescription)"
+                  Target="[INSTALLDIR]Prizrak-Box.exe"
+                  WorkingDirectory="INSTALLDIR"
+                  Icon="AppIcon" />
+        <RegistryValue Root="HKCU"
+                       Key="Software\$(var.Manufacturer)\$(var.ProductName)"
+                       Name="DesktopShortcut"
+                       Type="integer"
+                       Value="1"
+                       KeyPath="yes" />
+        <RemoveFolder Id="RemoveDesktopFolder" On="uninstall" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- Start Menu Shortcut -->
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="StartMenuShortcut" Guid="34567890-1234-1234-1234-123456789abc">
+        <Shortcut Id="StartMenuShortcut"
+                  Name="$(var.ProductName)"
+                  Description="!(loc.PB_ProductDescription)"
+                  Target="[INSTALLDIR]Prizrak-Box.exe"
+                  WorkingDirectory="INSTALLDIR"
+                  Icon="AppIcon" />
+        <RegistryValue Root="HKCU"
+                       Key="Software\$(var.Manufacturer)\$(var.ProductName)"
+                       Name="StartMenuShortcut"
+                       Type="integer"
+                       Value="1"
+                       KeyPath="yes" />
+        <RemoveFolder Id="RemoveApplicationProgramsFolder" On="uninstall" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- Custom Actions -->
+
+    <!-- Stop processes and services BEFORE installation -->
+    <CustomAction Id="StopProcessesBeforeInstall"
+                  Directory="TARGETDIR"
+                  ExeCommand='powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = &apos;SilentlyContinue&apos;; Get-Process -Name Prizrak-Box,px,px-service | Stop-Process -Force; $svc = Get-Service PrizrakBoxService; if ($svc) { if ($svc.Status -eq &apos;Running&apos;) { Stop-Service PrizrakBoxService -Force }; sc.exe delete PrizrakBoxService | Out-Null }"'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- Install TUN Service AFTER files are installed -->
+    <CustomAction Id="InstallTunService"
+                  Directory="RESOURCESDIR"
+                  ExeCommand='"[RESOURCESDIR]px-service.exe" -install'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- Stop processes and services BEFORE uninstallation -->
+    <CustomAction Id="StopProcessesBeforeUninstall"
+                  Directory="TARGETDIR"
+                  ExeCommand='powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = &apos;SilentlyContinue&apos;; Get-Process -Name Prizrak-Box,px,px-service | Stop-Process -Force; $svc = Get-Service PrizrakBoxService; if ($svc) { if ($svc.Status -eq &apos;Running&apos;) { Stop-Service PrizrakBoxService -Force }; sc.exe delete PrizrakBoxService | Out-Null }"'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- Installation Sequence -->
+    <InstallExecuteSequence>
+      <!-- Stop processes/services before installing files -->
+      <Custom Action="StopProcessesBeforeInstall" Before="InstallFiles">
+        NOT REMOVE
+      </Custom>
+
+      <!-- Install TUN Service after files (if feature selected) -->
+      <Custom Action="InstallTunService" After="InstallFiles">
+        <![CDATA[NOT REMOVE AND &TUNServiceFeature=3]]>
+      </Custom>
+
+      <!-- Stop processes/services before removing files -->
+      <Custom Action="StopProcessesBeforeUninstall" Before="RemoveFiles">
+        <![CDATA[REMOVE="ALL"]]>
+      </Custom>
+    </InstallExecuteSequence>
+
+    <!-- Reference Custom UI -->
+    <UIRef Id="CustomUI" />
+
+    <!-- Features -->
+    <Feature Id="MainApplication"
+             Title="!(loc.PB_FeatureMainTitle)"
+             Description="!(loc.PB_FeatureMainDescription)"
+             Level="1"
+             Display="expand"
+             ConfigurableDirectory="INSTALLDIR"
+             AllowAdvertise="no"
+             Absent="disallow">
+      <ComponentRef Id="AppRegistration" />
+      <ComponentRef Id="DesktopShortcut" />
+      <ComponentRef Id="StartMenuShortcut" />
+      <ComponentGroupRef Id="ApplicationFiles" />
+    </Feature>
+
+    <Feature Id="TUNServiceFeature"
+             Title="!(loc.PB_FeatureTUNTitle)"
+             Description="!(loc.PB_FeatureTUNDescription)"
+             Level="1"
+             AllowAdvertise="no">
+      <!-- TUN service will be installed by CustomAction -->
+      <ComponentGroupRef Id="TUNServiceFiles" />
+    </Feature>
+
+  </Product>
+</Wix>

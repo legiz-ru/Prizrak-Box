@@ -165,29 +165,23 @@ func getUserSID(username string) (string, error) {
 		return "", nil
 	}
 
-	// Используем wmic для получения SID
-	cmd := exec.Command("wmic", "useraccount", "where", fmt.Sprintf("name='%s'", username), "get", "sid", "/value")
+	// Используем PowerShell для получения SID (совместимость с Windows 10 и Windows 11)
+	psScript := fmt.Sprintf("(Get-WmiObject -Class Win32_UserAccount -Filter \"Name='%s'\").SID", username)
+	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", psScript)
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("failed to get SID for user %q: %w: %s", username, err, string(out))
 	}
 
-	// Парсим вывод: SID=S-1-5-21-...
-	lines := strings.Split(string(out), "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "SID=") {
-			sid := strings.TrimPrefix(line, "SID=")
-			sid = strings.TrimSpace(sid)
-			if sid != "" {
-				log.Printf("[SystemProxy] Got SID for user %s: %s", username, sid)
-				return sid, nil
-			}
-		}
+	// Парсим вывод: SID напрямую
+	sid := strings.TrimSpace(string(out))
+	if sid != "" {
+		log.Printf("[SystemProxy] Got SID for user %s: %s", username, sid)
+		return sid, nil
 	}
 
-	return "", fmt.Errorf("SID not found for user %q in wmic output", username)
+	return "", fmt.Errorf("SID not found for user %q in PowerShell output", username)
 }
 
 // getSettingPath возвращает путь к настройкам прокси для пользователя

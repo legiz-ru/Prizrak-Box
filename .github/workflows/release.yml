@@ -79,7 +79,23 @@ jobs:
       - name: Sync VERSION to package.json
         run: node build/sync-version.js
 
-      - name: Build Frontend for ${{ matrix.arch }}
+      - name: Install WiX Toolset
+        shell: pwsh
+        run: |
+          # Download and install WiX Toolset 3.14
+          Write-Host "Downloading WiX Toolset..."
+          Invoke-WebRequest -Uri "https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip" -OutFile "wix.zip"
+
+          Write-Host "Extracting WiX Toolset..."
+          Expand-Archive -Path "wix.zip" -DestinationPath "C:\wix" -Force
+
+          Write-Host "Adding WiX to PATH..."
+          echo "C:\wix" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+          Write-Host "Verifying WiX installation..."
+          & "C:\wix\candle.exe" -? | Select-Object -First 1
+
+      - name: Build Frontend (Package Only)
         shell: pwsh
         run: |
           $arch = "${{ matrix.arch }}"
@@ -88,44 +104,53 @@ jobs:
           }
           npm dedupe
           npm prune
-          npx electron-forge make --arch=$arch
+          # Package the app (don't run make, we'll use custom MSI builder)
+          npx electron-forge package --arch=$arch
+
+      - name: Build Custom MSI Installer
+        shell: pwsh
+        env:
+          ARCH: ${{ matrix.arch == 'amd64' && 'x64' || matrix.arch }}
+        run: |
+          # Add WiX to PATH for this step
+          $env:PATH = "C:\wix;$env:PATH"
+
+          Write-Host "Verifying WiX is accessible..."
+          candle.exe -? | Select-Object -First 1
+
+          Write-Host "Building custom MSI installer..."
+          node installer/build-msi.js
 
       - name: Prepare Release Assets
         shell: pwsh
         run: |
           $arch = "${{ matrix.arch }}"
           $electronArch = if ($arch -eq "amd64") { "x64" } else { $arch }
-          
+
           # --- Portable Zip ---
-          $portableDir = Get-ChildItem -Path "out" -Directory | Where-Object { $_.Name -like "Prizrak-Box*" } | Select-Object -First 1
+          $portableDir = Get-ChildItem -Path "out" -Directory | Where-Object { $_.Name -like "Prizrak-Box-win32-*" } | Select-Object -First 1
           if ($portableDir) {
-              Compress-Archive -Path "$($portableDir.FullName)\*" -DestinationPath "windows-${arch}.zip"
+              Write-Host "Creating portable ZIP from: $($portableDir.FullName)"
+              Compress-Archive -Path "$($portableDir.FullName)\*" -DestinationPath "windows-${arch}.zip" -Force
           } else {
               Write-Error "Portable directory not found"
               exit 1
           }
-          
-          # --- MSI Installer ---
-          $msiFile = Get-ChildItem -Path "out\make\wix\$electronArch" -Filter "*.msi" | Select-Object -First 1
-          if ($msiFile) {
-              Copy-Item -Path $msiFile.FullName -Destination "windows-${arch}.msi"
-          } else {
-              Write-Error "MSI file not found in out\make\wix\$electronArch"
-              exit 1
-          }
-          
-          # --- Squirrel.Windows Assets (NUPKG and RELEASES only) ---
-          $squirrelDir = "out\make\squirrel.windows\$electronArch"
 
-          # 1. Copy RELEASES file (required for Squirrel auto-update)
-          Copy-Item -Path "$squirrelDir\RELEASES" -Destination "RELEASES" -Force
+          # --- Custom MSI Installer ---
+          # build-msi.js creates MSI with electron arch name (x64/arm64), not GitHub matrix arch (amd64/arm64)
+          # We find it with electron arch name, then copy with matrix arch name for release
+          $msiSourceName = "windows-${electronArch}.msi"
+          $msiSourcePath = "out\msi\$electronArch\$msiSourceName"
 
-          # 2. Find the full nupkg file
-          $nupkgFile = Get-ChildItem -Path $squirrelDir -Filter "*-full.nupkg" | Select-Object -First 1
-          if ($nupkgFile) {
-              Copy-Item -Path $nupkgFile.FullName -Destination "windows-${arch}-full.nupkg"
+          if (Test-Path $msiSourcePath) {
+              Write-Host "Found MSI: $msiSourcePath"
+              Write-Host "Copying to: windows-${arch}.msi (for release)"
+              Copy-Item -Path $msiSourcePath -Destination "windows-${arch}.msi" -Force
           } else {
-              Write-Error "Squirrel.Windows NUPKG file (*-full.nupkg) not found in $squirrelDir."
+              Write-Error "MSI file not found at: $msiSourcePath"
+              Write-Host "Searching for MSI files in out directory..."
+              Get-ChildItem -Path "out" -Recurse -Filter "*.msi" | ForEach-Object { Write-Host "  Found: $($_.FullName)" }
               exit 1
           }
 
@@ -136,8 +161,6 @@ jobs:
           path: |
             windows-${{ matrix.arch }}.zip
             windows-${{ matrix.arch }}.msi
-            RELEASES
-            windows-${{ matrix.arch }}-full.nupkg
 
   build_linux:
     runs-on: ubuntu-latest
@@ -345,6 +368,30 @@ jobs:
           cd src-service
           go mod download
           go build -ldflags "-s -w" -o px-service .
+
+      - name: Sign Go Binaries
+        run: |
+          echo "Signing Go binaries with identity: $CODESIGN_IDENTITY"
+
+          # Sign px binary (without entitlements - CLI tools don't need them)
+          codesign --force \
+            --sign "$CODESIGN_IDENTITY" \
+            --options runtime \
+            --timestamp \
+            src-go/px
+
+          # Sign px-service binary
+          codesign --force \
+            --sign "$CODESIGN_IDENTITY" \
+            --options runtime \
+            --timestamp \
+            src-service/px-service
+
+          # Verify signatures
+          codesign --verify --verbose src-go/px
+          codesign --verify --verbose src-service/px-service
+
+          echo "Go binaries signed successfully"
 
       - name: Sync VERSION to package.json
         run: node build/sync-version.js
