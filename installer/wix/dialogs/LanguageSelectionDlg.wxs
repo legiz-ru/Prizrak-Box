@@ -4,15 +4,15 @@
   <Fragment>
     <!-- Custom Language Selection Dialog -->
     <UI>
-      <Dialog Id="LanguageSelectionDlg" Width="370" Height="270" Title="!(loc.LanguageSelectionTitle)">
-        <Control Id="Title" Type="Text" X="15" Y="6" Width="200" Height="15" Transparent="yes" NoPrefix="yes" Text="!(loc.LanguageSelectionTitle)" />
-        <Control Id="Description" Type="Text" X="25" Y="23" Width="280" Height="15" Transparent="yes" NoPrefix="yes" Text="!(loc.LanguageSelectionDescription)" />
-        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="!(loc.LanguageSelectionBannerBitmap)" />
+      <Dialog Id="LanguageSelectionDlg" Width="370" Height="270" Title="!(loc.PB_LanguageSelectionTitle)">
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="200" Height="15" Transparent="yes" NoPrefix="yes" Text="!(loc.PB_LanguageSelectionTitle)" />
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="280" Height="15" Transparent="yes" NoPrefix="yes" Text="!(loc.PB_LanguageSelectionDescription)" />
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="!(loc.PB_LanguageSelectionBannerBitmap)" />
         <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
         <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
 
         <!-- Language Selection Group -->
-        <Control Id="LanguageLabel" Type="Text" X="20" Y="60" Width="290" Height="15" NoPrefix="yes" Text="!(loc.LanguageSelectionLabel)" />
+        <Control Id="LanguageLabel" Type="Text" X="20" Y="60" Width="290" Height="15" NoPrefix="yes" Text="!(loc.PB_LanguageSelectionLabel)" />
 
         <!-- English Radio Button -->
         <Control Id="EnglishRadioButton" Type="RadioButtonGroup" X="20" Y="80" Width="200" Height="40" Property="SELECTEDLANGUAGE">

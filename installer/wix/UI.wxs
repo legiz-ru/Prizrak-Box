@@ -36,9 +36,9 @@
       <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="CustomizeDlg">1</Publish>
 
       <!-- Progress text for custom actions -->
-      <ProgressText Action="StopProcessesBeforeInstall">!(loc.ProgressStopProcesses)</ProgressText>
-      <ProgressText Action="InstallTunService">!(loc.ProgressInstallTUNService)</ProgressText>
-      <ProgressText Action="StopProcessesBeforeUninstall">!(loc.ProgressStopProcesses)</ProgressText>
+      <ProgressText Action="StopProcessesBeforeInstall">!(loc.PB_ProgressStopProcesses)</ProgressText>
+      <ProgressText Action="InstallTunService">!(loc.PB_ProgressInstallTUNService)</ProgressText>
+      <ProgressText Action="StopProcessesBeforeUninstall">!(loc.PB_ProgressStopProcesses)</ProgressText>
     </UI>
 
     <!-- Override the first dialog to be Language Selection -->

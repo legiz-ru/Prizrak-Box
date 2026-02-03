@@ -20,16 +20,16 @@
              InstallScope="perMachine"
              InstallPrivileges="elevated"
              Platform="$(var.Platform)"
-             Description="!(loc.ProductDescription)"
+             Description="!(loc.PB_ProductDescription)"
              Manufacturer="$(var.Manufacturer)" />
 
     <!-- Require Windows 7 or higher -->
-    <Condition Message="!(loc.OSVersionError)">
+    <Condition Message="!(loc.PB_OSVersionError)">
       <![CDATA[Installed OR (VersionNT >= 601)]]>
     </Condition>
 
     <!-- Major Upgrade -->
-    <MajorUpgrade DowngradeErrorMessage="!(loc.NewerVersionInstalled)"
+    <MajorUpgrade DowngradeErrorMessage="!(loc.PB_NewerVersionInstalled)"
                   Schedule="afterInstallInitialize"
                   AllowSameVersionUpgrades="yes" />
 
@@ -103,7 +103,7 @@
       <Component Id="DesktopShortcut" Guid="23456789-1234-1234-1234-123456789abc">
         <Shortcut Id="DesktopShortcut"
                   Name="$(var.ProductName)"
-                  Description="!(loc.ProductDescription)"
+                  Description="!(loc.PB_ProductDescription)"
                   Target="[INSTALLDIR]Prizrak-Box.exe"
                   WorkingDirectory="INSTALLDIR"
                   Icon="AppIcon" />
@@ -122,7 +122,7 @@
       <Component Id="StartMenuShortcut" Guid="34567890-1234-1234-1234-123456789abc">
         <Shortcut Id="StartMenuShortcut"
                   Name="$(var.ProductName)"
-                  Description="!(loc.ProductDescription)"
+                  Description="!(loc.PB_ProductDescription)"
                   Target="[INSTALLDIR]Prizrak-Box.exe"
                   WorkingDirectory="INSTALLDIR"
                   Icon="AppIcon" />
@@ -182,8 +182,8 @@
 
     <!-- Features -->
     <Feature Id="MainApplication"
-             Title="!(loc.FeatureMainTitle)"
-             Description="!(loc.FeatureMainDescription)"
+             Title="!(loc.PB_FeatureMainTitle)"
+             Description="!(loc.PB_FeatureMainDescription)"
              Level="1"
              Display="expand"
              ConfigurableDirectory="INSTALLDIR"
@@ -196,8 +196,8 @@
     </Feature>
 
     <Feature Id="TUNServiceFeature"
-             Title="!(loc.FeatureTUNTitle)"
-             Description="!(loc.FeatureTUNDescription)"
+             Title="!(loc.PB_FeatureTUNTitle)"
+             Description="!(loc.PB_FeatureTUNDescription)"
              Level="1"
              AllowAdvertise="no">
       <!-- TUN service will be installed by CustomAction -->
