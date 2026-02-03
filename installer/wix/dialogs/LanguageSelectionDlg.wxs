@@ -18,7 +18,7 @@
         <Control Id="EnglishRadioButton" Type="RadioButtonGroup" X="20" Y="80" Width="200" Height="40" Property="SELECTEDLANGUAGE">
           <RadioButtonGroup Property="SELECTEDLANGUAGE">
             <RadioButton Text="English" Value="en-us" X="0" Y="0" Width="150" Height="17" />
-            <RadioButton Text="Русский (Russian)" Value="ru-ru" X="0" Y="20" Width="150" Height="17" />
+            <RadioButton Text="Russian" Value="ru-ru" X="0" Y="20" Width="150" Height="17" />
           </RadioButtonGroup>
         </Control>
 
