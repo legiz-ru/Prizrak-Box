@@ -67,16 +67,9 @@
         <File Id="PrizrakBoxEXE"
               Source="$(var.SourceDir)\Prizrak-Box.exe"
               KeyPath="yes"
-              Checksum="yes">
-          <!-- Protocol Handler -->
-          <ProgId Id="PrizrakBox.Protocol" Description="!(loc.ProtocolDescription)">
-            <Extension Id="prizrak-box" ContentType="application/x-prizrak-box">
-              <Verb Id="open" Command="open" TargetFile="PrizrakBoxEXE" Argument='"%1"' />
-            </Extension>
-          </ProgId>
-        </File>
+              Checksum="yes" />
 
-        <!-- Registry for Protocol Handler -->
+        <!-- Registry for Protocol Handler prizrak-box:// -->
         <RegistryKey Root="HKCR" Key="prizrak-box">
           <RegistryValue Type="string" Value="URL:Prizrak-Box Protocol" />
           <RegistryValue Type="string" Name="URL Protocol" Value="" />
