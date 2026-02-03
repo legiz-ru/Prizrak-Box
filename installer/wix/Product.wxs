@@ -40,6 +40,7 @@
     <Property Id="ARPPRODUCTICON" Value="AppIcon" />
     <Property Id="ARPHELPLINK" Value="$(var.HelpLink)" />
     <Property Id="ARPNOREPAIR" Value="yes" Secure="yes" />
+    <Property Id="ARPCOMMENTS" Value="Version $(var.FullVersion)" />
 
     <!-- Properties -->
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
@@ -179,6 +180,9 @@
         <![CDATA[REMOVE="ALL"]]>
       </Custom>
     </InstallExecuteSequence>
+
+    <!-- Reference Custom UI -->
+    <UIRef Id="CustomUI" />
 
     <!-- Features -->
     <Feature Id="MainApplication"

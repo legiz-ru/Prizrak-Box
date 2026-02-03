@@ -40,7 +40,8 @@ async function buildMultiLanguageMSI() {
 
   // Prepare WiX variables (use English as primary language)
   const wixVars = {
-    ProductVersion: VERSION.replace(/-.*$/, '').replace(/^(\d+\.\d+\.\d+).*/, '$1'),
+    ProductVersion: VERSION.replace(/-.*$/, '').replace(/^(\d+\.\d+\.\d+).*/, '$1'), // MSI requires numeric version only
+    FullVersion: VERSION, // Keep full version string with alpha/beta suffix for display
     Platform: IS_ARM64 ? 'arm64' : 'x64',
     Win64: 'yes',
     ProgramFilesFolder: 'ProgramFiles64Folder',

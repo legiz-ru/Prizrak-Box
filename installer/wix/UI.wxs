@@ -13,36 +13,14 @@
       <!-- Language Selection Dialog at the beginning -->
       <DialogRef Id="LanguageSelectionDlg" />
 
-      <!-- Modified dialog flow with Language Selection first -->
-      <!-- Start with WelcomeDlg, but we'll override it to show LanguageSelectionDlg first -->
-      <Property Id="SELECTEDLANGUAGE" Value="auto" />
-
-      <!-- Set initial dialog to Language Selection instead of Welcome -->
-      <Publish Dialog="LanguageSelectionDlg" Control="Next" Event="NewDialog" Value="WelcomeDlg">1</Publish>
-      <Publish Dialog="LanguageSelectionDlg" Control="Back" Event="NewDialog" Value="LanguageSelectionDlg">1</Publish>
-
-      <!-- Normal flow after language selection -->
-      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="LicenseAgreementDlg">1</Publish>
-      <Publish Dialog="WelcomeDlg" Control="Back" Event="NewDialog" Value="LanguageSelectionDlg">1</Publish>
-
-      <Publish Dialog="LicenseAgreementDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg">1</Publish>
-      <Publish Dialog="LicenseAgreementDlg" Control="Next" Event="NewDialog" Value="CustomizeDlg">
-        <![CDATA[LicenseAccepted = "1"]]>
-      </Publish>
-
-      <Publish Dialog="CustomizeDlg" Control="Back" Event="NewDialog" Value="LicenseAgreementDlg">1</Publish>
-      <Publish Dialog="CustomizeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg">1</Publish>
-
-      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="CustomizeDlg">1</Publish>
+      <!-- Override the first dialog to be Language Selection instead of Welcome -->
+      <Property Id="WIXUI_FIRSTDIALOG" Value="LanguageSelectionDlg" />
 
       <!-- Progress text for custom actions -->
       <ProgressText Action="StopProcessesBeforeInstall">!(loc.PB_ProgressStopProcesses)</ProgressText>
       <ProgressText Action="InstallTunService">!(loc.PB_ProgressInstallTUNService)</ProgressText>
       <ProgressText Action="StopProcessesBeforeUninstall">!(loc.PB_ProgressStopProcesses)</ProgressText>
     </UI>
-
-    <!-- Override the first dialog to be Language Selection -->
-    <Property Id="WIXUI_FIRSTDIALOG" Value="LanguageSelectionDlg" />
 
   </Fragment>
 
