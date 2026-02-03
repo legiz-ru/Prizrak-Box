@@ -138,15 +138,19 @@ jobs:
           }
 
           # --- Custom MSI Installer ---
-          # MSI is already named windows-{arch}.msi by build-msi.js
-          $msiPath = "out\msi\$electronArch\windows-${arch}.msi"
-          if (Test-Path $msiPath) {
-              Write-Host "Found MSI: $msiPath"
-              Copy-Item -Path $msiPath -Destination "." -Force
+          # build-msi.js creates MSI with electron arch name (x64/arm64), not GitHub matrix arch (amd64/arm64)
+          # We find it with electron arch name, then copy with matrix arch name for release
+          $msiSourceName = "windows-${electronArch}.msi"
+          $msiSourcePath = "out\msi\$electronArch\$msiSourceName"
+
+          if (Test-Path $msiSourcePath) {
+              Write-Host "Found MSI: $msiSourcePath"
+              Write-Host "Copying to: windows-${arch}.msi (for release)"
+              Copy-Item -Path $msiSourcePath -Destination "windows-${arch}.msi" -Force
           } else {
-              Write-Error "MSI file not found at: $msiPath"
-              Write-Host "Searching for MSI files..."
-              Get-ChildItem -Path "out" -Recurse -Filter "*.msi"
+              Write-Error "MSI file not found at: $msiSourcePath"
+              Write-Host "Searching for MSI files in out directory..."
+              Get-ChildItem -Path "out" -Recurse -Filter "*.msi" | ForEach-Object { Write-Host "  Found: $($_.FullName)" }
               exit 1
           }
 
