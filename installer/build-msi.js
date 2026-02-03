@@ -32,8 +32,8 @@ async function harvestFiles() {
   }
 }
 
-async function buildMultiLanguageMSI() {
-  console.log(`\n🔧 Building multi-language MSI installer for ${ARCH}...`);
+async function buildMSI() {
+  console.log(`\n🔧 Building MSI installer for ${ARCH}...`);
 
   // Ensure output directory exists
   await fs.ensureDir(PATHS.msiOut);
@@ -65,7 +65,6 @@ async function buildMultiLanguageMSI() {
       path.join(PATHS.installer, 'Product.wxs'),
       path.join(PATHS.installer, 'UI.wxs'),
       path.join(PATHS.installer, 'Files.wxs'),
-      path.join(PATHS.installer, 'dialogs', 'LanguageSelectionDlg.wxs'),
       harvestedWxs
     ];
 
@@ -81,90 +80,20 @@ async function buildMultiLanguageMSI() {
       execSync(candleCmd, { stdio: 'inherit', cwd: PATHS.installer });
     }
 
-    // Step 3: Link WiX objects to create multi-language MSI (.wixobj -> .msi)
-    console.log('🔗 Linking multi-language MSI package...');
-    console.log('   Building with language transform approach...');
+    // Step 3: Link WiX objects to create single MSI (.wixobj -> .msi)
+    console.log('🔗 Linking MSI package...');
+    console.log('   Language: English');
 
-    const msiFile = path.join(PATHS.msiOut, `Prizrak-Box-${VERSION}-${ARCH}.msi`);
-    const wixobjArgs = wixobjFiles.map(f => `"${f}"`).join(' ');
+    const msiFile = path.join(PATHS.msiOut, `windows-${ARCH}.msi`);
     const enLocFile = path.join(PATHS.installer, 'localization', 'en-us.wxl');
-    const ruLocFile = path.join(PATHS.installer, 'localization', 'ru-ru.wxl');
 
-    // Build base English MSI
-    const enMsiFile = path.join(PATHS.msiOut, `temp-en.msi`);
-    console.log('  Building English MSI...');
-    const lightEnCmd = `light.exe -nologo ${wixobjArgs} -ext WixUIExtension -ext WixUtilExtension -cultures:en-us -loc "${enLocFile}" -out "${enMsiFile}" -sval`;
-    execSync(lightEnCmd, { stdio: 'inherit', cwd: PATHS.installer });
-
-    // Build Russian MSI
-    const ruMsiFile = path.join(PATHS.msiOut, `temp-ru.msi`);
-    console.log('  Building Russian MSI...');
-    const lightRuCmd = `light.exe -nologo ${wixobjArgs} -ext WixUIExtension -ext WixUtilExtension -cultures:ru-ru -loc "${ruLocFile}" -out "${ruMsiFile}" -sval`;
-    execSync(lightRuCmd, { stdio: 'inherit', cwd: PATHS.installer });
-
-    // Create language transform
-    const mstFile = path.join(PATHS.msiOut, `1049.mst`); // 1049 is the LCID for Russian
-    console.log('  Creating Russian language transform...');
-    const torchCmd = `torch.exe -nologo -p -t language "${enMsiFile}" "${ruMsiFile}" -out "${mstFile}"`;
-    execSync(torchCmd, { stdio: 'inherit', cwd: PATHS.installer });
-
-    // Copy base English MSI to final location
-    fs.copyFileSync(enMsiFile, msiFile);
-
-    // Embed the transform in the MSI
-    console.log('  Embedding Russian transform into MSI...');
-    // Use WiX's EmbedTransform or Windows msidb tool
-    // Try different methods in order of preference
-    let transformEmbedded = false;
-
-    // Method 1: Try using WiSubStg.vbs (Windows SDK)
-    try {
-      const wisubstgPath = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WiSubStg.vbs');
-      if (fs.existsSync(wisubstgPath)) {
-        const embedCmd1 = `cscript.exe //Nologo "${wisubstgPath}" "${msiFile}" "${mstFile}" 1049`;
-        execSync(embedCmd1, { stdio: 'inherit', cwd: PATHS.installer });
-        transformEmbedded = true;
-        console.log('  ✓ Transform embedded using WiSubStg.vbs');
-      }
-    } catch (e) {
-      console.log('  ⚠️  WiSubStg.vbs method failed, trying alternative...');
-    }
-
-    // Method 2: Try using msidb.exe if available
-    if (!transformEmbedded) {
-      try {
-        const embedCmd2 = `msidb.exe -d "${msiFile}" -r "${mstFile}"`;
-        execSync(embedCmd2, { stdio: 'inherit', cwd: PATHS.installer });
-        transformEmbedded = true;
-        console.log('  ✓ Transform embedded using msidb.exe');
-      } catch (e) {
-        console.log('  ⚠️  msidb.exe not available or failed');
-      }
-    }
-
-    // If transform couldn't be embedded, continue without it
-    if (!transformEmbedded) {
-      console.log('  ⚠️  Could not embed Russian transform automatically');
-      console.log('  ℹ️  MSI will work with English only');
-      console.log('  ℹ️  To add Russian support manually, use Orca or WiSubStg.vbs');
-    }
-
-    // Clean up temporary files
-    try {
-      if (fs.existsSync(enMsiFile)) fs.unlinkSync(enMsiFile);
-      if (fs.existsSync(ruMsiFile)) fs.unlinkSync(ruMsiFile);
-      if (fs.existsSync(mstFile)) fs.unlinkSync(mstFile);
-    } catch (e) {
-      // Ignore cleanup errors
-    }
+    // Build single English MSI (no language transforms)
+    const lightCmd = `light.exe -nologo ${wixobjFiles.map(f => `"${f}"`).join(' ')} -ext WixUIExtension -ext WixUtilExtension -cultures:en-us -loc "${enLocFile}" -out "${msiFile}" -sval`;
+    execSync(lightCmd, { stdio: 'inherit', cwd: PATHS.installer });
 
     console.log(`✅ MSI created: ${msiFile}`);
-    if (transformEmbedded) {
-      console.log(`   Supported languages: English (default), Russian (embedded transform)`);
-    } else {
-      console.log(`   Supported languages: English only`);
-    }
-    console.log();
+    console.log(`   Language: English`);
+    console.log(`   Size: Optimized single-language build\n`);
     return msiFile;
 
   } catch (error) {
@@ -174,7 +103,7 @@ async function buildMultiLanguageMSI() {
 }
 
 async function main() {
-  console.log('🚀 Prizrak-Box Multi-Language MSI Installer Builder\n');
+  console.log('🚀 Prizrak-Box MSI Installer Builder\n');
   console.log(`Architecture: ${ARCH}`);
   console.log(`Expected app path: ${PATHS.appFiles}`);
 
@@ -202,12 +131,12 @@ async function main() {
   console.log(`✓ Found application files\n`);
 
   try {
-    // Build single multi-language MSI
-    await buildMultiLanguageMSI();
+    // Build single English MSI
+    await buildMSI();
 
-    console.log('🎉 Multi-language MSI installer built successfully!\n');
+    console.log('🎉 MSI installer built successfully!\n');
     console.log('ℹ️  The installer includes:');
-    console.log('   - Language selection dialog (English/Russian)');
+    console.log('   - English UI');
     console.log('   - GPL3 license agreement');
     console.log('   - Feature selection (Main App + TUN Service)');
     console.log('   - Automatic process/service cleanup');
@@ -222,4 +151,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { buildMultiLanguageMSI };
+module.exports = { buildMSI };

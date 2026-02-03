@@ -10,12 +10,6 @@
       <UIRef Id="WixUI_FeatureTree" />
       <UIRef Id="WixUI_ErrorProgressText" />
 
-      <!-- Language Selection Dialog at the beginning -->
-      <DialogRef Id="LanguageSelectionDlg" />
-
-      <!-- Override the first dialog to be Language Selection instead of Welcome -->
-      <Property Id="WIXUI_FIRSTDIALOG" Value="LanguageSelectionDlg" />
-
       <!-- Progress text for custom actions -->
       <ProgressText Action="StopProcessesBeforeInstall">!(loc.PB_ProgressStopProcesses)</ProgressText>
       <ProgressText Action="InstallTunService">!(loc.PB_ProgressInstallTUNService)</ProgressText>
