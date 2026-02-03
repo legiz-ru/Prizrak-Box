@@ -80,22 +80,90 @@ async function buildMultiLanguageMSI() {
       execSync(candleCmd, { stdio: 'inherit', cwd: PATHS.installer });
     }
 
-    // Step 3: Link WiX objects with multiple cultures (.wixobj -> .msi)
+    // Step 3: Link WiX objects to create multi-language MSI (.wixobj -> .msi)
     console.log('🔗 Linking multi-language MSI package...');
-    console.log('   Languages: English, Russian');
+    console.log('   Building with language transform approach...');
 
     const msiFile = path.join(PATHS.msiOut, `Prizrak-Box-${VERSION}-${ARCH}.msi`);
+    const wixobjArgs = wixobjFiles.map(f => `"${f}"`).join(' ');
     const enLocFile = path.join(PATHS.installer, 'localization', 'en-us.wxl');
     const ruLocFile = path.join(PATHS.installer, 'localization', 'ru-ru.wxl');
 
-    // Build with multiple cultures
-    const lightCmd = `light.exe -nologo ${wixobjFiles.map(f => `"${f}"`).join(' ')} -ext WixUIExtension -ext WixUtilExtension -cultures:en-us;ru-ru -loc "${enLocFile}" -loc "${ruLocFile}" -out "${msiFile}" -sval`;
+    // Build base English MSI
+    const enMsiFile = path.join(PATHS.msiOut, `temp-en.msi`);
+    console.log('  Building English MSI...');
+    const lightEnCmd = `light.exe -nologo ${wixobjArgs} -ext WixUIExtension -ext WixUtilExtension -cultures:en-us -loc "${enLocFile}" -out "${enMsiFile}" -sval`;
+    execSync(lightEnCmd, { stdio: 'inherit', cwd: PATHS.installer });
 
-    execSync(lightCmd, { stdio: 'inherit', cwd: PATHS.installer });
+    // Build Russian MSI
+    const ruMsiFile = path.join(PATHS.msiOut, `temp-ru.msi`);
+    console.log('  Building Russian MSI...');
+    const lightRuCmd = `light.exe -nologo ${wixobjArgs} -ext WixUIExtension -ext WixUtilExtension -cultures:ru-ru -loc "${ruLocFile}" -out "${ruMsiFile}" -sval`;
+    execSync(lightRuCmd, { stdio: 'inherit', cwd: PATHS.installer });
 
-    console.log(`✅ Multi-language MSI created: ${msiFile}`);
-    console.log(`   Supported languages: English, Russian`);
-    console.log(`   Language selection dialog included in installer\n`);
+    // Create language transform
+    const mstFile = path.join(PATHS.msiOut, `1049.mst`); // 1049 is the LCID for Russian
+    console.log('  Creating Russian language transform...');
+    const torchCmd = `torch.exe -nologo -p -t language "${enMsiFile}" "${ruMsiFile}" -out "${mstFile}"`;
+    execSync(torchCmd, { stdio: 'inherit', cwd: PATHS.installer });
+
+    // Copy base English MSI to final location
+    fs.copyFileSync(enMsiFile, msiFile);
+
+    // Embed the transform in the MSI
+    console.log('  Embedding Russian transform into MSI...');
+    // Use WiX's EmbedTransform or Windows msidb tool
+    // Try different methods in order of preference
+    let transformEmbedded = false;
+
+    // Method 1: Try using WiSubStg.vbs (Windows SDK)
+    try {
+      const wisubstgPath = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WiSubStg.vbs');
+      if (fs.existsSync(wisubstgPath)) {
+        const embedCmd1 = `cscript.exe //Nologo "${wisubstgPath}" "${msiFile}" "${mstFile}" 1049`;
+        execSync(embedCmd1, { stdio: 'inherit', cwd: PATHS.installer });
+        transformEmbedded = true;
+        console.log('  ✓ Transform embedded using WiSubStg.vbs');
+      }
+    } catch (e) {
+      console.log('  ⚠️  WiSubStg.vbs method failed, trying alternative...');
+    }
+
+    // Method 2: Try using msidb.exe if available
+    if (!transformEmbedded) {
+      try {
+        const embedCmd2 = `msidb.exe -d "${msiFile}" -r "${mstFile}"`;
+        execSync(embedCmd2, { stdio: 'inherit', cwd: PATHS.installer });
+        transformEmbedded = true;
+        console.log('  ✓ Transform embedded using msidb.exe');
+      } catch (e) {
+        console.log('  ⚠️  msidb.exe not available or failed');
+      }
+    }
+
+    // If transform couldn't be embedded, continue without it
+    if (!transformEmbedded) {
+      console.log('  ⚠️  Could not embed Russian transform automatically');
+      console.log('  ℹ️  MSI will work with English only');
+      console.log('  ℹ️  To add Russian support manually, use Orca or WiSubStg.vbs');
+    }
+
+    // Clean up temporary files
+    try {
+      if (fs.existsSync(enMsiFile)) fs.unlinkSync(enMsiFile);
+      if (fs.existsSync(ruMsiFile)) fs.unlinkSync(ruMsiFile);
+      if (fs.existsSync(mstFile)) fs.unlinkSync(mstFile);
+    } catch (e) {
+      // Ignore cleanup errors
+    }
+
+    console.log(`✅ MSI created: ${msiFile}`);
+    if (transformEmbedded) {
+      console.log(`   Supported languages: English (default), Russian (embedded transform)`);
+    } else {
+      console.log(`   Supported languages: English only`);
+    }
+    console.log();
     return msiFile;
 
   } catch (error) {
