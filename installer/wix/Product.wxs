@@ -62,14 +62,9 @@
       <Directory Id="DesktopFolder" Name="Desktop" />
     </Directory>
 
-    <!-- Main Application Component -->
+    <!-- Protocol Handler and App Registration -->
     <DirectoryRef Id="INSTALLDIR">
-      <Component Id="MainExecutable" Guid="12345678-1234-1234-1234-123456789abc" Win64="$(var.Win64)">
-        <File Id="PrizrakBoxEXE"
-              Source="$(var.SourceDir)\Prizrak-Box.exe"
-              KeyPath="yes"
-              Checksum="yes" />
-
+      <Component Id="AppRegistration" Guid="12345678-1234-1234-1234-123456789abc" Win64="$(var.Win64)">
         <!-- Registry for Protocol Handler prizrak-box:// -->
         <RegistryKey Root="HKCR" Key="prizrak-box">
           <RegistryValue Type="string" Value="URL:Prizrak-Box Protocol" />
@@ -88,7 +83,7 @@
                        Name="InstallPath"
                        Type="string"
                        Value="[INSTALLDIR]"
-                       KeyPath="no" />
+                       KeyPath="yes" />
 
         <RegistryValue Root="HKLM"
                        Key="Software\$(var.Manufacturer)\$(var.ProductName)"
@@ -193,7 +188,7 @@
              ConfigurableDirectory="INSTALLDIR"
              AllowAdvertise="no"
              Absent="disallow">
-      <ComponentRef Id="MainExecutable" />
+      <ComponentRef Id="AppRegistration" />
       <ComponentRef Id="DesktopShortcut" />
       <ComponentRef Id="StartMenuShortcut" />
       <ComponentGroupRef Id="ApplicationFiles" />
