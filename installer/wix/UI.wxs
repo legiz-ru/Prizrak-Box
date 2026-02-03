@@ -2,13 +2,13 @@
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
 
   <Fragment>
+    <!-- License file location -->
+    <WixVariable Id="WixUILicenseRtf" Value="localization\License.rtf" />
+
     <UI Id="CustomUI">
       <!-- Use FeatureTree base UI -->
       <UIRef Id="WixUI_FeatureTree" />
       <UIRef Id="WixUI_ErrorProgressText" />
-
-      <!-- License -->
-      <WixVariable Id="WixUILicenseRtf" Value="localization\License.rtf" />
 
       <!-- Language Selection Dialog at the beginning -->
       <DialogRef Id="LanguageSelectionDlg" />
