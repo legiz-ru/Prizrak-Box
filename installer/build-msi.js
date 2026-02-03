@@ -106,13 +106,31 @@ async function buildMultiLanguageMSI() {
 
 async function main() {
   console.log('🚀 Prizrak-Box Multi-Language MSI Installer Builder\n');
+  console.log(`Architecture: ${ARCH}`);
+  console.log(`Expected app path: ${PATHS.appFiles}`);
 
   // Check if app is built
   if (!fs.existsSync(PATHS.appFiles)) {
     console.error(`❌ Application files not found at: ${PATHS.appFiles}`);
-    console.error('   Please run "npm run package" first!');
+    console.error('\n📁 Checking what exists in out/ directory:');
+
+    try {
+      const outDirs = fs.readdirSync(PATHS.out);
+      outDirs.forEach(dir => {
+        const fullPath = path.join(PATHS.out, dir);
+        if (fs.statSync(fullPath).isDirectory()) {
+          console.error(`   - ${dir}`);
+        }
+      });
+    } catch (err) {
+      console.error(`   Could not read out/ directory: ${err.message}`);
+    }
+
+    console.error('\n   Please run "npm run package" first!');
     process.exit(1);
   }
+
+  console.log(`✓ Found application files\n`);
 
   try {
     // Build single multi-language MSI

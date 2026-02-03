@@ -112,6 +112,12 @@ jobs:
         env:
           ARCH: ${{ matrix.arch == 'amd64' && 'x64' || matrix.arch }}
         run: |
+          # Add WiX to PATH for this step
+          $env:PATH = "C:\wix;$env:PATH"
+
+          Write-Host "Verifying WiX is accessible..."
+          candle.exe -? | Select-Object -First 1
+
           Write-Host "Building custom MSI installer..."
           node installer/build-msi.js
 
