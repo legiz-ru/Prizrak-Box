@@ -3,7 +3,7 @@ import {spawn} from "child_process";
 import {app, dialog} from "electron";
 import fs from "node:fs";
 import log from './log';
-import {storeGet} from "./store";
+import {storeGet, storeSet} from "./store";
 import {
     isServiceRunning,
     startPxViaService,
@@ -71,22 +71,26 @@ export async function startBackend(addr: string) {
     const homeDir = encodeURIComponent(log.getAppConfigDir());
     const args = ['-addr=' + addr, '-home=' + homeDir];
 
-    // Проверяем режим сервиса
-    if (isServiceModeEnabled()) {
-        log.info('[Backend] Service mode is enabled, checking service...');
-        const serviceRunning = await isServiceRunning();
+    // Проверяем, запущен ли сервис (независимо от флага настроек)
+    const serviceRunning = await isServiceRunning();
+    const serviceModeFlag = isServiceModeEnabled();
 
-        if (serviceRunning) {
-            log.info('[Backend] Service is running, starting px via service...');
-            const started = await startPxViaService(backendPath, addr, homeDir);
-            if (started) {
-                log.info('[Backend] px started via service successfully');
-                return;
-            }
-            log.warn('[Backend] Failed to start px via service, falling back to normal mode');
-        } else {
-            log.warn('[Backend] Service mode enabled but service not running, falling back to normal mode');
+    // Автоопределение: если сервис запущен, но флаг не установлен - автоматически включаем режим сервиса
+    // Это решает проблему, когда MSI установил сервис, но не установил флаг в настройках
+    if (serviceRunning && !serviceModeFlag) {
+        log.info('[Backend] Service is running but serviceMode flag not set, enabling service mode automatically...');
+        storeSet('serviceMode', true);
+    }
+
+    // Если сервис запущен - используем его для запуска px
+    if (serviceRunning) {
+        log.info('[Backend] Service mode detected, starting px via service...');
+        const started = await startPxViaService(backendPath, addr, homeDir);
+        if (started) {
+            log.info('[Backend] px started via service successfully');
+            return;
         }
+        log.warn('[Backend] Failed to start px via service, falling back to normal mode');
     }
 
     // Стандартный режим запуска
