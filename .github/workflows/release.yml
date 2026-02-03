@@ -26,7 +26,10 @@ jobs:
         run: npm install
 
       - name: Install Makers
-        run: npm install --save-dev @electron-forge/maker-squirrel @electron-forge/maker-wix @electron-forge/maker-deb @electron-forge/maker-rpm @electron-forge/maker-zip
+        run: npm install --save-dev @electron-forge/maker-squirrel @electron-forge/maker-deb @electron-forge/maker-rpm @electron-forge/maker-zip
+
+      - name: Install WiX Toolset
+        run: choco install wixtoolset --no-progress
 
       - name: Set Up Go
         uses: actions/setup-go@v6
@@ -90,6 +93,49 @@ jobs:
           npm prune
           npx electron-forge make --arch=$arch
 
+      - name: Build Custom MSI for ${{ matrix.arch }}
+        shell: pwsh
+        run: |
+          $arch = "${{ matrix.arch }}"
+          $electronArch = if ($arch -eq "amd64") { "x64" } else { $arch }
+          $appDir = "out/Prizrak-Box-win32-$electronArch"
+          if (-not (Test-Path $appDir)) {
+            Write-Error "Packaged app directory not found: $appDir"
+            exit 1
+          }
+
+          $version = $env:VERSION.TrimStart('v')
+
+          & heat.exe dir $appDir `
+            -cg AppFiles `
+            -dr INSTALLDIR `
+            -gg `
+            -srd `
+            -sfrag `
+            -sreg `
+            -scom `
+            -var var.SourceDir `
+            -out build/wix/AppFiles.wxs
+
+          & candle.exe `
+            -arch $electronArch `
+            -dProductVersion=$version `
+            -dPlatform=$electronArch `
+            -dSourceDir=$appDir `
+            -ext WixUIExtension `
+            build/wix/PrizrakBox.wxs `
+            build/wix/AppFiles.wxs
+
+          & light.exe `
+            "-cultures:en-us;ru-ru" `
+            -ext WixUIExtension `
+            -loc build/wix/PrizrakBox.en-us.wxl `
+            -loc build/wix/PrizrakBox.ru-ru.wxl `
+            -loc \"C:\\Program Files (x86)\\WiX Toolset v3.11\\WixUIExtension\\WixUI_en-us.wxl\" `
+            -loc \"C:\\Program Files (x86)\\WiX Toolset v3.11\\WixUIExtension\\WixUI_ru-ru.wxl\" `
+            -out windows-$arch.msi `
+            PrizrakBox.wixobj AppFiles.wixobj
+
       - name: Prepare Release Assets
         shell: pwsh
         run: |
@@ -106,11 +152,8 @@ jobs:
           }
           
           # --- MSI Installer ---
-          $msiFile = Get-ChildItem -Path "out\make\wix\$electronArch" -Filter "*.msi" | Select-Object -First 1
-          if ($msiFile) {
-              Copy-Item -Path $msiFile.FullName -Destination "windows-${arch}.msi"
-          } else {
-              Write-Error "MSI file not found in out\make\wix\$electronArch"
+          if (-not (Test-Path "windows-${arch}.msi")) {
+              Write-Error "MSI file not found: windows-${arch}.msi"
               exit 1
           }
           
@@ -159,7 +202,7 @@ jobs:
         run: npm install
 
       - name: Install Makers
-        run: npm install --save-dev @electron-forge/maker-squirrel @electron-forge/maker-wix @electron-forge/maker-deb @electron-forge/maker-rpm @electron-forge/maker-zip
+        run: npm install --save-dev @electron-forge/maker-squirrel @electron-forge/maker-deb @electron-forge/maker-rpm @electron-forge/maker-zip
 
       - name: Install packaging tools
         run: sudo apt-get update && sudo apt-get install -y libarchive-tools
@@ -271,7 +314,7 @@ jobs:
         run: npm install
 
       - name: Install Makers
-        run: npm install --save-dev @electron-forge/maker-squirrel @electron-forge/maker-wix @electron-forge/maker-deb @electron-forge/maker-rpm @electron-forge/maker-zip
+        run: npm install --save-dev @electron-forge/maker-squirrel @electron-forge/maker-deb @electron-forge/maker-rpm @electron-forge/maker-zip
 
       - name: Set Up Go
         uses: actions/setup-go@v6

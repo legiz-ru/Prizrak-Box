@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<WixLocalization Culture="en-us" xmlns="http://schemas.microsoft.com/wix/2006/localization">
+  <String Id="DowngradeErrorMessage">A newer version of Prizrak-Box is already installed.</String>
+  <String Id="FeatureMainTitle">Main Application</String>
+  <String Id="FeatureMainDescription">Installs the core Prizrak-Box application files.</String>
+  <String Id="FeatureTunTitle">TUN Service Mode</String>
+  <String Id="FeatureTunDescription">Installs the TUN service integration for advanced network features.</String>
+  <String Id="StopProcessesAction">Stopping Prizrak-Box processes and services...</String>
+  <String Id="InstallTunServiceAction">Installing Prizrak-Box TUN service...</String>
+  <String Id="LicenseRtf">build\wix\License.en-us.rtf</String>
+</WixLocalization>

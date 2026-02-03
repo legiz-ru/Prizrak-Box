@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<WixLocalization Culture="ru-ru" xmlns="http://schemas.microsoft.com/wix/2006/localization">
+  <String Id="DowngradeErrorMessage">Установлена более новая версия Prizrak-Box.</String>
+  <String Id="FeatureMainTitle">Основное приложение</String>
+  <String Id="FeatureMainDescription">Устанавливает основные файлы приложения Prizrak-Box.</String>
+  <String Id="FeatureTunTitle">Режим службы TUN</String>
+  <String Id="FeatureTunDescription">Устанавливает интеграцию службы TUN для расширенных сетевых функций.</String>
+  <String Id="StopProcessesAction">Остановка процессов и служб Prizrak-Box...</String>
+  <String Id="InstallTunServiceAction">Установка службы TUN Prizrak-Box...</String>
+  <String Id="LicenseRtf">build\wix\License.ru-ru.rtf</String>
+</WixLocalization>

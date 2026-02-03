@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*"
+           Name="Prizrak-Box"
+           Language="1033"
+           Version="$(var.ProductVersion)"
+           Manufacturer="legiz-ru"
+           UpgradeCode="c1d377b2-2c61-4c5e-8773-8e3c703b8b41">
+    <Package InstallerVersion="500"
+             Compressed="yes"
+             InstallScope="perMachine"
+             Platform="$(var.Platform)"
+             Languages="1033,1049" />
+
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="!(loc.DowngradeErrorMessage)" />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
+
+    <Icon Id="AppIcon" SourceFile="build/appicon.ico" />
+
+    <WixVariable Id="WixUILicenseRtf" Value="!(loc.LicenseRtf)" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLDIR" Name="Prizrak-Box" />
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="Prizrak-Box" />
+      </Directory>
+      <Directory Id="DesktopFolder" />
+    </Directory>
+
+    <DirectoryRef Id="INSTALLDIR">
+      <Component Id="ApplicationRegistry" Guid="*" Win64="yes">
+        <RegistryKey Root="HKLM" Key="Software\legiz-ru\Prizrak-Box">
+          <RegistryValue Name="InstallPath" Type="string" Value="[INSTALLDIR]" KeyPath="yes" />
+          <RegistryValue Name="Version" Type="string" Value="$(var.ProductVersion)" />
+        </RegistryKey>
+      </Component>
+
+      <Component Id="ProtocolRegistration" Guid="*" Win64="yes">
+        <RegistryKey Root="HKCR" Key="prizrak-box">
+          <RegistryValue Type="string" Value="URL:Prizrak-Box Protocol" />
+          <RegistryValue Name="URL Protocol" Type="string" Value="" />
+        </RegistryKey>
+        <RegistryKey Root="HKCR" Key="prizrak-box\DefaultIcon">
+          <RegistryValue Type="string" Value="[INSTALLDIR]Prizrak-Box.exe,0" />
+        </RegistryKey>
+        <RegistryKey Root="HKCR" Key="prizrak-box\shell\open\command">
+          <RegistryValue Type="string" Value='"[INSTALLDIR]Prizrak-Box.exe" "%1"' />
+        </RegistryKey>
+      </Component>
+
+      <Component Id="Shortcuts" Guid="*" Win64="yes">
+        <Shortcut Id="StartMenuShortcut"
+                  Directory="ApplicationProgramsFolder"
+                  Name="Prizrak-Box"
+                  Target="[INSTALLDIR]Prizrak-Box.exe"
+                  WorkingDirectory="INSTALLDIR" />
+        <Shortcut Id="DesktopShortcut"
+                  Directory="DesktopFolder"
+                  Name="Prizrak-Box"
+                  Target="[INSTALLDIR]Prizrak-Box.exe"
+                  WorkingDirectory="INSTALLDIR" />
+        <RemoveFolder Id="RemoveProgramMenuDir" Directory="ApplicationProgramsFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\legiz-ru\Prizrak-Box" Name="HasShortcuts" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+
+      <Component Id="TunServiceFeatureMarker" Guid="*" Win64="yes">
+        <RegistryKey Root="HKLM" Key="Software\legiz-ru\Prizrak-Box">
+          <RegistryValue Name="InstallTunService" Type="integer" Value="1" KeyPath="yes" />
+        </RegistryKey>
+      </Component>
+    </DirectoryRef>
+
+    <Feature Id="MainApplication"
+             Title="!(loc.FeatureMainTitle)"
+             Description="!(loc.FeatureMainDescription)"
+             Level="1"
+             Absent="disallow">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="ApplicationRegistry" />
+      <ComponentRef Id="ProtocolRegistration" />
+      <ComponentRef Id="Shortcuts" />
+    </Feature>
+
+    <Feature Id="TUNServiceFeature"
+             Title="!(loc.FeatureTunTitle)"
+             Description="!(loc.FeatureTunDescription)"
+             Level="1">
+      <ComponentRef Id="TunServiceFeatureMarker" />
+    </Feature>
+
+    <UIRef Id="WixUI_FeatureTree" />
+    <UIRef Id="WixUI_ErrorProgressText" />
+
+    <CustomAction Id="StopProcessesBeforeInstall"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore"
+                  ExeCommand='[SystemFolder]WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Get-Process -Name ''Prizrak-Box'',''px'',''px-service'' -ErrorAction SilentlyContinue | Stop-Process -Force; $svc = Get-Service -Name ''PrizrakBoxService'' -ErrorAction SilentlyContinue; if ($svc) { if ($svc.Status -ne ''Stopped'') { Stop-Service -Name ''PrizrakBoxService'' -Force -ErrorAction SilentlyContinue } }; sc.exe stop PrizrakBoxService | Out-Null; sc.exe delete PrizrakBoxService | Out-Null"' />
+
+    <CustomAction Id="StopProcessesBeforeUninstall"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore"
+                  ExeCommand='[SystemFolder]WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Get-Process -Name ''Prizrak-Box'',''px'',''px-service'' -ErrorAction SilentlyContinue | Stop-Process -Force; $svc = Get-Service -Name ''PrizrakBoxService'' -ErrorAction SilentlyContinue; if ($svc) { if ($svc.Status -ne ''Stopped'') { Stop-Service -Name ''PrizrakBoxService'' -Force -ErrorAction SilentlyContinue } }; sc.exe stop PrizrakBoxService | Out-Null; sc.exe delete PrizrakBoxService | Out-Null"' />
+
+    <CustomAction Id="InstallTunService"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore"
+                  ExeCommand='"[INSTALLDIR]resources\px-service.exe" -install' />
+
+    <InstallExecuteSequence>
+      <Custom Action="StopProcessesBeforeInstall" Before="InstallFiles">NOT REMOVE</Custom>
+      <Custom Action="InstallTunService" After="InstallFiles">(&amp;TUNServiceFeature=3) AND NOT REMOVE</Custom>
+      <Custom Action="StopProcessesBeforeUninstall" Before="RemoveFiles">REMOVE="ALL"</Custom>
+    </InstallExecuteSequence>
+
+    <ActionText Action="StopProcessesBeforeInstall" Description="!(loc.StopProcessesAction)" Template="!(loc.StopProcessesAction)" />
+    <ActionText Action="StopProcessesBeforeUninstall" Description="!(loc.StopProcessesAction)" Template="!(loc.StopProcessesAction)" />
+    <ActionText Action="InstallTunService" Description="!(loc.InstallTunServiceAction)" Template="!(loc.InstallTunServiceAction)" />
+  </Product>
+</Wix>

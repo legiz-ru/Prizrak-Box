@@ -1,6 +1,5 @@
 import type {ForgeConfig} from '@electron-forge/shared-types';
 import MakerZipFixed from './forge/maker-zip-fixed';
-import {MakerWix} from '@electron-forge/maker-wix';
 import {MakerSquirrel} from '@electron-forge/maker-squirrel';
 import {MakerDMG} from '@electron-forge/maker-dmg';
 import {MakerDeb} from '@electron-forge/maker-deb';
@@ -72,52 +71,6 @@ const config: ForgeConfig = {
             authors: ['legiz-ru'],
             setupIcon: 'build/appicon.ico',
             iconUrl: 'https://raw.githubusercontent.com/legiz-ru/Prizrak-Box/prizrak_dev/build/appicon.ico',
-        }),
-        new MakerWix({
-            manufacturer: 'legiz-ru',
-            description: 'A Simple Mihomo GUI',
-            icon: 'build/appicon.ico',
-            ui: {
-                chooseDirectory: true,
-            },
-            upgradeCode: 'c1d377b2-2c61-4c5e-8773-8e3c703b8b41',
-            registry: [
-                {
-                    key: 'HKEY_CLASSES_ROOT\\prizrak-box',
-                    values: [
-                        {
-                            name: '',
-                            type: 'REG_SZ',
-                            value: 'URL:Prizrak-Box Protocol'
-                        },
-                        {
-                            name: 'URL Protocol',
-                            type: 'REG_SZ',
-                            value: ''
-                        }
-                    ]
-                },
-                {
-                    key: 'HKEY_CLASSES_ROOT\\prizrak-box\\DefaultIcon',
-                    values: [
-                        {
-                            name: '',
-                            type: 'REG_SZ',
-                            value: '[APPLICATIONROOTDIRECTORY]Prizrak-Box.exe,0'
-                        }
-                    ]
-                },
-                {
-                    key: 'HKEY_CLASSES_ROOT\\prizrak-box\\shell\\open\\command',
-                    values: [
-                        {
-                            name: '',
-                            type: 'REG_SZ',
-                            value: '"[APPLICATIONROOTDIRECTORY]Prizrak-Box.exe" "%1"'
-                        }
-                    ]
-                }
-            ]
         }),
         new MakerDMG({
             icon: 'build/appicon.icns',
