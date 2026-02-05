@@ -1,4 +1,4 @@
-import {createApp, watch} from "vue";
+import {createApp, watch, toRaw} from "vue";
 import App from "./App.vue";
 import router from "@/router";
 import {createPinia} from "pinia";
@@ -281,6 +281,41 @@ function setupDeepLinkHandler() {
             }
 
             if (Array.isArray(result) && result.length > 0) {
+                const firstProfile = result[0];
+
+                try {
+                    await api.switchProfile({
+                        id: firstProfile.id,
+                        selected: true,
+                        exclusive: true,
+                    });
+
+                    await api.waitRunning();
+
+                    const fullList = await api.getProfileList();
+                    const activeProfile = fullList?.find((item: any) => item?.id === firstProfile.id) ?? firstProfile;
+
+                    Events.Emit({
+                        name: "profileChanged",
+                        data: {
+                            profile: activeProfile,
+                            exclusive: true,
+                        }
+                    });
+                    window.dispatchEvent(new CustomEvent('profile-changed'));
+
+                    Events.Emit({
+                        name: "profiles",
+                        data: toRaw(fullList)
+                    });
+
+                    window.dispatchEvent(new CustomEvent('vue-profiles-updated', {
+                        detail: { profiles: toRaw(fullList) }
+                    }));
+                } catch (error) {
+                    console.error('Failed to activate deeplink profile', error);
+                }
+
                 window.dispatchEvent(new CustomEvent(DEEP_LINK_IMPORTED_EVENT, {
                     detail: {profiles: result}
                 }));
@@ -511,6 +546,3 @@ function safeDecode(value?: string) {
 
 // 🚀 启动应用
 bootstrap().then(() => app.mount("#app"));
-
-
-

@@ -7,6 +7,7 @@ import {changeProxyAndCloseConnections} from "@/util/proxy";
 import {pError} from "@/util/pLoad";
 import {Events} from "@/runtime";
 import type {ProxyGroupInfo} from "@/api/proxies";
+import {useWebStore} from "@/store/webStore";
 
 // 获取当前 Vue 实例的 proxy 对象
 const {proxy} = getCurrentInstance()!;
@@ -15,6 +16,7 @@ const {t} = useI18n();
 
 // 当前组件使用store
 const proxiesStore = useProxiesStore();
+const webStore = useWebStore();
 
 // Group and Proxy dropdowns
 const groupList = ref<ProxyGroupInfo[]>([]);
@@ -30,6 +32,12 @@ const isWindows = ref(false)
 
 // Load groups
 async function loadGroups() {
+  if (!webStore.fProfile || !webStore.fProfile['id']) {
+    groupList.value = [];
+    selectedGroup.value = '';
+    proxiesStore.setActive('');
+    return;
+  }
   try {
     const groups = await api.getGroups();
     groupList.value = groups;
@@ -48,6 +56,12 @@ async function loadGroups() {
 
 // Load proxies for selected group
 async function loadProxies() {
+  if (!webStore.fProfile || !webStore.fProfile['id']) {
+    proxyList.value = [];
+    selectedProxy.value = '';
+    proxiesStore.setNow('');
+    return;
+  }
   if (!selectedGroup.value) {
     proxyList.value = [];
     return;
@@ -125,18 +139,22 @@ async function selectProxy(proxy: any) {
 }
 
 // Toggle dropdowns
-function toggleGroupDropdown() {
-  isGroupDropdownOpen.value = !isGroupDropdownOpen.value;
-  if (isGroupDropdownOpen.value) {
+async function toggleGroupDropdown() {
+  const nextOpen = !isGroupDropdownOpen.value;
+  if (nextOpen) {
+    await loadGroups();
     isProxyDropdownOpen.value = false;
   }
+  isGroupDropdownOpen.value = nextOpen;
 }
 
-function toggleProxyDropdown() {
-  isProxyDropdownOpen.value = !isProxyDropdownOpen.value;
-  if (isProxyDropdownOpen.value) {
+async function toggleProxyDropdown() {
+  const nextOpen = !isProxyDropdownOpen.value;
+  if (nextOpen) {
+    await loadProxies();
     isGroupDropdownOpen.value = false;
   }
+  isProxyDropdownOpen.value = nextOpen;
 }
 
 // Close dropdowns when clicking outside
@@ -224,7 +242,7 @@ watch(() => proxiesStore.now, async (newNow) => {
           <div class="dropdown-button" @click="toggleGroupDropdown">
             <span class="dropdown-label"><span class="dropdown-label-text">{{ t('proxySelector.group') }}</span></span>
             <span class="dropdown-value">{{ selectedGroup }}</span>
-            <el-icon class="dropdown-icon">
+            <el-icon class="dropdown-icon" @click.stop="toggleGroupDropdown">
               <icon-ep-arrow-down v-if="!isGroupDropdownOpen" />
               <icon-ep-arrow-up v-else />
             </el-icon>
@@ -249,7 +267,7 @@ watch(() => proxiesStore.now, async (newNow) => {
             <span class="dropdown-value">
               {{ proxyList.find(p => p.now)?.displayName ?? proxyList.find(p => p.now)?.name ?? 'Не выбрано' }}
             </span>
-            <el-icon class="dropdown-icon">
+            <el-icon class="dropdown-icon" @click.stop="toggleProxyDropdown">
               <icon-ep-arrow-down v-if="!isProxyDropdownOpen" />
               <icon-ep-arrow-up v-else />
             </el-icon>

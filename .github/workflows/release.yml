@@ -42,6 +42,10 @@ jobs:
           cd src-go
           go mod tidy
 
+      - name: Get Latest LightGBM Model Mihomo Smart
+        run: |
+          Invoke-WebRequest -Uri https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin -OutFile src-go/internal/em/Model.bin 
+
       - name: Download Geo Files
         shell: pwsh
         run: |
@@ -200,6 +204,10 @@ jobs:
           cd src-go
           go mod tidy
 
+      - name: Get Latest LightGBM Model Mihomo Smart
+        run: |
+          wget -O src-go/internal/em/Model.bin https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
+
       - name: Get Latest Geo Data
         run: |
           wget -O src-go/internal/em/geoip.metadb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
@@ -308,6 +316,10 @@ jobs:
         run: |
           cd src-go
           go mod tidy
+
+      - name: Get Latest LightGBM Model Mihomo Smart
+        run: |
+          wget -O src-go/internal/em/Model.bin https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
 
       - name: Get Latest Geo Data
         run: |

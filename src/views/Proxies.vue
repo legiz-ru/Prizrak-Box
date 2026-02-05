@@ -52,6 +52,12 @@ const selectedProxies = computed<Record<string, string>>(() => {
 
 // 获取分组
 async function groups() {
+  if (!webStore.fProfile || !webStore.fProfile['id']) {
+    groupList.value = [];
+    groupIcons.value = {};
+    proxiesStore.setActive('');
+    return;
+  }
   // 活跃分组
   const active = proxiesStore.active;
 
@@ -145,6 +151,12 @@ async function updateNestedGroupSelections() {
 
 // 获取节点列表
 async function nodes() {
+  if (!webStore.fProfile || !webStore.fProfile['id']) {
+    nodeList.value = [];
+    fullViewNodes.value = {};
+    nestedGroupSelections.value = {};
+    return;
+  }
   if (menuStore.rule == "direct") {
     nodeList.value = [];
     fullViewNodes.value = {};

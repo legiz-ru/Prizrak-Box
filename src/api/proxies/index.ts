@@ -120,6 +120,16 @@ const getDelay = (proxy: any) => {
     return history[history.length - 1]['delay']
 }
 
+const getProxyDelay = (proxy: any, proxiesMap: Record<string, any>) => {
+    const type = proxy?.['type'];
+    const now = proxy?.['now'];
+    if (includeGroup[type] && typeof now === 'string' && proxiesMap?.[now]) {
+        return getDelay(proxiesMap[now]);
+    }
+
+    return getDelay(proxy);
+}
+
 const getDisplayType = (proxy: any, fallbackDescription?: string) => {
     const serverDescription = proxy?.['serverDescription']
         ?? proxy?.['server_description']
@@ -216,7 +226,7 @@ export default function createProxiesApi(proxy: any) {
                 const type = proxy['type'];
                 const displayType = getDisplayType(proxy, serverDescriptions[name]);
                 const icon = typeof proxy?.['icon'] === 'string' ? proxy['icon'] : undefined;
-                const delay = getDelay(proxy)
+                const delay = getProxyDelay(proxy, proxies)
                 let origin = originMap ? originMap[name] : undefined;
                 if (!origin && hasOriginMap) {
                     origin = parseOriginFromName(name);

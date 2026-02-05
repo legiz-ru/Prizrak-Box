@@ -645,11 +645,7 @@ async function saveUpdateProfile() {
 
 // 删除配置
 async function deleteProfile(data: any, index: any) {
-  if (data['selected']) {
-    pWarning(t('profiles.del-tip'))
-    return
-  }
-
+  const isSelected = Boolean(data['selected']);
   try {
     await api.deleteProfile(data)
     profiles.splice(index, 1)
@@ -657,6 +653,20 @@ async function deleteProfile(data: any, index: any) {
       name: "profiles",
       data: toRaw(profiles)
     })
+    if (profiles.length === 0) {
+      webStore.fProfile = {}
+      proxiesStore.setActive('')
+      proxiesStore.setNow('')
+      proxiesStore.replaceGroupExpansions({})
+      Events.Emit({
+        name: "profileChanged",
+        data: {}
+      })
+      window.dispatchEvent(new CustomEvent('profile-changed'))
+    }
+    if (isSelected) {
+      pWarning('Удаление прошло, выберите новый активный профиль')
+    }
   } catch (e) {
     if (e['message']) {
       pError(e['message'])
@@ -701,27 +711,19 @@ function sendOrder(data: any) {
   }
 }
 
-function handleProfilesImported(event: Event) {
+async function handleProfilesImported(event: Event) {
   const customEvent = event as CustomEvent;
   const detail = customEvent.detail;
   if (!detail || !Array.isArray(detail.profiles)) {
     return;
   }
 
-  let added = false;
-  for (const item of detail.profiles) {
-    if (!item) {
-      continue;
-    }
-    const exists = profiles.some(profile => profile['id'] === item['id']);
-    if (!exists) {
-      profiles.push(item);
-      added = true;
-    }
-  }
-
-  if (added) {
+  try {
+    const list = await api.getProfileList();
+    applyProfileList(list ?? []);
     sendOrder(profiles);
+  } catch (error) {
+    console.error('Failed to refresh profiles after deeplink import', error);
   }
 }
 
