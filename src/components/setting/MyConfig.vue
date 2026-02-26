@@ -395,6 +395,13 @@ watch(dashboardDialogVisible, (visible) => {
                 class="set-switch"
             />
           </li>
+          <li>
+            <strong>{{ $t('setting.mihomo.independentDelayTest') }} :</strong>
+            <el-switch
+                v-model="settingStore.independentDelayTest"
+                class="set-switch"
+            />
+          </li>
           <li class="api-row">
             <div class="api-row__info">
               <strong>Api :</strong>
@@ -502,6 +509,19 @@ watch(dashboardDialogVisible, (visible) => {
           </li>
           <li>
             <MyService />
+          </li>
+          <li style="height: 30px">
+            <strong>{{ $t('setting.shortcut.title') }} :</strong>
+            <el-icon
+                @click="changeMenu('Setting/Shortcut',router)"
+                class="btn">
+              <EditPen/>
+            </el-icon>
+            <el-switch
+                v-model="settingStore.sc_switch"
+                class="set-switch"
+                style="margin-left: 28px"
+            />
           </li>
           <li style="height: 30px">
             <strong>{{ $t('setting.px.dir') }} :</strong>

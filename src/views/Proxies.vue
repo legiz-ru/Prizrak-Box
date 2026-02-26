@@ -20,6 +20,7 @@ const nodeList = ref<any[]>([]);
 const fullViewNodes = ref<Record<string, any[]>>({});
 const groupIcons = ref<Record<string, string>>({});
 const nestedGroupSelections = ref<Record<string, string>>({});
+const groupTypeMap = ref<Record<string, string>>({});
 const handleIconError = (event: Event) => {
   const target = event.target as HTMLImageElement | null;
   if (target) {
@@ -69,19 +70,24 @@ async function groups() {
           return {name: item};
         }
         if (item && typeof item.name === 'string') {
-          return {name: item.name, icon: item.icon};
+          return {name: item.name, icon: item.icon, type: item.type};
         }
         return null;
       })
-      .filter((item) => item && item.name) as {name: string; icon?: string}[];
+      .filter((item) => item && item.name) as {name: string; icon?: string; type?: string}[];
 
   const icons: Record<string, string> = {};
-  normalized.forEach(({name, icon}) => {
+  const typeMap: Record<string, string> = {};
+  normalized.forEach(({name, icon, type}) => {
     if (icon) {
       icons[name] = icon;
     }
+    if (type) {
+      typeMap[name] = type;
+    }
   });
   groupIcons.value = icons;
+  groupTypeMap.value = typeMap;
   const temp = normalized.map((item) => item.name);
   switch (menuStore.rule) {
     case "rule":
@@ -107,7 +113,7 @@ async function groups() {
 
 // Update active connections for nested groups (URLTest, Selector, etc.)
 async function updateNestedGroupSelections() {
-  const groupTypes = ['urltest', 'selector', 'fallback', 'loadbalance', 'relay'];
+  const groupTypes = ['urltest', 'selector', 'fallback', 'loadbalance', 'relay', 'smart'];
   const nestedGroups: string[] = [];
 
   // Collect all nodes that are groups themselves
@@ -197,6 +203,32 @@ async function nodes() {
 
   // Update nested group selections for non-full view
   await updateNestedGroupSelections();
+}
+
+// Автоматический тест всех верхнеуровневых групп при запуске/смене профиля.
+// Smart-группы не имеют авто-теста в бэкенде и могут быть вложены в Selector,
+// не входя в список верхнего уровня. Тестируем ВСЕ верхнеуровневые группы —
+// это каскадно покрывает цепочку Selector→Smart→URLTest→proxy.
+async function autoTestSmartGroups() {
+  const allGroupNames = Object.keys(groupTypeMap.value);
+  if (allGroupNames.length === 0) return;
+
+  await Promise.all(
+    allGroupNames.map(async (groupName) => {
+      try {
+        let testUrl = settingStore.testUrl;
+        if (settingStore.independentDelayTest) {
+          const groupUrl = await api.getGroupTestUrl(groupName);
+          testUrl = groupUrl || 'https://www.gstatic.com/generate_204';
+        }
+        await api.getDelay(groupName, testUrl, 3000);
+      } catch (_) {
+        // Ignore errors for individual groups
+      }
+    })
+  );
+
+  await nodes();
 }
 
 // 设置活跃分组
@@ -290,7 +322,12 @@ async function setProxy(now: any, name: string, groupName?: string) {
 function testDelay() {
   pLoad(t("proxies.loading"), async () => {
     try {
-      await api.getDelay(proxiesStore.active, settingStore.testUrl, 3000);
+      let testUrl = settingStore.testUrl;
+      if (settingStore.independentDelayTest) {
+        const groupUrl = await api.getGroupTestUrl(proxiesStore.active);
+        testUrl = groupUrl || 'https://www.gstatic.com/generate_204';
+      }
+      await api.getDelay(proxiesStore.active, testUrl, 3000);
       await nodes();
     } catch (e) {
       if (e['message']) {
@@ -408,6 +445,7 @@ let fresh: any = null;
 onMounted(async () => {
   await groups();
   await nodes();
+  autoTestSmartGroups(); // Запускаем без await — фоновый тест Smart-групп
   updateButtonVisibility();
   // 监听 resize 事件
   window.addEventListener("resize", updateButtonVisibility);
@@ -436,6 +474,7 @@ watch(() => menuStore.rule, // 监听 store 中的某个状态
 watch(() => webStore.fProfile, async () => {
   await groups();
   await nodes();
+  autoTestSmartGroups(); // Запускаем без await — фоновый тест Smart-групп
   updateButtonVisibility();
 })
 

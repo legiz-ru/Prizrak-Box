@@ -120,11 +120,15 @@ const getDelay = (proxy: any) => {
     return history[history.length - 1]['delay']
 }
 
-const getProxyDelay = (proxy: any, proxiesMap: Record<string, any>) => {
+const getProxyDelay = (proxy: any, proxiesMap: Record<string, any>, depth = 0): number => {
+    // Ограничение глубины рекурсии на случай циклических ссылок
+    if (depth > 5) return getDelay(proxy);
+
     const type = proxy?.['type'];
     const now = proxy?.['now'];
     if (includeGroup[type] && typeof now === 'string' && proxiesMap?.[now]) {
-        return getDelay(proxiesMap[now]);
+        // Рекурсивно проходим цепочку: Smart → URLTest → individual proxy
+        return getProxyDelay(proxiesMap[now], proxiesMap, depth + 1);
     }
 
     return getDelay(proxy);
@@ -151,6 +155,7 @@ const getDisplayType = (proxy: any, fallbackDescription?: string) => {
 export interface ProxyGroupInfo {
     name: string;
     icon?: string;
+    type?: string;
 }
 
 export default function createProxiesApi(proxy: any) {
@@ -158,6 +163,16 @@ export default function createProxiesApi(proxy: any) {
         // 获取分组延迟
         async getDelay(group: any, url: any, timeout: any) {
             await proxy.$http.get('/group/' + group + '/delay?timeout=' + timeout + "&url=" + url);
+        },
+        // 获取分组配置的测试URL
+        async getGroupTestUrl(name: string): Promise<string | null> {
+            try {
+                const data = await proxy.$http.get('/proxies/' + encodeURIComponent(name));
+                const url = data?.['url'];
+                return typeof url === 'string' && url.length > 0 ? url : null;
+            } catch {
+                return null;
+            }
         },
         // 获取分组列表
         async getGroups(): Promise<ProxyGroupInfo[]> {
@@ -186,6 +201,7 @@ export default function createProxiesApi(proxy: any) {
                 proxyGroup.push({
                     name,
                     icon: typeof group['icon'] === 'string' ? group['icon'] : undefined,
+                    type: group['type'],
                 })
             }
 

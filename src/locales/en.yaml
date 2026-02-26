@@ -111,6 +111,7 @@ setting:
     lan: LAN
     bindAddress: Bind Address
     bind-error: Wrong address
+    independentDelayTest: Independent latency test
   px:
     auth: Auth Tip
     startup: Boot Startup
@@ -125,6 +126,11 @@ setting:
     export: Export
     update: Update
     check: Check
+
+  shortcut:
+    title: Keyboard Shortcuts
+    showHide: Show/Hide Window
+    recording: Press a key combination...
 
   dashboard:
     open: Open dashboard
@@ -312,9 +318,10 @@ bg:
   women: Serious
   stars: Starry
   handle: Prizrak
-  comics: Comics
+  comics: Anime
   game: Game
   random: Random
+  rails: Rails
   custom: Custom image
   upload: Upload image
   too-large: Image is too large. Please choose a file smaller than 1 MB.

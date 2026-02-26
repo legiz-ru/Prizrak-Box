@@ -22,6 +22,9 @@ export const useSettingStore = defineStore('setting', {
             osVersion: '',
             model: '',
         },
+        sc_switch: false,
+        sc_switch_key: 'Ctrl+Shift+X',
+        independentDelayTest: true,
     }),
     actions: {
         setTestUrl(testUrl: any) {
@@ -70,6 +73,15 @@ export const useSettingStore = defineStore('setting', {
                 osVersion: headers?.osVersion ?? this.hwidHeaders.osVersion,
                 model: headers?.model ?? this.hwidHeaders.model,
             };
+        },
+        setScSwitch(val: boolean) {
+            this.sc_switch = val;
+        },
+        setScSwitchKey(val: string) {
+            this.sc_switch_key = val;
+        },
+        setIndependentDelayTest(val: boolean) {
+            this.independentDelayTest = val;
         },
     },
     persist: defaultPersist,

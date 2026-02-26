@@ -188,6 +188,10 @@ function switchMode(menuItem, mode) {
 
 // 切换配置
 function switchProfiles(menuItem, profile) {
+    if (!menuItem.checked) {
+        menuItem.checked = true
+        return
+    }
     emitWindow("switchProfiles", {
         profile,
         selected: menuItem.checked,

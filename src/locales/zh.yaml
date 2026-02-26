@@ -111,6 +111,7 @@ setting:
     lan: 局域网
     bindAddress: 监听地址
     bind-error: 错误的地址
+    independentDelayTest: 独立延迟测试
   px:
     auth: 授权提示
     startup: 开机自启
@@ -125,6 +126,11 @@ setting:
     export: 导出
     update: 软件更新
     check: 检查
+
+  shortcut:
+    title: 键盘快捷键
+    showHide: 显示/隐藏窗口
+    recording: 请按下组合键...
 
   dashboard:
     open: 打开面板
@@ -312,9 +318,10 @@ bg:
   women: 严肃
   stars: 星空
   handle: 幽灵
-  comics: 二次元
+  comics: 动漫
   game: 游戏
   random: 随机
+  rails: 铁路
   custom: 自定义图片
   upload: 上传图片
   too-large: 图片过大，请选择小于 1 MB 的文件。

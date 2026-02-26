@@ -2,17 +2,18 @@ package internal
 
 import (
 	"fmt"
-	"github.com/legiz-ru/prizrak-box/pkg/constant"
-	sysProxy "github.com/legiz-ru/prizrak-box/pkg/sys/proxy"
-	"github.com/metacubex/mihomo/hub/executor"
-	RC "github.com/metacubex/mihomo/rules/common"
-	"github.com/metacubex/mihomo/tunnel"
 	"io"
 	"os"
 	"runtime"
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/legiz-ru/prizrak-box/pkg/constant"
+	sysProxy "github.com/legiz-ru/prizrak-box/pkg/sys/proxy"
+	"github.com/metacubex/mihomo/hub/executor"
+	RC "github.com/metacubex/mihomo/rules/common"
+	"github.com/metacubex/mihomo/tunnel"
 
 	"github.com/legiz-ru/prizrak-box/api/models"
 	"github.com/legiz-ru/prizrak-box/pkg/cache"
@@ -68,9 +69,7 @@ func Init() {
 	log.Infoln("[Permission] is ok")
 
 	// 释放资源文件
-	_, _ = utils.SaveFile(utils.GetUserHomeDir("geoip.metadb"), GeoIp)
-	_, _ = utils.SaveFile(utils.GetUserHomeDir("GeoSite.dat"), GeoSite)
-	_, _ = utils.SaveFile(utils.GetUserHomeDir("ASN.mmdb"), ASN)
+	releaseGeoData()
 
 	// 释放大模型
 	bin := utils.GetUserHomeDir("Model.bin")
@@ -1214,4 +1213,22 @@ func SwitchProfile(reload bool) {
 	}
 
 	startCore(primary, selected, reload)
+}
+
+// 释放GEO数据
+func releaseGeoData() {
+	GeoIpPath := utils.GetUserHomeDir("geoip.metadb")
+	if !utils.FileExists(GeoIpPath) {
+		_, _ = utils.SaveFile(GeoIpPath, GeoIp)
+	}
+
+	GeoSitePath := utils.GetUserHomeDir("GeoSite.dat")
+	if !utils.FileExists(GeoSitePath) {
+		_, _ = utils.SaveFile(GeoSitePath, GeoSite)
+	}
+
+	ASNPath := utils.GetUserHomeDir("ASN.mmdb")
+	if !utils.FileExists(ASNPath) {
+		_, _ = utils.SaveFile(ASNPath, ASN)
+	}
 }

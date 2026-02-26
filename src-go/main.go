@@ -2,16 +2,17 @@ package main
 
 import (
 	"flag"
-	"github.com/metacubex/mihomo/hub/executor"
-	"github.com/metacubex/mihomo/log"
-	"github.com/legiz-ru/prizrak-box/prizrak"
-	sys "github.com/legiz-ru/prizrak-box/pkg/sys/proxy"
-	"github.com/legiz-ru/prizrak-box/pkg/utils"
-	"go.uber.org/automaxprocs/maxprocs"
 	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
+
+	sys "github.com/legiz-ru/prizrak-box/pkg/sys/proxy"
+	"github.com/legiz-ru/prizrak-box/pkg/utils"
+	"github.com/legiz-ru/prizrak-box/prizrak"
+	"github.com/metacubex/mihomo/hub/executor"
+	"github.com/metacubex/mihomo/log"
+	"go.uber.org/automaxprocs/maxprocs"
 )
 
 func main() {

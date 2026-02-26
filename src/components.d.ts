@@ -125,6 +125,8 @@ declare module 'vue' {
     MyDrop: typeof import('./components/MyDrop.vue')['default']
     MyEditor: typeof import('./components/MyEditor.vue')['default']
     MyEvent: typeof import('./components/MyEvent.vue')['default']
+    MyGeoData: typeof import('./components/setting/MyGeoData.vue')['default']
+    MyHotkeyInput: typeof import('./components/setting/MyHotkeyInput.vue')['default']
     MyHr: typeof import('./components/MyHr.vue')['default']
     MyIp: typeof import('./components/home/MyIp.vue')['default']
     MyLayout: typeof import('./components/MyLayout.vue')['default']

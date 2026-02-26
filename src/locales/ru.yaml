@@ -111,6 +111,7 @@ setting:
     lan: ЛВС
     bindAddress: Привязать адрес
     bind-error: Неверный адрес
+    independentDelayTest: Независимый тест задержки
   px:
     auth: Совет по аутентификации
     startup: Автозапуск
@@ -125,6 +126,11 @@ setting:
     export: Экспортировать
     update: Обновить
     check: Проверить
+
+  shortcut:
+    title: Горячие клавиши
+    showHide: Показать/Скрыть окно
+    recording: Нажмите комбинацию клавиш...
 
   dashboard:
     open: Открыть панель
@@ -312,9 +318,10 @@ bg:
   women: Девушка
   stars: Звёздный
   handle: Призрак
-  comics: Комиксы
+  comics: Аниме
   game: Игры
   random: Случайный
+  rails: Рельс
   custom: Своя картинка
   upload: Загрузить картинку
   too-large: Изображение слишком большое. Выберите файл меньше 1 МБ.

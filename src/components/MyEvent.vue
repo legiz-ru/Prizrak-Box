@@ -234,6 +234,25 @@ const updateProxyGroupsInTray = async () => {
   }
 };
 
+// 快捷键注册
+watch(() => settingStore.sc_switch, (val) => {
+  if (val) {
+    Events.Emit({name: 'shortcut:register', data: {name: 'showOrHide', key: settingStore.sc_switch_key}});
+  } else {
+    Events.Emit({name: 'shortcut:unregister-all', data: null});
+  }
+});
+
+watch(() => settingStore.sc_switch_key, (newKey, oldKey) => {
+  if (settingStore.sc_switch) {
+    Events.Emit({name: 'shortcut:register', data: {name: 'showOrHide', key: newKey, old: oldKey}});
+  }
+});
+
+Events.On('shortcut:result', (result: boolean) => {
+  console.log('Shortcut registration result:', result);
+});
+
 onMounted(async () => {
   // 获取初始数据
   const res = await api.getMihomo()

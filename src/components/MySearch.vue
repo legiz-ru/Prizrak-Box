@@ -1,8 +1,9 @@
 <script lang="ts" setup>
-import {useRouter} from "vue-router";
+import {useRouter, useRoute} from "vue-router";
 import {useI18n} from "vue-i18n";
 import createApi from "@/api";
 import {useProxiesStore} from "@/store/proxiesStore";
+import {useSettingStore} from "@/store/settingStore";
 import {changeProxyAndCloseConnections} from "@/util/proxy";
 import {pError} from "@/util/pLoad";
 import {Events} from "@/runtime";
@@ -16,6 +17,7 @@ const {t} = useI18n();
 
 // 当前组件使用store
 const proxiesStore = useProxiesStore();
+const settingStore = useSettingStore();
 const webStore = useWebStore();
 
 // Group and Proxy dropdowns
@@ -27,8 +29,12 @@ const isGroupDropdownOpen = ref(false);
 const isProxyDropdownOpen = ref(false);
 
 const router = useRouter()
+const route = useRoute()
 
 const isWindows = ref(false)
+
+// Скрываем дропдауны групп/прокси когда открыт раздел Прокси (дублирование)
+const isProxiesPage = computed(() => route.name === 'Proxies')
 
 // Load groups
 async function loadGroups() {
@@ -82,6 +88,30 @@ async function loadProxies() {
   } catch (error) {
     console.error('Failed to load proxies:', error);
   }
+}
+
+// Тестирует все группы параллельно и обновляет список прокси.
+// Вызывается при старте и смене профиля, чтобы прокси в цепочке
+// Smart→URLTest→proxy получили актуальные данные о задержке.
+// Smart-группы могут быть вложены в Selector и не входить в верхний уровень,
+// поэтому тестируем ВСЕ верхнеуровневые группы — это каскадно покрывает вложенные Smart.
+async function autoTestAllGroups(groupInfoList: ProxyGroupInfo[]) {
+  if (groupInfoList.length === 0) return;
+  await Promise.all(
+    groupInfoList.map(async (g) => {
+      try {
+        let testUrl = settingStore.testUrl;
+        if (settingStore.independentDelayTest) {
+          const groupUrl = await api.getGroupTestUrl(g.name);
+          testUrl = groupUrl || 'https://www.gstatic.com/generate_204';
+        }
+        await api.getDelay(g.name, testUrl, 3000);
+      } catch (_) {
+        // Ignore errors for individual groups
+      }
+    })
+  );
+  await loadProxies(); // Обновляем список с актуальными данными задержки
 }
 
 // Get server description for info tooltip
@@ -175,6 +205,7 @@ const handleProfileChanged = async () => {
   isProxyDropdownOpen.value = false;
   await loadGroups();
   await loadProxies();
+  autoTestAllGroups(groupList.value); // fire-and-forget: тест после смены профиля
 };
 
 onMounted(async () => {
@@ -186,6 +217,11 @@ onMounted(async () => {
   // Load groups and proxies
   await loadGroups();
   await loadProxies();
+  // Тестируем все верхнеуровневые группы, чтобы Smart-субгруппы (нет авто-теста
+  // в бэкенде) получили актуальные данные задержки. Smart может быть вложен в
+  // Selector и не входить в список верхнего уровня, поэтому тестируем все группы
+  // (аналогично кнопке "Тест задержки", но для всех групп сразу).
+  autoTestAllGroups(groupList.value); // fire-and-forget
 
   // Add click outside handler
   document.addEventListener('click', handleClickOutside);
@@ -236,7 +272,7 @@ watch(() => proxiesStore.now, async (newNow) => {
 <template>
   <div :class="isWindows?'search-container win':'search-container'">
     <div class="header-content no-drag">
-      <div class="proxy-selector">
+      <div :class="['proxy-selector', { 'proxy-selector--hidden': isProxiesPage }]">
         <!-- Group Dropdown -->
         <div class="dropdown-wrapper">
           <div class="dropdown-button" @click="toggleGroupDropdown">
@@ -332,6 +368,11 @@ watch(() => proxiesStore.now, async (newNow) => {
   align-items: center;
   gap: 12px;
   margin-left: 8px;
+}
+
+.proxy-selector--hidden {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 /* Dropdown Wrapper */
@@ -544,6 +585,7 @@ watch(() => proxiesStore.now, async (newNow) => {
 /* Title Bar */
 .minus {
   margin-right: 25px;
+  margin-left: auto;
   float: right;
   font-size: 18px;
   color: var(--text-color);
@@ -553,6 +595,7 @@ watch(() => proxiesStore.now, async (newNow) => {
 
 .minus-win {
   margin-right: 12px;
+  margin-left: auto;
   float: right;
   font-size: 20px;
   color: var(--text-color);

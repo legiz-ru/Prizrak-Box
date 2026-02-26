@@ -13,6 +13,7 @@ import Connection from '@/views/Connection.vue';
 import Log from '@/views/Log.vue';
 import Crawl from '@/views/Crawl.vue';
 import Dns from '@/views/setting/Dns.vue';
+import Shortcut from '@/views/setting/Shortcut.vue';
 
 const routes: Array<RouteRecordRaw> = [
     {
@@ -34,6 +35,11 @@ const routes: Array<RouteRecordRaw> = [
         path: '/Setting/Dns',
         name: 'Dns',
         component: Dns,
+    },
+    {
+        path: '/Setting/Shortcut',
+        name: 'Shortcut',
+        component: Shortcut,
     },
     {
         path: '/Proxies',

@@ -2,6 +2,7 @@ import {app, BrowserWindow, BrowserWindowConstructorOptions, ipcMain, session} f
 import path from 'node:path';
 import {startServer, storeInfo} from "./server";
 import {doQuit, initTray, showWindow} from "./tray";
+import {initShortcut} from "./shortcut";
 import {startBackend} from "./admin";
 import log from './log';
 import {initStore, storeGet} from "./store";
@@ -82,6 +83,9 @@ const createWindow = (isBoot: boolean) => {
 
     // 托盘
     initTray(mainWindow);
+
+    // 快捷键
+    initShortcut(mainWindow);
 
     // 页面加载
     const listenAddr = storeInfo.listenAddr();

@@ -83,6 +83,27 @@
     "rand": true
   },
   {
+    "id": "rails",
+    "bg": [
+      "https://loremflickr.com/1920/1080/train?",
+      "https://loremflickr.com/1920/1080/locomotive?",
+      "https://loremflickr.com/1920/1080/railroad?",
+      "https://loremflickr.com/1920/1080/steam-train?",
+      "https://loremflickr.com/1920/1080/metro,train?",
+      "https://loremflickr.com/1920/1080/moscow,metro?",
+      "https://loremflickr.com/1920/1080/newyork,subway,train?",
+      "https://loremflickr.com/1920/1080/london,subway?",
+      "https://loremflickr.com/1920/1080/japan,train?",
+      "https://loremflickr.com/1920/1080/thailand,railway,train?",
+      "https://loremflickr.com/1920/1080/paris,subway,train?",
+      "https://loremflickr.com/1920/1080/sbahn?",
+      "https://loremflickr.com/1920/1080/russianrailways?",
+      "https://loremflickr.com/1920/1080/railway,nature,russia?",
+      "https://loremflickr.com/1920/1080/railway,winter,russia?"
+    ],
+    "rand": true
+  },
+  {
     "id": "random",
     "bg": [
       "https://img.fanpx.com/random.php?orientation=landscape",
