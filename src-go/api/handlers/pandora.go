@@ -192,22 +192,13 @@ func updateHTTPClientConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 构建用户代理字符串
-	userAgent := ""
-	if config.EnableHWID && config.Version != "" {
-		userAgent = "prizrak-box/" + config.Version
-	} else {
-		userAgent = "clash-verge/v2.3.0"
-	}
-
-	// 更新配置
+	// UA строится внутри UpdateHTTPClientConfig в едином формате.
 	httpConfig := &utils.HTTPClientConfig{
 		EnableHWID:  config.EnableHWID,
 		Version:     config.Version,
 		DeviceOS:    config.DeviceOS,
 		DeviceOSVer: config.DeviceOSVer,
 		DeviceModel: config.DeviceModel,
-		UserAgent:   userAgent,
 	}
 
 	utils.UpdateHTTPClientConfig(httpConfig)

@@ -328,7 +328,7 @@ function handleDropdownCommand(command: string) {
   margin: 0 auto;
   padding: 12px 20px;
   box-sizing: border-box;
-  border-radius: 8px;
+  border-radius: 20px;
   background: var(--sub-card-bg);
   box-shadow: var(--right-box-shadow);
 }

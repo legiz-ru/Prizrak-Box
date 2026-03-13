@@ -167,27 +167,23 @@ onUnmounted(() => {
     </div>
     <p class="service-setting__description">{{ t('service.mode-description') }}</p>
     <div class="service-setting__actions">
-      <el-button
-          type="primary"
-          :loading="loading"
-          @click="installService"
-      >
+      <button class="pill-btn" :disabled="loading" @click="installService">
+        <icon-mdi-loading v-if="loading" class="pill-spin"/>
         {{ t('service.install-btn') }}
-      </el-button>
-      <el-button
+      </button>
+      <button
           v-if="serviceStatus.installed || serviceStatus.running"
-          type="danger"
-          :loading="loading"
+          class="pill-btn pill-btn--danger"
+          :disabled="loading"
           @click="uninstallService"
       >
+        <icon-mdi-loading v-if="loading" class="pill-spin"/>
         {{ t('service.uninstall-btn') }}
-      </el-button>
-      <el-button
-          :loading="loading"
-          @click="fetchServiceStatus"
-      >
+      </button>
+      <button class="pill-btn" :disabled="loading" @click="fetchServiceStatus">
+        <icon-mdi-loading v-if="loading" class="pill-spin"/>
         {{ t('service.check-status') }}
-      </el-button>
+      </button>
     </div>
   </div>
 </template>
@@ -206,6 +202,8 @@ onUnmounted(() => {
 
 .service-setting__status {
   margin-left: 8px;
+  --el-tag-border-radius: 999px;
+  border-radius: 999px;
 }
 
 .service-setting__description {
@@ -217,7 +215,47 @@ onUnmounted(() => {
 
 .service-setting__actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 10px;
+}
+
+.pill-btn {
+  border: none;
+  border-radius: 999px;
+  background-color: var(--left-nav-btn-bg);
+  color: var(--text-color);
+  padding: 6px 18px;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: var(--left-nav-shadow);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.pill-btn:hover {
+  background-color: var(--left-item-selected-bg);
+  box-shadow: var(--left-nav-hover-shadow);
+}
+
+.pill-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pill-btn--danger:hover {
+  background-color: #f56c6c;
+}
+
+.pill-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 </style>

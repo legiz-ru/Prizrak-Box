@@ -2,18 +2,17 @@ package internal
 
 import (
 	"fmt"
+	"github.com/legiz-ru/prizrak-box/pkg/constant"
+	sysProxy "github.com/legiz-ru/prizrak-box/pkg/sys/proxy"
+	"github.com/metacubex/mihomo/hub/executor"
+	RC "github.com/metacubex/mihomo/rules/common"
+	"github.com/metacubex/mihomo/tunnel"
 	"io"
 	"os"
 	"runtime"
 	"sort"
 	"strings"
 	"sync"
-
-	"github.com/legiz-ru/prizrak-box/pkg/constant"
-	sysProxy "github.com/legiz-ru/prizrak-box/pkg/sys/proxy"
-	"github.com/metacubex/mihomo/hub/executor"
-	RC "github.com/metacubex/mihomo/rules/common"
-	"github.com/metacubex/mihomo/tunnel"
 
 	"github.com/legiz-ru/prizrak-box/api/models"
 	"github.com/legiz-ru/prizrak-box/pkg/cache"
@@ -699,6 +698,16 @@ func updateNameServerPolicyValue(value any, mapping map[string]string) (any, boo
 }
 
 func buildMergedRawConfig(primary models.Profile, profiles []models.Profile) (*config.RawConfig, error) {
+	// Handle pxd-template special schemes before normal processing
+	if primary.PxdTemplateUrl != "" {
+		switch primary.PxdTemplateScheme {
+		case "proxy-providers":
+			return buildProxyProviderConfig(primary)
+		case "payload":
+			return buildPayloadConfig(primary)
+		}
+	}
+
 	primaryRaw, err := loadProfileRawConfig(primary)
 	if err != nil {
 		return nil, err
@@ -1132,6 +1141,11 @@ func startCore(profile models.Profile, profiles []models.Profile, reload bool) {
 func getTemplate(profile models.Profile) (bool, string, []byte) {
 	// 默认模版ID
 	defaultId := fmt.Sprintf("%s%d", constant.PrefixTemplate, 0)
+
+	// pxd-template with no special scheme — use as remote template URL
+	if buf, ok := getPxdTemplateBytes(profile); ok {
+		return true, "pxd_" + utils.MD5(profile.PxdTemplateUrl), buf
+	}
 
 	// 优先启用个性模板
 	var template models.Template

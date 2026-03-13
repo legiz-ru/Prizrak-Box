@@ -63,7 +63,7 @@ function clearInput() {
   /* 为清除按钮预留空间 */
   padding: 8px 32px 8px 8px;
   border: 2px solid var(--text-color); /* 边框 */
-  border-radius: 8px; /* 圆角 */
+  border-radius: 20px;
   background-color: transparent; /* 背景透明 */
   color: var(--text-color);
   font-size: 14px; /* 字体大小 */

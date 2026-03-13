@@ -13,6 +13,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/net/html"
@@ -23,11 +24,10 @@ import (
 
 // 全局超时设置
 var (
-	ConnTimeOut      = 14 * time.Second
-	DialTimeOut      = 5 * time.Second
-	FastTimeOut      = 15 * time.Second
-	defaultUserAgent = "clash-verge/v2.3.0"
-	headPattern      = regexp.MustCompile(`204|blank|generate|gstatic`)
+	ConnTimeOut = 14 * time.Second
+	DialTimeOut = 5 * time.Second
+	FastTimeOut = 15 * time.Second
+	headPattern = regexp.MustCompile(`204|blank|generate|gstatic`)
 )
 
 // HTTPClientConfig 配置结构
@@ -41,9 +41,20 @@ type HTTPClientConfig struct {
 }
 
 // 全局配置，可通过API更新
-var globalConfig = &HTTPClientConfig{
-	EnableHWID: false,
-	UserAgent:  defaultUserAgent,
+var (
+	globalConfigMu sync.RWMutex
+	globalConfig   = &HTTPClientConfig{}
+)
+
+// buildUserAgent формирует единый UA вида:
+// Clash-Meta/Prizrak-Box (Desktop Build {version} {OS})
+// независимо от настройки HWID.
+func buildUserAgent(version, deviceOS string) string {
+	osName := normalizeOSName(deviceOS)
+	if version != "" {
+		return fmt.Sprintf("Clash-Meta/Prizrak-Box (Desktop Build %s %s)", version, osName)
+	}
+	return fmt.Sprintf("Clash-Meta/Prizrak-Box (Desktop Build %s)", osName)
 }
 
 func hashString(input string) string {
@@ -69,19 +80,28 @@ func generateRawHWID() string {
 
 // UpdateHTTPClientConfig 更新HTTP客户端配置
 func UpdateHTTPClientConfig(config *HTTPClientConfig) {
+	globalConfigMu.Lock()
+	defer globalConfigMu.Unlock()
+
 	globalConfig = config
+	// UA всегда строится в едином формате, независимо от EnableHWID.
 	if globalConfig.UserAgent == "" {
-		if globalConfig.EnableHWID && globalConfig.Version != "" {
-			globalConfig.UserAgent = fmt.Sprintf("prizrak-box/%s", globalConfig.Version)
-		} else {
-			globalConfig.UserAgent = defaultUserAgent
-		}
+		globalConfig.UserAgent = buildUserAgent(globalConfig.Version, globalConfig.DeviceOS)
 	}
+}
+
+// getConfigSnapshot возвращает атомарную копию текущего конфига,
+// чтобы все заголовки одного запроса использовали согласованные данные.
+func getConfigSnapshot() HTTPClientConfig {
+	globalConfigMu.RLock()
+	defer globalConfigMu.RUnlock()
+	return *globalConfig
 }
 
 // buildDeviceHeaders 构建设备信息头部
 func buildDeviceHeaders() map[string]string {
-	headers, _ := resolveDeviceHeaders(globalConfig.EnableHWID)
+	cfg := getConfigSnapshot()
+	headers, _ := resolveDeviceHeadersFromConfig(cfg, cfg.EnableHWID)
 	return headers
 }
 
@@ -90,13 +110,34 @@ func GetResolvedDeviceDetails() DeviceDetails {
 	return details
 }
 
+// GetUserAgent returns the current User-Agent string.
+func GetUserAgent() string {
+	cfg := getConfigSnapshot()
+	if cfg.UserAgent != "" {
+		return cfg.UserAgent
+	}
+	return buildUserAgent("", "")
+}
+
+// IsHWIDEnabled returns whether HWID headers are currently enabled.
+func IsHWIDEnabled() bool {
+	return getConfigSnapshot().EnableHWID
+}
+
 func resolveDeviceHeaders(enable bool) (map[string]string, DeviceDetails) {
+	cfg := getConfigSnapshot()
+	return resolveDeviceHeadersFromConfig(cfg, enable)
+}
+
+// resolveDeviceHeadersFromConfig строит заголовки устройства на основе
+// снимка конфига, чтобы избежать race condition при параллельных запросах.
+func resolveDeviceHeadersFromConfig(cfg HTTPClientConfig, enable bool) (map[string]string, DeviceDetails) {
 	details := GetDeviceDetails()
 	resolved := DeviceDetails{
 		HWID:      details.HWID,
-		OS:        firstNonEmpty(globalConfig.DeviceOS, details.OS),
-		OSVersion: firstNonEmpty(globalConfig.DeviceOSVer, details.OSVersion),
-		Model:     firstNonEmpty(globalConfig.DeviceModel, details.Model),
+		OS:        firstNonEmpty(cfg.DeviceOS, details.OS),
+		OSVersion: firstNonEmpty(cfg.DeviceOSVer, details.OSVersion),
+		Model:     firstNonEmpty(cfg.DeviceModel, details.Model),
 	}
 
 	resolved.OS = normalizeOSName(resolved.OS)
@@ -171,6 +212,10 @@ func newHttpClient(proxyURL string, timeout time.Duration) (*http.Client, error)
 
 // sendRequest 发送 HTTP 请求，返回响应对象，由调用方负责关闭 Body
 func sendRequest(method, requestURL string, headers map[string]string, proxyURL string, timeout time.Duration) (*http.Response, error) {
+	// Снимаем конфиг один раз, чтобы все заголовки запроса
+	// были согласованы даже при параллельной смене globalConfig.
+	cfg := getConfigSnapshot()
+
 	client, err := newHttpClient(proxyURL, timeout)
 	if err != nil {
 		return nil, err
@@ -181,10 +226,13 @@ func sendRequest(method, requestURL string, headers map[string]string, proxyURL 
 		return nil, fmt.Errorf("创建请求失败: %w", err)
 	}
 
-	// 添加设备信息头部（如果启用HWID）
-	deviceHeaders := buildDeviceHeaders()
-	for k, v := range deviceHeaders {
-		req.Header.Set(k, v)
+	// Добавляем HWID-заголовки если опция включена.
+	// Используем тот же снимок конфига для консистентности.
+	if cfg.EnableHWID {
+		deviceHeaders, _ := resolveDeviceHeadersFromConfig(cfg, true)
+		for k, v := range deviceHeaders {
+			req.Header.Set(k, v)
+		}
 	}
 
 	// 添加用户自定义头部
@@ -192,11 +240,11 @@ func sendRequest(method, requestURL string, headers map[string]string, proxyURL 
 		req.Header.Set(k, v)
 	}
 
-	// 设置User-Agent（优先级：用户自定义 > 全局配置 > 默认值）
+	// Устанавливаем User-Agent (приоритет: пользовательские заголовки > конфиг).
 	if _, ok := headers["User-Agent"]; !ok {
-		userAgent := globalConfig.UserAgent
+		userAgent := cfg.UserAgent
 		if userAgent == "" {
-			userAgent = defaultUserAgent
+			userAgent = buildUserAgent("", "")
 		}
 		req.Header.Set("User-Agent", userAgent)
 	}
@@ -319,13 +367,7 @@ func SendHead(requestURL string, proxyURL string) (int, error) {
 		method = "HEAD"
 	}
 
-	// 使用当前配置的User-Agent
-	userAgent := globalConfig.UserAgent
-	if userAgent == "" {
-		userAgent = defaultUserAgent
-	}
-
-	resp, err := sendRequest(method, requestURL, map[string]string{"User-Agent": userAgent}, proxyURL, 8*time.Second)
+	resp, err := sendRequest(method, requestURL, map[string]string{}, proxyURL, 8*time.Second)
 	if err != nil {
 		return 500, err
 	}

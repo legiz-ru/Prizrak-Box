@@ -1,11 +1,11 @@
 <script lang="ts" setup>
-import {useRouter, useRoute} from "vue-router";
+import {useRouter} from "vue-router";
 import {useI18n} from "vue-i18n";
 import createApi from "@/api";
 import {useProxiesStore} from "@/store/proxiesStore";
 import {useSettingStore} from "@/store/settingStore";
 import {changeProxyAndCloseConnections} from "@/util/proxy";
-import {pError} from "@/util/pLoad";
+import {pError, pWarning} from "@/util/pLoad";
 import {Events} from "@/runtime";
 import type {ProxyGroupInfo} from "@/api/proxies";
 import {useWebStore} from "@/store/webStore";
@@ -29,12 +29,8 @@ const isGroupDropdownOpen = ref(false);
 const isProxyDropdownOpen = ref(false);
 
 const router = useRouter()
-const route = useRoute()
 
 const isWindows = ref(false)
-
-// Скрываем дропдауны групп/прокси когда открыт раздел Прокси (дублирование)
-const isProxiesPage = computed(() => route.name === 'Proxies')
 
 // Load groups
 async function loadGroups() {
@@ -90,30 +86,6 @@ async function loadProxies() {
   }
 }
 
-// Тестирует все группы параллельно и обновляет список прокси.
-// Вызывается при старте и смене профиля, чтобы прокси в цепочке
-// Smart→URLTest→proxy получили актуальные данные о задержке.
-// Smart-группы могут быть вложены в Selector и не входить в верхний уровень,
-// поэтому тестируем ВСЕ верхнеуровневые группы — это каскадно покрывает вложенные Smart.
-async function autoTestAllGroups(groupInfoList: ProxyGroupInfo[]) {
-  if (groupInfoList.length === 0) return;
-  await Promise.all(
-    groupInfoList.map(async (g) => {
-      try {
-        let testUrl = settingStore.testUrl;
-        if (settingStore.independentDelayTest) {
-          const groupUrl = await api.getGroupTestUrl(g.name);
-          testUrl = groupUrl || 'https://www.gstatic.com/generate_204';
-        }
-        await api.getDelay(g.name, testUrl, 3000);
-      } catch (_) {
-        // Ignore errors for individual groups
-      }
-    })
-  );
-  await loadProxies(); // Обновляем список с актуальными данными задержки
-}
-
 // Get server description for info tooltip
 function getServerDescription(proxy: any): string | undefined {
   return proxy?.displayType !== proxy?.type ? proxy?.displayType : undefined;
@@ -138,6 +110,13 @@ async function selectGroup(group: ProxyGroupInfo) {
 // Handle proxy selection
 async function selectProxy(proxy: any) {
   if (proxy.now) {
+    isProxyDropdownOpen.value = false;
+    return;
+  }
+
+  const group = groupList.value.find(g => g.name === selectedGroup.value);
+  if (group?.type !== 'Selector') {
+    pWarning(t('proxies.auto-group-no-manual-select'));
     isProxyDropdownOpen.value = false;
     return;
   }
@@ -168,12 +147,25 @@ async function selectProxy(proxy: any) {
   }
 }
 
+// Тихий тест задержек без индикатора загрузки
+async function runDelayTestSilent() {
+  const group = selectedGroup.value || proxiesStore.active;
+  if (!group) return;
+  try {
+    await api.getDelay(group, settingStore.testUrl, 3000);
+    await loadProxies();
+  } catch (_) {
+    // silently ignore
+  }
+}
+
 // Toggle dropdowns
 async function toggleGroupDropdown() {
   const nextOpen = !isGroupDropdownOpen.value;
   if (nextOpen) {
     await loadGroups();
     isProxyDropdownOpen.value = false;
+    runDelayTestSilent(); // fire-and-forget: auto-test when group dropdown opens
   }
   isGroupDropdownOpen.value = nextOpen;
 }
@@ -183,6 +175,7 @@ async function toggleProxyDropdown() {
   if (nextOpen) {
     await loadProxies();
     isGroupDropdownOpen.value = false;
+    runDelayTestSilent(); // fire-and-forget: auto-test when proxy dropdown opens
   }
   isProxyDropdownOpen.value = nextOpen;
 }
@@ -205,7 +198,6 @@ const handleProfileChanged = async () => {
   isProxyDropdownOpen.value = false;
   await loadGroups();
   await loadProxies();
-  autoTestAllGroups(groupList.value); // fire-and-forget: тест после смены профиля
 };
 
 onMounted(async () => {
@@ -217,11 +209,6 @@ onMounted(async () => {
   // Load groups and proxies
   await loadGroups();
   await loadProxies();
-  // Тестируем все верхнеуровневые группы, чтобы Smart-субгруппы (нет авто-теста
-  // в бэкенде) получили актуальные данные задержки. Smart может быть вложен в
-  // Selector и не входить в список верхнего уровня, поэтому тестируем все группы
-  // (аналогично кнопке "Тест задержки", но для всех групп сразу).
-  autoTestAllGroups(groupList.value); // fire-and-forget
 
   // Add click outside handler
   document.addEventListener('click', handleClickOutside);
@@ -272,7 +259,7 @@ watch(() => proxiesStore.now, async (newNow) => {
 <template>
   <div :class="isWindows?'search-container win':'search-container'">
     <div class="header-content no-drag">
-      <div :class="['proxy-selector', { 'proxy-selector--hidden': isProxiesPage }]">
+      <div class="proxy-selector">
         <!-- Group Dropdown -->
         <div class="dropdown-wrapper">
           <div class="dropdown-button" @click="toggleGroupDropdown">
@@ -370,11 +357,6 @@ watch(() => proxiesStore.now, async (newNow) => {
   margin-left: 8px;
 }
 
-.proxy-selector--hidden {
-  visibility: hidden;
-  pointer-events: none;
-}
-
 /* Dropdown Wrapper */
 .dropdown-wrapper {
   position: relative;
@@ -392,7 +374,7 @@ watch(() => proxiesStore.now, async (newNow) => {
   padding: 14px 12px 8px 12px;
   border: 1px solid var(--dropdown-border-color);
   border-top-color: transparent;
-  border-radius: 10px;
+  border-radius: 20px;
   background-color: var(--sub-card-bg);
   color: var(--text-color);
   font-size: 12px;
@@ -464,7 +446,7 @@ watch(() => proxiesStore.now, async (newNow) => {
   max-height: 300px;
   overflow-y: auto;
   border: 1px solid var(--dropdown-border-color);
-  border-radius: 8px;
+  border-radius: 20px;
   background-color: var(--dropdown-list-bg);
   box-shadow: var(--skin-box-shadow);
   z-index: 9999;

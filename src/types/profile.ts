@@ -21,6 +21,8 @@ export class Profile {
     announceUrl?: string; // 可选
     update?: string; // 可选
     template?: string; // 可选
+    pxdTemplateUrl?: string;
+    pxdTemplateScheme?: string;
 }
 
 export interface ProfileSelectionPayload {

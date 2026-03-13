@@ -230,15 +230,9 @@ const switchTemplate = async () => {
         </ul>
       </div>
       <el-divider direction="vertical" border-style="dashed"/>
-      <el-button @click="saveTemplate">
-        {{ t("save") }}
-      </el-button>
-      <el-button @click="addVisible=true;addForm.content=''">
-        {{ t("add") }}
-      </el-button>
-      <el-button @click="deleteTemplate" v-if="canDelete">
-        {{ t("delete") }}
-      </el-button>
+      <button class="pill-btn" @click="saveTemplate">{{ t("save") }}</button>
+      <button class="pill-btn" @click="addVisible=true;addForm.content=''">{{ t("add") }}</button>
+      <button class="pill-btn pill-btn--danger" @click="deleteTemplate" v-if="canDelete">{{ t("delete") }}</button>
       <el-divider direction="vertical" border-style="dashed"/>
       <el-text :class="now.selected ? 'sf' : 'st'">{{ t("off") }}</el-text>
       <el-switch
@@ -298,8 +292,8 @@ const switchTemplate = async () => {
 
 <style scoped>
 .group {
-  width: 95%;
-  margin-left: 10px;
+  width: 100%;
+  margin-left: 0;
   margin-top: 5px;
 }
 
@@ -320,7 +314,7 @@ const switchTemplate = async () => {
   cursor: pointer;
   font-size: 15px;
   outline: none;
-  border-radius: 8px;
+  border-radius: 999px;
   min-width: 150px;
 }
 
@@ -337,7 +331,7 @@ const switchTemplate = async () => {
   list-style: none;
   min-width: 146px;
   z-index: 20;
-  border-radius: 8px;
+  border-radius: 20px;
   font-size: 15px;
   text-align: center;
 }
@@ -374,12 +368,25 @@ const switchTemplate = async () => {
   left: calc(100% - 21px);
 }
 
-.op :deep(.el-button) {
-  padding: 2px 10px;
-  --el-button-bg-color: transparent;
-  --el-button-text-color: var(--text-color);
-  --el-button-hover-text-color: var(--left-item-selected-bg);
-  --el-button-hover-bg-color: var(--text-color);
+.pill-btn {
+  border: none;
+  border-radius: 999px;
+  background-color: var(--left-nav-btn-bg);
+  color: var(--text-color);
+  padding: 6px 18px;
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: var(--left-nav-shadow);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pill-btn:hover {
+  background-color: var(--left-item-selected-bg);
+  box-shadow: var(--left-nav-hover-shadow);
+}
+
+.pill-btn--danger:hover {
+  background-color: #f56c6c;
 }
 
 .st {
@@ -396,14 +403,14 @@ const switchTemplate = async () => {
 
 :deep(.ace_editor) {
   border: 2px solid var(--text-color);
-  border-radius: 8px;
+  border-radius: 20px;
   font: 15px "Twemoji", "Monaco", "Menlo", "Ubuntu Mono", "Consolas",
   "Source Code Pro", "source-code-pro", monospace;
 }
 
 :deep(.ace_gutter) {
-  border-top-left-radius: 8px;
-  border-bottom-left-radius: 8px;
+  border-top-left-radius: 20px;
+  border-bottom-left-radius: 20px;
 }
 
 :deep(.ace_search.right) {

@@ -231,20 +231,8 @@ watch(() => webStore.fProfile, async () => {
           </div>
         </div>
         <div class="tag-row">
-          <el-tag
-              v-if="provider.vehicleType"
-              size="small"
-              type="info"
-          >
-            {{ provider.vehicleType }}
-          </el-tag>
-          <el-tag
-              v-if="provider.behavior"
-              size="small"
-              type="success"
-          >
-            {{ provider.behavior }}
-          </el-tag>
+          <el-tag v-if="provider.vehicleType" size="small" type="info" class="provider-tag">{{ provider.vehicleType }}</el-tag>
+          <el-tag v-if="provider.behavior" size="small" type="success" class="provider-tag">{{ provider.behavior }}</el-tag>
         </div>
         <div class="stats">
           <div class="stat-line">
@@ -273,8 +261,8 @@ watch(() => webStore.fProfile, async () => {
 
 <style scoped>
 .rule-providers {
-  width: 95%;
-  margin-left: 10px;
+  width: 100%;
+  margin-left: 0;
   margin-top: 10px;
 }
 
@@ -292,8 +280,8 @@ watch(() => webStore.fProfile, async () => {
   background-color: transparent;
   color: var(--text-color);
   border: 2px solid var(--hr-color);
-  border-radius: 8px;
-  padding: 6px 12px 6px 32px;
+  border-radius: 999px;
+  padding: 6px 16px 6px 36px;
   font-size: 16px;
   cursor: pointer;
   box-shadow: var(--left-nav-shadow);
@@ -338,7 +326,7 @@ watch(() => webStore.fProfile, async () => {
 .provider-card {
   padding: 8px 10px;
   border: 2px solid var(--sub-card-border);
-  border-radius: 8px;
+  border-radius: 20px;
   background: var(--sub-card-bg);
   color: var(--text-color);
   box-shadow: var(--left-nav-shadow);
@@ -393,6 +381,10 @@ watch(() => webStore.fProfile, async () => {
   flex-wrap: wrap;
   gap: 6px;
   padding: 0 4px;
+}
+
+.provider-tag {
+  border-radius: 999px;
 }
 
 .stats {

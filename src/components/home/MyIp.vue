@@ -191,6 +191,13 @@ onMounted(async () => {
           <div class="title title-left">
             {{ $t('home.ip.title') }}
             <el-tooltip
+                :content="$t('home.ip.service-tip')"
+                placement="top">
+              <el-icon size="18" class="ipServiceInfo">
+                <icon-mdi-information-outline/>
+              </el-icon>
+            </el-tooltip>
+            <el-tooltip
                 :content="$t('refresh')"
                 placement="top">
               <el-icon size="18"
@@ -313,7 +320,7 @@ onMounted(async () => {
 
 .box {
   padding: 12px 20px;
-  border-radius: 8px;
+  border-radius: 20px;
   background: var(--sub-card-bg);
   border: 1px solid var(--sub-card-border);
   box-shadow: var(--right-box-shadow);
@@ -392,6 +399,18 @@ onMounted(async () => {
 }
 
 .refreshIp:hover {
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.ipServiceInfo {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ipServiceInfo:hover {
   cursor: pointer;
   opacity: 0.8;
 }

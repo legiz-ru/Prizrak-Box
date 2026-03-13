@@ -201,10 +201,12 @@ h3 {
   border: 2px dashed var(--text-color);
   text-align: center;
   padding-top: 70px;
-  border-radius: 10px;
+  border-radius: 20px;
 }
 
 .import-button {
   min-width: 200px;
+  --el-border-radius-base: 999px;
+  border-radius: 999px;
 }
 </style>

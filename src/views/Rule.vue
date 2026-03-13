@@ -101,7 +101,7 @@ const setActive = function (value: string) {
   background-color: transparent;
   color: var(--text-color);
   border: 2px solid var(--hr-color);
-  border-radius: 8px;
+  border-radius: 20px;
   padding: 6px 8px 6px 8px;
   font-size: 16px;
   text-align: center;

@@ -126,8 +126,9 @@ const getProxyDelay = (proxy: any, proxiesMap: Record<string, any>, depth = 0): 
 
     const type = proxy?.['type'];
     const now = proxy?.['now'];
-    if (includeGroup[type] && typeof now === 'string' && proxiesMap?.[now]) {
-        // Рекурсивно проходим цепочку: Smart → URLTest → individual proxy
+    // Следуем по цепочке только для Smart-групп: бэкенд не вычисляет им задержку,
+    // у Selector/URLTest/etc. есть собственная история — используем её напрямую.
+    if (type === 'Smart' && typeof now === 'string' && proxiesMap?.[now]) {
         return getProxyDelay(proxiesMap[now], proxiesMap, depth + 1);
     }
 
@@ -164,6 +165,19 @@ export default function createProxiesApi(proxy: any) {
         async getDelay(group: any, url: any, timeout: any) {
             await proxy.$http.get('/group/' + group + '/delay?timeout=' + timeout + "&url=" + url);
         },
+        // 获取 Smart 分组的权重信息
+        async getGroupWeights(name: string): Promise<{ weights: Array<{ Name: string; Rank: string; Weight: number }>; hasData: boolean }> {
+            try {
+                const data = await proxy.$http.get('/group/' + encodeURIComponent(name) + '/weights');
+                const weights = data?.['weights'];
+                if (Array.isArray(weights) && weights.length > 0) {
+                    return { weights, hasData: true };
+                }
+                return { weights: [], hasData: false };
+            } catch {
+                return { weights: [], hasData: false };
+            }
+        },
         // 获取分组配置的测试URL
         async getGroupTestUrl(name: string): Promise<string | null> {
             try {
@@ -178,10 +192,10 @@ export default function createProxiesApi(proxy: any) {
         async getGroups(): Promise<ProxyGroupInfo[]> {
             // 获取所有节点分组列表
             const data = await proxy.$http.get('/proxies');
-            const proxies = data['proxies']
+            const proxies = data?.['proxies']
 
-            // 判空
-            if (!proxies['GLOBAL']) {
+            // 判空 — proxies может быть null пока Mihomo загружает pxd-template конфиг
+            if (!proxies?.['GLOBAL']) {
                 return []
             }
 
@@ -211,7 +225,7 @@ export default function createProxiesApi(proxy: any) {
         async getProxies(active: string, isHide: boolean, isSort: boolean) {
             // 获取所有节点分组列表
             const data = await proxy.$http.get('/proxies')
-            const proxies = data['proxies']
+            const proxies = data?.['proxies']
             let serverDescriptions: Record<string, string> = {}
             try {
                 const descriptions = await proxy.$http.get('/profile/serverDescriptions')
@@ -222,8 +236,8 @@ export default function createProxiesApi(proxy: any) {
                 serverDescriptions = {}
             }
 
-            // 判空
-            if (!proxies[active]) {
+            // 判空 — proxies может быть null пока Mihomo загружает pxd-template конфиг
+            if (!proxies?.[active]) {
                 return []
             }
 

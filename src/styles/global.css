@@ -65,3 +65,32 @@ svg text {
     font-family: 'Twemoji', 'Nunito', 'Microsoft YaHei', sans-serif !important;
     font-feature-settings: normal !important;
 }
+
+/* ===== Глобальные стили el-dialog ===== */
+
+/* Скруглённые углы 20px у всех диалогов */
+.el-overlay-dialog .el-dialog {
+    border-radius: 20px !important;
+    overflow: hidden;
+}
+
+/* Поля ввода в виде пилюль */
+.el-overlay-dialog .el-input__wrapper {
+    border-radius: 999px !important;
+}
+
+/* Многострочный textarea — мягкое скругление */
+.el-overlay-dialog .el-textarea__inner {
+    border-radius: 20px !important;
+}
+
+/* Кнопки в виде пилюль (кроме круглых circle-кнопок) */
+.el-overlay-dialog .el-button:not(.is-circle) {
+    border-radius: 999px !important;
+}
+
+/* Поля выбора (select) в виде пилюль */
+.el-overlay-dialog .el-select__wrapper,
+.el-overlay-dialog .el-select .el-input__wrapper {
+    border-radius: 999px !important;
+}

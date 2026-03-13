@@ -654,4 +654,17 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 
 	parseProfileLogo(header, profile)
 
+	// pxd-template
+	if val := strings.TrimSpace(header.Get("Pxd-Template")); val != "" {
+		profile.PxdTemplateUrl = val
+	} else {
+		profile.PxdTemplateUrl = ""
+	}
+
+	// pxd-template-scheme
+	if val := strings.TrimSpace(header.Get("Pxd-Template-Scheme")); val != "" {
+		profile.PxdTemplateScheme = val
+	} else {
+		profile.PxdTemplateScheme = ""
+	}
 }

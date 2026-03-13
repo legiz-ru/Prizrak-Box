@@ -1,9 +1,14 @@
 <script setup lang="ts">
 
+const props = defineProps({
+  section: { type: String, default: 'all' }
+})
+
 import MyPort from "@/components/setting/MyPort.vue";
 import MyBind from "@/components/setting/MyBind.vue";
 import MyTun from "@/components/setting/MyTun.vue";
 import MyService from "@/components/setting/MyService.vue";
+import MyHotkeyInput from "@/components/setting/MyHotkeyInput.vue";
 import {ArrowDown, EditPen} from "@element-plus/icons-vue";
 import {useWebStore} from "@/store/webStore";
 import {useHomeStore} from "@/store/homeStore";
@@ -350,10 +355,12 @@ watch(dashboardDialogVisible, (visible) => {
   }
 });
 
+const shortcutDialogVisible = ref(false);
+
 </script>
 
 <template>
-  <el-row :gutter="20" class="spark"
+  <el-row v-if="props.section !== 'app'" :gutter="20" class="spark"
           style="margin-left: 0;
           margin-top: 2px;
           margin-right: 0;">
@@ -408,16 +415,12 @@ watch(dashboardDialogVisible, (visible) => {
               <span class="api-row__value">{{ webStore.baseUrl }}</span>
             </div>
             <div class="api-row__actions">
-              <el-button @click="copy(webStore.baseUrl,t)">
-                {{ $t('copy.title') }}
-              </el-button>
+              <button class="pill-btn" @click="copy(webStore.baseUrl,t)">{{ $t('copy.title') }}</button>
               <el-dropdown trigger="click" @command="handleDashboardCommand" class="api-row__dropdown">
-                <el-button>
+                <button class="pill-btn pill-btn--arrow">
                   {{ t('setting.dashboard.open') }}
-                  <el-icon class="api-row__icon">
-                    <ArrowDown/>
-                  </el-icon>
-                </el-button>
+                  <el-icon class="api-row__icon"><ArrowDown/></el-icon>
+                </button>
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item
@@ -438,20 +441,19 @@ watch(dashboardDialogVisible, (visible) => {
           <li style="height: 30px">
             <strong>Secret:</strong>
             {{ webStore.secret }}
-            <el-button
-                @click="copy(webStore.secret,t)">
-              {{ $t('copy.title') }}
-            </el-button>
+            <button class="pill-btn" @click="copy(webStore.secret,t)">{{ $t('copy.title') }}</button>
           </li>
         </ul>
       </div>
     </el-col>
   </el-row>
 
-  <el-row :gutter="20" class="spark"
-          style="margin-left: 0;
-          margin-top: 30px;
-          margin-right: 0;">
+  <el-row v-if="props.section !== 'core'" :gutter="20" class="spark"
+          :style="{
+            marginLeft: '0',
+            marginTop: props.section === 'app' ? '2px' : '30px',
+            marginRight: '0'
+          }">
     <el-col :span="24">
       <div class="box box2">
         <div class="title title--status">
@@ -513,7 +515,7 @@ watch(dashboardDialogVisible, (visible) => {
           <li style="height: 30px">
             <strong>{{ $t('setting.shortcut.title') }} :</strong>
             <el-icon
-                @click="changeMenu('Setting/Shortcut',router)"
+                @click="shortcutDialogVisible = true"
                 class="btn">
               <EditPen/>
             </el-icon>
@@ -523,18 +525,11 @@ watch(dashboardDialogVisible, (visible) => {
                 style="margin-left: 28px"
             />
           </li>
-          <li style="height: 30px">
+          <li class="btn-row">
             <strong>{{ $t('setting.px.dir') }} :</strong>
-            <el-button @click="pxConfigDir" style="margin-left: 10px">
-              {{ $t('setting.px.open') }}
-            </el-button>
-            <el-button @click="changeConfigDir" style="margin-left: 10px">
-              {{ $t('setting.px.change') }}
-            </el-button>
-            <!--            <el-button>{{ $t('setting.px.export') }}</el-button>-->
-            <el-button @click="openImportDialog" style="margin-left: 10px">
-              {{ $t('setting.px.import') }}
-            </el-button>
+            <button class="pill-btn" @click="pxConfigDir">{{ $t('setting.px.open') }}</button>
+            <button class="pill-btn" @click="changeConfigDir">{{ $t('setting.px.change') }}</button>
+            <button class="pill-btn" @click="openImportDialog">{{ $t('setting.px.import') }}</button>
             <input
                 ref="importInputRef"
                 type="file"
@@ -545,20 +540,36 @@ watch(dashboardDialogVisible, (visible) => {
           </li>
           <li class="update-row">
             <strong>{{ $t('setting.px.update') }} :</strong>
-            <el-button @click="openReleasesPage" class="update-row__button">{{ t('updates.actions.open') }}</el-button>
-            <el-button
-                @click="checkForUpdatesManually"
-                :loading="updateChecking"
-                class="update-row__button"
-            >
+            <button class="pill-btn" @click="openReleasesPage">{{ t('updates.actions.open') }}</button>
+            <button class="pill-btn" @click="checkForUpdatesManually" :disabled="updateChecking">
+              <icon-mdi-loading v-if="updateChecking" class="pill-spin"/>
               {{ t('updates.actions.check') }}
-            </el-button>
+            </button>
           </li>
         </ul>
       </div>
     </el-col>
   </el-row>
 
+  <!-- Диалог 1: Горячие клавиши -->
+  <el-dialog
+      v-model="shortcutDialogVisible"
+      :title="t('setting.shortcut.title')"
+      width="420"
+  >
+    <ul class="shortcut-list">
+      <li class="shortcut-item">
+        <span class="shortcut-label">{{ t('setting.shortcut.showHide') }}</span>
+        <div class="shortcut-controls">
+          <el-switch v-model="settingStore.sc_switch" class="set-switch"/>
+          <MyHotkeyInput v-model="settingStore.sc_switch_key"/>
+        </div>
+      </li>
+    </ul>
+    <template #footer>
+      <el-button @click="shortcutDialogVisible = false">{{ t('close') }}</el-button>
+    </template>
+  </el-dialog>
 
   <el-dialog
       v-model="dashboardDialogVisible"
@@ -638,7 +649,7 @@ watch(dashboardDialogVisible, (visible) => {
 
 .box {
   padding: 10px;
-  border-radius: 8px;
+  border-radius: 20px;
   text-align: left;
 }
 
@@ -818,11 +829,9 @@ watch(dashboardDialogVisible, (visible) => {
 }
 
 .box1 {
-  box-shadow: var(--right-box-shadow);
 }
 
 .box2 {
-  box-shadow: var(--right-box-shadow);
 }
 
 .set-switch {
@@ -848,12 +857,53 @@ watch(dashboardDialogVisible, (visible) => {
   left: calc(100% - 21px);
 }
 
-:deep(.el-button) {
-  padding: 2px 10px;
-  --el-button-bg-color: transparent;
-  --el-button-text-color: var(--text-color);
-  --el-button-hover-text-color: var(--left-item-selected-bg);
-  --el-button-hover-bg-color: var(--text-color)
+.pill-btn {
+  border: none;
+  border-radius: 999px;
+  background-color: var(--left-nav-btn-bg);
+  color: var(--text-color);
+  padding: 6px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: var(--left-nav-shadow);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.pill-btn:hover {
+  background-color: var(--left-item-selected-bg);
+  box-shadow: var(--left-nav-hover-shadow);
+}
+
+.pill-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pill-btn--arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pill-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.btn-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 30px;
 }
 
 .dashboard-dialog :deep(.el-button--primary) {
@@ -879,5 +929,46 @@ watch(dashboardDialogVisible, (visible) => {
   color: var(--hr-color);
 }
 
+.shortcut-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
 
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 16px;
+  padding: 6px 0;
+}
+
+.shortcut-label {
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.shortcut-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Переключатель внутри диалога: всегда видимая рамка */
+.shortcut-controls :deep(.el-switch__core) {
+  border: 2px solid var(--el-border-color) !important;
+}
+
+.shortcut-controls :deep(.el-switch__core .el-switch__action) {
+  background-color: var(--el-text-color-regular) !important;
+}
+
+.shortcut-controls :deep(.el-switch.is-checked .el-switch__core) {
+  border-color: var(--el-color-primary) !important;
+  background-color: var(--el-color-primary) !important;
+}
+
+.shortcut-controls :deep(.el-switch.is-checked .el-switch__core .el-switch__action) {
+  background-color: #fff !important;
+}
 </style>

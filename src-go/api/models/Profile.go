@@ -28,8 +28,10 @@ type Profile struct {
 	Logo        string   `json:"logo,omitempty"`
 	Announce    string   `json:"announce,omitempty"`
 	AnnounceUrl string   `json:"announceUrl,omitempty"`
-	Update      string   `json:"update,omitempty"`
-	Template    string   `json:"template,omitempty"`
+	Update              string `json:"update,omitempty"`
+	Template            string `json:"template,omitempty"`
+	PxdTemplateUrl      string `json:"pxdTemplateUrl,omitempty"`
+	PxdTemplateScheme   string `json:"pxdTemplateScheme,omitempty"`
 }
 
 func (p *Profile) GetUpdateTime() time.Time {

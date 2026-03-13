@@ -4,7 +4,7 @@ import {useProxiesStore, type ProxyViewMode} from "@/store/proxiesStore";
 import {useMenuStore} from "@/store/menuStore";
 import {useSettingStore} from "@/store/settingStore";
 import {useI18n} from "vue-i18n";
-import {pError, pLoad} from "@/util/pLoad";
+import {pError, pLoad, pWarning} from "@/util/pLoad";
 import {useWebStore} from "@/store/webStore";
 import {changeProxyAndCloseConnections} from "@/util/proxy";
 
@@ -16,17 +16,66 @@ const api = createApi(proxy);
 
 // 当前页面双向绑定对象
 const groupList = ref<string[]>([]);
+const groupTypeMap = ref<Record<string, string>>({});
 const nodeList = ref<any[]>([]);
 const fullViewNodes = ref<Record<string, any[]>>({});
 const groupIcons = ref<Record<string, string>>({});
 const nestedGroupSelections = ref<Record<string, string>>({});
-const groupTypeMap = ref<Record<string, string>>({});
 const handleIconError = (event: Event) => {
   const target = event.target as HTMLImageElement | null;
   if (target) {
     target.style.display = 'none';
   }
 };
+
+// Smart-group weights
+interface WeightEntry { Name: string; Rank: string; Weight: number }
+interface GroupWeightData { weights: WeightEntry[]; hasData: boolean }
+const smartGroupWeights = ref<Record<string, GroupWeightData>>({});
+
+function getNodeWeightInfo(groupName: string, nodeName: string): { rank: string; weight: number } | null {
+  const data = smartGroupWeights.value[groupName];
+  if (!data?.hasData) return null;
+  const entry = data.weights.find(w => w.Name === nodeName);
+  return entry ? { rank: entry.Rank, weight: entry.Weight } : null;
+}
+
+function rankLabel(rank: string): string {
+  switch (rank) {
+    case 'MostUsed': return t('proxies.smart.most-used');
+    case 'OccasionalUsed': return t('proxies.smart.occasional-used');
+    case 'RarelyUsed': return t('proxies.smart.rarely-used');
+    default: return rank;
+  }
+}
+
+async function fetchSmartWeights() {
+  const toFetch = new Set<string>();
+  for (const [name, type] of Object.entries(groupTypeMap.value)) {
+    if (type === 'Smart') toFetch.add(name);
+  }
+  const allNodes = [
+    ...nodeList.value,
+    ...Object.values(fullViewNodes.value).flat(),
+  ];
+  for (const node of allNodes) {
+    if (node?.type === 'Smart') toFetch.add(node.name);
+  }
+  if (toFetch.size === 0) return;
+  const results = await Promise.allSettled(
+    Array.from(toFetch).map(async (name) => {
+      const data = await api.getGroupWeights(name);
+      return { name, data };
+    })
+  );
+  const newMap = { ...smartGroupWeights.value };
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      newMap[result.value.name] = result.value.data;
+    }
+  }
+  smartGroupWeights.value = newMap;
+}
 
 // 当前页面使用store
 const proxiesStore = useProxiesStore();
@@ -56,13 +105,21 @@ async function groups() {
   if (!webStore.fProfile || !webStore.fProfile['id']) {
     groupList.value = [];
     groupIcons.value = {};
+    groupTypeMap.value = {};
     proxiesStore.setActive('');
     return;
   }
   // 活跃分组
   const active = proxiesStore.active;
 
-  const rawGroups = await api.getGroups();
+  let rawGroups: any[];
+  try {
+    rawGroups = await api.getGroups();
+  } catch (e) {
+    // Mihomo ещё не готов (pxd-template загружается на старте) — молча выходим,
+    // earlyRetry повторит попытку через 3 секунды
+    return;
+  }
   const normalizedInput = Array.isArray(rawGroups) ? rawGroups : [];
   const normalized = normalizedInput
       .map((item: any) => {
@@ -79,12 +136,8 @@ async function groups() {
   const icons: Record<string, string> = {};
   const typeMap: Record<string, string> = {};
   normalized.forEach(({name, icon, type}) => {
-    if (icon) {
-      icons[name] = icon;
-    }
-    if (type) {
-      typeMap[name] = type;
-    }
+    if (icon) icons[name] = icon;
+    if (type) typeMap[name] = type;
   });
   groupIcons.value = icons;
   groupTypeMap.value = typeMap;
@@ -113,7 +166,7 @@ async function groups() {
 
 // Update active connections for nested groups (URLTest, Selector, etc.)
 async function updateNestedGroupSelections() {
-  const groupTypes = ['urltest', 'selector', 'fallback', 'loadbalance', 'relay', 'smart'];
+  const groupTypes = ['urltest', 'selector', 'fallback', 'loadbalance', 'relay'];
   const nestedGroups: string[] = [];
 
   // Collect all nodes that are groups themselves
@@ -170,10 +223,11 @@ async function nodes() {
     return;
   }
 
+  try {
   if (proxiesStore.viewMode === 'full') {
-    const groups = [...groupList.value];
+    const groupsArr = [...groupList.value];
     const pairs = await Promise.all(
-        groups.map(async (group) => {
+        groupsArr.map(async (group) => {
           const proxies = await api.getProxies(
               group,
               proxiesStore.isHide,
@@ -191,6 +245,7 @@ async function nodes() {
 
     // Update nested group selections
     await updateNestedGroupSelections();
+    fetchSmartWeights(); // fire-and-forget
     return;
   }
 
@@ -199,36 +254,15 @@ async function nodes() {
       proxiesStore.isHide,
       proxiesStore.isSort
   ); // 更新响应式数据
+  } catch (e) {
+    // Mihomo ещё не готов — earlyRetry повторит попытку
+    return;
+  }
   fullViewNodes.value = {};
 
   // Update nested group selections for non-full view
   await updateNestedGroupSelections();
-}
-
-// Автоматический тест всех верхнеуровневых групп при запуске/смене профиля.
-// Smart-группы не имеют авто-теста в бэкенде и могут быть вложены в Selector,
-// не входя в список верхнего уровня. Тестируем ВСЕ верхнеуровневые группы —
-// это каскадно покрывает цепочку Selector→Smart→URLTest→proxy.
-async function autoTestSmartGroups() {
-  const allGroupNames = Object.keys(groupTypeMap.value);
-  if (allGroupNames.length === 0) return;
-
-  await Promise.all(
-    allGroupNames.map(async (groupName) => {
-      try {
-        let testUrl = settingStore.testUrl;
-        if (settingStore.independentDelayTest) {
-          const groupUrl = await api.getGroupTestUrl(groupName);
-          testUrl = groupUrl || 'https://www.gstatic.com/generate_204';
-        }
-        await api.getDelay(groupName, testUrl, 3000);
-      } catch (_) {
-        // Ignore errors for individual groups
-      }
-    })
-  );
-
-  await nodes();
+  fetchSmartWeights(); // fire-and-forget
 }
 
 // 设置活跃分组
@@ -296,6 +330,10 @@ async function setProxy(now: any, name: string, groupName?: string) {
   if (!targetGroup) {
     return;
   }
+  if (groupTypeMap.value[targetGroup] !== 'Selector') {
+    pWarning(t('proxies.auto-group-no-manual-select'));
+    return;
+  }
   try {
     await changeProxyAndCloseConnections(
         api,
@@ -322,19 +360,27 @@ async function setProxy(now: any, name: string, groupName?: string) {
 function testDelay() {
   pLoad(t("proxies.loading"), async () => {
     try {
-      let testUrl = settingStore.testUrl;
-      if (settingStore.independentDelayTest) {
-        const groupUrl = await api.getGroupTestUrl(proxiesStore.active);
-        testUrl = groupUrl || 'https://www.gstatic.com/generate_204';
-      }
-      await api.getDelay(proxiesStore.active, testUrl, 3000);
+      await api.getDelay(proxiesStore.active, settingStore.testUrl, 3000);
       await nodes();
+      fetchSmartWeights(); // fire-and-forget
     } catch (e) {
       if (e['message']) {
         pError(e['message'])
       }
     }
   });
+}
+
+// Тихий тест задержек без индикатора загрузки (для автозапуска после смены профиля)
+async function runDelayTestSilent() {
+  if (!proxiesStore.active) return;
+  try {
+    await api.getDelay(proxiesStore.active, settingStore.testUrl, 3000);
+    await nodes();
+    fetchSmartWeights(); // fire-and-forget
+  } catch (_) {
+    // silently ignore
+  }
 }
 
 const proxyGroup = ref(null);
@@ -438,26 +484,57 @@ const hideDropdown = () => {
 // 鼠标进入下拉菜单时，清除延时隐藏
 const enterDropDown = () => {
   clearTimeout(isOvering);
+  if (!isDropdownOpen.value) {
+    runDelayTestSilent(); // fire-and-forget: auto-test when dropdown first opens
+  }
   isDropdownOpen.value = true;
 };
 
 let fresh: any = null;
+let weightsInterval: any = null;
+let earlyRetryInterval: any = null;
 onMounted(async () => {
   await groups();
   await nodes();
-  autoTestSmartGroups(); // Запускаем без await — фоновый тест Smart-групп
   updateButtonVisibility();
+  runDelayTestSilent(); // fire-and-forget: auto-test on initial mount
   // 监听 resize 事件
   window.addEventListener("resize", updateButtonVisibility);
+
+  // earlyRetry: если Mihomo ещё не загрузил pxd-template конфиг при старте —
+  // повторяем каждые 3 секунды до 30 секунд, пока группы не появятся.
+  if (groupList.value.length === 0 && menuStore.rule !== 'direct') {
+    let earlyRetryCount = 0;
+    earlyRetryInterval = setInterval(async () => {
+      earlyRetryCount++;
+      if (groupList.value.length > 0 || earlyRetryCount >= 10) {
+        clearInterval(earlyRetryInterval);
+        earlyRetryInterval = null;
+        return;
+      }
+      await groups();
+      await nodes();
+    }, 3000);
+  }
+
   // 创建刷新定时器
   fresh = setInterval(async () => {
+    if (groupList.value.length === 0 && menuStore.rule !== 'direct') {
+      await groups();
+    }
     await nodes();
   }, 10000);
+  // Обновляем веса каждые 2 минуты
+  weightsInterval = setInterval(() => {
+    fetchSmartWeights();
+  }, 120000);
 });
 
 onBeforeUnmount(() => {
   // 清除定时器
   clearInterval(fresh);
+  clearInterval(weightsInterval);
+  clearInterval(earlyRetryInterval);
   // 移除 resize 事件监听
   window.removeEventListener("resize", updateButtonVisibility);
 });
@@ -474,8 +551,8 @@ watch(() => menuStore.rule, // 监听 store 中的某个状态
 watch(() => webStore.fProfile, async () => {
   await groups();
   await nodes();
-  autoTestSmartGroups(); // Запускаем без await — фоновый тест Smart-групп
   updateButtonVisibility();
+  runDelayTestSilent(); // fire-and-forget: auto-test after profile switch
 })
 
 watch(() => proxiesStore.now, async () => {
@@ -483,10 +560,7 @@ watch(() => proxiesStore.now, async () => {
 })
 
 watch(groupList, (list) => {
-  if (!list.length) {
-    proxiesStore.replaceGroupExpansions({});
-    return;
-  }
+  if (!list.length) return;
   const result: Record<string, boolean> = {};
   list.forEach((group, index) => {
     const previous = expandedGroups.value[group];
@@ -676,15 +750,44 @@ watch(groupList, (list) => {
           <div class="proxy-nodes-tags">
             <span class="proxy-nodes-tags-left">
               <span>{{ node["displayType"] ?? node["type"] }}</span>
-              <template v-if="nestedGroupSelections[node['name']]">
+              <template v-if="nestedGroupSelections[node['name']] && node['type']?.toLowerCase() !== 'smart' && node['type']?.toLowerCase() !== 'loadbalance'">
                 <span class="proxy-selected-separator">•</span>
                 <span class="proxy-selected-name" :title="nestedGroupSelections[node['name']]">
                   {{ nestedGroupSelections[node['name']] }}
                 </span>
               </template>
             </span>
-            <span :class="'proxy-nodes-tags-right ' + node['toClass']">
-              {{ node["delay"] }} ms
+            <span class="proxy-nodes-tags-right">
+              <!-- Иконка ранга: прокси внутри Smart-группы -->
+              <template v-if="groupTypeMap[proxiesStore.active] === 'Smart'">
+                <el-tooltip v-if="getNodeWeightInfo(proxiesStore.active, node['name'])?.rank === 'MostUsed'" :content="t('proxies.smart.most-used-tip', { weight: getNodeWeightInfo(proxiesStore.active, node['name'])?.weight })" placement="top">
+                  <el-icon class="proxy-weight-icon"><icon-mdi-shield/></el-icon>
+                </el-tooltip>
+                <el-tooltip v-else-if="getNodeWeightInfo(proxiesStore.active, node['name'])?.rank === 'OccasionalUsed'" :content="t('proxies.smart.occasional-used-tip', { weight: getNodeWeightInfo(proxiesStore.active, node['name'])?.weight })" placement="top">
+                  <el-icon class="proxy-weight-icon"><icon-mdi-shield-half-full/></el-icon>
+                </el-tooltip>
+                <el-tooltip v-else-if="getNodeWeightInfo(proxiesStore.active, node['name'])?.rank === 'RarelyUsed'" :content="t('proxies.smart.rarely-used-tip', { weight: getNodeWeightInfo(proxiesStore.active, node['name'])?.weight })" placement="top">
+                  <el-icon class="proxy-weight-icon"><icon-mdi-shield-outline/></el-icon>
+                </el-tooltip>
+                <el-tooltip v-else :content="t('proxies.smart.no-data')" placement="top">
+                  <el-icon class="proxy-weight-icon"><icon-mdi-shield-sync-outline/></el-icon>
+                </el-tooltip>
+              </template>
+              <!-- Иконка сводки: сам прокси является Smart-группой -->
+              <template v-else-if="node['type'] === 'Smart'">
+                <el-tooltip v-if="!smartGroupWeights[node['name']]?.hasData" :content="t('proxies.smart.no-data')" placement="top">
+                  <el-icon class="proxy-weight-icon"><icon-mdi-shield-sync-outline/></el-icon>
+                </el-tooltip>
+                <el-tooltip v-else placement="top">
+                  <template #content>
+                    <div v-for="w in smartGroupWeights[node['name']].weights" :key="w.Name" class="weight-tooltip-row">
+                      {{ w.Name }}: {{ rankLabel(w.Rank) }} ({{ w.Weight }})
+                    </div>
+                  </template>
+                  <el-icon class="proxy-weight-icon"><icon-mdi-shield-check-outline/></el-icon>
+                </el-tooltip>
+              </template>
+              <span :class="node['toClass']">{{ node["delay"] }} ms</span>
             </span>
           </div>
         </div>
@@ -716,7 +819,7 @@ watch(groupList, (list) => {
                 <span class="full-view-title">
                   {{ group }}
                 </span>
-                <span v-if="selectedProxies[group]" class="full-view-selected">
+                <span v-if="selectedProxies[group] && groupTypeMap[group] !== 'Smart' && groupTypeMap[group] !== 'LoadBalance'" class="full-view-selected">
                   {{ $t('proxies.selected-label') }}: {{ selectedProxies[group] }}
                 </span>
               </div>
@@ -752,15 +855,44 @@ watch(groupList, (list) => {
                 <div class="proxy-nodes-tags">
                   <span class="proxy-nodes-tags-left">
                     <span>{{ node["displayType"] ?? node["type"] }}</span>
-                    <template v-if="nestedGroupSelections[node['name']]">
+                    <template v-if="nestedGroupSelections[node['name']] && node['type']?.toLowerCase() !== 'smart' && node['type']?.toLowerCase() !== 'loadbalance'">
                       <span class="proxy-selected-separator">•</span>
                       <span class="proxy-selected-name" :title="nestedGroupSelections[node['name']]">
                         {{ nestedGroupSelections[node['name']] }}
                       </span>
                     </template>
                   </span>
-                  <span :class="'proxy-nodes-tags-right ' + node['toClass']">
-                    {{ node["delay"] }} ms
+                  <span class="proxy-nodes-tags-right">
+                    <!-- Иконка ранга: прокси внутри Smart-группы -->
+                    <template v-if="groupTypeMap[group] === 'Smart'">
+                      <el-tooltip v-if="getNodeWeightInfo(group, node['name'])?.rank === 'MostUsed'" :content="t('proxies.smart.most-used-tip', { weight: getNodeWeightInfo(group, node['name'])?.weight })" placement="top">
+                        <el-icon class="proxy-weight-icon"><icon-mdi-shield/></el-icon>
+                      </el-tooltip>
+                      <el-tooltip v-else-if="getNodeWeightInfo(group, node['name'])?.rank === 'OccasionalUsed'" :content="t('proxies.smart.occasional-used-tip', { weight: getNodeWeightInfo(group, node['name'])?.weight })" placement="top">
+                        <el-icon class="proxy-weight-icon"><icon-mdi-shield-half-full/></el-icon>
+                      </el-tooltip>
+                      <el-tooltip v-else-if="getNodeWeightInfo(group, node['name'])?.rank === 'RarelyUsed'" :content="t('proxies.smart.rarely-used-tip', { weight: getNodeWeightInfo(group, node['name'])?.weight })" placement="top">
+                        <el-icon class="proxy-weight-icon"><icon-mdi-shield-outline/></el-icon>
+                      </el-tooltip>
+                      <el-tooltip v-else :content="t('proxies.smart.no-data')" placement="top">
+                        <el-icon class="proxy-weight-icon"><icon-mdi-shield-sync-outline/></el-icon>
+                      </el-tooltip>
+                    </template>
+                    <!-- Иконка сводки: сам прокси является Smart-группой -->
+                    <template v-else-if="node['type'] === 'Smart'">
+                      <el-tooltip v-if="!smartGroupWeights[node['name']]?.hasData" :content="t('proxies.smart.no-data')" placement="top">
+                        <el-icon class="proxy-weight-icon"><icon-mdi-shield-sync-outline/></el-icon>
+                      </el-tooltip>
+                      <el-tooltip v-else placement="top">
+                        <template #content>
+                          <div v-for="w in smartGroupWeights[node['name']].weights" :key="w.Name" class="weight-tooltip-row">
+                            {{ w.Name }}: {{ rankLabel(w.Rank) }} ({{ w.Weight }})
+                          </div>
+                        </template>
+                        <el-icon class="proxy-weight-icon"><icon-mdi-shield-check-outline/></el-icon>
+                      </el-tooltip>
+                    </template>
+                    <span :class="node['toClass']">{{ node["delay"] }} ms</span>
                   </span>
                 </div>
               </div>
@@ -777,6 +909,10 @@ watch(groupList, (list) => {
 </template>
 
 <style scoped>
+:deep(.bottom) {
+  padding-bottom: 0;
+}
+
 .space {
   margin-top: 15px;
 }
@@ -839,7 +975,7 @@ watch(groupList, (list) => {
   background-color: transparent;
   color: var(--text-color);
   border: 2px solid var(--hr-color);
-  border-radius: 8px;
+  border-radius: 20px;
   padding: 6px 10px;
   font-size: 15px;
   font-family: inherit;
@@ -882,15 +1018,15 @@ watch(groupList, (list) => {
   gap: 16px;
   padding: 0;
   color: var(--text-color);
-  margin-left: 12px;
-  width: 95%;
+  margin-left: 0;
+  width: 100%;
 }
 
 .proxy-nodes-card {
   width: calc(33% - 41px);
   max-width: 210px;
   border: 2px solid var(--sub-card-border);
-  border-radius: 8px;
+  border-radius: 20px;
   padding: 8px 12px;
   background: var(--sub-card-bg);
   display: flex;
@@ -899,6 +1035,7 @@ watch(groupList, (list) => {
   line-height: 1.3;
   box-shadow: var(--left-nav-shadow);
   margin-top: 3px;
+  transition: background-color 0.15s, border-color 0.15s;
 }
 
 .proxy-nodes-card:hover,
@@ -953,7 +1090,9 @@ watch(groupList, (list) => {
 }
 
 .proxy-nodes-tags-right {
-  text-align: right;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   flex-shrink: 0;
 }
 
@@ -973,6 +1112,17 @@ watch(groupList, (list) => {
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+}
+
+.proxy-weight-icon {
+  font-size: 13px;
+  cursor: help;
+  flex-shrink: 0;
+}
+
+.weight-tooltip-row {
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .toHidden {
@@ -996,7 +1146,7 @@ watch(groupList, (list) => {
   cursor: pointer;
   font-size: 15px;
   outline: none;
-  border-radius: 8px;
+  border-radius: 20px;
   min-width: 204px;
   text-align: left;
 }
@@ -1022,7 +1172,7 @@ watch(groupList, (list) => {
   list-style: none;
   min-width: 200px;
   z-index: 20;
-  border-radius: 8px;
+  border-radius: 20px;
   font-size: 15px;
   text-align: left;
   max-height: calc(100vh - 230px);
@@ -1045,7 +1195,7 @@ watch(groupList, (list) => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 12px;
   background-color: var(--left-nav-btn-active-bg);
   box-shadow: var(--left-nav-shadow);
   padding: 3px;
@@ -1066,8 +1216,8 @@ watch(groupList, (list) => {
 }
 
 .full-view-groups {
-  width: 95%;
-  margin-left: 12px;
+  width: 100%;
+  margin-left: 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1075,9 +1225,14 @@ watch(groupList, (list) => {
 
 .full-view-group {
   border: 2px solid var(--sub-card-border);
-  border-radius: 10px;
+  border-radius: 20px;
   background: var(--sub-card-bg);
   box-shadow: var(--left-nav-shadow);
+  overflow: hidden;
+}
+
+.full-view-group:hover {
+  box-shadow: var(--left-nav-hover-shadow);
 }
 
 .full-view-header {
@@ -1112,7 +1267,7 @@ watch(groupList, (list) => {
 
 .proxy-icon-wrapper--full {
   padding: 5px;
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
 .full-view-text {
@@ -1129,10 +1284,13 @@ watch(groupList, (list) => {
 
 .full-view-toggle {
   font-size: 16px;
+  transition: transform 0.2s;
+  flex-shrink: 0;
 }
 
 .full-view-content {
-  padding: 0 12px 12px 12px;
+  /* card(8) + padding(8) = group(16) */
+  padding: 8px;
 }
 
 .full-view-loading {
@@ -1142,7 +1300,16 @@ watch(groupList, (list) => {
 }
 
 .full-view-nodes {
+  gap: 8px; /* = padding контента */
   width: 100%;
   margin-left: 0;
+}
+
+.full-view-nodes .proxy-nodes-card {
+  width: calc(33% - 41px);
+  max-width: 210px;
+  border-radius: 12px; /* concentric: group(20) - padding(8) = 12 */
+  margin-top: 3px;
+  box-sizing: border-box;
 }
 </style>

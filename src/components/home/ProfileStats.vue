@@ -131,7 +131,7 @@ const shouldShowStats = computed(() => {
   width: 95%;
   margin: 15px auto 0;
   padding: 15px 20px;
-  border-radius: 8px;
+  border-radius: 20px;
   background: var(--sub-card-bg);
   box-shadow: var(--right-box-shadow);
   display: flex;

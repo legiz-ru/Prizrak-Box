@@ -158,7 +158,7 @@ function hasValue(value: any) {
 .profile-card {
   width: 100%;
   padding: 12px 0;
-  border-radius: 8px;
+  border-radius: 20px;
   background: var(--sub-card-bg);
   border: 1px solid var(--sub-card-border);
   box-shadow: var(--right-box-shadow);

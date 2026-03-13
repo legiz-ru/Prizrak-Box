@@ -547,6 +547,52 @@ function goSupport(data: any) {
   openExternalLink(data.support)
 }
 
+// TV send dialog
+const tvDialogVisible = ref(false)
+const tvDialogProfile = ref<any>(null)
+const tvIsSending = ref(false)
+const tvForm = reactive({ ip: '', port: '' })
+
+function openTvDialog(data: any) {
+  tvDialogProfile.value = data
+  tvDialogVisible.value = true
+}
+
+async function submitToTv() {
+  if (!tvForm.ip || !tvForm.port) {
+    pError(t('profiles.tv-dialog.ip') + ' / ' + t('profiles.tv-dialog.port'))
+    return
+  }
+  tvIsSending.value = true
+  try {
+    const url = `http://${tvForm.ip}:${tvForm.port}/Prizrak-BoxTVimport/submit`
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 4000)
+    let ok = false
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: tvDialogProfile.value?.content }),
+        signal: controller.signal,
+      })
+      clearTimeout(timeout)
+      const result = await response.json()
+      ok = result?.status === 'ok'
+    } catch {
+      clearTimeout(timeout)
+    }
+    if (ok) {
+      pSuccess(t('profiles.tv-dialog.success'))
+      tvDialogVisible.value = false
+    } else {
+      pError(t('profiles.tv-dialog.error'))
+    }
+  } finally {
+    tvIsSending.value = false
+  }
+}
+
 // Announce dialog
 const announceDialogVisible = ref(false)
 let announceDialogData = reactive<any>({
@@ -578,6 +624,9 @@ function updateProfile(data: any) {
   editFormD = data
   editForm = reactive<any>({})
   Object.assign(editForm, data)
+  if (editForm.pxdTemplateUrl) {
+    editForm.template = 'pxd_subscription'
+  }
   editFormVisible.value = true
 }
 
@@ -921,6 +970,17 @@ watch(() => webStore.dProfile, async (pList) => {
               </div>
               <div class="bottom-actions">
                 <el-tooltip
+                    v-if="data.content && isHttpOrHttps(data.content)"
+                    :content="$t('profiles.tv-send')"
+                    placement="top">
+                  <el-icon
+                      class="ops"
+                      @click.stop="openTvDialog(data)"
+                      size="20">
+                    <icon-mdi-television-classic/>
+                  </el-icon>
+                </el-tooltip>
+                <el-tooltip
                     v-if="data.announce"
                     :content="$t('profiles.announce')"
                     placement="top">
@@ -1066,7 +1126,14 @@ watch(() => webStore.dProfile, async (pList) => {
             v-model="editForm.template"
             placeholder=""
             clearable
+            :disabled="!!editForm.pxdTemplateUrl"
         >
+          <el-option
+              v-if="editForm.pxdTemplateUrl"
+              key="pxd_subscription"
+              :label="t('profiles.edit.pxd-subscription')"
+              value="pxd_subscription"
+          />
           <el-option
               v-for="item in tList"
               :key="item.id"
@@ -1121,6 +1188,51 @@ watch(() => webStore.dProfile, async (pList) => {
         </div>
       </template>
     </el-dialog>
+
+  <!-- TV Send Dialog -->
+  <el-dialog
+      v-model="tvDialogVisible"
+      :title="t('profiles.tv-dialog.title')"
+      width="400"
+      draggable
+      center
+  >
+    <div class="tv-dialog-content">
+      <el-alert
+          :title="t('profiles.tv-dialog.warning')"
+          type="warning"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 16px"
+      />
+      <el-form label-position="top">
+        <el-form-item :label="t('profiles.tv-dialog.ip')">
+          <el-input
+              v-model="tvForm.ip"
+              placeholder="192.168.1.100"
+              autocomplete="off"
+              spellcheck="false"
+          />
+        </el-form-item>
+        <el-form-item :label="t('profiles.tv-dialog.port')">
+          <el-input
+              v-model="tvForm.port"
+              placeholder="8080"
+              autocomplete="off"
+              spellcheck="false"
+          />
+        </el-form-item>
+      </el-form>
+    </div>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="tvDialogVisible = false">{{ t('cancel') }}</el-button>
+        <el-button type="primary" :loading="tvIsSending" @click="submitToTv">
+          {{ t('profiles.tv-dialog.submit') }}
+        </el-button>
+      </div>
+    </template>
+  </el-dialog>
 
   <!-- Announce Dialog -->
   <el-dialog
@@ -1200,7 +1312,7 @@ watch(() => webStore.dProfile, async (pList) => {
 .sub-card {
   padding: 5px 8px 5px 5px;
   border: 2px solid var(--sub-card-border);
-  border-radius: 8px;
+  border-radius: 20px;
   background: var(--sub-card-bg);
   color: var(--text-color);
   box-shadow: var(--left-nav-shadow);

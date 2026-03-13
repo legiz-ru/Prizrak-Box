@@ -144,24 +144,39 @@ onMounted(() => {
 .nav {
   margin-top: 18px;
   margin-left: 22px;
+  width: 185px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .nav-btn {
-  padding: 11px;
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  background-color: var(--left-nav-btn-bg);
+  box-shadow: var(--left-nav-shadow);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nav-btn:hover {
+  background-color: var(--left-nav-btn-hover-bg);
+  box-shadow: var(--left-nav-hover-shadow);
 }
 
 .nav-btn-select,
-.nav-btn:hover {
-  background-color: var(--left-sec-nav-hover-bg);
-  width: 164px;
-  border-radius: 8px;
-  cursor: pointer;
-  box-shadow: var(--left-sec-nav-hover-shadow);
+.nav-btn-select:hover {
+  background-color: var(--left-item-selected-bg);
+  box-shadow: var(--left-nav-hover-shadow);
 }
 
 .nav-text {
   color: var(--text-color);
   font-size: 18px;
+  display: flex;
+  align-items: center;
 }
 
 .nav-info {

@@ -40,7 +40,7 @@ const settingStore = useSettingStore();
 
 .box {
   padding: 10px;
-  border-radius: 8px;
+  border-radius: 20px;
   text-align: left;
   box-shadow: var(--right-box-shadow);
 }

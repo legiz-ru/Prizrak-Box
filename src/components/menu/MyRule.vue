@@ -1,12 +1,14 @@
 <template>
-  <div class="custom-style">
-    <el-segmented v-model="menuStore.rule" :options="getOptions()">
-      <template #default="scope">
-        <div>
-          {{ (scope as any).item["label"] }}
-        </div>
-      </template>
-    </el-segmented>
+  <div class="rule-pill">
+    <button
+        v-for="opt in getOptions()"
+        :key="opt.value"
+        type="button"
+        :class="['rule-pill__btn', { 'is-active': menuStore.rule === opt.value }]"
+        @click="menuStore.rule = opt.value"
+    >
+      {{ opt.label }}
+    </button>
   </div>
 </template>
 
@@ -66,28 +68,43 @@ watch(
 </script>
 
 <style scoped>
-.custom-style {
+.rule-pill {
   margin-left: 22px;
   margin-top: 23px;
-}
-
-.custom-style .el-segmented {
-  min-width: 185px;
-  border: 1px solid var(--sub-card-border);
-  background: var(--left-proxy-bg);
+  width: 185px;
+  box-sizing: border-box;
+  display: flex;
+  border-radius: 999px;
+  background-color: var(--left-nav-btn-bg);
   box-shadow: var(--left-nav-shadow);
-  --el-segmented-item-selected-color: var(--text-color);
-  --el-segmented-item-selected-bg-color: var(--left-item-selected-bg);
-  --el-border-radius-base: 5px;
-  color: var(--text-color);
-  font-size: 15px;
+  padding: 4px;
+  gap: 4px;
 }
 
-.custom-style .el-segmented:hover {
+.rule-pill:hover {
   box-shadow: var(--left-nav-hover-shadow);
 }
 
-:deep(.el-segmented__item) {
-  padding: 0 8px;
+.rule-pill__btn {
+  flex: 1;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--left-nav-text);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 7px 4px;
+  white-space: nowrap;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rule-pill__btn:hover {
+  background-color: var(--left-nav-btn-hover-bg);
+}
+
+.rule-pill__btn.is-active {
+  background-color: var(--left-item-selected-bg);
+  box-shadow: var(--left-nav-hover-shadow);
+  color: var(--text-color);
 }
 </style>

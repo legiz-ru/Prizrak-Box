@@ -414,7 +414,7 @@ onUnmounted(() => {
   align-items: center;
   padding: 10px 16px;
   background: var(--left-bg-color);
-  border-radius: 8px 8px 0 0;
+  border-radius: 20px 20px 0 0;
   flex-shrink: 0;
 }
 
@@ -435,7 +435,7 @@ onUnmounted(() => {
   height: 100%;
   min-height: 0;
   background: var(--left-bg-color);
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 20px 20px;
 }
 
 .no-data {
@@ -445,6 +445,6 @@ onUnmounted(() => {
   justify-content: center;
   min-height: 500px;
   background: var(--left-bg-color);
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 20px 20px;
 }
 </style>

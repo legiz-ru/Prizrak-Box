@@ -91,6 +91,7 @@ home:
     isp: 服务商
     asn: 自治域
     time-zone: 时区
+    service-tip: IP 查询由 ip-api.com 提供
   system:
     title: 系统信息
     os: 操作系统
@@ -104,6 +105,9 @@ home:
 
 setting:
   title: 设置
+  tab:
+    app: 应用设置
+    core: 内核设置
   mihomo:
     port: 端口
     port-error: 端口号必须大于0，小于65535
@@ -131,6 +135,7 @@ setting:
     title: 键盘快捷键
     showHide: 显示/隐藏窗口
     recording: 请按下组合键...
+    edit: 修改组合键
 
   dashboard:
     open: 打开面板
@@ -179,6 +184,15 @@ proxies:
   direct: 当前处于直连模式
   loading: 测试中。。。
   selected-label: 当前节点
+  smart:
+    most-used: 优先
+    occasional-used: 备用
+    rarely-used: 极少使用
+    most-used-tip: "优先连接 — 权重: {weight}"
+    occasional-used-tip: "备用连接 — 权重: {weight}"
+    rarely-used-tip: "极少使用连接 — 权重: {weight}"
+    no-data: "尚未获取连接稳定性信息"
+  auto-group-no-manual-select: "该组为自动组，不允许手动选择代理。"
 
 profiles:
   title: 订阅
@@ -213,6 +227,7 @@ profiles:
     url: 地址
     update: 更新间隔 (小时)
     template: 规则分组模版
+    pxd-subscription: "⭐ 订阅模板"
     title-tip: 标题不能为空
     url-tip: 地址不能为空
     url-error: 地址格式错误
@@ -233,6 +248,15 @@ profiles:
     cancel-import: 取消导入
     cancel-hint: 按 Esc 键取消
     import-cancelled: 配置导入已取消
+  tv-send: 发送配置到 Prizrak-Box Android TV
+  tv-dialog:
+    title: 发送配置到 Android TV
+    warning: "⚠️ 两台设备必须在同一局域网内"
+    ip: 设备 IP 地址
+    port: 端口
+    submit: 发送配置到电视
+    success: 配置已成功发送到 Android TV
+    error: 向 Prizrak-Box Android TV 设备导入配置失败
 
 rule:
   title: 规则

@@ -47,9 +47,11 @@ watch(() => menuStore.useWhite, changeTheme);
 
 <style scoped>
 .bottom-text {
-  position: absolute;
-  bottom: 18px;
-  left: 22px;
+  margin-top: auto;
+  margin-bottom: 18px;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
   color: var(--text-color);
   font-size: 20px;
 }

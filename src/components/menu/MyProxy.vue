@@ -460,7 +460,7 @@ async function applySystemProxyMode(enable: boolean, notify: boolean) {
 .mode-button {
   width: 100%;
   border: none;
-  border-radius: 8px;
+  border-radius: 999px;
   background-color: var(--left-nav-btn-bg);
   box-shadow: var(--left-nav-shadow);
   padding: 10px 14px;
@@ -471,7 +471,7 @@ async function applySystemProxyMode(enable: boolean, notify: boolean) {
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .mode-button:hover {
@@ -516,7 +516,7 @@ async function applySystemProxyMode(enable: boolean, notify: boolean) {
   opacity: 1;
   visibility: visible;
   transform: scale(1);
-  box-shadow: 
+  box-shadow:
     0 0 0 2px color-mix(in srgb, currentColor 20%, transparent),
     0 0 6px 1px currentColor,
     0 0 12px 3px color-mix(in srgb, currentColor 50%, transparent);
@@ -535,20 +535,10 @@ async function applySystemProxyMode(enable: boolean, notify: boolean) {
 }
 
 @keyframes pulse-indicator {
-  0% {
-    transform: scale(0.8);
-    opacity: 0.2;
-  }
-  50% {
-    transform: scale(1.3);
-    opacity: 0.8;
-  }
-  100% {
-    transform: scale(0.8);
-    opacity: 0.2;
-  }
+  0% { transform: scale(0.8); opacity: 0.2; }
+  50% { transform: scale(1.3); opacity: 0.8; }
+  100% { transform: scale(0.8); opacity: 0.2; }
 }
-
 </style>
 
 <style>

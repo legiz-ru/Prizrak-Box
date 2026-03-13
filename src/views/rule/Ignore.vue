@@ -43,7 +43,7 @@ async function savaIgnore() {
 <template>
   <div class="ignore">
     <el-space class="op">
-      <el-button @click="savaIgnore">{{ $t('save') }}</el-button>
+      <button class="pill-btn" @click="savaIgnore">{{ $t('save') }}</button>
       <el-divider direction="vertical" border-style="dashed"/>
       <el-text class="st">{{ $t('rule.ignore.tip') }}</el-text>
     </el-space>
@@ -59,8 +59,8 @@ async function savaIgnore() {
 
 <style scoped>
 .ignore {
-  width: 95%;
-  margin-left: 10px;
+  width: 100%;
+  margin-left: 0;
   margin-top: 5px;
 }
 
@@ -68,12 +68,21 @@ async function savaIgnore() {
   margin-top: 6px;
 }
 
-:deep(.el-button) {
-  padding: 2px 10px;
-  --el-button-bg-color: transparent;
-  --el-button-text-color: var(--text-color);
-  --el-button-hover-text-color: var(--left-item-selected-bg);
-  --el-button-hover-bg-color: var(--text-color)
+.pill-btn {
+  border: none;
+  border-radius: 999px;
+  background-color: var(--left-nav-btn-bg);
+  color: var(--text-color);
+  padding: 6px 18px;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: var(--left-nav-shadow);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pill-btn:hover {
+  background-color: var(--left-item-selected-bg);
+  box-shadow: var(--left-nav-hover-shadow);
 }
 
 .st {
@@ -88,8 +97,8 @@ async function savaIgnore() {
   background-color: transparent; /* 背景透明 */
   border: 2px solid var(--text-color); /* 边界为 2px 的白色 */
   color: var(--text-color);
-  padding: 8px; /* 内间距，确保内容不贴边 */
-  border-radius: 8px; /* 圆角样式（可选） */
+  padding: 8px 8px 8px 16px; /* 内间距，确保内容不贴边 */
+  border-radius: 20px; /* 圆角样式（可选） */
   font-size: 16px; /* 字体大小 */
   resize: none; /* 禁止调整大小（可选） */
   outline: none; /* 去掉点击时的默认高亮框 */

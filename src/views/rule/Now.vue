@@ -120,8 +120,8 @@ watch(() => webStore.fProfile, async () => {
 
 <style scoped>
 .now {
-  width: 95%;
-  margin-left: 10px;
+  width: 100%;
+  margin-left: 0;
   margin-top: 5px;
 }
 
@@ -129,15 +129,25 @@ watch(() => webStore.fProfile, async () => {
   margin-top: 6px;
 }
 
+.search :deep(.custom-input) {
+  border-radius: 999px;
+  padding-left: 16px;
+}
+
+.search :deep(.clear-button) {
+  right: 14px;
+}
+
 .content {
   border: 2px solid var(--text-color);
-  border-radius: 10px;
+  border-radius: 20px;
+  overflow: hidden;
   margin-top: 25px;
 }
 
 .title {
   border-bottom: 1px solid var(--text-color);
-  padding: 8px 10px;
+  padding: 8px 10px 8px 16px;
   font-weight: bold;
 }
 
@@ -148,12 +158,12 @@ watch(() => webStore.fProfile, async () => {
 
 .info {
   border-bottom: 1px solid var(--sub-card-border);
-  padding: 8px 10px;
+  padding: 8px 10px 8px 16px;
 }
 
 .info-s {
   border-bottom: 1px solid var(--sub-card-border);
-  padding: 8px 10px;
+  padding: 8px 10px 8px 16px;
   background-color: var(--rule-list-bg); /* 深灰色，透明度为50% */
 }
 

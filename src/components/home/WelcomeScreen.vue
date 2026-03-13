@@ -77,8 +77,16 @@ async function addProfile() {
         exclusive: true,
       });
 
-      // Ждём, пока прокси запустится
-      await api.waitRunning();
+      // Ждём, пока прокси запустится.
+      // pxd-template профили могут загружаться >30с при первой активации
+      // (бэкенд скачивает proxy-providers без работающего прокси).
+      // Таймаут не критичен — горутина продолжает работу, прокси появятся
+      // через несколько секунд после открытия вкладки Прокси.
+      try {
+        await api.waitRunning();
+      } catch (e) {
+        console.warn('[WelcomeScreen] waitRunning timeout, backend still processing:', (e as any)?.message);
+      }
     }
 
     // Получаем обновленный список профилей ПОСЛЕ refresh

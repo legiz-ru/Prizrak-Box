@@ -91,6 +91,7 @@ home:
     isp: Провайдер
     asn: ASN
     time-zone: Часовой пояс
+    service-tip: Для проверки IP используется сервис ip-api.com
   system:
     title: Система
     os: ОС
@@ -104,6 +105,9 @@ home:
 
 setting:
   title: Настройки
+  tab:
+    app: Настройки приложения
+    core: Настройки ядра
   mihomo:
     port: Смешанный порт
     port-error: Номер порта должен быть больше 0 и меньше 65535
@@ -131,6 +135,7 @@ setting:
     title: Горячие клавиши
     showHide: Показать/Скрыть окно
     recording: Нажмите комбинацию клавиш...
+    edit: Изменить комбинацию
 
   dashboard:
     open: Открыть панель
@@ -179,6 +184,15 @@ proxies:
   direct: В настоящее время прямой режим
   loading: Тестирование...
   selected-label: Выбрано
+  smart:
+    most-used: Приоритетный
+    occasional-used: Вспомогательный
+    rarely-used: Редко используемый
+    most-used-tip: "Приоритетное подключение — вес: {weight}"
+    occasional-used-tip: "Вспомогательное подключение — вес: {weight}"
+    rarely-used-tip: "Редко используемое подключение — вес: {weight}"
+    no-data: "Информация о стабильности подключения ещё не получена"
+  auto-group-no-manual-select: "Данная группа является автоматической, в ней запрещён ручной выбор."
 
 profiles:
   title: Профили
@@ -213,6 +227,7 @@ profiles:
     url: URL
     update: Интервал обновления (часы)
     template: Шаблон группировки правил
+    pxd-subscription: "⭐ Шаблон от подписки"
     title-tip: Название не может быть пустым
     url-tip: URL не может быть пустым
     url-error: Неверный формат URL
@@ -233,6 +248,15 @@ profiles:
     cancel-import: Отменить импорт
     cancel-hint: Нажмите Esc, чтобы отменить
     import-cancelled: Импорт профиля отменён
+  tv-send: Отправить профиль на Prizrak-Box Android TV
+  tv-dialog:
+    title: Отправка профиля на Android TV
+    warning: "⚠️ Устройства должны находиться в одной локальной сети"
+    ip: IP-адрес устройства
+    port: Порт
+    submit: Отправить профиль на TV
+    success: Профиль успешно отправлен на Android TV
+    error: Ошибка импорта профиля на устройство с Prizrak-Box Android TV
 
 rule:
   title: Правило

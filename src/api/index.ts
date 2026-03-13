@@ -12,6 +12,7 @@ export default function createApi(proxy: any) {
         getDelay: createProxiesApi(proxy).getDelay,
         getGroupTestUrl: createProxiesApi(proxy).getGroupTestUrl,
         getGroups: createProxiesApi(proxy).getGroups,
+        getGroupWeights: createProxiesApi(proxy).getGroupWeights,
         getProxies: createProxiesApi(proxy).getProxies,
         setProxy: createProxiesApi(proxy).setProxy,
         getVersion: createHomeApi(proxy).getVersion,

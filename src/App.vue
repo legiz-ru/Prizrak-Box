@@ -31,7 +31,6 @@
       <MyNav/>
       <MyRule/>
       <MyProxy/>
-      <MySecNav/>
       <MyBottom/>
     </div>
 
@@ -55,6 +54,8 @@ import {useI18n} from "vue-i18n";
 import createApi from "@/api";
 import {useWebStore} from "@/store/webStore";
 import {getRendererOrigin, normalizeCustomBackground} from "@/util/customBackground";
+import {WS} from "@/util/ws";
+import {formatDate} from "@/util/format";
 
 const menuStore = useMenuStore();
 const updateStore = useUpdateStore();
@@ -229,6 +230,17 @@ onMounted(async () => {
     pickSelectedProfile(list);
   });
   window.addEventListener('vue-profiles-updated', handleVueProfilesUpdate as EventListener);
+
+  // Global log WS — accumulates logs into webStore for the Log tab
+  const logTraffic = webStore.wsUrl + "/logs?token=" + webStore.secret;
+  new WS(logTraffic, null, (ev: MessageEvent) => {
+    const parsedData = JSON.parse(ev.data);
+    webStore.addLog({
+      time: formatDate(new Date()),
+      type: parsedData["type"].toUpperCase(),
+      payload: parsedData["payload"],
+    });
+  });
 });
 
 onBeforeUnmount(() => {
@@ -265,7 +277,7 @@ onBeforeUnmount(() => {
 }
 
 .left {
-  padding-right: 18px;
+  padding-right: 22px;
   z-index: 1;
   display: flex;
   flex-direction: column;
@@ -278,7 +290,7 @@ onBeforeUnmount(() => {
   width: 100%;
   flex-grow: 1;
   margin: 15px 15px 15px 0;
-  border-radius: 15px;
+  border-radius: 35px;
   background-color: var(--right-bg-color);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15),
   0 2px 8px rgba(0, 0, 0, 0.08);
@@ -325,7 +337,7 @@ onBeforeUnmount(() => {
 .update-banner {
   margin: 12px 0 0 22px;
   padding: 14px 16px 16px;
-  border-radius: 12px;
+  border-radius: 20px;
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -334,7 +346,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: 193px;
+  width: 185px;
   align-self: flex-start;
   box-sizing: border-box;
 }
@@ -364,6 +376,8 @@ onBeforeUnmount(() => {
   --el-button-text-color: var(--text-color);
   --el-button-hover-text-color: var(--text-color);
   --el-button-active-text-color: var(--text-color);
+  --el-border-radius-base: 999px;
+  border-radius: 999px;
 }
 
 .update-banner__dismiss {

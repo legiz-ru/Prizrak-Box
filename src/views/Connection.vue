@@ -300,8 +300,8 @@ function closeAll() {
 }
 
 .conn {
-  width: 95%;
-  margin-left: 10px;
+  width: 100%;
+  margin-left: 0;
   margin-top: 2px;
 }
 
@@ -315,6 +315,15 @@ function closeAll() {
   width: 400px;
 }
 
+.search :deep(.custom-input) {
+  border-radius: 999px;
+  padding-left: 16px;
+}
+
+.search :deep(.clear-button) {
+  right: 14px;
+}
+
 :deep(.el-button) {
   padding: 2px 10px;
   --el-button-bg-color: transparent;
@@ -326,24 +335,24 @@ function closeAll() {
 .content {
   border: 2px solid var(--text-color);
   margin-top: 20px;
-  width: calc(95% - 10px);
-  margin-left: 10px;
-  border-radius: 10px;
+  width: 100%;
+  margin-left: 0;
+  border-radius: 20px;
+  overflow: hidden;
 }
 
 .info-list {
   max-height: calc(100vh - 250px);
   overflow-y: auto;
-  border-radius: 10px;
+  border-radius: 20px;
 }
 
 .info {
   border-bottom: 1px solid var(--sub-card-border);
-  padding: 5px 10px;
+  padding: 5px 10px 5px 16px;
   font-size: 15px;
   line-height: 1.6;
   background-color: var(--left-bg-color);
-  border-radius: 10px;
 }
 
 .info-header {
@@ -362,6 +371,12 @@ function closeAll() {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  gap: 6px;
+  --el-tag-border-radius: 999px;
+}
+
+.info-tags :deep(.el-tag) {
+  border-radius: 999px;
 }
 
 .icon-btn {

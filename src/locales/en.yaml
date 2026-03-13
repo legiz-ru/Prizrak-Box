@@ -91,6 +91,7 @@ home:
     isp: ISP
     asn: ASN
     time-zone: T-Zone
+    service-tip: IP lookup is provided by ip-api.com
   system:
     title: System
     os: OS
@@ -104,6 +105,9 @@ home:
 
 setting:
   title: Setting
+  tab:
+    app: App Settings
+    core: Core Settings
   mihomo:
     port: Mixed-Port
     port-error: The port number must be greater than 0 and less than 65535
@@ -131,6 +135,7 @@ setting:
     title: Keyboard Shortcuts
     showHide: Show/Hide Window
     recording: Press a key combination...
+    edit: Edit key combination
 
   dashboard:
     open: Open dashboard
@@ -179,6 +184,15 @@ proxies:
   direct: Currently in direct mode
   loading: Testing...
   selected-label: Selected
+  smart:
+    most-used: Priority
+    occasional-used: Secondary
+    rarely-used: Rarely used
+    most-used-tip: "Priority connection — weight: {weight}"
+    occasional-used-tip: "Secondary connection — weight: {weight}"
+    rarely-used-tip: "Rarely used connection — weight: {weight}"
+    no-data: "Stability information not yet available"
+  auto-group-no-manual-select: "This group is automatic — manual proxy selection is not allowed."
 
 profiles:
   title: Profiles
@@ -213,6 +227,7 @@ profiles:
     url: URL
     update: Update Interval (hour)
     template: Rule Grouping Template
+    pxd-subscription: "⭐ Subscription Template"
     title-tip: The title cannot be empty
     url-tip: The URL cannot be empty
     url-error: Wrong URL format
@@ -233,6 +248,15 @@ profiles:
     cancel-import: Cancel import
     cancel-hint: Press Esc to cancel
     import-cancelled: Profile import cancelled
+  tv-send: Send profile to Prizrak-Box Android TV
+  tv-dialog:
+    title: Send Profile to Android TV
+    warning: "⚠️ Both devices must be on the same local network"
+    ip: Device IP address
+    port: Port
+    submit: Send Profile to TV
+    success: Profile successfully sent to Android TV
+    error: Failed to import profile on Prizrak-Box Android TV device
 
 rule:
   title: Rule
