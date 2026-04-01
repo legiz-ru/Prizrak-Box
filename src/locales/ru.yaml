@@ -116,6 +116,10 @@ setting:
     bindAddress: Привязать адрес
     bind-error: Неверный адрес
     independentDelayTest: Независимый тест задержки
+    groupTestUrls: URL тестов для групп
+    groupName: Имя группы
+    addGroupUrl: Добавить
+    testUrlPlaceholder: 'https://example.com'
   px:
     auth: Совет по аутентификации
     startup: Автозапуск
@@ -192,6 +196,7 @@ proxies:
     occasional-used-tip: "Вспомогательное подключение — вес: {weight}"
     rarely-used-tip: "Редко используемое подключение — вес: {weight}"
     no-data: "Информация о стабильности подключения ещё не получена"
+  test-group: Тест задержки группы
   auto-group-no-manual-select: "Данная группа является автоматической, в ней запрещён ручной выбор."
 
 profiles:

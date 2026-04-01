@@ -10,6 +10,7 @@ import createPrizrakApi from "@/api/prizrak";
 export default function createApi(proxy: any) {
     return {
         getDelay: createProxiesApi(proxy).getDelay,
+        testProxyLatency: createProxiesApi(proxy).testProxyLatency,
         getGroupTestUrl: createProxiesApi(proxy).getGroupTestUrl,
         getGroups: createProxiesApi(proxy).getGroups,
         getGroupWeights: createProxiesApi(proxy).getGroupWeights,

@@ -25,6 +25,7 @@ export const useSettingStore = defineStore('setting', {
         sc_switch: false,
         sc_switch_key: 'Ctrl+Shift+X',
         independentDelayTest: true,
+        groupTestUrls: [] as Array<{name: string; url: string}>,
     }),
     actions: {
         setTestUrl(testUrl: any) {
@@ -82,6 +83,9 @@ export const useSettingStore = defineStore('setting', {
         },
         setIndependentDelayTest(val: boolean) {
             this.independentDelayTest = val;
+        },
+        setGroupTestUrls(val: Array<{name: string; url: string}>) {
+            this.groupTestUrls = val;
         },
     },
     persist: defaultPersist,

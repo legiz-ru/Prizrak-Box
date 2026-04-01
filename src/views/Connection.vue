@@ -299,6 +299,13 @@ function closeAll() {
   margin-top: 20px;
 }
 
+:deep(.bottom) {
+  padding-bottom: 0;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .conn {
   width: 100%;
   margin-left: 0;
@@ -339,12 +346,16 @@ function closeAll() {
   margin-left: 0;
   border-radius: 20px;
   overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .info-list {
-  max-height: calc(100vh - 250px);
+  flex: 1;
   overflow-y: auto;
-  border-radius: 20px;
+  min-height: 0;
 }
 
 .info {
@@ -533,8 +544,9 @@ function closeAll() {
 }
 
 .topology-content {
-  min-height: calc(100vh - 220px);
-  height: calc(100vh - 220px);
+  flex: 1;
+  min-height: 0;
+  height: auto;
   border: none;
   background: transparent;
   padding: 0;

@@ -349,6 +349,14 @@ async function checkForUpdatesManually() {
   await updateStore.checkForUpdates()
 }
 
+function addGroupTestUrl() {
+  settingStore.groupTestUrls = [...settingStore.groupTestUrls, { name: '', url: '' }];
+}
+
+function removeGroupTestUrl(index: number) {
+  settingStore.groupTestUrls = settingStore.groupTestUrls.filter((_, i) => i !== index);
+}
+
 watch(dashboardDialogVisible, (visible) => {
   if (!visible) {
     resetDashboardForm();
@@ -408,6 +416,33 @@ const shortcutDialogVisible = ref(false);
                 v-model="settingStore.independentDelayTest"
                 class="set-switch"
             />
+          </li>
+          <li v-if="settingStore.independentDelayTest" class="group-test-urls-section">
+            <div class="group-test-urls-header">
+              <strong>{{ $t('setting.mihomo.groupTestUrls') }} :</strong>
+              <button class="pill-btn" @click="addGroupTestUrl">+ {{ $t('setting.mihomo.addGroupUrl') }}</button>
+            </div>
+            <div class="group-test-urls-list">
+              <div
+                v-for="(item, index) in settingStore.groupTestUrls"
+                :key="index"
+                class="group-test-url-row"
+              >
+                <el-input
+                  v-model="item.name"
+                  :placeholder="$t('setting.mihomo.groupName')"
+                  size="small"
+                  class="group-test-url-input"
+                />
+                <el-input
+                  v-model="item.url"
+                  :placeholder="$t('setting.mihomo.testUrlPlaceholder')"
+                  size="small"
+                  class="group-test-url-input"
+                />
+                <button class="pill-btn pill-btn--danger" @click="removeGroupTestUrl(index)">✕</button>
+              </div>
+            </div>
           </li>
           <li class="api-row">
             <div class="api-row__info">
@@ -887,6 +922,47 @@ const shortcutDialogVisible = ref(false);
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+.pill-btn--danger {
+  background-color: rgba(255, 80, 80, 0.15);
+  color: var(--el-color-danger, #f56c6c);
+  padding: 4px 10px;
+}
+
+.pill-btn--danger:hover {
+  background-color: rgba(255, 80, 80, 0.3);
+}
+
+.group-test-urls-section {
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 8px;
+}
+
+.group-test-urls-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.group-test-urls-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.group-test-url-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.group-test-url-input {
+  flex: 1;
 }
 
 .pill-spin {

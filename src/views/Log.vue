@@ -68,6 +68,13 @@ function filterData() {
   margin-top: 20px;
 }
 
+:deep(.bottom) {
+  padding-bottom: 0;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .conn {
   width: 100%;
   margin-left: 0;
@@ -87,14 +94,20 @@ function filterData() {
 .content {
   border: 2px solid var(--text-color);
   border-radius: 20px;
+  overflow: hidden;
   margin-top: 20px;
   width: 100%;
   margin-left: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .info-list {
-  max-height: calc(100vh - 250px);
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .info {

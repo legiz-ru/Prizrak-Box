@@ -248,7 +248,7 @@ const switchTemplate = async () => {
         lang="yaml"
         theme="monokai"
         :options="editorOptions"
-        style="width: 100%; height: calc(100vh - 325px)"
+        style="width: 100%; height: 100%"
         class="editor"
     />
   </div>
@@ -291,10 +291,21 @@ const switchTemplate = async () => {
 </template>
 
 <style scoped>
+:deep(.bottom) {
+  padding-bottom: 0;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .group {
   width: 100%;
   margin-left: 0;
   margin-top: 5px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .op {
@@ -399,6 +410,8 @@ const switchTemplate = async () => {
 
 .editor {
   margin-top: 25px;
+  flex: 1;
+  min-height: 0;
 }
 
 :deep(.ace_editor) {

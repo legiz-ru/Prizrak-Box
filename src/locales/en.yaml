@@ -116,6 +116,10 @@ setting:
     bindAddress: Bind Address
     bind-error: Wrong address
     independentDelayTest: Independent latency test
+    groupTestUrls: Per-group test URLs
+    groupName: Group name
+    addGroupUrl: Add
+    testUrlPlaceholder: 'https://example.com'
   px:
     auth: Auth Tip
     startup: Boot Startup
@@ -192,6 +196,7 @@ proxies:
     occasional-used-tip: "Secondary connection — weight: {weight}"
     rarely-used-tip: "Rarely used connection — weight: {weight}"
     no-data: "Stability information not yet available"
+  test-group: Test Group Latency
   auto-group-no-manual-select: "This group is automatic — manual proxy selection is not allowed."
 
 profiles:

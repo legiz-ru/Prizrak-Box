@@ -116,6 +116,10 @@ setting:
     bindAddress: 监听地址
     bind-error: 错误的地址
     independentDelayTest: 独立延迟测试
+    groupTestUrls: 分组测试URL
+    groupName: 分组名称
+    addGroupUrl: 添加
+    testUrlPlaceholder: 'https://example.com'
   px:
     auth: 授权提示
     startup: 开机自启
@@ -192,6 +196,7 @@ proxies:
     occasional-used-tip: "备用连接 — 权重: {weight}"
     rarely-used-tip: "极少使用连接 — 权重: {weight}"
     no-data: "尚未获取连接稳定性信息"
+  test-group: 测试分组延迟
   auto-group-no-manual-select: "该组为自动组，不允许手动选择代理。"
 
 profiles:

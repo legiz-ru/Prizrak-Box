@@ -188,6 +188,22 @@ async function bootstrap() {
         menuStore.setLanguage(lang);
     }
 
+    // Sync i18n locale to stored preference immediately — before app.mount()
+    // so that any tray interaction before Language.vue mounts shows the correct language
+    i18n.global.locale.value = menuStore.language;
+
+    // Pre-send tray translations with the correct language before the slow HTTP call
+    // (updateHttpClientConfig below). Without this the tray shows Chinese default labels
+    // until Language.vue mounts, which can take a few seconds on slow Mihomo startup.
+    const _trayMenuId = ['tray.show','tray.rule','tray.global','tray.direct',
+        'tray.profiles','tray.proxyGroups','tray.dashboard','tray.proxy','tray.tun','tray.quit'];
+    if ((window as any)?.pxTray?.emit) {
+        const _translate: Record<string, string> = {};
+        _trayMenuId.forEach(k => { _translate[k] = i18n.global.t(k); });
+        (window as any).pxTray.emit('translate', _translate);
+        (window as any).pxTray.emit('tunAuthTip', i18n.global.t('tun-auth-tip'));
+    }
+
     // 设置起始时间 和 操作系统类型
     // 获取系统类型
     homeStore.setOS(window.pxOs());

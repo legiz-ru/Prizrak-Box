@@ -140,6 +140,7 @@ async function groups() {
     if (type) typeMap[name] = type;
   });
   groupIcons.value = icons;
+  typeMap['GLOBAL'] = 'Selector'; // GLOBAL is always a Selector in Mihomo
   groupTypeMap.value = typeMap;
   const temp = normalized.map((item) => item.name);
   switch (menuStore.rule) {
@@ -209,7 +210,7 @@ async function updateNestedGroupSelections() {
 }
 
 // 获取节点列表
-async function nodes() {
+async function nodes(onlyGroup?: string) {
   if (!webStore.fProfile || !webStore.fProfile['id']) {
     nodeList.value = [];
     fullViewNodes.value = {};
@@ -225,13 +226,39 @@ async function nodes() {
 
   try {
   if (proxiesStore.viewMode === 'full') {
+    if (onlyGroup) {
+      // Only refresh the specific group that was tested
+      const overrideUrl = settingStore.independentDelayTest
+          ? (settingStore.groupTestUrls.find((x: {name: string; url: string}) => x.name === onlyGroup)?.url || null)
+          : null;
+      const proxies = await api.getProxies(
+          onlyGroup,
+          proxiesStore.isHide,
+          proxiesStore.isSort,
+          settingStore.independentDelayTest,
+          overrideUrl,
+          settingStore.independentDelayTest ? settingStore.testUrl : null
+      );
+      fullViewNodes.value = { ...fullViewNodes.value, [onlyGroup]: proxies };
+      if (proxiesStore.active === onlyGroup) {
+        nodeList.value = proxies;
+      }
+      return;
+    }
+
     const groupsArr = [...groupList.value];
     const pairs = await Promise.all(
         groupsArr.map(async (group) => {
+          const overrideUrl = settingStore.independentDelayTest
+              ? (settingStore.groupTestUrls.find((x: {name: string; url: string}) => x.name === group)?.url || null)
+              : null;
           const proxies = await api.getProxies(
               group,
               proxiesStore.isHide,
-              proxiesStore.isSort
+              proxiesStore.isSort,
+              settingStore.independentDelayTest,
+              overrideUrl,
+              settingStore.independentDelayTest ? settingStore.testUrl : null
           );
           return [group, proxies] as const;
         })
@@ -249,10 +276,16 @@ async function nodes() {
     return;
   }
 
+  const activeOverrideUrl = settingStore.independentDelayTest
+      ? (settingStore.groupTestUrls.find((x: {name: string; url: string}) => x.name === proxiesStore.active)?.url || null)
+      : null;
   nodeList.value = await api.getProxies(
       proxiesStore.active,
       proxiesStore.isHide,
-      proxiesStore.isSort
+      proxiesStore.isSort,
+      settingStore.independentDelayTest,
+      activeOverrideUrl,
+      settingStore.independentDelayTest ? settingStore.testUrl : null
   ); // 更新响应式数据
   } catch (e) {
     // Mihomo ещё не готов — earlyRetry повторит попытку
@@ -358,11 +391,46 @@ async function setProxy(now: any, name: string, groupName?: string) {
 
 // 测试延迟
 function testDelay() {
+  if (proxiesStore.viewMode === 'full') {
+    // Full view: test ALL groups concurrently (max 3 at a time), like Zashboard's allProxiesLatencyTest
+    pLoad(t("proxies.loading"), async () => {
+      const groups = [...groupList.value];
+      if (groups.length === 0) return;
+      // Simple p-limit(3): run at most 3 concurrent group tests
+      const CONCURRENCY = 3;
+      let active = 0;
+      let idx = 0;
+      await new Promise<void>((resolve) => {
+        const next = () => {
+          while (active < CONCURRENCY && idx < groups.length) {
+            const g = groups[idx++];
+            active++;
+            testGroupDelay(g).finally(() => {
+              active--;
+              if (idx < groups.length) {
+                next();
+              } else if (active === 0) {
+                resolve();
+              }
+            });
+          }
+          if (idx >= groups.length && active === 0) resolve();
+        };
+        next();
+      });
+    });
+    return;
+  }
+  // Horizontal / dropdown: test only the active group
   pLoad(t("proxies.loading"), async () => {
     try {
-      await api.getDelay(proxiesStore.active, settingStore.testUrl, 3000);
-      await nodes();
-      fetchSmartWeights(); // fire-and-forget
+      if (settingStore.independentDelayTest) {
+        await testGroupDelay(proxiesStore.active);
+      } else {
+        await api.getDelay(proxiesStore.active, settingStore.testUrl, 3000);
+        await nodes();
+        fetchSmartWeights();
+      }
     } catch (e) {
       if (e['message']) {
         pError(e['message'])
@@ -375,11 +443,65 @@ function testDelay() {
 async function runDelayTestSilent() {
   if (!proxiesStore.active) return;
   try {
-    await api.getDelay(proxiesStore.active, settingStore.testUrl, 3000);
-    await nodes();
-    fetchSmartWeights(); // fire-and-forget
+    if (settingStore.independentDelayTest) {
+      await testGroupDelay(proxiesStore.active);
+    } else {
+      await api.getDelay(proxiesStore.active, settingStore.testUrl, 3000);
+      await nodes();
+      fetchSmartWeights();
+    }
   } catch (_) {
     // silently ignore
+  }
+}
+
+// Тест задержки для отдельной группы (в режиме Fullview)
+const groupLatencyTesting = ref<Record<string, boolean>>({});
+
+async function testGroupDelay(groupName: string) {
+  if (groupLatencyTesting.value[groupName]) return;
+  groupLatencyTesting.value = { ...groupLatencyTesting.value, [groupName]: true };
+  try {
+    // Determine test URL:
+    // 1. User-configured per-group URL (groupTestUrls in settings)
+    // 2. Group's own testUrl from Mihomo config (for URLTest/Fallback/Smart)
+    // 3. Global testUrl fallback
+    let url = settingStore.testUrl;
+    let userOverrideUrl: string | null = null;
+    if (settingStore.independentDelayTest) {
+      const userEntry = settingStore.groupTestUrls.find((x: {name: string; url: string}) => x.name === groupName);
+      if (userEntry?.url) {
+        url = userEntry.url;
+        userOverrideUrl = userEntry.url;
+      } else {
+        const groupUrl = await api.getGroupTestUrl(groupName);
+        if (groupUrl) url = groupUrl;
+      }
+    }
+
+    // For Selector/LoadBalance/Smart groups in independent mode:
+    // test each node individually so results go into proxy.extra[url].history
+    // This matches Zashboard behavior and allows per-URL accessibility detection
+    // (e.g. DIRECT shows as unreachable for YouTube but reachable for Apple)
+    const groupType = (groupTypeMap.value[groupName] || '').toLowerCase();
+    const perNodeTypes = ['selector', 'loadbalance', 'smart'];
+    if (settingStore.independentDelayTest && perNodeTypes.includes(groupType)) {
+      const groupNodes = await api.getProxies(groupName, false, false, false, null);
+      const nodeNames = groupNodes.map((n: any) => n.name);
+      await Promise.all(nodeNames.map((nodeName: string) => api.testProxyLatency(nodeName, url, 3000)));
+    } else {
+      await api.getDelay(groupName, url, 3000);
+    }
+
+    await nodes(groupName);
+    fetchSmartWeights();
+  } catch (e) {
+    if (e && typeof e === 'object' && 'message' in e) {
+      const message = (e as {message?: unknown}).message;
+      if (typeof message === 'string') pError(message);
+    }
+  } finally {
+    groupLatencyTesting.value = { ...groupLatencyTesting.value, [groupName]: false };
   }
 }
 
@@ -824,10 +946,21 @@ watch(groupList, (list) => {
                 </span>
               </div>
             </div>
-            <el-icon class="full-view-toggle">
-              <icon-ep-arrow-up v-if="expandedGroups[group]"/>
-              <icon-ep-arrow-down v-else/>
-            </el-icon>
+            <div class="full-view-header-actions">
+              <el-tooltip :content="$t('proxies.test-group')" placement="top">
+                <el-icon
+                    class="full-view-test-btn"
+                    :class="{ 'full-view-test-btn--testing': groupLatencyTesting[group] }"
+                    @click.stop="testGroupDelay(group)"
+                >
+                  <icon-mdi-speedometer/>
+                </el-icon>
+              </el-tooltip>
+              <el-icon class="full-view-toggle">
+                <icon-ep-arrow-up v-if="expandedGroups[group]"/>
+                <icon-ep-arrow-down v-else/>
+              </el-icon>
+            </div>
           </div>
           <div class="full-view-content" v-show="expandedGroups[group]">
             <div v-if="!fullViewNodes[group]" class="full-view-loading">
@@ -1280,6 +1413,37 @@ watch(groupList, (list) => {
   font-size: 13px;
   color: var(--text-color);
   opacity: 0.75;
+}
+
+.full-view-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.full-view-test-btn {
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--text-color);
+  opacity: 0.6;
+  transition: opacity 0.2s, color 0.2s;
+}
+
+.full-view-test-btn:hover {
+  opacity: 1;
+  color: var(--hr-color);
+}
+
+.full-view-test-btn--testing {
+  animation: spin 1s linear infinite;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .full-view-toggle {

@@ -58,10 +58,21 @@ async function savaIgnore() {
 </template>
 
 <style scoped>
+:deep(.bottom) {
+  padding-bottom: 0;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .ignore {
   width: 100%;
   margin-left: 0;
   margin-top: 5px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .op {
@@ -91,6 +102,10 @@ async function savaIgnore() {
 
 .content {
   margin-top: 25px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .custom-textarea {
@@ -98,12 +113,14 @@ async function savaIgnore() {
   border: 2px solid var(--text-color); /* 边界为 2px 的白色 */
   color: var(--text-color);
   padding: 8px 8px 8px 16px; /* 内间距，确保内容不贴边 */
-  border-radius: 20px; /* 圆角样式（可选） */
+  border-radius: 20px;
   font-size: 16px; /* 字体大小 */
   resize: none; /* 禁止调整大小（可选） */
   outline: none; /* 去掉点击时的默认高亮框 */
-  width: 96%;
-  height: calc(100vh - 340px);
+  width: 100%;
+  box-sizing: border-box;
+  flex: 1;
+  min-height: 0;
 }
 
 .custom-textarea::placeholder {

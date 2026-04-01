@@ -86,13 +86,15 @@ const changeLang = (value: any) => {
   sendTranslation()
 }
 
-onMounted(() => {
-  // 设置语言
-  if (menuStore.language) {
-    locale.value = menuStore.language
+// Keep i18n locale and tray labels in sync with the stored preference at all times.
+// Using a watcher (instead of a one-shot onMounted) ensures the locale stays correct
+// even if menuStore.language is changed after the component has already mounted.
+watch(() => menuStore.language, (lang) => {
+  if (lang) {
+    locale.value = lang
     sendTranslation()
   }
-})
+}, { immediate: true })
 </script>
 
 <style scoped>

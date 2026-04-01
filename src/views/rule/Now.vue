@@ -119,10 +119,21 @@ watch(() => webStore.fProfile, async () => {
 </template>
 
 <style scoped>
+:deep(.bottom) {
+  padding-bottom: 0;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .now {
   width: 100%;
   margin-left: 0;
   margin-top: 5px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .search {
@@ -143,6 +154,10 @@ watch(() => webStore.fProfile, async () => {
   border-radius: 20px;
   overflow: hidden;
   margin-top: 25px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .title {
@@ -152,8 +167,9 @@ watch(() => webStore.fProfile, async () => {
 }
 
 .info-list {
-  max-height: calc(100vh - 365px);
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .info {
