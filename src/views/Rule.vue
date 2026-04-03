@@ -114,4 +114,10 @@ const setActive = function (value: string) {
   box-shadow: var(--left-nav-hover-shadow);
   border-color: var(--text-color);
 }
+
+:deep(.bottom) {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+}
 </style>

@@ -52,6 +52,8 @@ const upFromTop = function (distance: number) {
   overscroll-behavior: none;
   padding-left: 18px;
   padding-right: 18px;
+  display: flex;
+  flex-direction: column;
 }
 
 .bottom::-webkit-scrollbar {

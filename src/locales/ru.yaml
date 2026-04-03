@@ -330,6 +330,10 @@ connections:
   resume: Возобновить
   list: Список
   topology-view: Топология
+  process-view: Процессы
+  unknown-process: Неизвестно
+  connections-count: '{count} соединений'
+  back: Назад
 
 log:
   title: Журнал

@@ -330,6 +330,10 @@ connections:
   resume: Resume
   list: List
   topology-view: Topology
+  process-view: Processes
+  unknown-process: Unknown
+  connections-count: '{count} connections'
+  back: Back
 
 log:
   title: Log

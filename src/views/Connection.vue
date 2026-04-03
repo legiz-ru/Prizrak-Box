@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, getCurrentInstance, onBeforeUnmount, onMounted, ref} from "vue";
+import {computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, watch} from "vue";
 import MySimpleInput from "@/components/MySimpleInput.vue";
 import ConnectionTopology from "@/components/topology/ConnectionTopology.vue";
 import {WS} from "@/util/ws";
@@ -109,7 +109,68 @@ const viewModeOptions = computed(() => [
     label: t('connections.topology-view'),
     value: 'topology',
   },
+  {
+    label: t('connections.process-view'),
+    value: 'process',
+  },
 ]);
+
+// ── Process view ──────────────────────────────────────────────────────────────
+const selectedProcess = ref<string | null>(null)
+const iconCache = ref<Record<string, string | null>>({})
+const iconLoadingSet = new Set<string>()
+
+async function loadIcon(processPath: string) {
+  if (!processPath || processPath in iconCache.value || iconLoadingSet.has(processPath)) return
+  iconLoadingSet.add(processPath)
+  try {
+    const dataUrl = await (window as any).electron?.invoke('get-file-icon', processPath)
+    iconCache.value = { ...iconCache.value, [processPath]: dataUrl ?? null }
+  } catch {
+    iconCache.value = { ...iconCache.value, [processPath]: null }
+  } finally {
+    iconLoadingSet.delete(processPath)
+  }
+}
+
+interface ProcessGroup {
+  processName: string
+  processPath: string
+  count: number
+  download: number
+  upload: number
+  iconUrl: string | null
+}
+
+const processGroups = computed<ProcessGroup[]>(() => {
+  const groups = new Map<string, ProcessGroup>()
+  for (const conn of (paginatedData.value || [])) {
+    const name: string = (conn as any).metadata?.process || t('connections.unknown-process')
+    const path: string = (conn as any).metadata?.processPath || name
+    if (!groups.has(path)) {
+      groups.set(path, { processName: name, processPath: path, count: 0, download: 0, upload: 0, iconUrl: null })
+      if (path !== name) loadIcon(path)
+    }
+    const g = groups.get(path)!
+    g.count++
+    g.download += (conn as any).download ?? 0
+    g.upload += (conn as any).upload ?? 0
+    g.iconUrl = iconCache.value[path] ?? null
+  }
+  return [...groups.values()].sort((a, b) => b.count - a.count)
+})
+
+const selectedProcessConnections = computed(() => {
+  if (!selectedProcess.value) return []
+  return filterData(paginatedData.value)?.filter((c: any) => {
+    const path = c.metadata?.processPath || c.metadata?.process || t('connections.unknown-process')
+    return path === selectedProcess.value
+  }) ?? []
+})
+
+watch(() => connectionStore.viewMode, () => {
+  selectedProcess.value = null
+})
 
 let wsConn: WS | null = null
 onMounted(() => {
@@ -159,7 +220,7 @@ function closeAll() {
     <template #bottom>
       <div class="conn">
         <el-space class="op">
-          <div class="search" v-if="connectionStore.viewMode === 'list'">
+          <div class="search" v-if="connectionStore.viewMode === 'list' || connectionStore.viewMode === 'process'">
             <MySimpleInput
                 :onInputChange="handleInputChange"
                 :placeholder="$t('connections.search')"
@@ -255,6 +316,106 @@ function closeAll() {
         <ConnectionTopology :connections="paginatedData" />
       </div>
 
+      <div class="content" v-else-if="connectionStore.viewMode === 'process'">
+        <!-- Process list -->
+        <div v-if="selectedProcess === null" class="info-list">
+          <el-row
+              class="info process-row"
+              v-for="group in processGroups.filter(g => !search || g.processName.toLowerCase().includes(search.toLowerCase()))"
+              :key="group.processPath"
+              @click="selectedProcess = group.processPath"
+          >
+            <el-col :span="24">
+              <div class="process-item-inner">
+                <div class="process-icon-wrap">
+                  <img
+                      v-if="group.iconUrl"
+                      :src="group.iconUrl"
+                      class="process-app-icon"
+                      :alt="group.processName"
+                  />
+                  <icon-mdi-application-outline v-else class="process-app-icon-placeholder" />
+                </div>
+                <div class="process-item-body">
+                  <div class="process-name-row">
+                    <span class="process-name">{{ group.processName }}</span>
+                    <el-tag type="primary" size="small">
+                      {{ $t('connections.connections-count', { count: group.count }) }}
+                    </el-tag>
+                  </div>
+                  <div class="process-stats">
+                    <span class="ot">{{ $t('connections.download') }}: </span>{{ prettyBytes(group.download) }}
+                    &emsp;
+                    <span class="ot">{{ $t('connections.upload') }}: </span>{{ prettyBytes(group.upload) }}
+                  </div>
+                </div>
+                <icon-mdi-chevron-right class="process-chevron" />
+              </div>
+            </el-col>
+          </el-row>
+          <div v-if="processGroups.length === 0" class="process-empty">
+            {{ $t('connections.noData') }}
+          </div>
+        </div>
+
+        <!-- Selected process connections -->
+        <div v-else class="process-connections-wrap">
+          <div class="process-back-bar" @click="selectedProcess = null">
+            <icon-mdi-arrow-left class="process-back-icon" />
+            <span>{{ $t('connections.back') }}</span>
+            <span class="process-back-name">— {{ processGroups.find(g => g.processPath === selectedProcess)?.processName }}</span>
+          </div>
+          <div class="info-list">
+            <el-row
+                class="info"
+                v-for="(item, i) in selectedProcessConnections"
+                :key="i"
+            >
+              <el-col :span="24">
+                <div class="info-header">
+                  <div class="info-actions">
+                    <span class="icon-btn" role="button" tabindex="0"
+                          :title="$t('connections.view-log')"
+                          @click.stop="openLogDialog(item)"
+                          @keydown.enter.prevent="openLogDialog(item)"
+                          @keydown.space.prevent="openLogDialog(item)">
+                      <icon-mdi-information-outline/>
+                    </span>
+                    <span class="icon-btn" role="button" tabindex="0"
+                          :title="$t('connections.copy-log')"
+                          @click.stop="copyLog(item)"
+                          @keydown.enter.prevent="copyLog(item)"
+                          @keydown.space.prevent="copyLog(item)">
+                      <icon-mdi-content-copy/>
+                    </span>
+                  </div>
+                  <div class="info-tags">
+                    <el-tag type="success" size="small">{{ item.metadata.type }}</el-tag>
+                    &emsp;
+                    <el-tag type="danger" size="small">{{ fDate(item.start) }}</el-tag>
+                  </div>
+                </div>
+                <div class="od"><span class="ot">{{ $t('connections.host') }}: </span>{{ fHost(item.metadata) }}</div>
+                <div class="od">
+                  <span class="ot">{{ $t('connections.download') }}: </span>{{ prettyBytes(item.download) }}
+                  &emsp;
+                  <span class="ot">{{ $t('connections.upload') }}: </span>{{ prettyBytes(item.upload) }}
+                </div>
+                <div class="od" v-if="item.rule">
+                  <span class="ot">{{ $t('connections.rule') }}: </span>{{ item.rule }}{{ item.rulePayload ? ' / ' + item.rulePayload : '' }}
+                </div>
+                <div class="od">
+                  <span class="ot">{{ $t('connections.chains') }}: </span>{{ rJoin(item.chains, '&nbsp;/&nbsp;') }}
+                </div>
+              </el-col>
+            </el-row>
+            <div v-if="selectedProcessConnections.length === 0" class="process-empty">
+              {{ $t('connections.noData') }}
+            </div>
+          </div>
+        </div>
+      </div>
+
       <el-dialog
           v-model="logDialogVisible"
           :title="$t('connections.dialog-title')"
@@ -342,14 +503,13 @@ function closeAll() {
 .content {
   border: 2px solid var(--text-color);
   margin-top: 20px;
-  width: 100%;
-  margin-left: 0;
   border-radius: 20px;
   overflow: hidden;
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  box-sizing: border-box;
 }
 
 .info-list {
@@ -574,5 +734,130 @@ function closeAll() {
   padding: 0 12px;
 }
 
+/* ── Process view ─────────────────────────────────────────────────── */
+
+.process-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.process-row:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.process-item-inner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 2px 0;
+}
+
+.process-icon-wrap {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.process-app-icon {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.process-app-icon-placeholder {
+  width: 32px;
+  height: 32px;
+  color: var(--text-color);
+  opacity: 0.45;
+}
+
+.process-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.process-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.process-name {
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.process-stats {
+  font-size: 14px;
+  opacity: 0.75;
+}
+
+.process-chevron {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  opacity: 0.4;
+}
+
+.process-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  opacity: 0.5;
+  font-size: 14px;
+}
+
+.process-connections-wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.process-back-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--sub-card-border);
+  font-size: 14px;
+  font-weight: 600;
+  background-color: var(--left-bg-color);
+  transition: background-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.process-back-bar:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.process-back-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.process-back-name {
+  opacity: 0.6;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.process-connections-wrap .info-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
 
 </style>

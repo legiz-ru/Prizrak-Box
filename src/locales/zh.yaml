@@ -330,6 +330,10 @@ connections:
   resume: 恢复
   list: 列表
   topology-view: 拓扑
+  process-view: 进程
+  unknown-process: 未知
+  connections-count: '{count} 个连接'
+  back: 返回
 
 log:
   title: 日志

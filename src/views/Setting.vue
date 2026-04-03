@@ -97,6 +97,8 @@ const currentTabLabel = computed(() => {
 <style scoped>
 :deep(.bottom) {
   padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .space {

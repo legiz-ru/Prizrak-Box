@@ -1,11 +1,11 @@
 import { defineStore } from 'pinia';
 import { defaultPersist } from '@/types/persist';
 
-export type ConnectionViewMode = 'list' | 'topology';
+export type ConnectionViewMode = 'list' | 'topology' | 'process';
 
 export const useConnectionStore = defineStore('connections', {
   state: () => ({
-    viewMode: 'list' as ConnectionViewMode,
+    viewMode: 'topology' as ConnectionViewMode,
   }),
   actions: {
     setViewMode(viewMode: ConnectionViewMode) {

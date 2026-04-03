@@ -291,21 +291,14 @@ const switchTemplate = async () => {
 </template>
 
 <style scoped>
-:deep(.bottom) {
-  padding-bottom: 0;
-  overflow-y: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
 .group {
   width: 100%;
   margin-left: 0;
   margin-top: 5px;
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  min-height: 0;
 }
 
 .op {
@@ -411,7 +404,7 @@ const switchTemplate = async () => {
 .editor {
   margin-top: 25px;
   flex: 1;
-  min-height: 0;
+  min-height: 200px;
 }
 
 :deep(.ace_editor) {

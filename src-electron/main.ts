@@ -1,4 +1,4 @@
-import {app, BrowserWindow, BrowserWindowConstructorOptions, ipcMain, session} from 'electron';
+import {app, BrowserWindow, BrowserWindowConstructorOptions, ipcMain, nativeImage, session} from 'electron';
 import path from 'node:path';
 import {startServer, storeInfo} from "./server";
 import {doQuit, initTray, showWindow} from "./tray";
@@ -264,6 +264,17 @@ ipcMain.handle('service:restartBackend', async (): Promise<boolean> => {
 
 ipcMain.handle('service:showInstallDialog', async (): Promise<'install' | 'skip' | 'cancel'> => {
     return await showServiceInstallDialog();
+});
+
+// IPC обработчик для получения иконки файла/приложения
+ipcMain.handle('get-file-icon', async (_event, filePath: string) => {
+    try {
+        const icon = await app.getFileIcon(filePath, { size: 'normal' });
+        return icon.toDataURL();
+    } catch (e) {
+        log.warn('Failed to get file icon for:', filePath, e);
+        return null;
+    }
 });
 
 // IPC обработчик для выбора директории
