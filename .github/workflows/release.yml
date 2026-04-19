@@ -506,7 +506,7 @@ jobs:
           EOSH
           chmod +x prizrak-box.sh
 
-          ELEC_VER=36
+          ELEC_VER=41
           PKGNAME=prizrak-box-bin
           PKGNAME_BASE="${PKGNAME%-bin}"
           PKGREL=1
@@ -597,19 +597,30 @@ jobs:
           pkgname = ${PKGNAME}
           EOF
 
+      - name: Setup SSH for AUR
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.AUR_SSH_PRIVATE_KEY }}" > ~/.ssh/aur_key
+          chmod 600 ~/.ssh/aur_key
+          ssh-keyscan -t rsa,ecdsa,ed25519 aur.archlinux.org >> ~/.ssh/known_hosts
+          cat > ~/.ssh/config << 'SSHEOF'
+          Host aur.archlinux.org
+            IdentityFile ~/.ssh/aur_key
+            User aur
+          SSHEOF
+          chmod 600 ~/.ssh/config
+
       - name: Publish to AUR
-        uses: KSXGitHub/github-actions-deploy-aur@v2.7.0
-        with:
-          pkgname: prizrak-box-bin
-          pkgbuild: ./PKGBUILD
-          assets: |
-            prizrak-box.sh
-          commit_username: ${{ secrets.AUR_USERNAME }}
-          commit_email: ${{ secrets.AUR_COMMIT_EMAIL }}
-          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          commit_message: "Update to version ${{ github.ref_name }}"
-          ssh_keyscan_types: rsa,ecdsa,ed25519
-          force_push: "true"
+        run: |
+          git clone ssh://aur@aur.archlinux.org/prizrak-box-bin.git aur-repo
+          cp PKGBUILD .SRCINFO prizrak-box.sh aur-repo/
+          cd aur-repo
+          git config user.name "${{ secrets.AUR_USERNAME }}"
+          git config user.email "${{ secrets.AUR_COMMIT_EMAIL }}"
+          git add PKGBUILD .SRCINFO prizrak-box.sh
+          git diff --cached --quiet || git commit -m "Update to version ${{ github.ref_name }}"
+          git push --force origin master
 
 
   release:
