@@ -45,7 +45,8 @@
 
 <script setup lang="ts">
 import {useMenuStore} from "@/store/menuStore";
-import {preloadBackgroundImage} from "@/util/theme";
+import {preloadBackgroundImage, changeTheme} from "@/util/theme";
+import {getCachedBg, setCachedBg, clearCachedBg} from "@/util/bgCache";
 import DeepLinkImportOverlay from "@/components/DeepLinkImportOverlay.vue";
 import {useUpdateStore} from "@/store/updateStore";
 import {storeToRefs} from "pinia";
@@ -56,6 +57,7 @@ import {useWebStore} from "@/store/webStore";
 import {getRendererOrigin, normalizeCustomBackground} from "@/util/customBackground";
 import {WS} from "@/util/ws";
 import {formatDate} from "@/util/format";
+import {logLevel} from "@/composables/logLevel";
 
 const menuStore = useMenuStore();
 const updateStore = useUpdateStore();
@@ -145,6 +147,35 @@ const changeBg = (bg: string, useWhite: boolean) => {
   menuStore.setUseWhite(useWhite);
 }
 
+function isExternalBg(bg: string): boolean {
+  const url = bg.match(/url\(['"]?(.*?)['"]?\)/)?.[1] ?? '';
+  return url.startsWith('http://') || url.startsWith('https://');
+}
+
+// Capture the already-loaded img element via canvas — no second network request,
+// so we always store the exact image that was displayed on screen.
+function captureAndCache(img: HTMLImageElement, storageKey: string): void {
+  if (!img.naturalWidth || !img.naturalHeight) return;
+  try {
+    const MAX_DIM = 1920;
+    const scale = Math.min(1, MAX_DIM / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.round(img.naturalWidth * scale);
+    const h = Math.round(img.naturalHeight * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(img, 0, 0, w, h);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    if (menuStore.background === storageKey) {
+      setCachedBg(storageKey, dataUrl);
+    }
+  } catch (e) {
+    console.warn('[bg-cache] canvas capture failed:', e);
+  }
+}
+
 const applyBackground = (value: string) => {
   const normalized = normalizeCustomBackground(value, rendererOrigin);
 
@@ -152,7 +183,35 @@ const applyBackground = (value: string) => {
     menuStore.setBackground(normalized.storageValue);
   }
 
-  preloadBackgroundImage(normalized?.cssValue ?? value, changeBg);
+  const storageKey = normalized?.storageValue ?? value;
+  const cssValue = normalized?.cssValue ?? value;
+
+  const loadExternal = () => {
+    preloadBackgroundImage(cssValue, (bg: string, useWhite: boolean, img?: HTMLImageElement) => {
+      changeBg(bg, useWhite);
+      // img is the already-loaded element — capture it without a second request
+      if (img && isExternalBg(bg)) {
+        captureAndCache(img, storageKey);
+      }
+    });
+  };
+
+  // In-memory cache pre-loaded from userData/px-bg-cache.json during bootstrap
+  const cachedDataUrl = getCachedBg(storageKey);
+  if (cachedDataUrl) {
+    const img = new Image();
+    img.onload = () => {
+      changeBg(`url('${cachedDataUrl}')`, changeTheme(img));
+    };
+    img.onerror = () => {
+      clearCachedBg();
+      loadExternal();
+    };
+    img.src = cachedDataUrl;
+    return;
+  }
+
+  loadExternal();
 };
 
 const isWindows = ref(false)
@@ -205,6 +264,18 @@ const loadProfiles = async () => {
   try {
     const list = await api.getProfileList();
     pickSelectedProfile(list);
+    // On startup fProfile is empty (no id), so Proxies.vue skips fetching
+    // proxy groups. Set it from the active profile so groups load correctly
+    // on re-launch without requiring the user to manually re-select a profile.
+    // Guard prevents re-entry: if fProfile already has an id, do nothing.
+    if (!webStore.fProfile?.id) {
+      const primary = list.find((item: any) => item?.primary);
+      const selected = primary ?? list.find((item: any) => item?.selected);
+      const profile = selected ?? list[0];
+      if (profile?.id) {
+        webStore.fProfile = toRaw(profile);
+      }
+    }
   } catch (error) {
     console.error("Failed to load profiles", error);
   }
@@ -224,16 +295,23 @@ watch(() => menuStore.background, (nextBackground) => {
   applyBackground(nextBackground);
 });
 
-onMounted(async () => {
-  await loadProfiles();
-  Events.On("profiles", (list: any[]) => {
-    pickSelectedProfile(list);
-  });
-  window.addEventListener('vue-profiles-updated', handleVueProfilesUpdate as EventListener);
+let logWs: WS | null = null;
 
-  // Global log WS — accumulates logs into webStore for the Log tab
-  const logTraffic = webStore.wsUrl + "/logs?token=" + webStore.secret;
-  new WS(logTraffic, null, (ev: MessageEvent) => {
+function buildLogUrl() {
+  const level = logLevel.value;
+  const levelParam = level ? `&level=${encodeURIComponent(level)}` : '';
+  return webStore.wsUrl + "/logs?token=" + webStore.secret + levelParam;
+}
+
+function connectLog(clearOnReconnect = false) {
+  if (logWs) {
+    logWs.close();
+    logWs = null;
+  }
+  if (clearOnReconnect) {
+    webStore.clearLogs();
+  }
+  logWs = new WS(buildLogUrl(), null, (ev: MessageEvent) => {
     const parsedData = JSON.parse(ev.data);
     webStore.addLog({
       time: formatDate(new Date()),
@@ -241,6 +319,22 @@ onMounted(async () => {
       payload: parsedData["payload"],
     });
   });
+}
+
+watch(logLevel, (newVal, oldVal) => {
+  if (newVal !== oldVal) {
+    connectLog(true);
+  }
+});
+
+onMounted(async () => {
+  await loadProfiles();
+  Events.On("profiles", (list: any[]) => {
+    pickSelectedProfile(list);
+  });
+  window.addEventListener('vue-profiles-updated', handleVueProfilesUpdate as EventListener);
+
+  connectLog(false);
 });
 
 onBeforeUnmount(() => {

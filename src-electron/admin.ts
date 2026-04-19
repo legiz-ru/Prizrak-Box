@@ -7,6 +7,7 @@ import {storeGet, storeSet} from "./store";
 import {
     isServiceRunning,
     startPxViaService,
+    stopPxViaService,
     isServiceModeEnabled
 } from "./service";
 
@@ -85,6 +86,13 @@ export async function startBackend(addr: string) {
     // Если сервис запущен - используем его для запуска px
     if (serviceRunning) {
         log.info('[Backend] Service mode detected, starting px via service...');
+        // В dev-режиме останавливаем старый px перед запуском нового, чтобы избежать
+        // дедлока waitForReady (сервис возвращал "уже запущен" со старыми аргументами)
+        if (isDev) {
+            log.info('[Backend] Dev mode: stopping existing service-managed px before restart...');
+            await stopPxViaService().catch(() => {});
+            await new Promise(r => setTimeout(r, 800));
+        }
         const started = await startPxViaService(backendPath, addr, homeDir);
         if (started) {
             log.info('[Backend] px started via service successfully');

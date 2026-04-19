@@ -13,7 +13,7 @@ import {FuseV1Options, FuseVersion} from '@electron/fuses';
 const isWindows = process.platform === 'win32';
 const extraResource = isWindows
     ? ['src-go/px.exe', 'src-service/px-service.exe']
-    : ['src-go/px', 'src-service/px-service'];
+    : ['src-go/px', 'src-service/px-service', 'build/prizrak-box-service.policy'];
 const arch = process.env.ARCH || process.arch;
 const envProvidedIdentity = process.env.MAC_CODESIGN_IDENTITY
     || process.env.CODESIGN_IDENTITY
@@ -127,6 +127,25 @@ const config: ForgeConfig = {
             options: {
                 icon: 'build/appicon.png',
                 homepage: 'https://github.com/legiz-ru/Prizrak-Box',
+                scripts: {
+                    post: [
+                        '# Install polkit policy for px-service elevation',
+                        'install -m 644 /usr/lib/Prizrak-Box/resources/prizrak-box-service.policy \\',
+                        '  /usr/share/polkit-1/actions/com.legiz-ru.prizrak-box.policy 2>/dev/null || true',
+                        '# Kill any running Prizrak-Box instances',
+                        'pkill -x "Prizrak-Box" 2>/dev/null || true',
+                        'sleep 1',
+                        '# Clean up stale Chromium singleton lock files for all users',
+                        'for user_home in /home/*/; do',
+                        '  rm -f "$user_home/.config/Prizrak-Box/Singleton"* 2>/dev/null || true',
+                        'done',
+                        'rm -f /root/.config/Prizrak-Box/Singleton* 2>/dev/null || true',
+                    ].join('\n'),
+                    preun: [
+                        '# Remove polkit policy on uninstall',
+                        'rm -f /usr/share/polkit-1/actions/com.legiz-ru.prizrak-box.policy 2>/dev/null || true',
+                    ].join('\n'),
+                },
             }
         }),
         new MakerDeb({

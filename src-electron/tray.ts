@@ -277,6 +277,18 @@ const createTrayMenu = () => [
 // 初始化托盘菜单
 currentMenu = Menu.buildFromTemplate(createTrayMenu());
 
+// Resolves the path to a file from the public/ directory.
+// In dev mode: <project_root>/public/<filename>
+// In packaged app: <app.asar>/.vite/renderer/px_window/<filename>
+// This fixes the bug where path.join(__dirname, filename) pointed to
+// .vite/build/ which does NOT contain public/ assets.
+function getTrayIconPath(filename: string): string {
+    if (isDev) {
+        return path.join(app.getAppPath(), 'public', filename);
+    }
+    return path.join(app.getAppPath(), '.vite', 'renderer', 'px_window', filename);
+}
+
 // 初始化托盘
 export function initTray(browserWindow: BrowserWindow): void {
     // 初始化左上角菜单
@@ -298,9 +310,17 @@ export function initTray(browserWindow: BrowserWindow): void {
     // 初始化tray
     let trayImage: any;
     if (process.platform === 'darwin') {
-        trayImage = nativeImage.createFromPath(path.join(__dirname, 'tray.png')).resize({width: 16, height: 16});
+        // macOS: use monochrome template image (ghost silhouette, black on transparent)
+        // so the system automatically adapts it to light/dark menu bar
+        let img = nativeImage.createFromPath(getTrayIconPath('tray-macos.svg'));
+        if (img.isEmpty()) {
+            // Fallback in case SVG is not supported on this Electron/macOS version
+            img = nativeImage.createFromPath(getTrayIconPath('tray.png'));
+        }
+        trayImage = img.resize({width: 18, height: 18});
+        trayImage.setTemplateImage(true);
     } else {
-        trayImage = nativeImage.createFromPath(path.join(__dirname, 'tray.png')).resize({width: 32, height: 32});
+        trayImage = nativeImage.createFromPath(getTrayIconPath('tray.png')).resize({width: 32, height: 32});
     }
     tray = new Tray(trayImage);
     tray.setToolTip('Prizrak-Box');

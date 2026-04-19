@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import MySimpleInput from "@/components/MySimpleInput.vue";
+import LogLevelSelect from "@/components/LogLevelSelect.vue";
 import {useWebStore} from "@/store/webStore";
 
 // 获取Store
@@ -37,12 +38,14 @@ function filterData() {
     </template>
     <template #bottom>
       <div class="conn">
-        <div class="search">
-          <MySimpleInput
-              :onInputChange="handleInputChange"
-              :placeholder="$t('log.search')"
-              class="search"
-          ></MySimpleInput>
+        <div class="toolbar">
+          <LogLevelSelect />
+          <div class="search">
+            <MySimpleInput
+                :onInputChange="handleInputChange"
+                :placeholder="$t('log.search')"
+            ></MySimpleInput>
+          </div>
         </div>
       </div>
 
@@ -81,6 +84,12 @@ function filterData() {
   margin-top: 2px;
 }
 
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .title {
   font-size: 32px;
   font-weight: bold;
@@ -88,7 +97,7 @@ function filterData() {
 }
 
 .search {
-  width: 400px;
+  width: 360px;
 }
 
 .content {

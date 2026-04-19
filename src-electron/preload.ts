@@ -33,6 +33,13 @@ contextBridge.exposeInMainWorld('pxStore', {
     set: (key, value) => ipcRenderer.invoke('store:set', key, value)
 });
 
+// Кэш фонового изображения (файл userData/px-bg-cache.json, не зависит от порта)
+contextBridge.exposeInMainWorld('pxBgCache', {
+    read: () => ipcRenderer.invoke('bgcache:read'),
+    write: (forBg: string, dataUrl: string) => ipcRenderer.invoke('bgcache:write', forBg, dataUrl),
+    clear: () => ipcRenderer.invoke('bgcache:clear'),
+});
+
 // 获取系统信息
 contextBridge.exposeInMainWorld('pxOs', () => {
     switch (os.type()) {

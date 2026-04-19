@@ -1363,11 +1363,6 @@ watch(() => webStore.dProfile, async (pList) => {
   white-space: nowrap;
   text-overflow: ellipsis;
   min-width: 0;
-  font-variant-emoji: emoji;
-  font-family: 'Twemoji', "Nunito", 'Microsoft YaHei', '微软雅黑', 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB',
-  Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
-  "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-  sans-serif;
 }
 
 .header-action {

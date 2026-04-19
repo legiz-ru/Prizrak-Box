@@ -17,6 +17,7 @@ import {AxiosRequest} from "@/util/axiosRequest";
 import {useHomeStore} from "@/store/homeStore";
 import {useSettingStore} from "@/store/settingStore";
 import {memoryCache} from "@/types/persist"
+import {initBgCache} from "@/util/bgCache"
 import {detectLanguage} from "@/util/menu";
 import createApi from "@/api";
 import {Profile} from "@/types/profile";
@@ -65,6 +66,18 @@ async function bootstrap() {
                 memoryCache[key] = val;
             }
         }
+    }
+
+    // Загрузить кэш фона до монтирования Vue, чтобы applyBackground мог использовать его синхронно
+    // @ts-ignore
+    if (window["pxBgCache"]) {
+        try {
+            // @ts-ignore
+            const cached = await window["pxBgCache"].read();
+            if (cached?.forBg && cached?.dataUrl) {
+                initBgCache(cached.forBg, cached.dataUrl);
+            }
+        } catch {}
     }
 
     // 国际化设置

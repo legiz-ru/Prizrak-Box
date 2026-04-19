@@ -1,5 +1,6 @@
 import {app, BrowserWindow, BrowserWindowConstructorOptions, ipcMain, nativeImage, session} from 'electron';
 import path from 'node:path';
+import fs from 'node:fs';
 import {startServer, storeInfo} from "./server";
 import {doQuit, initTray, showWindow} from "./tray";
 import {initShortcut} from "./shortcut";
@@ -17,6 +18,11 @@ import {
 } from "./service";
 import {selectDirectory} from "./selector";
 import {doChange} from "./change";
+
+// Force GTK 4 on Linux to avoid GTK 2/3 vs GTK 4 conflict (e.g. Fedora 42)
+if (process.platform === 'linux') {
+    app.commandLine.appendSwitch('gtk-version', '4');
+}
 
 // 是否在开发模式
 const isDev = !app.isPackaged;
@@ -169,6 +175,23 @@ const createWindow = (isBoot: boolean) => {
         deepLinkHandlerReady = false;
         mainWindow = null;
     });
+
+    // Reload on renderer crash (blank white screen prevention)
+    mainWindow.webContents.on('render-process-gone', (_event, details) => {
+        if (details.reason !== 'clean-exit') {
+            log.warn('[Main] Renderer process gone, reason:', details.reason, '— reloading');
+            mainWindow?.webContents.reload();
+        }
+    });
+
+    // Ignore ERR_ABORTED (-3) which is intentional navigation cancellation,
+    // not an actual load failure
+    mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, _url, isMainFrame) => {
+        if (errorCode !== -3 && isMainFrame) {
+            log.warn('[Main] Page load failed:', errorCode, errorDescription, '— reloading');
+            mainWindow?.webContents.reload();
+        }
+    });
 };
 
 const isDeepLinkUrl = (arg: string | undefined): arg is string => {
@@ -233,6 +256,30 @@ ipcMain.on(DEEP_LINK_READY_EVENT, (event) => {
 
     deepLinkHandlerReady = true;
     processPendingDeepLinks();
+});
+
+// IPC обработчики для кэширования фонового изображения
+// Хранится в отдельном файле userData/px-bg-cache.json, независимо от порта сервера
+const getBgCacheFile = () => path.join(app.getPath('userData'), 'px-bg-cache.json');
+
+ipcMain.handle('bgcache:read', async () => {
+    try {
+        const content = await fs.promises.readFile(getBgCacheFile(), 'utf8');
+        return JSON.parse(content);
+    } catch {
+        return null;
+    }
+});
+
+ipcMain.handle('bgcache:write', async (_event, forBg: string, dataUrl: string) => {
+    const file = getBgCacheFile();
+    const tmp = file + '.tmp';
+    await fs.promises.writeFile(tmp, JSON.stringify({forBg, dataUrl}), 'utf8');
+    await fs.promises.rename(tmp, file);
+});
+
+ipcMain.handle('bgcache:clear', async () => {
+    try { await fs.promises.unlink(getBgCacheFile()); } catch {}
 });
 
 // IPC обработчики для сервиса
@@ -340,6 +387,24 @@ for (const arg of process.argv) {
     if (isDeepLinkUrl(arg)) {
         pendingDeepLinks.push(arg);
     }
+}
+
+// Clean up stale Chromium singleton lock files on Linux.
+// These are left behind when the app crashes or is force-killed,
+// and prevent the next launch from acquiring the lock (causing silent exit).
+if (process.platform === 'linux') {
+    try {
+        const configDir = app.getPath('userData');
+        const singletonSocket = path.join(configDir, 'SingletonSocket');
+        if (fs.existsSync(singletonSocket)) {
+            const target = fs.readlinkSync(singletonSocket);
+            if (!fs.existsSync(target)) {
+                for (const name of ['SingletonSocket', 'SingletonCookie', 'SingletonLock']) {
+                    try { fs.rmSync(path.join(configDir, name)); } catch {}
+                }
+            }
+        }
+    } catch {}
 }
 
 // 单例模式

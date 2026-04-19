@@ -222,9 +222,18 @@ export async function installService(): Promise<boolean> {
                         proc.on('exit', (code) => {
                             if (code === 0) {
                                 setTimeout(() => {
-                                    isServiceRunning().then(running => res(running));
-                                }, 2000);
+                                    isServiceRunning().then(running => {
+                                        if (running) {
+                                            log.info('[Service] Service installed and running');
+                                            storeSet('serviceMode', true);
+                                        } else {
+                                            log.error('[Service] Service installed but not running (check SELinux/systemd logs)');
+                                        }
+                                        res(running);
+                                    });
+                                }, 5000);
                             } else {
+                                log.warn(`[Service] Install method ${method} failed with code: ${code}`);
                                 tryInstall(index + 1).then(result => res(result));
                             }
                         });

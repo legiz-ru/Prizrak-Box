@@ -338,10 +338,9 @@ export default function createProxiesApi(proxy: any) {
                 showProxies = activeProxies
             }
 
-            // 构建哈希表
-            const GLOBAL = proxies['GLOBAL']['all'];
+            // 构建哈希表 — используем порядок из самой группы, а не GLOBAL
             const map = new Map();
-            GLOBAL.forEach((value: any, index: any) => {
+            proxiesNames.forEach((value: any, index: number) => {
                 map.set(value, index);
             });
 
