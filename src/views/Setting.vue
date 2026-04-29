@@ -8,6 +8,7 @@ import RuleNow from "@/views/rule/Now.vue";
 import RuleGroup from "@/views/rule/Group.vue";
 import RuleProviders from "@/views/rule/Providers.vue";
 import RuleIgnore from "@/views/rule/Ignore.vue";
+import LogLevelSelect from "@/components/LogLevelSelect.vue";
 
 const {t} = useI18n();
 const menuStore = useMenuStore();
@@ -93,6 +94,7 @@ const ruleSubComponents: Record<string, any> = {
             </button>
           </el-tooltip>
         </div>
+        <LogLevelSelect v-if="settingTab === 'log'" class="log-level-select-wrap" />
       </div>
     </template>
 
@@ -124,6 +126,13 @@ const ruleSubComponents: Record<string, any> = {
 .setting-tabs-wrap {
   margin-top: 20px;
   margin-left: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.log-level-select-wrap {
+  margin-top: 0;
 }
 
 .pill-toggle {
@@ -175,7 +184,6 @@ const ruleSubComponents: Record<string, any> = {
 /* Rule sub-tab text toggle */
 .rule-nav {
   margin-top: 10px;
-  margin-left: 10px;
   margin-bottom: 16px;
   width: 95%;
 }
@@ -188,7 +196,7 @@ const ruleSubComponents: Record<string, any> = {
   width: auto;
   height: auto;
   font-size: 14px;
-  padding: 6px 14px;
+  padding: 6px 12px;
   white-space: nowrap;
 }
 </style>

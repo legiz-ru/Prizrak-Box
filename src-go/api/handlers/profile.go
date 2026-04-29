@@ -57,6 +57,29 @@ func ErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	render.JSON(w, r, route.HTTPError{Message: err.Error()})
 }
 
+type hwidErrorResponse struct {
+	Message              string `json:"message"`
+	HwidNotSupported     bool   `json:"hwidNotSupported,omitempty"`
+	HwidMaxDevicesReached bool   `json:"hwidMaxDevicesReached,omitempty"`
+	SupportUrl           string `json:"supportUrl,omitempty"`
+}
+
+// checkHwidHeaders читает HWID-заголовки из ответа сервера подписки.
+// Возвращает (notSupported, maxDevicesReached).
+func checkHwidHeaders(headers http.Header) (notSupported, maxDevicesReached bool) {
+	notSupported = strings.EqualFold(strings.TrimSpace(headers.Get("X-Hwid-Not-Supported")), "true")
+	maxDevicesReached = strings.EqualFold(strings.TrimSpace(headers.Get("X-Hwid-Max-Devices-Reached")), "true")
+	return
+}
+
+// profileRefreshResponse расширяет Profile транзитными HWID-полями для ответа /profile/refresh.
+// Поля HwidNotSupported и HwidMaxDevicesReached не кешируются — они задаются после UpdateDb.
+type profileRefreshResponse struct {
+	*models.Profile
+	HwidNotSupported     bool `json:"hwidNotSupported,omitempty"`
+	HwidMaxDevicesReached bool `json:"hwidMaxDevicesReached,omitempty"`
+}
+
 func getProxyOrigins(w http.ResponseWriter, r *http.Request) {
 	var origins map[string]string
 	if err := cache.Get(constant.ProfileProxyOrigin, &origins); err != nil || origins == nil {
@@ -330,6 +353,23 @@ func addFromWeb(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		inlineHeaders := internal.ParseInlineHeaders(profile.Content)
 		if len(inlineHeaders) > 0 {
+			notSupported, maxDevicesReached := checkHwidHeaders(http.Header(map[string][]string(inlineHeaders)))
+			if notSupported || maxDevicesReached {
+				supportUrl := strings.TrimSpace(inlineHeaders.Get("Support-Url"))
+				resp := hwidErrorResponse{
+					HwidNotSupported:      notSupported,
+					HwidMaxDevicesReached: maxDevicesReached,
+					SupportUrl:            supportUrl,
+				}
+				if notSupported {
+					resp.Message = "HWID not supported by client"
+				} else {
+					resp.Message = "HWID max devices reached"
+				}
+				render.Status(r, http.StatusUnprocessableEntity)
+				render.JSON(w, r, resp)
+				return
+			}
 			internal.ParseHeaders(inlineHeaders, "", profile)
 		}
 		job.UpdateDb(profile, 2)
@@ -353,6 +393,27 @@ func addFromWeb(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
+		// Проверяем HWID-заголовки до сохранения профиля (HTTP + инлайн)
+		mergedSubHeaders := internal.MergeHeaders(res.Headers, internal.ParseInlineHeaders(res.Body))
+		notSupported, maxDevicesReached := checkHwidHeaders(http.Header(map[string][]string(mergedSubHeaders)))
+		if notSupported || maxDevicesReached {
+			supportUrl := strings.TrimSpace(mergedSubHeaders.Get("Support-Url"))
+			resp := hwidErrorResponse{
+				HwidNotSupported:     notSupported,
+				HwidMaxDevicesReached: maxDevicesReached,
+				SupportUrl:           supportUrl,
+			}
+			if notSupported {
+				resp.Message = "HWID not supported by client"
+			} else {
+				resp.Message = "HWID max devices reached"
+			}
+			log.Warnln("[addFromWeb] URL = %s, HWID error: notSupported=%v maxDevicesReached=%v", sub, notSupported, maxDevicesReached)
+			render.Status(r, http.StatusUnprocessableEntity)
+			render.JSON(w, r, resp)
+			return
+		}
+
 		// 解析存盘
 		subProfile := &models.Profile{
 			Content: sub,
@@ -360,8 +421,7 @@ func addFromWeb(w http.ResponseWriter, r *http.Request) {
 		err = internal.Resolve(res.Body, subProfile, false)
 		if err == nil {
 			// 进行请求头解析
-			mergedHeaders := internal.MergeHeaders(res.Headers, internal.ParseInlineHeaders(res.Body))
-			internal.ParseHeaders(mergedHeaders, sub, subProfile)
+			internal.ParseHeaders(mergedSubHeaders, sub, subProfile)
 			job.UpdateDb(subProfile, 1)
 			ps = append(ps, subProfile)
 			ok = true
@@ -398,10 +458,10 @@ func refreshProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 解析存盘
+	mergedHeaders := internal.MergeHeaders(res.Headers, internal.ParseInlineHeaders(res.Body))
 	err = internal.Resolve(res.Body, profile, true)
 	if err == nil {
 		// 进行请求头解析
-		mergedHeaders := internal.MergeHeaders(res.Headers, internal.ParseInlineHeaders(res.Body))
 		internal.ParseHeaders(mergedHeaders, sub, profile)
 		if title != "" {
 			profile.Title = title
@@ -418,7 +478,15 @@ func refreshProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	render.JSON(w, r, profile)
+	// Читаем HWID-статус ПОСЛЕ UpdateDb — эти поля транзитные, в кеш не попадают
+	// Проверяем как HTTP-заголовки, так и инлайн-заголовки из тела ответа
+	notSupported, maxDevicesReached := checkHwidHeaders(http.Header(map[string][]string(mergedHeaders)))
+	resp := profileRefreshResponse{
+		Profile:              profile,
+		HwidNotSupported:     notSupported,
+		HwidMaxDevicesReached: maxDevicesReached,
+	}
+	render.JSON(w, r, resp)
 }
 
 func putProfile(w http.ResponseWriter, r *http.Request) {

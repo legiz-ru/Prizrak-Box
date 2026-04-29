@@ -78,14 +78,14 @@ const initPage = async () => {
 onMounted(initPage);
 
 // Template 下拉列表逻辑
-const isDropdownOpen = ref(false);
-const selectOption = async (item: any) => {
-  Object.assign(now, item);
-  // 处理编辑器内容
-  yamlContent.value = await api.getTemplateById(item.id);
-  isDropdownOpen.value = false;
-
-  canDelete.value = !isDefault(item.title);
+const handleTemplateChange = async (id: string) => {
+  const item = tList.find(i => i.id === id);
+  if (item) {
+    Object.assign(now, item);
+    // 处理编辑器内容
+    yamlContent.value = await api.getTemplateById(item.id);
+    canDelete.value = !isDefault(item.title);
+  }
 };
 
 // 添加逻辑
@@ -214,21 +214,14 @@ const switchTemplate = async () => {
 <template>
   <div class="group">
     <el-space class="op">
-      <div class="dropdown">
-        <button class="dropdown-btn" @click="isDropdownOpen = !isDropdownOpen">
-          {{ getTemplateTitle(t, now.title) }}
-        </button>
-        <ul v-if="isDropdownOpen" class="dropdown-list">
-          <li
-              :key="item.id + index"
-              @click="selectOption(item)"
-              class="dropdown-item"
-              v-for="(item, index) in tList"
-          >
-            {{ getTemplateTitle(t, item.title) }}
-          </li>
-        </ul>
-      </div>
+      <el-select v-model="now.id" @change="handleTemplateChange" class="template-select">
+        <el-option
+            v-for="item in tList"
+            :key="item.id"
+            :label="getTemplateTitle(t, item.title)"
+            :value="item.id"
+        />
+      </el-select>
       <el-divider direction="vertical" border-style="dashed"/>
       <button class="pill-btn" @click="saveTemplate">{{ t("save") }}</button>
       <button class="pill-btn" @click="addVisible=true;addForm.content=''">{{ t("add") }}</button>
@@ -305,49 +298,32 @@ const switchTemplate = async () => {
   margin-top: 2px;
 }
 
-.dropdown {
-  position: relative;
-  display: inline-block;
+.template-select {
+  width: 150px;
+  flex-shrink: 0;
 }
 
-.dropdown-btn {
-  background: transparent;
-  color: var(--text-color);
-  border: 2px solid var(--text-color);
-  padding: 5px 10px;
-  cursor: pointer;
-  font-size: 15px;
-  outline: none;
+:deep(.el-select__wrapper) {
+  height: 38px;
   border-radius: 999px;
-  min-width: 150px;
+  background: var(--left-nav-btn-bg);
+  box-shadow: var(--left-nav-shadow);
+  border: none;
+  padding: 0 12px 0 16px;
 }
 
-.dropdown-btn:hover {
-  opacity: 0.8;
+:deep(.el-select__wrapper:hover) {
+  box-shadow: var(--left-nav-hover-shadow);
 }
 
-.dropdown-list {
-  position: absolute;
-  background: var(--skin-bg-color);
-  border: 2px solid var(--text-color);
-  margin-top: 4px;
-  padding: 0;
-  list-style: none;
-  min-width: 146px;
-  z-index: 20;
-  border-radius: 20px;
-  font-size: 15px;
-  text-align: center;
-}
-
-.dropdown-item {
+:deep(.el-select__placeholder),
+:deep(.el-select__selected-item) {
   color: var(--text-color);
-  padding: 8px;
-  cursor: pointer;
 }
 
-.dropdown-item:hover {
-  background: var(--skin-hover-color);
+:deep(.el-select__suffix .el-icon) {
+  color: var(--text-color);
+  opacity: 0.6;
 }
 
 .set-switch {
@@ -377,7 +353,7 @@ const switchTemplate = async () => {
   border-radius: 999px;
   background-color: var(--left-nav-btn-bg);
   color: var(--text-color);
-  padding: 6px 18px;
+  padding: 9px 18px;
   font-size: 15px;
   cursor: pointer;
   box-shadow: var(--left-nav-shadow);

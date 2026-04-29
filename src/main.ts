@@ -181,6 +181,11 @@ async function bootstrap() {
         }
     };
 
+    // Start the backend HWID config request immediately so the backend receives
+    // enableHWID=true before it can fire a startup auto-refresh of subscriptions.
+    // We still await the promise at the end of bootstrap before mounting the app.
+    const httpConfigPromise = updateHttpClientConfig();
+
     watch(() => settingStore.hwid, () => {
         void updateHttpClientConfig();
     });
@@ -224,7 +229,7 @@ async function bootstrap() {
     // 设置软件开始时间
     homeStore.setStartTime(Date.now());
 
-    await updateHttpClientConfig();
+    await httpConfigPromise;
 
 }
 

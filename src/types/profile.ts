@@ -23,6 +23,7 @@ export class Profile {
     template?: string; // 可选
     pxdTemplateUrl?: string;
     pxdTemplateScheme?: string;
+    hwidActive?: boolean;
 }
 
 export interface ProfileSelectionPayload {

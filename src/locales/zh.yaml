@@ -309,6 +309,11 @@ rule:
     path: 本地路径
     never: 从未更新
     empty: 暂无规则提供者
+    viewRules: 查看规则
+    rulesSearch: 搜索规则
+    rulesEmpty: 暂无规则
+    prevMatch: 上一个匹配
+    nextMatch: 下一个匹配
 
 connections:
   title: 连接
@@ -439,3 +444,14 @@ onboarding:
     title: 信息
     message: 现在您可以启用代理模式或网络适配器模式（TUN）
     ok: 确定
+hwid:
+  not-supported:
+    title: 不支持 HWID
+    message: 要添加此配置文件，需要在应用设置中启用 HWID 发送功能。启用后，您可以重新添加此配置文件。
+    go-settings: 前往设置
+  max-devices:
+    title: 设备数量已达上限
+    message: 此订阅的设备数量已达到最大限制，配置文件未被添加。
+    support: 联系支持
+  active:
+    tooltip: 该配置文件使用 HWID 发送

@@ -39,6 +39,8 @@
       <MyDrop/>
     </div>
     <DeepLinkImportOverlay/>
+    <HwidNotSupportedDialog/>
+    <HwidMaxDevicesDialog/>
   </div>
 </template>
 
@@ -48,6 +50,8 @@ import {useMenuStore} from "@/store/menuStore";
 import {preloadBackgroundImage, changeTheme} from "@/util/theme";
 import {getCachedBg, setCachedBg, clearCachedBg} from "@/util/bgCache";
 import DeepLinkImportOverlay from "@/components/DeepLinkImportOverlay.vue";
+import HwidNotSupportedDialog from "@/components/HwidNotSupportedDialog.vue";
+import HwidMaxDevicesDialog from "@/components/HwidMaxDevicesDialog.vue";
 import {useUpdateStore} from "@/store/updateStore";
 import {storeToRefs} from "pinia";
 import {Browser, Events} from "@/runtime";
@@ -371,10 +375,13 @@ onBeforeUnmount(() => {
 }
 
 .left {
-  padding-right: 22px;
+  margin-right: 22px;
   z-index: 1;
   display: flex;
   flex-direction: column;
+  width: 208px;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .right {
@@ -395,8 +402,8 @@ onBeforeUnmount(() => {
 
 .top-title {
   padding-top: 40px;
-  padding-left: 24px;
-  padding-right: 24px;
+  margin-left: 22px;
+  width: 185px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -426,6 +433,7 @@ onBeforeUnmount(() => {
   text-align: center;
   line-height: 1.2;
   width: 100%;
+  word-wrap: break-word;
 }
 
 .update-banner {

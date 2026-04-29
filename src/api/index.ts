@@ -40,6 +40,7 @@ export default function createApi(proxy: any) {
         createTemplate: createRuleApi(proxy).createTemplate,
         testTemplate: createRuleApi(proxy).testTemplate,
         switchTemplate: createRuleApi(proxy).switchTemplate,
+        getRuleProviderRules: createRuleApi(proxy).getRuleProviderRules,
         addProfileFromInput: createProfilesApi(proxy).addProfileFromInput,
         addProfileFromFile: createProfilesApi(proxy).addProfileFromFile,
         deleteProfile: createProfilesApi(proxy).deleteProfile,

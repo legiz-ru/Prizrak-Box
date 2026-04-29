@@ -7,12 +7,15 @@ import { pWarning, pError, pSuccess } from '@/util/pLoad';
 import { useWebStore } from '@/store/webStore';
 import { Profile } from '@/types/profile';
 import createApi from '@/api';
+import { useHwidStatusStore } from '@/store/hwidStatusStore';
+import { parseHwidFromError } from '@/api/profiles';
 
 const { t } = useI18n();
 const router = useRouter();
 const webStore = useWebStore();
 const { proxy } = getCurrentInstance()!;
 const api = createApi(proxy);
+const hwidStatusStore = useHwidStatusStore();
 
 interface Props {
   profile: any;
@@ -172,7 +175,14 @@ async function addProfile() {
     addForm.value.content = '';
     addFormVisible.value = false;
   } catch (e) {
-    if (e['message']) {
+    const hwid = parseHwidFromError(e);
+    if (hwid) {
+      if (hwid.hwidNotSupported) {
+        hwidStatusStore.showNotSupported();
+      } else if (hwid.hwidMaxDevicesReached) {
+        hwidStatusStore.showMaxDevicesReached(hwid.supportUrl);
+      }
+    } else if (e['message']) {
       pError(e['message']);
     }
   } finally {

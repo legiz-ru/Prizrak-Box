@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import {getCurrentInstance, onMounted, reactive, ref, watch} from "vue";
+import {VAceEditor} from "vue3-ace-editor";
+import "ace-builds/src-noconflict/ace";
+import "ace-builds/src-noconflict/mode-yaml";
+import "ace-builds/src-noconflict/theme-monokai";
+import "ace-builds/src-noconflict/ext-searchbox";
 import createApi from "@/api";
 import {useI18n} from "vue-i18n";
 import {pError, pSuccess} from "@/util/pLoad";
@@ -30,14 +35,12 @@ function getErrorMessage(error: unknown): string {
   if (typeof error === "string") {
     return error;
   }
-
   if (error && typeof error === "object" && "message" in error) {
     const message = (error as {message?: unknown}).message;
     if (typeof message === "string") {
       return message;
     }
   }
-
   try {
     return JSON.stringify(error);
   } catch (e) {
@@ -141,6 +144,88 @@ const handleUpdateClick = (name: string) => {
   void updateProvider(name);
 };
 
+const viewingProvider = ref<RuleProviderItem | null>(null);
+const providerContent = ref('');
+const loadingRules = ref(false);
+const contentSearch = ref('');
+const matchCount = ref<number | null>(null);
+const aceEditorInstance = ref<any>(null);
+
+const editorOptions = {
+  showPrintMargin: false,
+  readOnly: true,
+  highlightActiveLine: false,
+  fontSize: 13,
+};
+
+const onEditorInit = (editor: any) => {
+  aceEditorInstance.value = editor;
+};
+
+function countMatches(content: string, query: string): number {
+  if (!query.trim()) return 0;
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  try {
+    return (content.match(new RegExp(escaped, 'gi')) ?? []).length;
+  } catch {
+    return 0;
+  }
+}
+
+const searchInEditor = () => {
+  const editor = aceEditorInstance.value;
+  if (!editor) return;
+  const q = contentSearch.value;
+  if (!q.trim()) {
+    editor.clearSelection();
+    matchCount.value = null;
+    return;
+  }
+  editor.find(q, {caseSensitive: false, regExp: false, wholeWord: false, wrap: true, backwards: false});
+  matchCount.value = countMatches(providerContent.value, q);
+};
+
+const findNext = () => {
+  const editor = aceEditorInstance.value;
+  if (!editor || !contentSearch.value.trim()) return;
+  editor.find(contentSearch.value, {caseSensitive: false, regExp: false, wholeWord: false, wrap: true, backwards: false});
+};
+
+const findPrev = () => {
+  const editor = aceEditorInstance.value;
+  if (!editor || !contentSearch.value.trim()) return;
+  editor.find(contentSearch.value, {caseSensitive: false, regExp: false, wholeWord: false, wrap: true, backwards: true});
+};
+
+const onSearchClear = () => {
+  aceEditorInstance.value?.clearSelection();
+  matchCount.value = null;
+};
+
+const openRulesDialog = async (provider: RuleProviderItem) => {
+  viewingProvider.value = provider;
+  providerContent.value = '';
+  contentSearch.value = '';
+  matchCount.value = null;
+  aceEditorInstance.value = null;
+  loadingRules.value = true;
+  try {
+    providerContent.value = await api.getRuleProviderRules(provider.name);
+  } catch (error) {
+    pError(getErrorMessage(error));
+  } finally {
+    loadingRules.value = false;
+  }
+};
+
+const closeRulesDialog = () => {
+  viewingProvider.value = null;
+  providerContent.value = '';
+  contentSearch.value = '';
+  matchCount.value = null;
+  aceEditorInstance.value = null;
+};
+
 onMounted(async () => {
   await refreshProviders();
 });
@@ -214,6 +299,18 @@ watch(() => webStore.fProfile, async () => {
           class="provider-card"
       >
         <div class="card-header">
+          <el-tooltip
+              :content="$t('rule.providers.viewRules')"
+              placement="top"
+          >
+            <el-icon
+                class="view-btn"
+                @click.stop="openRulesDialog(provider)"
+                size="22"
+            >
+              <icon-mdi-eye-outline/>
+            </el-icon>
+          </el-tooltip>
           <div class="provider-name" :title="provider.name">{{ provider.name }}</div>
           <div class="header-action">
             <el-tooltip
@@ -257,6 +354,63 @@ watch(() => webStore.fProfile, async () => {
       </div>
     </div>
   </div>
+
+  <el-dialog
+      v-if="viewingProvider"
+      class="provider-rules-dialog"
+      :model-value="!!viewingProvider"
+      :show-close="false"
+      width="800px"
+      destroy-on-close
+      @close="closeRulesDialog"
+  >
+    <template #header="{close}">
+      <div class="dialog-header">
+        <span class="dialog-title" :title="viewingProvider.name">{{ viewingProvider.name }}</span>
+        <div class="header-search" v-if="!loadingRules">
+          <el-input
+              v-model="contentSearch"
+              :placeholder="$t('rule.providers.rulesSearch')"
+              clearable
+              size="small"
+              class="header-search-input"
+              @input="searchInEditor"
+              @clear="onSearchClear"
+              @keydown.enter.prevent="findNext"
+              @keydown.shift.enter.prevent="findPrev"
+          >
+            <template #prefix><icon-mdi-magnify/></template>
+          </el-input>
+          <span
+              :class="['match-badge', {zero: (matchCount ?? 0) === 0}]"
+          >{{ matchCount ?? 0 }}</span>
+          <div class="nav-buttons">
+            <button class="nav-btn" :disabled="!contentSearch.trim() || (matchCount ?? 0) === 0" @click="findPrev" :title="$t('rule.providers.prevMatch')">
+              <icon-mdi-chevron-up/>
+            </button>
+            <button class="nav-btn" :disabled="!contentSearch.trim() || (matchCount ?? 0) === 0" @click="findNext" :title="$t('rule.providers.nextMatch')">
+              <icon-mdi-chevron-down/>
+            </button>
+          </div>
+        </div>
+        <button class="dialog-close-btn" @click="close" :title="$t('common.close')">
+          <icon-mdi-close/>
+        </button>
+      </div>
+    </template>
+    <div class="provider-content-body">
+      <el-skeleton v-if="loadingRules" :rows="10" animated class="content-skeleton"/>
+      <VAceEditor
+          v-else
+          v-model:value="providerContent"
+          lang="yaml"
+          theme="monokai"
+          :options="editorOptions"
+          class="content-editor"
+          @init="onEditorInit"
+      />
+    </div>
+  </el-dialog>
 </template>
 
 <style scoped>
@@ -364,6 +518,18 @@ watch(() => webStore.fProfile, async () => {
   align-items: center;
 }
 
+.view-btn {
+  color: var(--text-color);
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.view-btn:hover {
+  opacity: 1;
+}
+
 .refresh-btn {
   color: var(--text-color);
   cursor: pointer;
@@ -461,5 +627,169 @@ watch(() => webStore.fProfile, async () => {
   to {
     transform: rotate(360deg);
   }
+}
+
+
+:deep(.provider-rules-dialog) {
+  background: #f7f7f9;
+  border: 1px solid #d5d8df;
+  color: #252b36;
+}
+
+:deep(.provider-rules-dialog .el-dialog__header) {
+  margin-right: 0;
+  padding-bottom: 10px;
+}
+
+:deep(.provider-rules-dialog .el-dialog__body) {
+  padding-top: 4px;
+}
+
+:deep(.header-search-input .el-input__wrapper) {
+  background: #ffffff;
+  box-shadow: 0 0 0 1px #d7dce6 inset;
+  border-radius: 8px;
+}
+
+:deep(.header-search-input .el-input__inner) {
+  color: #252b36;
+}
+
+:deep(.header-search-input .el-input__inner::placeholder) {
+  color: #9aa3b2;
+}
+
+:deep(.header-search-input .el-input__prefix-inner) {
+  color: #7f8794;
+}
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dialog-title {
+  flex: 0 1 auto;
+  max-width: 170px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #202532;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.header-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  background: #eef1f6;
+  border: 1px solid #d7dce6;
+  border-radius: 12px;
+  padding: 6px 8px;
+}
+
+.header-search-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.match-badge {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 28px;
+  text-align: center;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #d7dce6;
+  color: #252b36;
+  white-space: nowrap;
+}
+
+.match-badge.zero {
+  color: #e06c75;
+}
+
+.nav-buttons {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid #d7dce6;
+  border-radius: 8px;
+  color: #252b36;
+  cursor: pointer;
+  width: 32px;
+  height: 28px;
+  line-height: 1;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.nav-btn:hover {
+  background: #e8edf7;
+  border-color: #bcc6d8;
+}
+
+.nav-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dialog-close-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #ffffff;
+  border: 1px solid #d7dce6;
+  border-radius: 8px;
+  color: #646c78;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.dialog-close-btn:hover {
+  background: #e8edf7;
+  border-color: #bcc6d8;
+  color: #252b36;
+}
+
+.provider-content-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.content-skeleton {
+  padding: 8px 0;
+}
+
+.content-editor {
+  width: 100%;
+  height: 500px;
+  border: 2px solid var(--text-color);
+  border-radius: 12px;
+  font: 13px "Monaco", "Menlo", "Ubuntu Mono", "Consolas", "Source Code Pro", monospace;
+}
+
+:deep(.ace_editor) {
+  border-radius: 12px;
+}
+
+:deep(.ace_gutter) {
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
 }
 </style>

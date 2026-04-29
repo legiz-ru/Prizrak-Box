@@ -12,6 +12,8 @@ import {useWebStore} from "@/store/webStore";
 import {WS} from "@/util/ws";
 import {onBeforeRouteLeave} from "vue-router";
 import AnnounceText from "@/components/home/AnnounceText.vue";
+import {useHwidStatusStore} from "@/store/hwidStatusStore";
+import {parseHwidFromError} from "@/api/profiles";
 
 // i18n
 const {t} = useI18n();
@@ -25,6 +27,7 @@ const menuStore = useMenuStore();
 const proxiesStore = useProxiesStore();
 const webStore = useWebStore();
 const settingStore = useSettingStore();
+const hwidStatusStore = useHwidStatusStore();
 
 // 头部几个按钮操作
 const addFormVisible = ref(false)
@@ -50,7 +53,14 @@ async function add() {
     addForm.content = ""
     addFormVisible.value = false
   } catch (e) {
-    if (e['message']) {
+    const hwid = parseHwidFromError(e)
+    if (hwid) {
+      if (hwid.hwidNotSupported) {
+        hwidStatusStore.showNotSupported();
+      } else if (hwid.hwidMaxDevicesReached) {
+        hwidStatusStore.showMaxDevicesReached(hwid.supportUrl);
+      }
+    } else if (e['message']) {
       pError(e['message'])
     }
   }
@@ -510,6 +520,13 @@ async function refresh(data: any) {
         data: toRaw(profiles)
       })
       pSuccess(t('profiles.refresh.success'))
+
+      if (re?.hwidNotSupported) {
+        hwidStatusStore.showNotSupported();
+      } else if (re?.hwidMaxDevicesReached) {
+        const supportUrl = typeof re.support === 'string' ? re.support : '';
+        hwidStatusStore.showMaxDevicesReached(supportUrl);
+      }
     } catch (e) {
       if (e['message']) {
         pError(e['message'])
@@ -1145,17 +1162,29 @@ watch(() => webStore.dProfile, async (pList) => {
 
     </el-form>
     <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="editFormVisible = false">
-          {{ t('cancel') }}
-        </el-button>
-        <el-button
-            type="primary"
-            :loading="isNowEdit"
-            @click="saveUpdateProfile"
+      <div class="dialog-footer dialog-footer--split">
+        <el-tooltip
+            v-if="editForm.hwidActive"
+            :content="t('hwid.active.tooltip')"
+            placement="top"
         >
-          {{ t('confirm') }}
-        </el-button>
+          <el-icon class="hwid-active-icon">
+            <icon-mdi-shield-check />
+          </el-icon>
+        </el-tooltip>
+        <span v-else />
+        <div class="dialog-footer__actions">
+          <el-button @click="editFormVisible = false">
+            {{ t('cancel') }}
+          </el-button>
+          <el-button
+              type="primary"
+              :loading="isNowEdit"
+              @click="saveUpdateProfile"
+          >
+            {{ t('confirm') }}
+          </el-button>
+        </div>
       </div>
     </template>
   </el-dialog>
@@ -1464,5 +1493,23 @@ watch(() => webStore.dProfile, async (pList) => {
   line-height: 1.6;
   word-wrap: break-word;
   white-space: pre-wrap;
+}
+
+.dialog-footer--split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.dialog-footer__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.hwid-active-icon {
+  font-size: 20px;
+  color: var(--el-color-primary);
+  opacity: 0.85;
 }
 </style>

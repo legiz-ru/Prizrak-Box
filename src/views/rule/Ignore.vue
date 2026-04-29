@@ -46,6 +46,15 @@ async function savaIgnore() {
       <button class="pill-btn" @click="savaIgnore">{{ $t('save') }}</button>
       <el-divider direction="vertical" border-style="dashed"/>
       <el-text class="st">{{ $t('rule.ignore.tip') }}</el-text>
+      <el-tooltip
+          content="Домены из этого списка обходят системный прокси и подключаются напрямую (DIRECT). Указывайте по одному домену в строке, например: localhost, *.local, intranet.company"
+          placement="top"
+          :show-after="300"
+      >
+        <el-icon class="info-icon" size="16">
+          <icon-mdi-information-outline/>
+        </el-icon>
+      </el-tooltip>
     </el-space>
     <div class="content">
       <textarea
@@ -98,6 +107,16 @@ async function savaIgnore() {
 
 .st {
   color: var(--text-color);
+}
+
+.info-icon {
+  color: var(--text-color);
+  opacity: 0.8;
+  cursor: help;
+}
+
+.info-icon:hover {
+  opacity: 1;
 }
 
 .content {

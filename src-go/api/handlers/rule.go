@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/legiz-ru/prizrak-box/api/models"
 	"github.com/legiz-ru/prizrak-box/internal"
@@ -13,8 +16,10 @@ import (
 	"github.com/metacubex/chi"
 	"github.com/metacubex/chi/render"
 	"github.com/metacubex/http"
+	P "github.com/metacubex/mihomo/constant/provider"
 	"github.com/metacubex/mihomo/hub/executor"
 	"github.com/metacubex/mihomo/log"
+	"github.com/metacubex/mihomo/tunnel"
 )
 
 func Rule(r chi.Router) {
@@ -40,6 +45,9 @@ func ruleRouter() chi.Router {
 
 	// 规则总数
 	r.Get("/num", getNum)
+
+	// 规则提供者内容
+	r.Get("/provider/{name}", getProviderContent)
 
 	return r
 }
@@ -252,4 +260,64 @@ func getNum(w http.ResponseWriter, r *http.Request) {
 	}{num}
 
 	render.JSON(w, r, res)
+}
+
+func getProviderContent(w http.ResponseWriter, r *http.Request) {
+	name := chi.URLParam(r, "name")
+
+	providers := tunnel.RuleProviders()
+	provider, ok := providers[name]
+	if !ok {
+		http.Error(w, "provider not found", http.StatusNotFound)
+		return
+	}
+
+	// domain/IPCIDR strategies implement DumpMrs — reconstruct as YAML payload list
+	type mrsDumper interface {
+		DumpMrs(f func(key string) bool)
+	}
+	if d, ok := provider.Strategy().(mrsDumper); ok {
+		var sb strings.Builder
+		sb.WriteString("payload:\n")
+		d.DumpMrs(func(key string) bool {
+			sb.WriteString("  - '")
+			sb.WriteString(strings.ReplaceAll(key, "'", "\\'"))
+			sb.WriteString("'\n")
+			return true
+		})
+		render.PlainText(w, r, sb.String())
+		return
+	}
+
+	// classical file/HTTP provider — return raw vehicle file content
+	type vehicler interface {
+		Vehicle() P.Vehicle
+	}
+	if v, ok := provider.(vehicler); ok {
+		filePath := v.Vehicle().Path()
+		if content, err := os.ReadFile(filePath); err == nil {
+			render.PlainText(w, r, string(content))
+			return
+		}
+	}
+
+	// inline classical provider — extract payload via MarshalJSON
+	var raw struct {
+		Payload []string `json:"payload"`
+	}
+	if data, err := json.Marshal(provider); err == nil {
+		if err := json.Unmarshal(data, &raw); err == nil && len(raw.Payload) > 0 {
+			var sb strings.Builder
+			sb.WriteString("payload:\n")
+			for _, line := range raw.Payload {
+				sb.WriteString("  - '")
+				sb.WriteString(strings.ReplaceAll(line, "'", "\\'"))
+				sb.WriteString("'\n")
+			}
+			render.PlainText(w, r, sb.String())
+			return
+		}
+	}
+
+	render.PlainText(w, r, "")
 }

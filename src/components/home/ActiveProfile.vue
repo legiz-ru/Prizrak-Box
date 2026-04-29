@@ -8,10 +8,12 @@ import ProfileToolbar from './ProfileToolbar.vue';
 import ProfileStats from './ProfileStats.vue';
 import AnnounceText from './AnnounceText.vue';
 import MyIp from './MyIp.vue';
+import { useHwidStatusStore } from '@/store/hwidStatusStore';
 
 const { proxy } = getCurrentInstance()!;
 const api = createApi(proxy);
 const { t } = useI18n();
+const hwidStatusStore = useHwidStatusStore();
 
 interface Props {
   profiles: any[];
@@ -59,6 +61,13 @@ async function refreshProfile() {
       }));
 
       pSuccess(t('profiles.refresh.success'));
+
+      if (refreshed?.hwidNotSupported) {
+        hwidStatusStore.showNotSupported();
+      } else if (refreshed?.hwidMaxDevicesReached) {
+        const supportUrl = typeof refreshed.support === 'string' ? refreshed.support : '';
+        hwidStatusStore.showMaxDevicesReached(supportUrl);
+      }
     } catch (e) {
       if (e['message']) {
         pError(e['message']);

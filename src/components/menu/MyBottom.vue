@@ -49,6 +49,8 @@ watch(() => menuStore.useWhite, changeTheme);
 .bottom-text {
   margin-top: auto;
   margin-bottom: 18px;
+  margin-left: 22px;
+  width: 185px;
   display: flex;
   justify-content: center;
   gap: 16px;

@@ -667,4 +667,7 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 	} else {
 		profile.PxdTemplateScheme = ""
 	}
+
+	// HWID active flag — сохраняется в профиле чтобы edit-диалог мог показать индикатор
+	profile.HwidActive = strings.EqualFold(strings.TrimSpace(header.Get("X-Hwid-Active")), "true")
 }

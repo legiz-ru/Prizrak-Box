@@ -309,6 +309,11 @@ rule:
     path: Local path
     never: Never updated
     empty: No rule providers found
+    viewRules: View rules
+    rulesSearch: Search rules
+    rulesEmpty: No rules found
+    prevMatch: Previous match
+    nextMatch: Next match
 
 connections:
   title: Connections
@@ -439,3 +444,14 @@ onboarding:
     title: Information
     message: You can now enable proxy mode or network adapter mode (TUN)
     ok: Ok
+hwid:
+  not-supported:
+    title: HWID Not Supported
+    message: To add this profile, you need to enable HWID sending in the application settings. After enabling it, you can add this profile again.
+    go-settings: Go to Settings
+  max-devices:
+    title: Device Limit Reached
+    message: The maximum number of devices for this subscription has been reached. The profile was not added.
+    support: Support
+  active:
+    tooltip: This profile uses HWID sending

@@ -4,7 +4,8 @@ const excludeGroupName: any = {
     REJECT: true,
     "REJECT-DROP": true,
     PASS: true,
-    COMPATIBLE: true
+    COMPATIBLE: true,
+    GLOBAL: true
 }
 
 // 不排除的分组类型
@@ -219,13 +220,13 @@ export default function createProxiesApi(proxy: any) {
             const proxies = data?.['proxies']
 
             // 判空 — proxies может быть null пока Mihomo загружает pxd-template конфиг
-            if (!proxies?.['GLOBAL']) {
+            if (!proxies) {
                 return []
             }
 
             // 获取分组
             const proxyGroup: ProxyGroupInfo[] = []
-            for (const name of proxies['GLOBAL']['all']) {
+            for (const name in proxies) {
                 if (excludeGroupName[name]) {
                     continue
                 }

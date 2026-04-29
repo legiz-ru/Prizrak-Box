@@ -18,6 +18,7 @@ const updateRuleProvider = (proxy: any) =>
         return await proxy.$http.put(`/providers/rules/${encoded}`);
     };
 
+
 // 获取规则数
 const getRuleNum = (proxy: any) =>
     async function () {
@@ -79,6 +80,13 @@ const switchTemplate = (proxy: any) =>
         return await proxy.$http.post(`/rule/switch`, data);
     };
 
+// 获取规则提供者内容
+const getRuleProviderRules = (proxy: any) =>
+    async function (name: string): Promise<string> {
+        const encoded = encodeURIComponent(name);
+        return await proxy.$http.get(`/rule/provider/${encoded}`);
+    };
+
 export default function createRuleApi(proxy: any) {
     return {
         getRules: getRules(proxy),
@@ -94,5 +102,6 @@ export default function createRuleApi(proxy: any) {
         createTemplate: createTemplate(proxy),
         testTemplate: testTemplate(proxy),
         switchTemplate: switchTemplate(proxy),
+        getRuleProviderRules: getRuleProviderRules(proxy),
     };
 }

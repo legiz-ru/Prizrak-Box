@@ -238,14 +238,13 @@ function closeAll() {
               </template>
             </el-segmented>
           </div>
-          <div class="search" v-if="connectionStore.viewMode === 'list' || connectionStore.viewMode === 'process'">
-            <MySimpleInput
-                :onInputChange="handleInputChange"
-                :placeholder="$t('connections.search')"
-                class="search"
-            ></MySimpleInput>
-          </div>
         </el-space>
+        <div class="search" v-if="connectionStore.viewMode === 'list' || connectionStore.viewMode === 'process'">
+          <MySimpleInput
+              :onInputChange="handleInputChange"
+              :placeholder="$t('connections.search')"
+          ></MySimpleInput>
+        </div>
       </div>
 
       <div class="content" v-if="connectionStore.viewMode === 'list'">
@@ -494,7 +493,8 @@ function closeAll() {
 }
 
 .search {
-  width: 400px;
+  width: 100%;
+  margin-top: 12px;
 }
 
 .search :deep(.custom-input) {

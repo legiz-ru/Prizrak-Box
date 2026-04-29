@@ -197,14 +197,13 @@ function closeAll() {
             @click="connectionStore.viewMode = 'process'"
         >{{ $t('connections.process-view') }}</button>
       </div>
-      <div class="search" v-if="connectionStore.viewMode === 'list' || connectionStore.viewMode === 'process'">
-        <MySimpleInput
-            :onInputChange="handleInputChange"
-            :placeholder="$t('connections.search')"
-            class="search"
-        />
-      </div>
     </el-space>
+    <div class="search" v-if="connectionStore.viewMode === 'list' || connectionStore.viewMode === 'process'">
+      <MySimpleInput
+          :onInputChange="handleInputChange"
+          :placeholder="$t('connections.search')"
+      />
+    </div>
   </div>
 
   <div class="content" v-if="connectionStore.viewMode === 'list'">
@@ -390,7 +389,8 @@ function closeAll() {
 }
 
 .search {
-  width: 400px;
+  width: 100%;
+  margin-top: 12px;
 }
 
 .search :deep(.custom-input) {
@@ -407,7 +407,7 @@ function closeAll() {
   border-radius: 999px;
   background-color: var(--left-nav-btn-bg);
   color: var(--text-color);
-  padding: 6px 18px;
+  padding: 9px 18px;
   font-size: 14px;
   cursor: pointer;
   box-shadow: var(--left-nav-shadow);

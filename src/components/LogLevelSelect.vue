@@ -44,7 +44,7 @@ onMounted(async () => {
 
 <style scoped>
 .level-select {
-  width: 100px;
+  width: 130px;
   flex-shrink: 0;
 }
 

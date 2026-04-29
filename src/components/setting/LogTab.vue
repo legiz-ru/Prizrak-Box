@@ -25,14 +25,11 @@ function filterData() {
 
 <template>
   <div class="conn">
-    <div class="toolbar">
-      <LogLevelSelect />
-      <div class="search">
-        <MySimpleInput
-            :onInputChange="handleInputChange"
-            :placeholder="$t('log.search')"
-        />
-      </div>
+    <div class="search">
+      <MySimpleInput
+          :onInputChange="handleInputChange"
+          :placeholder="$t('log.search')"
+      />
     </div>
   </div>
 
@@ -58,14 +55,9 @@ function filterData() {
   margin-top: 2px;
 }
 
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .search {
-  width: 360px;
+  width: 100%;
+  margin-top: 0;
 }
 
 .search :deep(.custom-input) {
