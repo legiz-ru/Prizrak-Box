@@ -73,6 +73,16 @@ func StartCore(server string) (port int, secret string) {
 		}
 	}
 
+	// Restore EnableHWID from cache before starting cron jobs.
+	// gocron fires tasks immediately on StartAsync(), so the HTTP client config
+	// must reflect the persisted user preference before DoRefresh() runs.
+	var enableHWID bool
+	if err := cache.Get(constant.EnableHWIDKey, &enableHWID); err != nil {
+		// No persisted value yet — default to true (matches frontend default).
+		enableHWID = true
+	}
+	utils.UpdateHTTPClientConfig(&utils.HTTPClientConfig{EnableHWID: enableHWID})
+
 	// 开启定时任务
 	job.LogJob("px-server.log")
 	job.RefreshJob()

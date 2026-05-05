@@ -5,7 +5,7 @@ import ConnectionTopology from "@/components/topology/ConnectionTopology.vue";
 import {WS} from "@/util/ws";
 import {useWebStore} from "@/store/webStore";
 import {useConnectionStore} from "@/store/connectionStore";
-import {prettyBytes, rJoin} from "@/util/format";
+import {prettyBytes} from "@/util/format";
 import {onBeforeRouteLeave} from "vue-router";
 import {formatDistance, Locale} from 'date-fns';
 import {enUS, ru, zhCN} from 'date-fns/locale'
@@ -32,7 +32,151 @@ function fDate(start: any): string {
 
 const search = ref('')
 const logDialogVisible = ref(false)
-const logContent = ref('')
+const logItem = ref<any>(null)
+
+const dialogTick = ref(0)
+let durationTimer: ReturnType<typeof setInterval> | null = null
+
+watch(logDialogVisible, (visible) => {
+  if (visible) {
+    dialogTick.value = 0
+    durationTimer = setInterval(() => { dialogTick.value++ }, 1000)
+  } else {
+    if (durationTimer) { clearInterval(durationTimer); durationTimer = null }
+  }
+})
+
+interface LogRow {
+  label: string
+  value: string
+  type: 'text' | 'ip' | 'host' | 'process' | 'path'
+  explorerPath?: string
+}
+interface LogSection {
+  title: string
+  rows: LogRow[]
+}
+
+function formatDuration(start: string): string {
+  const _ = dialogTick.value
+  const elapsed = Math.floor((Date.now() - new Date(start).getTime()) / 1000)
+  if (elapsed < 0) return '—'
+  const h = Math.floor(elapsed / 3600)
+  const m = Math.floor((elapsed % 3600) / 60)
+  const s = elapsed % 60
+  return [h, m, s].map(v => String(v).padStart(2, '0')).join(':')
+}
+
+function formatChains(chains: string[]): string {
+  if (!chains || chains.length === 0) return '—'
+  return [...chains].reverse().join(' → ')
+}
+
+function formatConnType(metadata: any): string {
+  const net = (metadata?.network || '').toUpperCase()
+  const type = metadata?.type || ''
+  if (net && type && net !== type) return `${net}(${type})`
+  return net || type || '—'
+}
+
+const dialogTitle = computed(() => {
+  if (!logItem.value) return t('connections.dialog-title')
+  const m = logItem.value.metadata
+  if (!m) return t('connections.dialog-title')
+  const host = m.host || m.destinationIP || ''
+  const port = m.destinationPort || ''
+  return host && port ? `${host}:${port}` : host || t('connections.dialog-title')
+})
+
+const dialogSections = computed<LogSection[]>(() => {
+  const _ = dialogTick.value
+  if (!logItem.value) return []
+  const item = logItem.value
+  const m = item.metadata || {}
+  const isInner = m.type === 'Inner'
+
+  const row = (label: string, value: any, type: LogRow['type'] = 'text', explorerPath?: string): LogRow => ({
+    label, value: String(value ?? ''), type, explorerPath
+  })
+
+  const sections: (LogSection | null)[] = [
+    {
+      title: t('connections.section-traffic'),
+      rows: [
+        row(t('connections.upload-speed'), item.uploadSpeed ? prettyBytes(item.uploadSpeed) + '/s' : '—'),
+        row(t('connections.download-speed'), item.downloadSpeed ? prettyBytes(item.downloadSpeed) + '/s' : '—'),
+        row(t('connections.upload'), prettyBytes(item.upload || 0)),
+        row(t('connections.download'), prettyBytes(item.download || 0)),
+        row(t('connections.duration'), formatDuration(item.start)),
+      ]
+    },
+    {
+      title: t('connections.section-routing'),
+      rows: [
+        item.rule ? row(t('connections.rule'), [item.rule, item.rulePayload].filter(Boolean).join(' / ')) : null,
+        row(t('connections.proxy-chain'), formatChains(item.chains)),
+        row(t('connections.conn-type'), formatConnType(m)),
+      ].filter(Boolean) as LogRow[]
+    },
+    {
+      title: t('connections.section-network'),
+      rows: [
+        m.host ? row(t('connections.host'), m.host, 'host') : null,
+        m.sniffHost && m.sniffHost !== m.host ? row(t('connections.sniff-host'), m.sniffHost, 'host') : null,
+        m.destinationIP ? row(t('connections.dest-ip'), m.destinationIP, 'ip') : null,
+        m.sourceIP ? row(t('connections.source-ip'), m.sourceIP, 'ip') : null,
+        m.sourcePort ? row(t('connections.source-port'), m.sourcePort) : null,
+        m.destinationPort ? row(t('connections.dest-port'), m.destinationPort) : null,
+        m.remoteDestination ? row(t('connections.remote-dest'), m.remoteDestination, 'ip') : null,
+      ].filter(Boolean) as LogRow[]
+    },
+    !isInner && (m.process || m.processPath) ? {
+      title: t('connections.section-process'),
+      rows: [
+        m.process ? row(t('connections.process-label'), m.process, 'process', m.processPath || undefined) : null,
+        m.processPath && m.processPath !== m.process ? row(t('connections.process-path'), m.processPath, 'path', m.processPath) : null,
+      ].filter(Boolean) as LogRow[]
+    } : null,
+    (m.inboundIP || m.inboundPort || m.inboundName || m.inboundUser) ? {
+      title: t('connections.section-inbound'),
+      rows: [
+        m.inboundIP ? row(t('connections.inbound-ip'), m.inboundIP, 'ip') : null,
+        m.inboundPort ? row(t('connections.inbound-port'), m.inboundPort) : null,
+        m.inboundName ? row(t('connections.inbound-name'), m.inboundName) : null,
+        m.inboundUser ? row(t('connections.inbound-user'), m.inboundUser) : null,
+      ].filter(Boolean) as LogRow[]
+    } : null,
+    (m.dnsMode || m.specialProxy || m.specialRules || m.dscp) ? {
+      title: t('connections.section-other'),
+      rows: [
+        m.dnsMode ? row(t('connections.dns-mode'), m.dnsMode) : null,
+        m.specialProxy ? row(t('connections.special-proxy'), m.specialProxy) : null,
+        m.specialRules ? row(t('connections.special-rules'), m.specialRules) : null,
+        m.dscp ? row(t('connections.dscp'), String(m.dscp)) : null,
+      ].filter(Boolean) as LogRow[]
+    } : null,
+  ]
+
+  return sections.filter(Boolean) as LogSection[]
+})
+
+async function copyText(text: string) {
+  if (!navigator.clipboard) { ElMessage.error(t('copy.fail')); return }
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success(t('copy.success'))
+  } catch {
+    ElMessage.error(t('copy.fail'))
+  }
+}
+
+function openInBrowser(url: string) {
+  ;(window as any).pxOpen?.(url)
+}
+
+function showInExplorer(path: string) {
+  ;(window as any).pxShowInFolder?.(path)
+}
 
 function handleInputChange(value: any) {
   search.value = value
@@ -62,16 +206,21 @@ function filterData(cacheData: any): any {
   return cache;
 }
 
-// 分页数据状态
-const paginatedData = ref([]);
+const paginatedData = ref<any[]>([]);
 
 function onConn(ev: MessageEvent) {
   const parsedData = JSON.parse(ev.data);
-  paginatedData.value = parsedData['connections']
+  const next: any[] = parsedData['connections'] ?? [];
+  connectionStore.recordClosed(paginatedData.value, next);
+  paginatedData.value = next;
 }
 
+const displayData = computed(() =>
+  connectionStore.showClosed ? connectionStore.closedConnections : paginatedData.value
+);
+
 function openLogDialog(item: any) {
-  logContent.value = JSON.stringify(item, null, 2)
+  logItem.value = item
   logDialogVisible.value = true
 }
 
@@ -80,7 +229,8 @@ function closeLogDialog() {
 }
 
 async function copyLog(item?: any) {
-  const data = item ? JSON.stringify(item, null, 2) : logContent.value
+  const target = item ?? logItem.value
+  const data = target ? JSON.stringify(target, null, 2) : ''
   if (!data) {
     return
   }
@@ -148,7 +298,7 @@ interface ProcessGroup {
 
 const processGroups = computed<ProcessGroup[]>(() => {
   const groups = new Map<string, ProcessGroup>()
-  for (const conn of (paginatedData.value || [])) {
+  for (const conn of (displayData.value || [])) {
     const isInner = (conn as any).metadata?.type === 'Inner'
     const name: string = isInner ? MIHOMO_CORE_NAME : ((conn as any).metadata?.process || t('connections.unknown-process'))
     const path: string = isInner ? MIHOMO_CORE_KEY : ((conn as any).metadata?.processPath || name)
@@ -167,7 +317,7 @@ const processGroups = computed<ProcessGroup[]>(() => {
 
 const selectedProcessConnections = computed(() => {
   if (!selectedProcess.value) return []
-  return filterData(paginatedData.value)?.filter((c: any) => {
+  return filterData(displayData.value)?.filter((c: any) => {
     if (c.metadata?.type === 'Inner') return selectedProcess.value === MIHOMO_CORE_KEY
     const path = c.metadata?.processPath || c.metadata?.process || t('connections.unknown-process')
     return path === selectedProcess.value
@@ -197,11 +347,12 @@ onBeforeUnmount(() => {
     wsConn.close();
     wsConn = null
   }
+  if (durationTimer) { clearInterval(durationTimer); durationTimer = null }
 })
 
 
 function closeAll() {
-  const data = filterData(paginatedData.value)
+  const data = filterData(paginatedData.value)  // always active
   if (data.length > 0) {
     if (search.value) {
       for (let connection of data) {
@@ -251,66 +402,51 @@ function closeAll() {
         <div class="info-list">
           <el-row
               class="info"
-              v-for="(item, i) in filterData(paginatedData)"
+              v-for="(item, i) in filterData(displayData)"
               :key="i"
           >
             <el-col :span="24">
-              <div class="info-header">
-                <div class="info-actions">
-                  <span
-                      class="icon-btn"
-                      role="button"
-                      tabindex="0"
-                      :title="$t('connections.view-log')"
-                      @click="openLogDialog(item)"
-                      @keydown.enter.prevent="openLogDialog(item)"
-                      @keydown.space.prevent="openLogDialog(item)"
-                  >
+              <div class="info-card">
+                <div class="info-card__actions">
+                  <span class="icon-btn" role="button" tabindex="0"
+                        :title="$t('connections.view-log')"
+                        @click="openLogDialog(item)"
+                        @keydown.enter.prevent="openLogDialog(item)"
+                        @keydown.space.prevent="openLogDialog(item)">
                     <icon-mdi-information-outline/>
                   </span>
-                  <span
-                      class="icon-btn"
-                      role="button"
-                      tabindex="0"
-                      :title="$t('connections.copy-log')"
-                      @click="copyLog(item)"
-                      @keydown.enter.prevent="copyLog(item)"
-                      @keydown.space.prevent="copyLog(item)"
-                  >
+                  <span class="icon-btn" role="button" tabindex="0"
+                        :title="$t('connections.copy-log')"
+                        @click="copyLog(item)"
+                        @keydown.enter.prevent="copyLog(item)"
+                        @keydown.space.prevent="copyLog(item)">
                     <icon-mdi-content-copy/>
                   </span>
                 </div>
-                <div class="info-tags">
-                  <el-tag type="success" size="small">{{ item.metadata.type }}</el-tag>
-                  &emsp;
-                  <el-tag type="danger" size="small">
-                    {{ fDate(item.start) }}
-                  </el-tag>
-                  <template v-if="item.metadata.process">
-                    &emsp;
-                    <el-tag type="primary" size="small">{{ item.metadata.process }}</el-tag>
-                  </template>
+                <div class="info-card__main">
+                  <div class="info-card__host">{{ fHost(item.metadata) }}</div>
+                  <div class="info-card__tags">
+                    <el-tag type="success" size="small">{{ item.metadata.type }}</el-tag>
+                    <el-tag v-if="item.metadata.process" type="primary" size="small">{{ item.metadata.process }}</el-tag>
+                    <el-tag type="danger" size="small">{{ fDate(item.start) }}</el-tag>
+                  </div>
                 </div>
-              </div>
-              <div class="od">
-                <span class="ot">{{ $t('connections.host') }} : </span>
-                {{ fHost(item.metadata) }}
-              </div>
-              <div class="od">
-                <span class="ot">{{ $t('connections.download') }} : </span>
-                {{ prettyBytes(item.download) }}
-                &emsp;
-                <span class="ot">{{ $t('connections.upload') }} : </span>
-                {{ prettyBytes(item.upload) }}
-              </div>
-              <div class="od" v-if="item.rule">
-                <span class="ot">{{ $t('connections.rule') }} : </span>
-                {{ item.rule }}
-                {{ item.rulePayload ? ' / ' + item.rulePayload : '' }}
-              </div>
-              <div class="od">
-                <span class="ot">{{ $t('connections.chains') }} : </span>
-                {{ rJoin(item.chains, '&nbsp;/&nbsp;') }}
+                <div class="info-card__meta">
+                  <div class="info-card__traffic">
+                    <span class="info-traffic-item" :title="$t('connections.upload')">
+                      <icon-mdi-arrow-up class="traffic-icon traffic-icon--up"/>
+                      {{ prettyBytes(item.upload) }}
+                    </span>
+                    <span class="info-traffic-item" :title="$t('connections.download')">
+                      <icon-mdi-arrow-down class="traffic-icon traffic-icon--down"/>
+                      {{ prettyBytes(item.download) }}
+                    </span>
+                  </div>
+                  <div class="info-card__routing">
+                    <template v-if="item.rule">{{ [item.rule, item.rulePayload].filter(Boolean).join(' / ') }}<template v-if="item.chains?.length"> · </template></template>
+                    <template v-if="item.chains?.length">{{ formatChains(item.chains) }}</template>
+                  </div>
+                </div>
               </div>
             </el-col>
           </el-row>
@@ -318,7 +454,7 @@ function closeAll() {
       </div>
 
       <div class="content topology-content" v-else-if="connectionStore.viewMode === 'topology'">
-        <ConnectionTopology :connections="paginatedData" />
+        <ConnectionTopology :connections="paginatedData" /><!-- topology always shows active -->
       </div>
 
       <div class="content" v-else-if="connectionStore.viewMode === 'process'">
@@ -385,8 +521,8 @@ function closeAll() {
                 :key="i"
             >
               <el-col :span="24">
-                <div class="info-header">
-                  <div class="info-actions">
+                <div class="info-card">
+                  <div class="info-card__actions">
                     <span class="icon-btn" role="button" tabindex="0"
                           :title="$t('connections.view-log')"
                           @click.stop="openLogDialog(item)"
@@ -402,23 +538,29 @@ function closeAll() {
                       <icon-mdi-content-copy/>
                     </span>
                   </div>
-                  <div class="info-tags">
-                    <el-tag type="success" size="small">{{ item.metadata.type }}</el-tag>
-                    &emsp;
-                    <el-tag type="danger" size="small">{{ fDate(item.start) }}</el-tag>
+                  <div class="info-card__main">
+                    <div class="info-card__host">{{ fHost(item.metadata) }}</div>
+                    <div class="info-card__tags">
+                      <el-tag type="success" size="small">{{ item.metadata.type }}</el-tag>
+                      <el-tag type="danger" size="small">{{ fDate(item.start) }}</el-tag>
+                    </div>
                   </div>
-                </div>
-                <div class="od"><span class="ot">{{ $t('connections.host') }}: </span>{{ fHost(item.metadata) }}</div>
-                <div class="od">
-                  <span class="ot">{{ $t('connections.download') }}: </span>{{ prettyBytes(item.download) }}
-                  &emsp;
-                  <span class="ot">{{ $t('connections.upload') }}: </span>{{ prettyBytes(item.upload) }}
-                </div>
-                <div class="od" v-if="item.rule">
-                  <span class="ot">{{ $t('connections.rule') }}: </span>{{ item.rule }}{{ item.rulePayload ? ' / ' + item.rulePayload : '' }}
-                </div>
-                <div class="od">
-                  <span class="ot">{{ $t('connections.chains') }}: </span>{{ rJoin(item.chains, '&nbsp;/&nbsp;') }}
+                  <div class="info-card__meta">
+                    <div class="info-card__traffic">
+                      <span class="info-traffic-item" :title="$t('connections.upload')">
+                        <icon-mdi-arrow-up class="traffic-icon traffic-icon--up"/>
+                        {{ prettyBytes(item.upload) }}
+                      </span>
+                      <span class="info-traffic-item" :title="$t('connections.download')">
+                        <icon-mdi-arrow-down class="traffic-icon traffic-icon--down"/>
+                        {{ prettyBytes(item.download) }}
+                      </span>
+                    </div>
+                    <div class="info-card__routing">
+                      <template v-if="item.rule">{{ [item.rule, item.rulePayload].filter(Boolean).join(' / ') }}<template v-if="item.chains?.length"> · </template></template>
+                      <template v-if="item.chains?.length">{{ formatChains(item.chains) }}</template>
+                    </div>
+                  </div>
                 </div>
               </el-col>
             </el-row>
@@ -431,14 +573,13 @@ function closeAll() {
 
       <el-dialog
           v-model="logDialogVisible"
-          :title="$t('connections.dialog-title')"
           :show-close="false"
           modal-class="log-dialog__overlay"
           class="log-dialog"
       >
         <template #header>
           <div class="log-dialog__header">
-            <span class="log-dialog__title">{{ $t('connections.dialog-title') }}</span>
+            <span class="log-dialog__title">{{ dialogTitle }}</span>
             <div class="log-dialog__actions">
               <el-button
                   class="log-dialog__action log-dialog__copy"
@@ -461,7 +602,62 @@ function closeAll() {
             </div>
           </div>
         </template>
-        <pre class="log-dialog__content">{{ logContent }}</pre>
+        <div v-if="logItem" class="log-parsed">
+          <template v-for="section in dialogSections" :key="section.title">
+            <div class="log-section">
+              <div class="log-section__title">{{ section.title }}</div>
+              <div
+                  v-for="row in section.rows"
+                  :key="row.label"
+                  class="log-row"
+              >
+                <span class="log-label">{{ row.label }}</span>
+                <span v-if="row.type === 'text'" class="log-value">{{ row.value }}</span>
+                <el-popover
+                    v-else
+                    trigger="click"
+                    :width="190"
+                    placement="bottom-start"
+                    popper-class="log-popover"
+                >
+                  <template #reference>
+                    <span class="log-value log-clickable">{{ row.value }}</span>
+                  </template>
+                  <div class="log-popover__inner">
+                    <button class="log-popover__btn" @click="copyText(row.value)">
+                      <icon-mdi-content-copy class="log-popover__icon"/>
+                      {{ $t('connections.copy-value') }}
+                    </button>
+                    <button
+                        v-if="row.type === 'ip'"
+                        class="log-popover__btn"
+                        @click="openInBrowser('https://ipinfo.io/' + row.value)"
+                    >
+                      <icon-mdi-open-in-new class="log-popover__icon"/>
+                      ipinfo.io
+                    </button>
+                    <button
+                        v-if="row.type === 'host'"
+                        class="log-popover__btn"
+                        @click="openInBrowser('https://' + row.value)"
+                    >
+                      <icon-mdi-open-in-new class="log-popover__icon"/>
+                      {{ $t('connections.open-in-browser') }}
+                    </button>
+                    <button
+                        v-if="(row.type === 'process' || row.type === 'path') && row.explorerPath"
+                        class="log-popover__btn"
+                        @click="showInExplorer(row.explorerPath!)"
+                    >
+                      <icon-mdi-folder-open-outline class="log-popover__icon"/>
+                      {{ $t('connections.show-in-explorer') }}
+                    </button>
+                  </div>
+                </el-popover>
+              </div>
+            </div>
+          </template>
+        </div>
       </el-dialog>
 
     </template>
@@ -534,34 +730,95 @@ function closeAll() {
 
 .info {
   border-bottom: 1px solid var(--sub-card-border);
-  padding: 5px 10px 5px 16px;
-  font-size: 15px;
-  line-height: 1.6;
+  padding: 0;
   background-color: var(--left-bg-color);
 }
 
-.info-header {
-  display: flex;
+.info-card {
+  display: grid;
+  grid-template-columns: 40px 1fr minmax(140px, auto);
+  column-gap: 8px;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 6px;
+  padding: 8px 12px 8px 8px;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
-.info-actions {
+.info-card__actions {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
-.info-tags {
+.info-card__main {
+  min-width: 0;
+}
+
+.info-card__host {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.info-card__tags {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  --el-tag-border-radius: 999px;
+  gap: 4px;
 }
 
-.info-tags :deep(.el-tag) {
+.info-card__tags :deep(.el-tag) {
   border-radius: 999px;
+}
+
+.info-card__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 0;
+}
+
+.info-card__traffic {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.info-traffic-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.traffic-icon {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.traffic-icon--up {
+  color: #f59e0b;
+}
+
+.traffic-icon--down {
+  color: #10b981;
+}
+
+.info-card__routing {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: right;
 }
 
 .icon-btn {
@@ -636,16 +893,73 @@ function closeAll() {
   outline-offset: 2px;
 }
 
-.log-dialog__content {
+.log-parsed {
   flex: 1;
-  overflow: auto;
-  background-color: rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
-  padding: 12px;
-  white-space: pre-wrap;
+  overflow-y: auto;
+  padding: 4px 0 8px;
+}
+
+.log-parsed::-webkit-scrollbar {
+  width: 5px;
+}
+
+.log-parsed::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.log-parsed::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-bg);
+  border-radius: 2px;
+}
+
+.log-parsed::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover-bg);
+}
+
+.log-section {
+  margin-bottom: 4px;
+}
+
+.log-section__title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--left-item-selected-bg);
+  padding: 6px 16px 2px;
+}
+
+.log-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 16px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.log-label {
+  flex: 0 0 42%;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
   word-break: break-word;
-  width: 100%;
-  box-sizing: border-box;
+}
+
+.log-value {
+  flex: 1;
+  color: var(--el-text-color-primary);
+  word-break: break-all;
+}
+
+.log-clickable {
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  color: var(--left-item-selected-bg);
+  transition: opacity 0.15s ease;
+}
+
+.log-clickable:hover {
+  opacity: 0.75;
 }
 
 :deep(.log-dialog__overlay) {
@@ -688,14 +1002,6 @@ function closeAll() {
   min-height: 0;
 }
 
-.od {
-  user-select: text;
-}
-
-.ot {
-  font-weight: bold;
-  font-size: 15px;
-}
 
 .info-list::-webkit-scrollbar {
   width: 5px;
@@ -753,6 +1059,7 @@ function closeAll() {
 .process-row {
   cursor: pointer;
   transition: background-color 0.15s ease;
+  padding: 5px 10px 5px 16px;
 }
 
 .process-row:hover {

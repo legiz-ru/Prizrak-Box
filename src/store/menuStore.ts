@@ -14,6 +14,7 @@ export const useMenuStore = defineStore('menu', {
         background: 'url("/images/default.jpg")',
         useWhite: true,
         settingTab: 'app',
+        providersView: 'cards' as 'cards' | 'table',
     }),
     actions: {
         setMenu(menu: string) {
@@ -48,6 +49,9 @@ export const useMenuStore = defineStore('menu', {
         },
         setSettingTab(settingTab: string) {
             this.settingTab = settingTab;
+        },
+        setProvidersView(view: 'cards' | 'table') {
+            this.providersView = view;
         },
     },
     persist: defaultPersist,

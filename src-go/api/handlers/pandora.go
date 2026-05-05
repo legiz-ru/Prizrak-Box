@@ -203,6 +203,10 @@ func updateHTTPClientConfig(w http.ResponseWriter, r *http.Request) {
 
 	utils.UpdateHTTPClientConfig(httpConfig)
 
+	// Persist EnableHWID so it survives a backend restart and is available
+	// before the cron scheduler fires DoRefresh on next startup.
+	_ = cache.Put(constant.EnableHWIDKey, config.EnableHWID)
+
 	details := utils.GetResolvedDeviceDetails()
 	render.JSON(w, r, details)
 }

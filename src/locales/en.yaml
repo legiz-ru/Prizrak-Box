@@ -112,6 +112,10 @@ setting:
     port: Mixed-Port
     port-error: The port number must be greater than 0 and less than 65535
     dns: DNS Override
+    dnsQuery:
+      queryTitle: DNS Query
+      query: Query
+      noResults: No records found
     lan: LAN
     bindAddress: Bind Address
     bind-error: Wrong address
@@ -314,6 +318,11 @@ rule:
     rulesEmpty: No rules found
     prevMatch: Previous match
     nextMatch: Next match
+    name: Provider
+    ruleCountShort: Count
+    updatedAt: Updated at
+    viewCards: Cards
+    viewTable: Table
 
 connections:
   title: Connections
@@ -336,9 +345,42 @@ connections:
   list: List
   topology-view: Topology
   process-view: Processes
+  active: Active
+  closed: Closed
   unknown-process: Unknown
   connections-count: '{count} connections'
   back: Back
+  section-traffic: TRAFFIC
+  section-routing: ROUTING
+  section-network: NETWORK
+  section-process: PROCESS
+  section-inbound: INBOUND
+  section-other: OTHER
+  upload-speed: Upload speed
+  download-speed: Download speed
+  duration: Duration
+  proxy-chain: Proxy chain
+  conn-type: Type
+  dest-ip: Destination IP
+  source-ip: Source IP
+  source-port: Source port
+  dest-port: Destination port
+  remote-dest: Remote destination
+  sniff-host: Sniffed host
+  process-label: Process
+  process-path: Process path
+  inbound-ip: Inbound IP
+  inbound-port: Inbound port
+  inbound-name: Inbound name
+  inbound-user: User
+  dns-mode: DNS mode
+  special-proxy: Special proxy
+  special-rules: Special rules
+  dscp: DSCP
+  copy-value: Copy
+  open-ipinfo: Open ipinfo.io
+  open-in-browser: Open in browser
+  show-in-explorer: Show in Explorer
 
 log:
   title: Log

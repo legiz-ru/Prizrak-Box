@@ -10,6 +10,7 @@ import {useI18n} from "vue-i18n";
 import {pError, pSuccess} from "@/util/pLoad";
 import {format} from "date-fns";
 import {useWebStore} from "@/store/webStore";
+import {useMenuStore} from "@/store/menuStore";
 
 interface RuleProviderItem {
   name: string;
@@ -25,28 +26,25 @@ const {proxy} = getCurrentInstance()!;
 const api = createApi(proxy);
 const {t} = useI18n();
 const webStore = useWebStore();
+const menuStore = useMenuStore();
 
 const providers = ref<RuleProviderItem[]>([]);
 const loading = ref(false);
 const updatingAll = ref(false);
 const updatingProviders = reactive<Record<string, boolean>>({});
 
+const viewMode = computed({
+  get: () => menuStore.providersView,
+  set: (v: 'cards' | 'table') => menuStore.setProvidersView(v),
+});
+
 function getErrorMessage(error: unknown): string {
-  if (typeof error === "string") {
-    return error;
-  }
+  if (typeof error === "string") return error;
   if (error && typeof error === "object" && "message" in error) {
     const message = (error as {message?: unknown}).message;
-    if (typeof message === "string") {
-      return message;
-    }
+    if (typeof message === "string") return message;
   }
-  try {
-    return JSON.stringify(error);
-  } catch (e) {
-    console.error("Failed to stringify error", e);
-    return String(error);
-  }
+  try { return JSON.stringify(error); } catch (e) { return String(error); }
 }
 
 function normalizeProvider(raw: Record<string, any>, name: string): RuleProviderItem {
@@ -76,14 +74,10 @@ const loadProviders = async () => {
   }
 };
 
-const refreshProviders = async () => {
-  await loadProviders();
-};
+const refreshProviders = async () => { await loadProviders(); };
 
 const updateProvider = async (name: string) => {
-  if (updatingProviders[name]) {
-    return;
-  }
+  if (updatingProviders[name]) return;
   updatingProviders[name] = true;
   try {
     await api.updateRuleProvider(name);
@@ -97,9 +91,7 @@ const updateProvider = async (name: string) => {
 };
 
 const updateAllProviders = async () => {
-  if (!providers.value.length || updatingAll.value) {
-    return;
-  }
+  if (!providers.value.length || updatingAll.value) return;
   updatingAll.value = true;
   const errors: string[] = [];
   try {
@@ -116,31 +108,22 @@ const updateAllProviders = async () => {
   } finally {
     updatingAll.value = false;
     await loadProviders();
-    if (errors.length) {
-      pError(errors.join(""));
-    } else {
-      pSuccess(t("rule.providers.updateAllSuccess"));
-    }
+    if (errors.length) pError(errors.join(""));
+    else pSuccess(t("rule.providers.updateAllSuccess"));
   }
 };
 
 function formatUpdatedAt(value?: string) {
-  if (!value) {
-    return t("rule.providers.never");
-  }
+  if (!value) return t("rule.providers.never");
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
+  if (Number.isNaN(date.getTime())) return value;
   return format(date, "yyyy-MM-dd HH:mm:ss");
 }
 
 const isUpdating = (name: string) => Boolean(updatingProviders[name] || updatingAll.value);
 
 const handleUpdateClick = (name: string) => {
-  if (isUpdating(name)) {
-    return;
-  }
+  if (isUpdating(name)) return;
   void updateProvider(name);
 };
 
@@ -158,29 +141,19 @@ const editorOptions = {
   fontSize: 13,
 };
 
-const onEditorInit = (editor: any) => {
-  aceEditorInstance.value = editor;
-};
+const onEditorInit = (editor: any) => { aceEditorInstance.value = editor; };
 
 function countMatches(content: string, query: string): number {
   if (!query.trim()) return 0;
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  try {
-    return (content.match(new RegExp(escaped, 'gi')) ?? []).length;
-  } catch {
-    return 0;
-  }
+  try { return (content.match(new RegExp(escaped, 'gi')) ?? []).length; } catch { return 0; }
 }
 
 const searchInEditor = () => {
   const editor = aceEditorInstance.value;
   if (!editor) return;
   const q = contentSearch.value;
-  if (!q.trim()) {
-    editor.clearSelection();
-    matchCount.value = null;
-    return;
-  }
+  if (!q.trim()) { editor.clearSelection(); matchCount.value = null; return; }
   editor.find(q, {caseSensitive: false, regExp: false, wholeWord: false, wrap: true, backwards: false});
   matchCount.value = countMatches(providerContent.value, q);
 };
@@ -197,10 +170,7 @@ const findPrev = () => {
   editor.find(contentSearch.value, {caseSensitive: false, regExp: false, wholeWord: false, wrap: true, backwards: true});
 };
 
-const onSearchClear = () => {
-  aceEditorInstance.value?.clearSelection();
-  matchCount.value = null;
-};
+const onSearchClear = () => { aceEditorInstance.value?.clearSelection(); matchCount.value = null; };
 
 const openRulesDialog = async (provider: RuleProviderItem) => {
   viewingProvider.value = provider;
@@ -226,9 +196,7 @@ const closeRulesDialog = () => {
   aceEditorInstance.value = null;
 };
 
-onMounted(async () => {
-  await refreshProviders();
-});
+onMounted(async () => { await refreshProviders(); });
 
 watch(() => webStore.fProfile, async () => {
   await api.waitRunning();
@@ -239,36 +207,29 @@ watch(() => webStore.fProfile, async () => {
 <template>
   <div class="rule-providers">
     <div class="actions">
+      <!-- Action buttons only; view toggle moved to Rule.vue / Setting.vue top bar -->
       <button
           :disabled="loading"
-          :class="['action-button', {loading}]"
+          :class="['pill-btn', {loading}]"
           type="button"
           @click="refreshProviders"
       >
-        <span class="pre">
-          <icon-mdi-refresh :class="{spin: loading}"/>
-        </span>
-        <span class="suf">{{ $t('rule.providers.refresh') }}</span>
+        <icon-mdi-refresh :class="['btn-icon', {spin: loading}]"/>
+        {{ $t('rule.providers.refresh') }}
       </button>
       <button
           :disabled="!providers.length || updatingAll"
-          :class="['action-button', {loading: updatingAll, disabled: !providers.length && !updatingAll}]"
+          :class="['pill-btn', {loading: updatingAll, disabled: !providers.length && !updatingAll}]"
           type="button"
           @click="updateAllProviders"
       >
-        <span class="pre">
-          <icon-mdi-sync :class="{spin: updatingAll}"/>
-        </span>
-        <span class="suf">{{ $t('rule.providers.updateAll') }}</span>
+        <icon-mdi-sync :class="['btn-icon', {spin: updatingAll}]"/>
+        {{ $t('rule.providers.updateAll') }}
       </button>
     </div>
 
-    <el-skeleton
-        v-if="loading"
-        :count="3"
-        animated
-        class="skeleton"
-    >
+    <!-- Skeleton -->
+    <el-skeleton v-if="loading" :count="3" animated class="skeleton">
       <template #template>
         <div class="provider-card skeleton-card">
           <div class="card-header">
@@ -282,7 +243,6 @@ watch(() => webStore.fProfile, async () => {
           <div class="stats">
             <el-skeleton-item variant="text" style="width: 60%"/>
             <el-skeleton-item variant="text" style="width: 70%"/>
-            <el-skeleton-item variant="text" style="width: 80%"/>
           </div>
         </div>
       </template>
@@ -292,31 +252,18 @@ watch(() => webStore.fProfile, async () => {
       <el-empty :description="$t('rule.providers.empty')"/>
     </div>
 
-    <div v-else class="provider-list">
-      <div
-          v-for="provider in providers"
-          :key="provider.name"
-          class="provider-card"
-      >
+    <!-- Cards view -->
+    <div v-else-if="viewMode === 'cards'" class="provider-list">
+      <div v-for="provider in providers" :key="provider.name" class="provider-card">
         <div class="card-header">
-          <el-tooltip
-              :content="$t('rule.providers.viewRules')"
-              placement="top"
-          >
-            <el-icon
-                class="view-btn"
-                @click.stop="openRulesDialog(provider)"
-                size="22"
-            >
+          <el-tooltip :content="$t('rule.providers.viewRules')" placement="top">
+            <el-icon class="view-btn" @click.stop="openRulesDialog(provider)" size="22">
               <icon-mdi-eye-outline/>
             </el-icon>
           </el-tooltip>
           <div class="provider-name" :title="provider.name">{{ provider.name }}</div>
           <div class="header-action">
-            <el-tooltip
-                :content="$t('rule.providers.update')"
-                placement="top"
-            >
+            <el-tooltip :content="$t('rule.providers.update')" placement="top">
               <el-icon
                   :class="['refresh-btn', {disabled: isUpdating(provider.name)}]"
                   @click.stop="handleUpdateClick(provider.name)"
@@ -340,21 +287,62 @@ watch(() => webStore.fProfile, async () => {
             <span class="stat-line-label">{{ $t('rule.providers.lastUpdate') }}:</span>
             <span class="stat-line-value">{{ formatUpdatedAt(provider.updatedAt) }}</span>
           </div>
-          <div
-              v-if="provider.path"
-              class="stat-row path-row"
-          >
-            <el-icon size="18" class="stat-icon">
-              <icon-mdi-folder-outline/>
-            </el-icon>
+          <div v-if="provider.path" class="stat-row path-row">
+            <el-icon size="18" class="stat-icon"><icon-mdi-folder-outline/></el-icon>
             <span class="stat-label">{{ $t('rule.providers.path') }}</span>
             <span class="stat-value path-text">{{ provider.path }}</span>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Table view -->
+    <div v-else class="table-wrap">
+      <div class="table-header">
+        <div class="col-icon"></div>
+        <div class="col-icon"></div>
+        <div class="col-tags">{{ $t('rule.now.type') }}</div>
+        <div class="col-name">{{ $t('rule.providers.name') }}</div>
+        <div class="col-count">{{ $t('rule.providers.ruleCountShort') }}</div>
+        <div class="col-date">{{ $t('rule.providers.updatedAt') }}</div>
+      </div>
+      <div class="table-body">
+        <div
+            v-for="(provider, i) in providers"
+            :key="provider.name"
+            :class="['table-row', { 'table-row--alt': i % 2 === 1 }]"
+        >
+          <div class="col-icon">
+            <el-tooltip :content="$t('rule.providers.viewRules')" placement="top">
+              <el-icon class="row-action-btn" size="18" @click.stop="openRulesDialog(provider)">
+                <icon-mdi-eye-outline/>
+              </el-icon>
+            </el-tooltip>
+          </div>
+          <div class="col-icon">
+            <el-tooltip :content="$t('rule.providers.update')" placement="top">
+              <el-icon
+                  :class="['row-action-btn', {disabled: isUpdating(provider.name)}]"
+                  size="18"
+                  @click.stop="handleUpdateClick(provider.name)"
+              >
+                <icon-mdi-refresh :class="{spin: isUpdating(provider.name)}"/>
+              </el-icon>
+            </el-tooltip>
+          </div>
+          <div class="col-tags">
+            <el-tag v-if="provider.vehicleType" size="small" type="info" class="provider-tag">{{ provider.vehicleType }}</el-tag>
+            <el-tag v-if="provider.behavior" size="small" type="success" class="provider-tag">{{ provider.behavior }}</el-tag>
+          </div>
+          <div class="col-name" :title="provider.name">{{ provider.name }}</div>
+          <div class="col-count">{{ provider.ruleCount ?? 0 }}</div>
+          <div class="col-date">{{ formatUpdatedAt(provider.updatedAt) }}</div>
+        </div>
+      </div>
+    </div>
   </div>
 
+  <!-- Rules dialog -->
   <el-dialog
       v-if="viewingProvider"
       class="provider-rules-dialog"
@@ -381,9 +369,7 @@ watch(() => webStore.fProfile, async () => {
           >
             <template #prefix><icon-mdi-magnify/></template>
           </el-input>
-          <span
-              :class="['match-badge', {zero: (matchCount ?? 0) === 0}]"
-          >{{ matchCount ?? 0 }}</span>
+          <span :class="['match-badge', {zero: (matchCount ?? 0) === 0}]">{{ matchCount ?? 0 }}</span>
           <div class="nav-buttons">
             <button class="nav-btn" :disabled="!contentSearch.trim() || (matchCount ?? 0) === 0" @click="findPrev" :title="$t('rule.providers.prevMatch')">
               <icon-mdi-chevron-up/>
@@ -418,54 +404,54 @@ watch(() => webStore.fProfile, async () => {
   width: 100%;
   margin-left: 0;
   margin-top: 10px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
+/* ── Toolbar ── */
 .actions {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-.action-button {
-  position: relative;
+/* Action buttons — same pill-btn as Group.vue */
+.pill-btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  background-color: transparent;
-  color: var(--text-color);
-  border: 2px solid var(--hr-color);
+  gap: 6px;
+  border: none;
   border-radius: 999px;
-  padding: 6px 16px 6px 36px;
-  font-size: 16px;
+  background-color: var(--left-nav-btn-bg);
+  color: var(--text-color);
+  padding: 9px 18px;
+  font-size: 15px;
   cursor: pointer;
   box-shadow: var(--left-nav-shadow);
-  transition: background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.action-button .pre {
-  position: absolute;
-  left: 10px;
-  display: flex;
-  align-items: center;
-}
-
-.action-button .suf {
-  font-weight: 500;
-}
-
-.action-button:hover,
-.action-button.loading {
+.pill-btn:hover,
+.pill-btn.loading {
   background-color: var(--left-item-selected-bg);
   box-shadow: var(--left-nav-hover-shadow);
-  border-color: var(--text-color);
 }
 
-.action-button:disabled {
-  opacity: 0.6;
+.pill-btn:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
   box-shadow: none;
 }
 
+.btn-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+/* ── Cards view ── */
 .skeleton {
   margin-top: 20px;
 }
@@ -567,13 +553,8 @@ watch(() => webStore.fProfile, async () => {
   color: var(--text-color);
 }
 
-.stat-line-label {
-  font-weight: 600;
-}
-
-.stat-line-value {
-  font-weight: 500;
-}
+.stat-line-label { font-weight: 600; }
+.stat-line-value { font-weight: 500; }
 
 .stat-row {
   display: flex;
@@ -581,55 +562,133 @@ watch(() => webStore.fProfile, async () => {
   gap: 6px;
 }
 
-.stat-icon {
-  color: var(--text-color);
-}
+.stat-icon { color: var(--text-color); }
+.stat-label { flex: 1; color: var(--text-color); }
+.stat-value { font-weight: 500; color: var(--text-color); word-break: break-all; }
+.path-row { align-items: flex-start; }
+.path-text { word-break: break-all; }
 
-.stat-label {
+/* ── Table view — same style as Now.vue ── */
+.table-wrap {
+  border: 2px solid var(--text-color);
+  border-radius: 20px;
+  overflow: hidden;
+  margin-top: 20px;
   flex: 1;
-  color: var(--text-color);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
-.stat-value {
+.table-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px 8px 16px;
+  border-bottom: 1px solid var(--text-color);
+  font-weight: bold;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.table-body {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.table-body::-webkit-scrollbar { width: 5px; }
+.table-body::-webkit-scrollbar-track { background: transparent; }
+.table-body::-webkit-scrollbar-thumb { background: var(--scrollbar-bg); border-radius: 2px; }
+.table-body::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover-bg); box-shadow: var(--scrollbar-hover-shadow); }
+
+.table-row {
+  display: flex;
+  align-items: center;
+  padding: 7px 10px 7px 16px;
+  border-bottom: 1px solid var(--sub-card-border);
+  gap: 4px;
+  color: var(--text-color);
+  line-height: 1.4;
+}
+
+.table-row--alt {
+  background-color: var(--rule-list-bg);
+}
+
+.table-row:hover {
+  background-color: var(--rule-list-hover);
+}
+
+/* Column widths */
+.col-icon {
+  width: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.col-tags {
+  width: 140px;
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.col-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font-weight: 500;
+}
+
+.col-count {
+  width: 90px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.col-date {
+  width: 175px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.row-action-btn {
   color: var(--text-color);
-  word-break: break-all;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
 }
 
-.path-row {
-  align-items: flex-start;
+.row-action-btn:hover {
+  opacity: 1;
 }
 
-.path-text {
-  word-break: break-all;
+.row-action-btn.disabled {
+  opacity: 0.35;
+  cursor: default;
+  pointer-events: none;
 }
 
-.empty {
-  margin-top: 60px;
-}
+/* ── Shared ── */
+.empty { margin-top: 60px; }
+.skeleton-card { pointer-events: none; }
 
 .spin {
   animation: spin 1s linear infinite;
 }
 
-.action-button .pre .spin {
-  animation: spin 1s linear infinite;
-}
-
-.skeleton-card {
-  pointer-events: none;
-}
-
 @keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-
+/* ── Dialog ── */
 :deep(.provider-rules-dialog) {
   background: #f7f7f9;
   border: 1px solid #d5d8df;
@@ -651,17 +710,10 @@ watch(() => webStore.fProfile, async () => {
   border-radius: 8px;
 }
 
-:deep(.header-search-input .el-input__inner) {
-  color: #252b36;
-}
+:deep(.header-search-input .el-input__inner) { color: #252b36; }
+:deep(.header-search-input .el-input__inner::placeholder) { color: #9aa3b2; }
+:deep(.header-search-input .el-input__prefix-inner) { color: #7f8794; }
 
-:deep(.header-search-input .el-input__inner::placeholder) {
-  color: #9aa3b2;
-}
-
-:deep(.header-search-input .el-input__prefix-inner) {
-  color: #7f8794;
-}
 .dialog-header {
   display: flex;
   align-items: center;
@@ -692,10 +744,7 @@ watch(() => webStore.fProfile, async () => {
   padding: 6px 8px;
 }
 
-.header-search-input {
-  flex: 1;
-  min-width: 0;
-}
+.header-search-input { flex: 1; min-width: 0; }
 
 .match-badge {
   flex-shrink: 0;
@@ -711,15 +760,9 @@ watch(() => webStore.fProfile, async () => {
   white-space: nowrap;
 }
 
-.match-badge.zero {
-  color: #e06c75;
-}
+.match-badge.zero { color: #e06c75; }
 
-.nav-buttons {
-  display: flex;
-  gap: 2px;
-  flex-shrink: 0;
-}
+.nav-buttons { display: flex; gap: 2px; flex-shrink: 0; }
 
 .nav-btn {
   display: flex;
@@ -736,15 +779,8 @@ watch(() => webStore.fProfile, async () => {
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
-.nav-btn:hover {
-  background: #e8edf7;
-  border-color: #bcc6d8;
-}
-
-.nav-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
+.nav-btn:hover { background: #e8edf7; border-color: #bcc6d8; }
+.nav-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .dialog-close-btn {
   flex: 0 0 auto;
@@ -761,20 +797,14 @@ watch(() => webStore.fProfile, async () => {
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
-.dialog-close-btn:hover {
-  background: #e8edf7;
-  border-color: #bcc6d8;
-  color: #252b36;
-}
+.dialog-close-btn:hover { background: #e8edf7; border-color: #bcc6d8; color: #252b36; }
 
 .provider-content-body {
   display: flex;
   flex-direction: column;
 }
 
-.content-skeleton {
-  padding: 8px 0;
-}
+.content-skeleton { padding: 8px 0; }
 
 .content-editor {
   width: 100%;
@@ -784,12 +814,6 @@ watch(() => webStore.fProfile, async () => {
   font: 13px "Monaco", "Menlo", "Ubuntu Mono", "Consolas", "Source Code Pro", monospace;
 }
 
-:deep(.ace_editor) {
-  border-radius: 12px;
-}
-
-:deep(.ace_gutter) {
-  border-top-left-radius: 10px;
-  border-bottom-left-radius: 10px;
-}
+:deep(.ace_editor) { border-radius: 12px; }
+:deep(.ace_gutter) { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
 </style>
