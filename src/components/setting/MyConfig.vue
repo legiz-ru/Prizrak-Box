@@ -253,6 +253,36 @@ const cancelEditingCustomDashboardEntry = () => {
 // 使用路由
 const router = useRouter()
 
+// DNS Query Tool
+const dnsQueryName = ref('')
+const dnsQueryType = ref('A')
+const dnsQueryLoading = ref(false)
+const dnsQueryResults = ref<Array<{ name: string; type: number; TTL: number; data: string }>>([])
+const dnsQueryError = ref('')
+
+const DNS_TYPE_MAP: Record<number, string> = { 1: 'A', 5: 'CNAME', 28: 'AAAA', 15: 'MX', 16: 'TXT', 2: 'NS' }
+
+async function runDnsQuery() {
+  const name = dnsQueryName.value.trim()
+  if (!name) return
+  dnsQueryLoading.value = true
+  dnsQueryResults.value = []
+  dnsQueryError.value = ''
+  try {
+    const data: any = await proxy.$http.get(`/dns/query?name=${encodeURIComponent(name)}&type=${dnsQueryType.value}`)
+    const answers = data?.Answer ?? []
+    if (answers.length === 0) {
+      dnsQueryError.value = t('setting.mihomo.dnsQuery.noResults')
+    } else {
+      dnsQueryResults.value = answers
+    }
+  } catch (e: any) {
+    dnsQueryError.value = e?.message || String(e)
+  } finally {
+    dnsQueryLoading.value = false
+  }
+}
+
 // 数据监听
 // dns
 watch(() => settingStore.dns, (newValue) => {
@@ -388,34 +418,28 @@ const shortcutDialogVisible = ref(false);
           <li>
             <MyTun></MyTun>
           </li>
-          <li>
+          <li class="toggle-row">
             <strong>
               {{ $t('setting.mihomo.dns') }} :
             </strong>
-            <el-icon
-                @click="changeMenu('Setting/Dns',router)"
-                class="btn">
-              <EditPen/>
-            </el-icon>
-            <el-switch
-                v-model="settingStore.dns"
-                class="set-switch"
-                style="margin-left: 28px"
-            />
+            <div :class="['px-toggle', { 'is-on': settingStore.dns }]" @click="settingStore.dns = !settingStore.dns">
+              <div class="px-toggle__thumb"></div>
+            </div>
+            <button class="pencil-btn" @click.stop="changeMenu('Setting/Dns',router)">
+              <el-icon><EditPen/></el-icon>
+            </button>
           </li>
-          <li>
+          <li class="toggle-row">
             <strong>IPV6 :</strong>
-            <el-switch
-                v-model="settingStore.ipv6"
-                class="set-switch"
-            />
+            <div :class="['px-toggle', { 'is-on': settingStore.ipv6 }]" @click="settingStore.ipv6 = !settingStore.ipv6">
+              <div class="px-toggle__thumb"></div>
+            </div>
           </li>
-          <li>
+          <li class="toggle-row">
             <strong>{{ $t('setting.mihomo.independentDelayTest') }} :</strong>
-            <el-switch
-                v-model="settingStore.independentDelayTest"
-                class="set-switch"
-            />
+            <div :class="['px-toggle', { 'is-on': settingStore.independentDelayTest }]" @click="settingStore.independentDelayTest = !settingStore.independentDelayTest">
+              <div class="px-toggle__thumb"></div>
+            </div>
           </li>
           <li v-if="settingStore.independentDelayTest" class="group-test-urls-section">
             <div class="group-test-urls-header">
@@ -473,10 +497,49 @@ const shortcutDialogVisible = ref(false);
               </el-dropdown>
             </div>
           </li>
-          <li style="height: 30px">
+          <li class="secret-row">
             <strong>Secret:</strong>
-            {{ webStore.secret }}
+            <span class="secret-row__value">{{ webStore.secret }}</span>
             <button class="pill-btn" @click="copy(webStore.secret,t)">{{ $t('copy.title') }}</button>
+          </li>
+          <li class="api-row dns-query-row">
+            <strong>{{ $t('setting.mihomo.dnsQuery.queryTitle') }} :</strong>
+            <input
+              v-model="dnsQueryName"
+              class="dns-query-input"
+              placeholder="example.com"
+              autocapitalize="off"
+              autocomplete="off"
+              autocorrect="off"
+              spellcheck="false"
+              @keyup.enter="runDnsQuery"
+            />
+            <el-dropdown trigger="click" @command="(cmd: string) => dnsQueryType = cmd">
+              <button class="pill-btn pill-btn--arrow">
+                {{ dnsQueryType }}
+                <el-icon class="api-row__icon"><ArrowDown/></el-icon>
+              </button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item v-for="type in ['A','AAAA','CNAME','MX','TXT','NS']" :key="type" :command="type">{{ type }}</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+            <button class="pill-btn" :disabled="dnsQueryLoading" @click="runDnsQuery">
+              {{ dnsQueryLoading ? '...' : $t('setting.mihomo.dnsQuery.query') }}
+            </button>
+          </li>
+          <li v-if="dnsQueryError || dnsQueryResults.length > 0" class="dns-query-results-row">
+            <div v-if="dnsQueryError" class="dns-query-error">{{ dnsQueryError }}</div>
+            <div v-if="dnsQueryResults.length > 0" class="dns-query-results">
+              <div v-for="(rec, i) in dnsQueryResults" :key="i" class="dns-query-record">
+                <span class="dns-type-badge" :class="'dns-type--' + (DNS_TYPE_MAP[rec.type] ?? 'other').toLowerCase()">
+                  {{ DNS_TYPE_MAP[rec.type] ?? rec.type }}
+                </span>
+                <span class="dns-record-data">{{ rec.data }}</span>
+                <span class="dns-record-ttl">TTL {{ rec.TTL }}</span>
+              </div>
+            </div>
           </li>
         </ul>
       </div>
@@ -502,7 +565,7 @@ const shortcutDialogVisible = ref(false);
         </div>
         <hr/>
         <ul class="info-list">
-          <li>
+          <li class="toggle-row">
             <el-tooltip placement="top" effect="dark" class="hwid-tooltip__trigger">
               <template #content>
                 <div class="hwid-tooltip">
@@ -511,54 +574,45 @@ const shortcutDialogVisible = ref(false);
               </template>
               <strong class="hwid-label">HWID :</strong>
             </el-tooltip>
-            <el-switch
-                v-model="settingStore.hwid"
-                class="set-switch"
-            />
+            <div :class="['px-toggle', { 'is-on': settingStore.hwid }]" @click="settingStore.hwid = !settingStore.hwid">
+              <div class="px-toggle__thumb"></div>
+            </div>
           </li>
-          <li>
+          <li class="toggle-row">
             <strong>{{ $t('setting.px.startup') }} :</strong>
-            <el-switch
-                v-model="settingStore.startup"
-                class="set-switch"
-            />
+            <div :class="['px-toggle', { 'is-on': settingStore.startup }]" @click="settingStore.startup = !settingStore.startup">
+              <div class="px-toggle__thumb"></div>
+            </div>
           </li>
-          <li>
+          <li class="toggle-row">
             <strong>{{ $t('setting.px.startMinimized') }} :</strong>
-            <el-switch
-                v-model="settingStore.startMinimized"
-                class="set-switch"
-            />
+            <div :class="['px-toggle', { 'is-on': settingStore.startMinimized }]" @click="settingStore.startMinimized = !settingStore.startMinimized">
+              <div class="px-toggle__thumb"></div>
+            </div>
           </li>
-          <li>
+          <li class="toggle-row">
             <strong>{{ $t('setting.px.systemProxyMode') }} :</strong>
-            <el-switch
-                v-model="settingStore.systemProxyMode"
-                class="set-switch"
-            />
+            <div :class="['px-toggle', { 'is-on': settingStore.systemProxyMode }]" @click="settingStore.systemProxyMode = !settingStore.systemProxyMode">
+              <div class="px-toggle__thumb"></div>
+            </div>
           </li>
-          <li>
+          <li class="toggle-row">
             <strong>{{ $t('setting.px.auth') }} :</strong>
-            <el-switch
-                v-model="settingStore.auth"
-                class="set-switch"
-            />
+            <div :class="['px-toggle', { 'is-on': settingStore.auth }]" @click="settingStore.auth = !settingStore.auth">
+              <div class="px-toggle__thumb"></div>
+            </div>
           </li>
           <li>
             <MyService />
           </li>
-          <li style="height: 30px">
+          <li class="toggle-row">
             <strong>{{ $t('setting.shortcut.title') }} :</strong>
-            <el-icon
-                @click="shortcutDialogVisible = true"
-                class="btn">
-              <EditPen/>
-            </el-icon>
-            <el-switch
-                v-model="settingStore.sc_switch"
-                class="set-switch"
-                style="margin-left: 28px"
-            />
+            <div :class="['px-toggle', { 'is-on': settingStore.sc_switch }]" @click="settingStore.sc_switch = !settingStore.sc_switch">
+              <div class="px-toggle__thumb"></div>
+            </div>
+            <button class="pencil-btn" @click.stop="shortcutDialogVisible = true">
+              <el-icon><EditPen/></el-icon>
+            </button>
           </li>
           <li class="btn-row">
             <strong>{{ $t('setting.px.dir') }} :</strong>
@@ -596,7 +650,9 @@ const shortcutDialogVisible = ref(false);
       <li class="shortcut-item">
         <span class="shortcut-label">{{ t('setting.shortcut.showHide') }}</span>
         <div class="shortcut-controls">
-          <el-switch v-model="settingStore.sc_switch" class="set-switch"/>
+          <div :class="['px-toggle', { 'is-on': settingStore.sc_switch }]" @click="settingStore.sc_switch = !settingStore.sc_switch">
+            <div class="px-toggle__thumb"></div>
+          </div>
           <MyHotkeyInput v-model="settingStore.sc_switch_key"/>
         </div>
       </li>
@@ -740,6 +796,22 @@ const shortcutDialogVisible = ref(false);
   font-size: 0.85rem;
 }
 
+.secret-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-height: 30px;
+}
+
+.secret-row__value {
+  word-break: break-all;
+}
+
+.info-list .dns-query-row {
+  margin-top: 8px;
+}
+
 .update-row {
   display: flex;
   align-items: center;
@@ -869,27 +941,70 @@ const shortcutDialogVisible = ref(false);
 .box2 {
 }
 
-.set-switch {
-  margin-left: 10px;
-  --el-switch-border-color: var(--text-color);
-  --el-switch-on-color: var(--left-item-selected-bg);
-  --el-switch-off-color: transparent;
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-:deep(.el-switch__core) {
-  width: 46px;
-  height: 26px;
-  border-radius: 12px;
-  border: 2px solid var(--text-color);
+.px-toggle {
+  position: relative;
+  display: inline-block;
+  width: 58px;
+  height: 36px;
+  border-radius: 999px;
+  background-color: var(--left-nav-btn-bg);
+  box-shadow: var(--left-nav-shadow);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.25s ease, box-shadow 0.25s ease;
 }
 
-:deep(.el-switch__core .el-switch__action) {
-  margin-left: 2px;
+.px-toggle:hover {
+  box-shadow: var(--left-nav-hover-shadow);
+}
+
+.px-toggle.is-on {
+  background-color: var(--left-item-selected-bg);
+  box-shadow: var(--left-nav-hover-shadow);
+}
+
+.px-toggle__thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   background-color: var(--text-color);
+  transition: left 0.25s ease, background-color 0.25s ease;
 }
 
-:deep(.el-switch.is-checked .el-switch__core .el-switch__action) {
-  left: calc(100% - 21px);
+.px-toggle.is-on .px-toggle__thumb {
+  left: 26px;
+  background-color: #fff;
+}
+
+.pencil-btn {
+  height: 36px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background-color: var(--left-nav-btn-bg);
+  color: var(--text-color);
+  box-shadow: var(--left-nav-shadow);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pencil-btn:hover {
+  background-color: var(--left-item-selected-bg);
+  box-shadow: var(--left-nav-hover-shadow);
 }
 
 .pill-btn {
@@ -995,16 +1110,6 @@ const shortcutDialogVisible = ref(false);
   --el-button-bg-color: transparent;
 }
 
-.btn {
-  font-size: 18px;
-  position: absolute;
-  margin-top: 6px;
-}
-
-.btn:hover {
-  cursor: pointer;
-  color: var(--hr-color);
-}
 
 .shortcut-list {
   list-style: none;
@@ -1031,21 +1136,80 @@ const shortcutDialogVisible = ref(false);
   gap: 12px;
 }
 
-/* Переключатель внутри диалога: всегда видимая рамка */
-.shortcut-controls :deep(.el-switch__core) {
-  border: 2px solid var(--el-border-color) !important;
+/* DNS Query Tool */
+.dns-query-results-row {
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 6px !important;
 }
 
-.shortcut-controls :deep(.el-switch__core .el-switch__action) {
-  background-color: var(--el-text-color-regular) !important;
+.dns-query-input {
+  width: 160px;
+  border: none;
+  border-radius: 999px;
+  background-color: var(--left-nav-btn-bg);
+  color: var(--text-color);
+  padding: 0 16px;
+  font-size: 14px;
+  height: 36px;
+  box-shadow: var(--left-nav-shadow);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.shortcut-controls :deep(.el-switch.is-checked .el-switch__core) {
-  border-color: var(--el-color-primary) !important;
-  background-color: var(--el-color-primary) !important;
+.dns-query-input:focus {
+  outline: none;
+  box-shadow: var(--left-nav-hover-shadow);
 }
 
-.shortcut-controls :deep(.el-switch.is-checked .el-switch__core .el-switch__action) {
-  background-color: #fff !important;
+.dns-query-error {
+  font-size: 13px;
+  color: var(--el-color-danger, #f56c6c);
+  word-break: break-all;
 }
+
+.dns-query-results {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.dns-query-record {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.dns-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 48px;
+  text-align: center;
+  background-color: rgba(128, 128, 128, 0.2);
+  color: var(--text-color);
+}
+
+.dns-type--a      { background-color: rgba(64, 158, 255, 0.2); color: #409eff; }
+.dns-type--aaaa   { background-color: rgba(103, 194, 58, 0.2); color: #67c23a; }
+.dns-type--cname  { background-color: rgba(230, 162, 60, 0.2); color: #e6a23c; }
+.dns-type--mx     { background-color: rgba(245, 108, 108, 0.2); color: #f56c6c; }
+.dns-type--txt    { background-color: rgba(144, 147, 153, 0.2); color: #909399; }
+.dns-type--ns     { background-color: rgba(160, 90, 220, 0.2); color: #a05adc; }
+
+.dns-record-data {
+  color: var(--text-color);
+  word-break: break-all;
+  flex: 1;
+}
+
+.dns-record-ttl {
+  font-size: 12px;
+  opacity: 0.55;
+  white-space: nowrap;
+}
+
 </style>

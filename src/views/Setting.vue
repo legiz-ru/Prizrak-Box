@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {useI18n} from "vue-i18n";
 import {useMenuStore} from "@/store/menuStore";
+import {useConnectionStore} from "@/store/connectionStore";
 import MyConfig from "@/components/setting/MyConfig.vue";
 import ConnectionTab from "@/components/setting/ConnectionTab.vue";
 import LogTab from "@/components/setting/LogTab.vue";
@@ -12,6 +13,7 @@ import LogLevelSelect from "@/components/LogLevelSelect.vue";
 
 const {t} = useI18n();
 const menuStore = useMenuStore();
+const connectionStore = useConnectionStore();
 
 const settingTab = computed({
   get: () => menuStore.settingTab,
@@ -19,6 +21,11 @@ const settingTab = computed({
 });
 
 const ruleSubTab = ref('Now');
+
+const providersView = computed({
+  get: () => menuStore.providersView,
+  set: (v: 'cards' | 'table') => menuStore.setProvidersView(v),
+});
 
 const ruleSubComponents: Record<string, any> = {
   Now: RuleNow,
@@ -95,6 +102,56 @@ const ruleSubComponents: Record<string, any> = {
           </el-tooltip>
         </div>
         <LogLevelSelect v-if="settingTab === 'log'" class="log-level-select-wrap" />
+
+        <!-- Active/Closed toggle: shown when connection tab is open and mode is list or process -->
+        <div
+            v-if="settingTab === 'connection' && (connectionStore.viewMode === 'list' || connectionStore.viewMode === 'process')"
+            class="pill-toggle"
+        >
+          <el-tooltip :content="t('connections.active')" placement="bottom" :show-after="300">
+            <button
+                :class="['pill-toggle__btn', { 'is-active': !connectionStore.showClosed }]"
+                type="button"
+                @click="connectionStore.setShowClosed(false)"
+            >
+              <el-icon size="18"><icon-mdi-lightning-bolt/></el-icon>
+            </button>
+          </el-tooltip>
+          <el-tooltip :content="t('connections.closed')" placement="bottom" :show-after="300">
+            <button
+                :class="['pill-toggle__btn', { 'is-active': connectionStore.showClosed }]"
+                type="button"
+                @click="connectionStore.setShowClosed(true)"
+            >
+              <el-icon size="18"><icon-mdi-history/></el-icon>
+            </button>
+          </el-tooltip>
+        </div>
+
+        <!-- Providers view toggle: shown only when rule → Providers is active -->
+        <div
+            v-if="settingTab === 'rule' && ruleSubTab === 'Providers'"
+            class="pill-toggle providers-view-toggle"
+        >
+          <el-tooltip :content="t('rule.providers.viewCards')" placement="bottom" :show-after="300">
+            <button
+                :class="['pill-toggle__btn', { 'is-active': providersView === 'cards' }]"
+                type="button"
+                @click="providersView = 'cards'"
+            >
+              <el-icon size="18"><icon-mdi-view-module/></el-icon>
+            </button>
+          </el-tooltip>
+          <el-tooltip :content="t('rule.providers.viewTable')" placement="bottom" :show-after="300">
+            <button
+                :class="['pill-toggle__btn', { 'is-active': providersView === 'table' }]"
+                type="button"
+                @click="providersView = 'table'"
+            >
+              <el-icon size="18"><icon-mdi-view-list/></el-icon>
+            </button>
+          </el-tooltip>
+        </div>
       </div>
     </template>
 

@@ -21,6 +21,7 @@ const (
 	TemplateSwitch         = "TemplateSwitch"
 	RealIpHeader           = "RealIp_"
 	SecretKey              = "SecretKey_pb"
+	EnableHWIDKey          = "EnableHWID_pb"
 	RecoverTmp             = "RecoverTmp"
 	QuitSignal             = "QuitSignal"
 	Dns                    = "DNS"

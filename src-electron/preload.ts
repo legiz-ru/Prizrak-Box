@@ -73,6 +73,9 @@ contextBridge.exposeInMainWorld('pxClipboard', () => clipboard.readText());
 // 打开外部URL地址
 contextBridge.exposeInMainWorld('pxOpen', (url: string) => shell.openExternal(url));
 
+// Показать файл в проводнике
+contextBridge.exposeInMainWorld('pxShowInFolder', (path: string) => shell.showItemInFolder(path));
+
 // 控制标题栏
 if (process.platform !== 'darwin') {
     contextBridge.exposeInMainWorld('pxShowBar', () => console.log('pxShowBar'));

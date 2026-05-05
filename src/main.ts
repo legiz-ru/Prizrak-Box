@@ -27,6 +27,7 @@ import {useDeepLinkImportStore} from "@/store/deepLinkStore";
 import {useUpdateStore} from "@/store/updateStore";
 import {Browser, Events} from "@/runtime";
 import {createDashboardLinks} from "@/util/dashboard";
+import {initRendererIPC} from "./renderer-ipc";
 
 const app = createApp(App);
 const lang = detectLanguage();
@@ -55,6 +56,8 @@ function isCanceledError(error: any) {
 }
 
 async function bootstrap() {
+    initRendererIPC();
+
     // 加载缓存数据
     // @ts-ignore
     if (window["pxStore"]) {

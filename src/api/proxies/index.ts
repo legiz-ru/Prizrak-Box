@@ -224,6 +224,9 @@ export default function createProxiesApi(proxy: any) {
                 return []
             }
 
+            // Sort order from GLOBAL.all (matches zashboard behaviour)
+            const sortIndex: string[] = proxies['GLOBAL']?.['all'] ?? []
+
             // 获取分组
             const proxyGroup: ProxyGroupInfo[] = []
             for (const name in proxies) {
@@ -243,6 +246,15 @@ export default function createProxiesApi(proxy: any) {
                     type: group['type'],
                 })
             }
+
+            proxyGroup.sort((prev, next) => {
+                const prevIndex = sortIndex.indexOf(prev.name)
+                const nextIndex = sortIndex.indexOf(next.name)
+                if (prevIndex === -1 && nextIndex === -1) return 0
+                if (prevIndex === -1) return 1
+                if (nextIndex === -1) return -1
+                return prevIndex - nextIndex
+            })
 
             return proxyGroup
         },
@@ -283,84 +295,50 @@ export default function createProxiesApi(proxy: any) {
             const originMap = await fetchProxyOrigins(proxy);
             const hasOriginMap = originMap && Object.keys(originMap).length > 0;
 
-            const proxiesNames = proxies[active]['all']
+            const proxiesNames: string[] = proxies[active]['all']
             const nowName = proxies[active]['now']
 
-            // 获取节点延迟
-            const activeProxies = []
-            const inProxies = []
+            // Build all nodes preserving the original order from proxies[active]['all']
+            const allProxies = []
             for (const name of proxiesNames) {
-                const proxy = proxies[name]
-                const type = proxy['type'];
-                const displayType = getDisplayType(proxy, serverDescriptions[name]);
-                const icon = typeof proxy?.['icon'] === 'string' ? proxy['icon'] : undefined;
-                const delay = getProxyDelay(proxy, proxies, 0, groupTestUrl)
+                const proxyNode = proxies[name]
+                if (!proxyNode) continue
+                const type = proxyNode['type'];
+                const displayType = getDisplayType(proxyNode, serverDescriptions[name]);
+                const icon = typeof proxyNode?.['icon'] === 'string' ? proxyNode['icon'] : undefined;
+                const delay = getProxyDelay(proxyNode, proxies, 0, groupTestUrl)
                 let origin = originMap ? originMap[name] : undefined;
                 if (!origin && hasOriginMap) {
                     origin = parseOriginFromName(name);
                 }
                 const displayName = formatDisplayName(name, origin);
-                if (includeProxy[type]) {
-                    inProxies.push({
-                        name,
-                        type,
-                        displayType,
-                        icon,
-                        delay: delay,
-                        now: name === nowName,
-                        toClass: getClass(delay),
-                        displayName,
-                        origin,
-                    })
-                } else {
-                    activeProxies.push({
-                        name,
-                        type,
-                        displayType,
-                        icon,
-                        delay,
-                        now: name === nowName,
-                        toClass: getClass(delay),
-                        displayName,
-                        origin,
-                    })
-                }
+                allProxies.push({
+                    name,
+                    type,
+                    displayType,
+                    icon,
+                    delay,
+                    now: name === nowName,
+                    toClass: getClass(delay),
+                    displayName,
+                    origin,
+                })
             }
 
-            // 获取显示的节点
-            let showProxies = []
-            if (isHide) {
-                for (const proxy of activeProxies) {
-                    if (proxy['delay'] != 99999) {
-                        showProxies.push(proxy)
-                    }
-                }
-            } else {
-                showProxies = activeProxies
-            }
+            // Apply hide filter (remove unreachable nodes when isHide is on)
+            let visibleProxies = isHide
+                ? allProxies.filter(p => p.delay !== 99999)
+                : allProxies
 
-            // 构建哈希表 — используем порядок из самой группы, а не GLOBAL
-            const map = new Map();
-            proxiesNames.forEach((value: any, index: number) => {
-                map.set(value, index);
-            });
-
-            // 进行排序
+            // Sort by latency when requested; otherwise original order is already preserved
             if (isSort) {
-                inProxies.sort((obj1, obj2) => {
-                    if (obj1.delay != obj2.delay) {
-                        return obj1.delay - obj2.delay
-                    }
-
-                    return map.get(obj1.name) - map.get(obj2.name)
-                });
-                showProxies.sort((obj1, obj2) => obj1.delay - obj2.delay);
-            } else {
-                showProxies.sort((obj1, obj2) => map.get(obj1.name) - map.get(obj2.name));
-                inProxies.sort((obj1, obj2) => map.get(obj1.name) - map.get(obj2.name));
+                visibleProxies = [...visibleProxies].sort((a, b) => {
+                    if (a.delay !== b.delay) return a.delay - b.delay
+                    return proxiesNames.indexOf(a.name) - proxiesNames.indexOf(b.name)
+                })
             }
 
-            return inProxies.concat(showProxies);
+            return visibleProxies;
         },
         // 设置代理
         async setProxy(group: any, name: any) {

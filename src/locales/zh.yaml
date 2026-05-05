@@ -112,6 +112,10 @@ setting:
     port: 端口
     port-error: 端口号必须大于0，小于65535
     dns: DNS覆写
+    dnsQuery:
+      queryTitle: DNS查询
+      query: 查询
+      noResults: 未找到记录
     lan: 局域网
     bindAddress: 监听地址
     bind-error: 错误的地址
@@ -314,6 +318,11 @@ rule:
     rulesEmpty: 暂无规则
     prevMatch: 上一个匹配
     nextMatch: 下一个匹配
+    name: 提供者
+    ruleCountShort: 数量
+    updatedAt: 更新时间
+    viewCards: 卡片
+    viewTable: 表格
 
 connections:
   title: 连接
@@ -334,11 +343,44 @@ connections:
   pause: 暂停
   resume: 恢复
   list: 列表
+  active: 活跃
+  closed: 已关闭
   topology-view: 拓扑
   process-view: 进程
   unknown-process: 未知
   connections-count: '{count} 个连接'
   back: 返回
+  section-traffic: 流量
+  section-routing: 路由
+  section-network: 网络
+  section-process: 进程
+  section-inbound: 入站
+  section-other: 其他
+  upload-speed: 上传速度
+  download-speed: 下载速度
+  duration: 时长
+  proxy-chain: 代理链
+  conn-type: 类型
+  dest-ip: 目标IP
+  source-ip: 源IP
+  source-port: 源端口
+  dest-port: 目标端口
+  remote-dest: 远程目标
+  sniff-host: 嗅探主机
+  process-label: 进程
+  process-path: 进程路径
+  inbound-ip: 入站IP
+  inbound-port: 入站端口
+  inbound-name: 入站名称
+  inbound-user: 用户
+  dns-mode: DNS模式
+  special-proxy: 特殊代理
+  special-rules: 特殊规则
+  dscp: DSCP
+  copy-value: 复制
+  open-ipinfo: 打开 ipinfo.io
+  open-in-browser: 在浏览器中打开
+  show-in-explorer: 在资源管理器中显示
 
 log:
   title: 日志

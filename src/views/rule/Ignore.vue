@@ -93,8 +93,8 @@ async function savaIgnore() {
   border-radius: 999px;
   background-color: var(--left-nav-btn-bg);
   color: var(--text-color);
-  padding: 6px 18px;
-  font-size: 14px;
+  padding: 9px 18px;
+  font-size: 15px;
   cursor: pointer;
   box-shadow: var(--left-nav-shadow);
   transition: background-color 0.2s ease, box-shadow 0.2s ease;

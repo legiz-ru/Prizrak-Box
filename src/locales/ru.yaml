@@ -112,6 +112,10 @@ setting:
     port: Смешанный порт
     port-error: Номер порта должен быть больше 0 и меньше 65535
     dns: DNS-переопределение
+    dnsQuery:
+      queryTitle: DNS запрос
+      query: Запросить
+      noResults: Записи не найдены
     lan: ЛВС
     bindAddress: Привязать адрес
     bind-error: Неверный адрес
@@ -314,6 +318,11 @@ rule:
     rulesEmpty: Правила не найдены
     prevMatch: Предыдущее совпадение
     nextMatch: Следующее совпадение
+    name: Провайдер
+    ruleCountShort: Количество
+    updatedAt: Время обновления
+    viewCards: Карточки
+    viewTable: Таблица
 
 connections:
   title: Соединения
@@ -336,9 +345,42 @@ connections:
   list: Список
   topology-view: Топология
   process-view: Процессы
+  active: Активные
+  closed: Закрытые
   unknown-process: Неизвестно
   connections-count: '{count} соединений'
   back: Назад
+  section-traffic: ТРАФИК
+  section-routing: МАРШРУТИЗАЦИЯ
+  section-network: СЕТЬ
+  section-process: ПРОЦЕСС
+  section-inbound: ВХОДЯЩЕЕ
+  section-other: ПРОЧЕЕ
+  upload-speed: Скорость загрузки
+  download-speed: Скорость скачивания
+  duration: Длительность
+  proxy-chain: Цепочка прокси
+  conn-type: Тип
+  dest-ip: IP назначения
+  source-ip: IP источника
+  source-port: Порт источника
+  dest-port: Порт назначения
+  remote-dest: Удалённый адрес
+  sniff-host: Определённый хост
+  process-label: Процесс
+  process-path: Путь процесса
+  inbound-ip: Входящий IP
+  inbound-port: Входящий порт
+  inbound-name: Входящее имя
+  inbound-user: Пользователь
+  dns-mode: Режим DNS
+  special-proxy: Спец. прокси
+  special-rules: Спец. правила
+  dscp: DSCP
+  copy-value: Копировать
+  open-ipinfo: Открыть ipinfo.io
+  open-in-browser: Открыть в браузере
+  show-in-explorer: Показать в проводнике
 
 log:
   title: Журнал

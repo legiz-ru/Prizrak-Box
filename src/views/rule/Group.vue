@@ -190,6 +190,10 @@ const switchTemplate = async () => {
         await api.switchTemplate(now);
         tList = await api.getTemplateList();
 
+        // Sync now.selected from refreshed list so the toggle reflects actual state
+        const updated = tList.find((i: any) => i.id === now.id);
+        if (updated) Object.assign(now, updated);
+
         await api.waitRunning()
         pSuccess(t('rule.group.switch.success'))
 
@@ -227,13 +231,20 @@ const switchTemplate = async () => {
       <button class="pill-btn" @click="addVisible=true;addForm.content=''">{{ t("add") }}</button>
       <button class="pill-btn pill-btn--danger" @click="deleteTemplate" v-if="canDelete">{{ t("delete") }}</button>
       <el-divider direction="vertical" border-style="dashed"/>
-      <el-text :class="now.selected ? 'sf' : 'st'">{{ t("off") }}</el-text>
-      <el-switch
-          @click="switchTemplate"
-          v-model="now.selected"
-          :disabled="!now.id"
-          class="set-switch"/>
-      <el-text :class="now.selected ? 'st' : 'sf'">{{ t("on") }}</el-text>
+      <div class="pill-toggle">
+        <button
+            :class="['pill-toggle__btn', { 'is-active': !now.selected }]"
+            :disabled="!now.id"
+            type="button"
+            @click="if (now.selected) { now.selected = false; switchTemplate() }"
+        >{{ t("off") }}</button>
+        <button
+            :class="['pill-toggle__btn', { 'is-active': now.selected }]"
+            :disabled="!now.id"
+            type="button"
+            @click="if (!now.selected) { now.selected = true; switchTemplate() }"
+        >{{ t("on") }}</button>
+      </div>
     </el-space>
 
     <VAceEditor
@@ -326,26 +337,48 @@ const switchTemplate = async () => {
   opacity: 0.6;
 }
 
-.set-switch {
-  margin-left: 10px;
-  --el-switch-border-color: var(--text-color);
-  --el-switch-on-color: var(--left-item-selected-bg);
-  --el-switch-off-color: transparent;
+.pill-toggle {
+  display: inline-flex;
+  border-radius: 999px;
+  background-color: var(--left-nav-btn-bg);
+  box-shadow: var(--left-nav-shadow);
+  padding: 4px;
+  gap: 2px;
 }
 
-:deep(.el-switch__core) {
-  width: 46px;
-  height: 26px;
-  border-radius: 12px;
-  border: 2px solid var(--text-color);
+.pill-toggle:hover {
+  box-shadow: var(--left-nav-hover-shadow);
 }
 
-:deep(.el-switch__core .el-switch__action) {
-  margin-left: 2px;
+.pill-toggle__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  width: auto;
+  padding: 0 14px;
+  font-size: 15px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  white-space: nowrap;
 }
 
-:deep(.el-switch.is-checked .el-switch__core .el-switch__action) {
-  left: calc(100% - 21px);
+.pill-toggle__btn:hover {
+  background-color: var(--left-nav-btn-hover-bg);
+}
+
+.pill-toggle__btn.is-active {
+  background-color: var(--left-item-selected-bg);
+  box-shadow: var(--left-nav-hover-shadow);
+}
+
+.pill-toggle__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .pill-btn {
@@ -367,14 +400,6 @@ const switchTemplate = async () => {
 
 .pill-btn--danger:hover {
   background-color: #f56c6c;
-}
-
-.st {
-  color: var(--top-hr-color);
-}
-
-.sf {
-  color: var(--text-color);
 }
 
 .editor {
