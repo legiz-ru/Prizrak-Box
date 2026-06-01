@@ -119,10 +119,11 @@ func main() {
 			app.Logger.Error("autostart toggle failed", "error", err)
 		}
 	})
-	app.Event.On("doQuit", func(e *application.CustomEvent) {
-		if asBool(e.Data) {
-			app.Quit()
-		}
+	app.Event.On("doQuit", func(_ *application.CustomEvent) {
+		// The Exit button (Off.vue) fires this after asking px to shut down.
+		// It may carry data:false when px exits before confirming over HTTP,
+		// but the user's intent is always to quit, so quit unconditionally.
+		app.Quit()
 	})
 
 	// Native system tray with the correct monochrome icon (no text label).

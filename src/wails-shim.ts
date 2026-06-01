@@ -77,7 +77,14 @@ export function installWailsShim(): void {
 
     w.pxShowInFolder = (_path: string): void => { /* later phase */ };
     w.pxConfigDir = (_path: string): void => { /* later phase */ };
-    w.pxShowBar = (): void => { /* macOS title bar only */ };
+
+    // pxShowBar must exist ONLY on Windows/Linux: MyTitleBar.vue treats its
+    // presence as "show the custom min/max/close buttons". On macOS the native
+    // traffic-light buttons handle that, so it must stay undefined (one button).
+    const isMac = /Mac OS X|Macintosh/i.test(navigator.userAgent || '');
+    if (!isMac) {
+        w.pxShowBar = (): void => { /* custom title bar present */ };
+    }
 
     // --- Tray event bus, backed by Wails events (Go <-> frontend) ---
     w.pxTray = {
