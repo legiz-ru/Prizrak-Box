@@ -20,7 +20,6 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
-	"runtime"
 	"strings"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -116,7 +115,7 @@ func main() {
 	// Window controls emitted by the Vue frontend (MyTitleBar.vue / Off.vue)
 	// via window.pxTray.emit -> Wails events. This replaces the Electron
 	// ipcMain handlers in src-electron/tray.ts.
-	app.Event.On("close", func(_ *application.CustomEvent) { win.Hide() }) // close to tray
+	app.Event.On("close", func(_ *application.CustomEvent) { app.Quit() }) // custom titlebar X quits (matches Electron)
 	app.Event.On("hide", func(_ *application.CustomEvent) { win.Hide() })
 	app.Event.On("min", func(_ *application.CustomEvent) { win.Minimise() })
 	app.Event.On("max", func(_ *application.CustomEvent) { win.ToggleMaximise() })
@@ -132,20 +131,9 @@ func main() {
 		app.Quit()
 	})
 
-	// Native system tray with the correct monochrome icon (no text label).
-	tray := app.SystemTray.New()
-	tray.SetTooltip("Prizrak-Box")
-	if runtime.GOOS == "darwin" {
-		tray.SetTemplateIcon(trayIconMac)
-	} else {
-		tray.SetIcon(trayIcon)
-	}
-	menu := app.NewMenu()
-	menu.Add("Показать / Show").OnClick(func(_ *application.Context) { win.Show(); win.Focus() })
-	menu.Add("Скрыть / Hide").OnClick(func(_ *application.Context) { win.Hide() })
-	menu.AddSeparator()
-	menu.Add("Выход / Quit").OnClick(func(_ *application.Context) { app.Quit() })
-	tray.SetMenu(menu)
+	// Dynamic system tray (modes / profiles / proxy groups / dashboards /
+	// system-proxy / TUN), driven by data the frontend pushes over events.
+	setupTray(app, win)
 
 	// Start the backend, then point the window at it and reveal the window.
 	go func() {
@@ -179,18 +167,4 @@ func findSchemeURL(args []string) (string, bool) {
 		}
 	}
 	return "", false
-}
-
-// asBool coerces event payloads (which arrive as JSON) to a bool.
-func asBool(v any) bool {
-	switch t := v.(type) {
-	case bool:
-		return t
-	case string:
-		return t == "true" || t == "1"
-	case float64:
-		return t != 0
-	default:
-		return false
-	}
 }

@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"runtime"
 	"sync"
 	"time"
 
@@ -152,12 +153,29 @@ func (c *CoreService) MarkStartedBySvc() {
 
 // KillPx terminates the locally spawned px process (if any). px started via
 // the service is not killed here; the caller handles that through the service.
+//
+// On Unix it first sends SIGINT so px can run its shutdown (which disables the
+// system proxy), then force-kills after a short grace period. On Windows it
+// kills directly.
 func (c *CoreService) KillPx() {
 	c.mu.Lock()
 	cmd := c.cmd
 	c.cmd = nil
 	c.mu.Unlock()
-	if cmd != nil && cmd.Process != nil {
+	if cmd == nil || cmd.Process == nil {
+		return
+	}
+	if runtime.GOOS == "windows" {
+		_ = cmd.Process.Kill()
+		return
+	}
+	// Graceful: SIGINT -> px disables proxy and exits.
+	_ = cmd.Process.Signal(os.Interrupt)
+	done := make(chan struct{})
+	go func() { _, _ = cmd.Process.Wait(); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
 		_ = cmd.Process.Kill()
 	}
 }
