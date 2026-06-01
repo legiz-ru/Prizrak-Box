@@ -28,6 +28,7 @@ import {useUpdateStore} from "@/store/updateStore";
 import {Browser, Events} from "@/runtime";
 import {createDashboardLinks} from "@/util/dashboard";
 import {initRendererIPC} from "./renderer-ipc";
+import {installWailsShim} from "./wails-shim";
 
 const app = createApp(App);
 const lang = detectLanguage();
@@ -56,6 +57,10 @@ function isCanceledError(error: any) {
 }
 
 async function bootstrap() {
+    // Install the Wails compatibility shim before anything reads window.px*.
+    // No-op under Electron (preload already provides the bridge).
+    installWailsShim();
+
     initRendererIPC();
 
     // 加载缓存数据

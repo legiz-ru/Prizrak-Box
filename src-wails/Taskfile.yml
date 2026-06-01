@@ -1,0 +1,49 @@
+version: "3"
+
+# Taskfile for the Wails v3 shell (Phase 0 PoC).
+#
+# Prerequisites:
+#   - wails3 CLI:  go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+#   - The px backend built at ../src-go/px  (see repo README "Build px backend")
+#   - Frontend deps installed at the repo root:  npm install
+#
+# The frontend is the existing Vue app in the repo root (../). We build it
+# straight into ./frontend/dist so that main.go can embed it.
+
+vars:
+  REPO_ROOT: "{{.TASKFILE_DIR}}/.."
+  DIST: "{{.TASKFILE_DIR}}/frontend/dist"
+
+tasks:
+  frontend:
+    desc: Build the Vue frontend into frontend/dist
+    dir: "{{.REPO_ROOT}}"
+    cmds:
+      - npx vite build --outDir "{{.DIST}}" --emptyOutDir
+
+  px:
+    desc: Build the px backend (CGO disabled, gvisor TUN)
+    dir: "{{.REPO_ROOT}}/src-go"
+    cmds:
+      - CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -o px .
+
+  build:
+    desc: Build the full desktop app (frontend + Go shell) with wails3
+    deps: [frontend]
+    cmds:
+      - wails3 build
+
+  dev:
+    desc: Run the app in dev mode (Vite dev server + live Go)
+    cmds:
+      - wails3 dev
+
+  package:
+    desc: Produce platform installers
+    deps: [frontend]
+    cmds:
+      - wails3 package
+
+  clean:
+    cmds:
+      - rm -rf "{{.DIST}}" ./bin
