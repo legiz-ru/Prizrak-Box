@@ -290,14 +290,10 @@ export function initTray(browserWindow: BrowserWindow): void {
     // 初始化tray
     let trayImage: any;
     if (process.platform === 'darwin') {
-        // macOS: use monochrome template image (ghost silhouette, black on transparent)
-        // so the system automatically adapts it to light/dark menu bar
-        let img = nativeImage.createFromPath(getTrayIconPath('tray-macos.svg'));
-        if (img.isEmpty()) {
-            // Fallback in case SVG is not supported on this Electron/macOS version
-            img = nativeImage.createFromPath(getTrayIconPath('tray.png'));
-        }
-        trayImage = img.resize({width: 18, height: 18});
+        // macOS: use monochrome template PNG (black on transparent) so the system
+        // automatically adapts it to light/dark menu bar.
+        // Electron auto-picks tray-macos@2x.png on Retina displays.
+        trayImage = nativeImage.createFromPath(getTrayIconPath('tray-macos.png'));
         trayImage.setTemplateImage(true);
     } else {
         trayImage = nativeImage.createFromPath(getTrayIconPath('tray.png')).resize({width: 32, height: 32});
