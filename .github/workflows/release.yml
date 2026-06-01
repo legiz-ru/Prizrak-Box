@@ -570,22 +570,26 @@ jobs:
           npm prune
           npm run make -- --arch=$arch
 
-      - name: Prepare Release Assets
+      - name: Compress Executable
         run: |
-          arch="${{ matrix.arch }}"
           cd out/make
-          zip -r ../../macos-${arch}.zip .
-          cd ../..
-          APP=$(find out -maxdepth 3 -name "*.app" | head -1)
-          if [ -n "$APP" ]; then
-            hdiutil create \
-              -volname "Prizrak-Box" \
-              -srcfolder "$APP" \
-              -ov -format UDZO \
-              "macos-${arch}.dmg"
-          else
-            echo "No .app bundle found, skipping DMG" && exit 1
+          zip -r ../../macos-${{ matrix.arch }}.zip .
+
+      - name: Extract DMG from ZIP
+        run: |
+          set -e
+          arch="${{ matrix.arch }}"
+          rm -rf zip-extract
+          mkdir zip-extract
+          unzip -q "macos-${arch}.zip" -d zip-extract
+          dmg=$(find zip-extract -type f -name "*.dmg" | head -1)
+          if [ -z "$dmg" ]; then
+            echo "No DMG found inside macos-${arch}.zip" >&2
+            find zip-extract -maxdepth 4 -print
+            exit 1
           fi
+          mv "$dmg" "macos-${arch}.dmg"
+          rm -rf zip-extract
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
