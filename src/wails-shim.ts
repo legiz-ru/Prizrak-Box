@@ -2,22 +2,34 @@
 //
 // The frontend was written for the Electron shell, which exposed a set of
 // `window.px*` globals via src-electron/preload.ts. Under the Wails v3 shell
-// (src-wails/) those globals do not exist. This shim installs minimal
-// implementations so the existing Vue app boots and talks to the px backend
-// over HTTP without touching the rest of the codebase.
+// (src-wails/) those globals do not exist. This shim installs implementations
+// backed by the Wails runtime + generated Go service bindings so the existing
+// Vue app runs unchanged.
 //
-// IMPORTANT: this is a Phase 0 (PoC) shim. It is intentionally conservative:
+// Design notes:
 //   - Connection info (host/port/secret) is delivered by the Wails shell via
 //     the window URL query string (see src-wails/main.go), exactly like the
-//     Electron shell did, so nothing here needs to fetch it.
-//   - Persistent storage falls back to localStorage.
-//   - Tray events, deep links and the TUN service are no-ops for now; they
-//     are wired to real Go bindings in later migration phases.
+//     Electron shell did, so nothing here fetches it.
+//   - The Wails runtime and the generated bindings are *dynamically imported*
+//     and only on platforms where the Electron preload is absent. Under
+//     Electron, window.pxOs already exists, installWailsShim() returns early,
+//     and none of this code runs — the Electron build is unaffected.
 //
-// Under Electron, preload.ts has already defined window.pxOs, so installWailsShim()
-// detects that and does nothing — the Electron build is unaffected.
+// Phase 1 wires: TUN service (TunService), deep links (ApplicationLaunchedWithUrl
+// → "deeplink" event), clipboard / open-external. Persistent storage still
+// falls back to localStorage; the full StoreService + dynamic tray land later.
 
 type AnyWindow = Window & Record<string, any>;
+
+// Lazily-loaded modules (only fetched under the Wails shell).
+let runtimePromise: Promise<any> | null = null;
+const runtime = () => (runtimePromise ||= import('@wailsio/runtime'));
+
+let servicesPromise: Promise<any> | null = null;
+const services = () =>
+    (servicesPromise ||= import(
+        '@wbind/github.com/legiz-ru/prizrak-box-wails/services/index.js'
+    ));
 
 export function installWailsShim(): void {
     const w = window as AnyWindow;
@@ -27,7 +39,7 @@ export function installWailsShim(): void {
         return;
     }
 
-    // OS string, mirroring the Electron format ("Linux x64", "MacOS arm64", ...).
+    // --- Synchronous OS helpers (no runtime needed) ---
     w.pxOs = (): string => {
         const ua = navigator.userAgent || '';
         let name = 'Linux';
@@ -36,43 +48,75 @@ export function installWailsShim(): void {
         const arch = /arm64|aarch64/i.test(ua) ? 'arm64' : 'x64';
         return `${name} ${arch}`;
     };
-
     w.pxUsername = (): string => '';
 
+    // --- Clipboard / open-external via the Wails runtime ---
     w.pxClipboard = async (): Promise<string> => {
         try {
-            return await navigator.clipboard.readText();
+            const { Clipboard } = await runtime();
+            return await Clipboard.Text();
         } catch {
-            return '';
+            try {
+                return await navigator.clipboard.readText();
+            } catch {
+                return '';
+            }
         }
     };
-
     w.pxOpen = (url: string): void => {
-        try {
-            window.open(url, '_blank');
-        } catch {
-            /* ignore */
-        }
+        runtime()
+            .then(({ Browser }) => Browser.OpenURL(url))
+            .catch(() => {
+                try {
+                    window.open(url, '_blank');
+                } catch {
+                    /* ignore */
+                }
+            });
     };
 
-    w.pxShowInFolder = (_path: string): void => { /* phase 1 */ };
-    w.pxConfigDir = (_path: string): void => { /* phase 1 */ };
+    w.pxShowInFolder = (_path: string): void => { /* later phase */ };
+    w.pxConfigDir = (_path: string): void => { /* later phase */ };
     w.pxShowBar = (): void => { /* macOS title bar only */ };
 
-    // Tray event bus — local no-op bus for now. Phase 2 forwards these to Go
-    // via the Wails events runtime and pushes tray clicks back here.
-    const listeners: Record<string, Array<(...a: any[]) => void>> = {};
+    // --- Tray event bus, backed by Wails events (Go <-> frontend) ---
     w.pxTray = {
         on: (name: string, cb: (...a: any[]) => void) => {
-            (listeners[name] ||= []).push(cb);
+            runtime()
+                .then(({ Events }) => Events.On(name, (e: any) => cb(e?.data)))
+                .catch(() => { /* ignore */ });
         },
-        off: (name: string, cb: (...a: any[]) => void) => {
-            listeners[name] = (listeners[name] || []).filter((f) => f !== cb);
+        off: (_name: string, _cb: (...a: any[]) => void) => { /* later phase */ },
+        emit: (name: string, data: any) => {
+            runtime()
+                .then(({ Events }) => Events.Emit(name, data))
+                .catch(() => { /* ignore */ });
         },
-        emit: (_name: string, ..._args: any[]) => { /* phase 2 */ },
     };
 
-    // Persistent key/value store — localStorage fallback.
+    // --- Deep link: forward the Wails "deeplink" event to the importer ---
+    w.pxDeepLink = {
+        onImportProfile: (cb: (payload: any) => void) => {
+            runtime()
+                .then(({ Events }) =>
+                    Events.On('deeplink', (e: any) => cb({ rawUrl: e?.data }))
+                )
+                .catch(() => { /* ignore */ });
+        },
+        notifyReady: () => { /* no-op: Wails delivers via event */ },
+    };
+
+    // --- TUN service via generated TunService bindings ---
+    w.pxService = {
+        getStatus: async () => (await services()).TunService.GetStatus(),
+        isRunning: async () => (await services()).TunService.IsRunning(),
+        install: async () => (await services()).TunService.Install(),
+        uninstall: async () => (await services()).TunService.Uninstall(),
+        restartBackend: async () => (await services()).TunService.RestartBackend(),
+        showInstallDialog: async () => (await services()).TunService.ShowInstallDialog(),
+    };
+
+    // --- Persistent storage: localStorage fallback (StoreService lands later) ---
     w.pxStore = {
         get: async (key: string): Promise<any> => {
             const raw = localStorage.getItem('px:' + key);
@@ -82,8 +126,6 @@ export function installWailsShim(): void {
             localStorage.setItem('px:' + key, JSON.stringify(value));
         },
     };
-
-    // Background image cache.
     w.pxBgCache = {
         read: async (): Promise<any> => {
             const raw = localStorage.getItem('px:bgcache');
@@ -97,26 +139,9 @@ export function installWailsShim(): void {
         },
     };
 
-    // TUN service — stubbed until Phase 1 wires TunService bindings.
-    w.pxService = {
-        getStatus: async () => ({ installed: false, running: false }),
-        isRunning: async () => false,
-        install: async () => false,
-        uninstall: async () => false,
-        restartBackend: async () => { /* phase 1 */ },
-        showInstallDialog: async () => { /* phase 1 */ },
-    };
-
-    // Deep link — stubbed until Phase 1.
-    w.pxDeepLink = {
-        onImportProfile: (_cb: (...a: any[]) => void) => { /* phase 1 */ },
-        notifyReady: () => { /* phase 1 */ },
-    };
-
     w.pxPreConfigDir = async (): Promise<string> => '';
-    w.pxChangeConfigDir = async (_dir: string): Promise<void> => { /* phase 1 */ };
+    w.pxChangeConfigDir = async (_dir: string): Promise<void> => { /* later phase */ };
 
-    // Generic invoke used by a few call sites (e.g. select-directory).
     w.electron = {
         invoke: async (_channel: string, ..._args: any[]): Promise<any> => undefined,
     };
