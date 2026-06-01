@@ -144,4 +144,4 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 )
 
-replace github.com/metacubex/mihomo => github.com/legiz-ru/moshen v1.19.26-smart
+replace github.com/metacubex/mihomo => github.com/legiz-ru/moshen v1.19.26-smart-moshen
