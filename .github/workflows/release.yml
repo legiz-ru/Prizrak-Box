@@ -570,6 +570,28 @@ jobs:
           npm prune
           npm run make -- --arch=$arch
 
+      - name: Diagnose make output
+        if: ${{ always() }}
+        run: |
+          echo "===== electron-forge package versions ====="
+          npm ls --depth=0 2>/dev/null | grep -E "@electron-forge|^Prizrak-Box" || true
+          echo
+          echo "===== @electron-forge/* in node_modules ====="
+          ls node_modules/@electron-forge/ 2>/dev/null || echo "(@electron-forge dir missing)"
+          echo
+          echo "===== resolved versions for core/maker-base/maker-dmg/maker-zip ====="
+          for pkg in @electron-forge/core @electron-forge/maker-base @electron-forge/maker-dmg @electron-forge/maker-zip; do
+            v=$(node -p "try { require('${pkg}/package.json').version } catch(e) { 'NOT INSTALLED' }" 2>/dev/null)
+            printf "%-35s %s\n" "$pkg" "$v"
+          done
+          echo
+          echo "===== out/ tree (depth 4) ====="
+          if [ -d out ]; then
+            find out -maxdepth 4 -print
+          else
+            echo "(out/ does not exist)"
+          fi
+
       - name: Compress Executable
         run: |
           cd out/make
