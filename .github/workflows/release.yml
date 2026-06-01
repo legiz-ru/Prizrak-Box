@@ -124,12 +124,12 @@ jobs:
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
-          echo "$KEYSTORE_BASE64" | base64 -d > app/keystore.jks
+          set -e
+          echo "$KEYSTORE_BASE64" | base64 -d > release.keystore
           cat > signing.properties << EOF
-          SIGNING_STORE_FILE=keystore.jks
-          SIGNING_STORE_PASSWORD=${SIGNING_STORE_PASSWORD}
-          SIGNING_KEY_ALIAS=${SIGNING_KEY_ALIAS}
-          SIGNING_KEY_PASSWORD=${SIGNING_KEY_PASSWORD}
+          keystore.password=${SIGNING_STORE_PASSWORD}
+          key.alias=${SIGNING_KEY_ALIAS}
+          key.password=${SIGNING_KEY_PASSWORD}
           EOF
 
       - name: Build APKs
