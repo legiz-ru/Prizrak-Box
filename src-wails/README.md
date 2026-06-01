@@ -53,19 +53,41 @@ argv; confirm during desktop testing.
 
 ## Build & run
 
-```bash
-# 1. CLI + deps
-go install github.com/wailsapp/wails/v3/cmd/wails3@latest
-npm install                 # at repo root, for the Vue frontend
+### Quickest: the helper script (no `task` needed)
 
-# 2. Build the px backend (see repo README for full flags)
+```bash
+# from the repo root, on macOS / Linux:
+./src-wails/run-dev.sh
+```
+
+It builds the Vue frontend into `frontend/dist`, builds `px` if missing
+(the geo/model files are already vendored in `src-go/internal/em`), then
+`go build`s and launches the Wails shell.
+
+> macOS needs Xcode Command Line Tools (`xcode-select --install`).
+> Linux needs `libgtk-4-dev` + `libwebkitgtk-6.0-dev`.
+
+### Manual steps
+
+```bash
+# 1. frontend  (from repo root)
+npm install
+npx vite build --outDir src-wails/frontend/dist --emptyOutDir
+
+# 2. px backend (files for go:embed are already in src-go/internal/em)
 cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -o px . && cd ..
 
-# 3. Build / run the Wails shell (uses Taskfile here)
+# 3. the Wails shell
 cd src-wails
-task frontend               # vite build -> frontend/dist
-task build                  # wails3 build  (or: task dev)
+go build -o bin/prizrak-box-wails . && ./bin/prizrak-box-wails
 ```
+
+### Optional: `task` and `wails3`
+
+If you install the [Task](https://taskfile.dev) runner (`brew install go-task`
+on macOS) you can use the `Taskfile.yml` targets (`task frontend`, `task build`).
+A proper macOS `.app` bundle (needed for the `prizrak-box://` scheme to be
+registered with the OS) is produced by `wails3 build` / `wails3 package`.
 
 ### Environment overrides (handy for dev)
 
