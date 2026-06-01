@@ -50,19 +50,24 @@ export function installWailsShim(): void {
     };
     w.pxUsername = (): string => '';
 
-    // --- Clipboard / open-external via the Wails runtime ---
-    w.pxClipboard = async (): Promise<string> => {
-        try {
-            const { Clipboard } = await runtime();
-            return await Clipboard.Text();
-        } catch {
-            try {
-                return await navigator.clipboard.readText();
-            } catch {
-                return '';
-            }
-        }
+    // Clipboard: the frontend reads it SYNCHRONOUSLY (Profiles.vue handlePaste:
+    // `addForm.content = Clipboard.Text()`), matching Electron's sync API. The
+    // Wails runtime clipboard is async, so we keep a cache refreshed on focus /
+    // visibility change and return it synchronously.
+    let clipboardCache = '';
+    const refreshClipboard = (): void => {
+        runtime()
+            .then(({ Clipboard }) => Clipboard.Text())
+            .then((t: string) => { if (typeof t === 'string') clipboardCache = t; })
+            .catch(() => { /* ignore */ });
     };
+    w.pxClipboard = (): string => clipboardCache;
+    window.addEventListener('focus', refreshClipboard);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) refreshClipboard();
+    });
+    refreshClipboard();
+
     w.pxOpen = (url: string): void => {
         runtime()
             .then(({ Browser }) => Browser.OpenURL(url))
@@ -153,3 +158,8 @@ export function installWailsShim(): void {
         invoke: async (_channel: string, ..._args: any[]): Promise<any> => undefined,
     };
 }
+
+// Install immediately on import. This module MUST be imported before any module
+// that captures window.px* at load time (e.g. src/runtime/index.ts captures
+// window.pxClipboard). main.ts imports it first. No-op under Electron.
+installWailsShim();

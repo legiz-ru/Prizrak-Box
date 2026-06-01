@@ -1,3 +1,6 @@
+// Must be first: installs the window.px* shim before any module (e.g. @/runtime)
+// captures those globals at import time. No-op under Electron.
+import "./wails-shim";
 import {createApp, watch, toRaw} from "vue";
 import App from "./App.vue";
 import router from "@/router";
@@ -28,7 +31,6 @@ import {useUpdateStore} from "@/store/updateStore";
 import {Browser, Events} from "@/runtime";
 import {createDashboardLinks} from "@/util/dashboard";
 import {initRendererIPC} from "./renderer-ipc";
-import {installWailsShim} from "./wails-shim";
 
 const app = createApp(App);
 const lang = detectLanguage();
@@ -57,10 +59,6 @@ function isCanceledError(error: any) {
 }
 
 async function bootstrap() {
-    // Install the Wails compatibility shim before anything reads window.px*.
-    // No-op under Electron (preload already provides the bridge).
-    installWailsShim();
-
     initRendererIPC();
 
     // 加载缓存数据

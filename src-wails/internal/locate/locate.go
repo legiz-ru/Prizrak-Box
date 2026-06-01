@@ -76,18 +76,16 @@ func ServiceBinary() string {
 
 // HomeDir returns the per-user data directory passed to px via -home.
 //
-// During the migration PoC we deliberately use a dedicated directory so the
-// Wails build does not clobber data created by the Electron build. Override
-// with PRIZRAK_HOME if you want both shells to share the same profiles.
+// We match the Electron build's location ($HOME/Prizrak-Box-V3) so that the
+// Wails shell reuses existing profiles/config and the frontend's
+// "directory must end with Prizrak-Box-V3" check passes. Override with
+// PRIZRAK_HOME to isolate the Wails build's data.
 func HomeDir() string {
 	if v := os.Getenv("PRIZRAK_HOME"); v != "" {
 		return v
 	}
-	base, err := os.UserConfigDir()
-	if err != nil || base == "" {
-		base, _ = os.UserHomeDir()
-	}
-	dir := filepath.Join(base, "Prizrak-Box-Wails")
+	home, _ := os.UserHomeDir()
+	dir := filepath.Join(home, "Prizrak-Box-V3")
 	_ = os.MkdirAll(dir, 0o755)
 	return dir
 }

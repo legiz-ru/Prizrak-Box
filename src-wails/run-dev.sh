@@ -32,12 +32,19 @@ if [ ! -d node_modules ]; then
 fi
 npx vite build --outDir src-wails/frontend/dist --emptyOutDir
 
-echo "==> [2/3] Ensuring px backend (src-go/$PX_EXE)"
+echo "==> [2/3] Ensuring px backend (src-go/$PX_EXE) and px-service"
 if [ ! -x "src-go/$PX_EXE" ]; then
   echo "    building px (geo/model files are already vendored in src-go/internal/em)..."
   ( cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -o "$PX_EXE" . )
 else
   echo "    found existing src-go/$PX_EXE"
+fi
+SERVICE_EXE="px-service"; [ "$PX_EXE" = "px.exe" ] && SERVICE_EXE="px-service.exe"
+if [ ! -x "src-service/$SERVICE_EXE" ]; then
+  echo "    building px-service (TUN helper)..."
+  ( cd src-service && CGO_ENABLED=0 go build -ldflags="-s -w" -o "$SERVICE_EXE" . )
+else
+  echo "    found existing src-service/$SERVICE_EXE"
 fi
 
 echo "==> [3/3] Building & running the Wails shell"

@@ -30,8 +30,9 @@ cd "$REPO_ROOT"
 [ -d node_modules ] || npm install --no-audit --no-fund
 npx vite build --outDir src-wails/frontend/dist --emptyOutDir
 
-echo "==> Ensuring px backend"
+echo "==> Ensuring px backend + px-service"
 [ -x "src-go/px" ] || ( cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -o px . )
+[ -x "src-service/px-service" ] || ( cd src-service && CGO_ENABLED=0 go build -ldflags="-s -w" -o px-service . )
 
 echo "==> Building Go binary"
 cd "$SCRIPT_DIR"
