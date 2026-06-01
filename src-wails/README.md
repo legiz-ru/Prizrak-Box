@@ -45,11 +45,18 @@ Full dynamic tray menu (modes/profiles/groups/dashboards mirroring the Electron
 tray), persistent store as a Go service (currently localStorage in the shim),
 and config-directory migration.
 
-## Known risk to verify on desktop
+## Known issues to verify
 
-Wails issue #5089: on macOS the single-instance lock can race with
-`OpenedWithURL`. We handle deep links via both the event and second-instance
-argv; confirm during desktop testing.
+- **Exit cleanup**: confirm that quitting (tray "Quit" / Exit button) reliably
+  removes the system proxy. `readyToQuit` → `api.exit` → px disables the proxy,
+  and `KillPx` sends SIGINT as a fallback, but verify on macOS/Windows.
+- **GLOBAL proxy group**: switching to Global mode from the tray does not show a
+  `GLOBAL` group in the proxy-groups submenu. The submenu is built from the
+  `proxyGroups` event the frontend emits; check whether the frontend re-emits
+  groups (including GLOBAL) on mode change, or whether px must be queried.
+- **Deep links** (`prizrak-box://`): only work from a registered `.app`
+  bundle (run `make-macos-app.sh`, then launch the `.app` once); the dev
+  binary does not register the scheme.
 
 ## Build & run
 

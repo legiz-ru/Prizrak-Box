@@ -42,35 +42,11 @@ echo "==> Assembling $APP"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp /tmp/prizrak-box-wails-bin "$APP/Contents/MacOS/Prizrak-Box"
-chmod +x "$APP/Contents/MacOS/Prizrak-Box"
+# px + px-service ship next to the binary (locate.go finds them there).
+cp "$REPO_ROOT/src-go/px" "$REPO_ROOT/src-service/px-service" "$APP/Contents/MacOS/" 2>/dev/null || true
+chmod +x "$APP/Contents/MacOS/"*
 [ -f "$REPO_ROOT/build/appicon.icns" ] && cp "$REPO_ROOT/build/appicon.icns" "$APP/Contents/Resources/appicon.icns"
-
-cat > "$APP/Contents/Info.plist" <<PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleName</key><string>Prizrak-Box</string>
-    <key>CFBundleDisplayName</key><string>Prizrak-Box</string>
-    <key>CFBundleExecutable</key><string>Prizrak-Box</string>
-    <key>CFBundleIdentifier</key><string>${ID}</string>
-    <key>CFBundleVersion</key><string>${VERSION}</string>
-    <key>CFBundleShortVersionString</key><string>${VERSION}</string>
-    <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleIconFile</key><string>appicon</string>
-    <key>LSMinimumSystemVersion</key><string>11.0.0</string>
-    <key>NSHighResolutionCapable</key><true/>
-    <key>CFBundleURLTypes</key>
-    <array>
-        <dict>
-            <key>CFBundleURLName</key><string>${ID}</string>
-            <key>CFBundleURLSchemes</key>
-            <array><string>prizrak-box</string></array>
-        </dict>
-    </array>
-</dict>
-</plist>
-PLIST
+cp "$SCRIPT_DIR/build/darwin/Info.plist" "$APP/Contents/Info.plist"
 
 # Register the bundle (and its URL scheme) with LaunchServices.
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \

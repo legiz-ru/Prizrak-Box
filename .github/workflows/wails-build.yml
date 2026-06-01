@@ -1,0 +1,146 @@
+name: Build Wails (PoC)
+
+# Initial CI for the Wails v3 shell (src-wails), built in parallel with the
+# Electron release workflow. Produces UNSIGNED artifacts for manual testing.
+# Code signing / notarization and native installers (dmg / NSIS / deb) come
+# in a later step. Geo/model files are vendored in src-go/internal/em, so px
+# builds without any downloads.
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_linux:
+        description: 'Build Linux'
+        type: boolean
+        default: true
+      build_macos:
+        description: 'Build macOS (arm64)'
+        type: boolean
+        default: true
+      build_windows:
+        description: 'Build Windows (amd64)'
+        type: boolean
+        default: true
+
+jobs:
+  linux:
+    if: ${{ inputs.build_linux }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26'
+          check-latest: true
+      - name: Install WebKitGTK
+        run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev
+      - name: Build frontend
+        run: |
+          npm install --no-audit --no-fund
+          npx vite build --outDir src-wails/frontend/dist --emptyOutDir
+      - name: Build px + px-service
+        run: |
+          (cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -o px .)
+          (cd src-service && CGO_ENABLED=0 go build -ldflags="-s -w" -o px-service .)
+      - name: Build Wails app
+        run: |
+          cd src-wails
+          CGO_ENABLED=1 go build -trimpath -o bin/prizrak-box-wails .
+      - name: Stage bundle
+        run: |
+          cp src-go/px src-service/px-service src-wails/bin/
+          tar -C src-wails/bin -czf prizrak-box-wails-linux-amd64.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wails-linux-amd64
+          path: prizrak-box-wails-linux-amd64.tar.gz
+
+  macos:
+    if: ${{ inputs.build_macos }}
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26'
+          check-latest: true
+      - name: Build frontend
+        run: |
+          npm install --no-audit --no-fund
+          npx vite build --outDir src-wails/frontend/dist --emptyOutDir
+      - name: Build px + px-service (arm64)
+        env:
+          GOARCH: arm64
+        run: |
+          (cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -o px .)
+          (cd src-service && CGO_ENABLED=0 go build -ldflags="-s -w" -o px-service .)
+      - name: Build Wails app (arm64)
+        env:
+          GOARCH: arm64
+          CGO_ENABLED: '1'
+        run: |
+          cd src-wails
+          go build -trimpath -o /tmp/prizrak-box-wails .
+      - name: Assemble .app
+        run: |
+          APP="Prizrak-Box.app"
+          rm -rf "$APP"
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+          cp /tmp/prizrak-box-wails "$APP/Contents/MacOS/Prizrak-Box"
+          # px + px-service ship next to the binary (locate.go finds them there)
+          cp src-go/px src-service/px-service "$APP/Contents/MacOS/"
+          chmod +x "$APP/Contents/MacOS/"*
+          cp build/appicon.icns "$APP/Contents/Resources/appicon.icns" || true
+          cp src-wails/build/darwin/Info.plist "$APP/Contents/Info.plist"
+          zip -qr wails-macos-arm64.zip "$APP"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wails-macos-arm64
+          path: wails-macos-arm64.zip
+
+  windows:
+    if: ${{ inputs.build_windows }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26'
+          check-latest: true
+      - name: Build frontend
+        run: |
+          npm install --no-audit --no-fund
+          npx vite build --outDir src-wails/frontend/dist --emptyOutDir
+      - name: Build px + px-service
+        shell: pwsh
+        env:
+          GOARCH: amd64
+        run: |
+          cd src-go;       $env:CGO_ENABLED='0'; go build -tags=with_gvisor -trimpath -o px.exe .; cd ..
+          cd src-service;  $env:CGO_ENABLED='0'; go build -ldflags="-s -w" -o px-service.exe .;   cd ..
+      - name: Build Wails app
+        shell: pwsh
+        env:
+          GOARCH: amd64
+          CGO_ENABLED: '0'
+        run: |
+          cd src-wails
+          go build -trimpath -o bin/prizrak-box-wails.exe .
+      - name: Stage bundle
+        shell: pwsh
+        run: |
+          Copy-Item src-go/px.exe, src-service/px-service.exe src-wails/bin/
+          Compress-Archive -Path src-wails/bin/* -DestinationPath wails-windows-amd64.zip -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wails-windows-amd64
+          path: wails-windows-amd64.zip
