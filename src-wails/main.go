@@ -1,15 +1,15 @@
 // Command prizrak-box-wails is the Wails v3 desktop shell for Prizrak-Box.
 //
 // Phase 0 (PoC): boot Wails v3, serve the existing Vue frontend, spawn/supervise
-// px, hand the frontend host/port/secret, minimal tray, single-instance lock.
+// px, hand the frontend host/port/secret, native tray, single-instance lock.
 //
-// Phase 1 (this file): TUN service management (TunService), launch-at-login
-// (SystemService via Wails Autostart), deep-link handling for the
-// prizrak-box:// scheme (ApplicationLaunchedWithUrl + second-instance argv),
-// and bringing the window to front on a second launch.
+// Phase 1: TUN service management (TunService), launch-at-login (SystemService
+// via Wails Autostart), deep-link handling for the prizrak-box:// scheme
+// (ApplicationLaunchedWithUrl + second-instance argv).
 //
-// Still out of scope (later phases): full dynamic tray menu mirroring the
-// Electron tray, and config-directory migration.
+// Phase 1.1 (this revision): window controls + quit wired from the frontend's
+// existing pxTray events (close/min/max/hide/doQuit/boot), macOS hidden-inset
+// title bar to match the Electron look, and the correct monochrome tray icon.
 package main
 
 import (
@@ -33,6 +33,12 @@ var assets embed.FS
 
 //go:embed build/appicon.png
 var appIcon []byte
+
+//go:embed build/tray.png
+var trayIcon []byte
+
+//go:embed build/tray-macos.png
+var trayIconMac []byte
 
 // deepLinkScheme is the custom URL scheme. Registration with the OS happens at
 // packaging time (build/config.yml -> Info.plist / NSIS); see README.
@@ -87,6 +93,8 @@ func main() {
 			}
 		})
 
+	// macOS: hidden-inset title bar (native traffic lights over full-size
+	// content) to match the Electron `titleBarStyle: hiddenInset` look.
 	win = app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:   "main",
 		Title:  "Prizrak-Box",
@@ -94,22 +102,36 @@ func main() {
 		Height: 760,
 		Hidden: true, // shown once the backend is ready
 		URL:    "/",
+		Mac: application.MacWindow{
+			TitleBar: application.MacTitleBarHiddenInset,
+		},
 	})
 
-	// Close button hides to tray instead of quitting (matches Electron).
-	win.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
-		win.Hide()
-		e.Cancel()
+	// Window controls emitted by the Vue frontend (MyTitleBar.vue / Off.vue)
+	// via window.pxTray.emit -> Wails events. This replaces the Electron
+	// ipcMain handlers in src-electron/tray.ts.
+	app.Event.On("close", func(_ *application.CustomEvent) { win.Hide() }) // close to tray
+	app.Event.On("hide", func(_ *application.CustomEvent) { win.Hide() })
+	app.Event.On("min", func(_ *application.CustomEvent) { win.Minimise() })
+	app.Event.On("max", func(_ *application.CustomEvent) { win.ToggleMaximise() })
+	app.Event.On("boot", func(e *application.CustomEvent) {
+		if err := system.SetAutostart(asBool(e.Data)); err != nil {
+			app.Logger.Error("autostart toggle failed", "error", err)
+		}
+	})
+	app.Event.On("doQuit", func(e *application.CustomEvent) {
+		if asBool(e.Data) {
+			app.Quit()
+		}
 	})
 
-	// Minimal native system tray (full dynamic menu lands in a later phase).
+	// Native system tray with the correct monochrome icon (no text label).
 	tray := app.SystemTray.New()
-	tray.SetLabel("Prizrak-Box")
 	tray.SetTooltip("Prizrak-Box")
 	if runtime.GOOS == "darwin" {
-		tray.SetTemplateIcon(appIcon)
+		tray.SetTemplateIcon(trayIconMac)
 	} else {
-		tray.SetIcon(appIcon)
+		tray.SetIcon(trayIcon)
 	}
 	menu := app.NewMenu()
 	menu.Add("Показать / Show").OnClick(func(_ *application.Context) { win.Show(); win.Focus() })
@@ -150,4 +172,18 @@ func findSchemeURL(args []string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+// asBool coerces event payloads (which arrive as JSON) to a bool.
+func asBool(v any) bool {
+	switch t := v.(type) {
+	case bool:
+		return t
+	case string:
+		return t == "true" || t == "1"
+	case float64:
+		return t != 0
+	default:
+		return false
+	}
 }
