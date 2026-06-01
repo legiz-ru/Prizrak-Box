@@ -1,5 +1,7 @@
 name: Release App
 
+run-name: Release App ${{ inputs.version || github.ref_name }}
+
 on:
   release:
     types: [published]
@@ -75,6 +77,9 @@ jobs:
     needs: [setup]
     if: github.event_name == 'release' || inputs.build_android == true
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
     steps:
       - name: Checkout Prizrak-Box
         uses: actions/checkout@v4
@@ -151,12 +156,22 @@ jobs:
           name: android
           path: prizrak-box-android-*.apk
 
+      - name: Cancel workflow on failure
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+
   # ── Windows ──
   build_windows:
     needs: [setup]
     if: github.event_name == 'release' || inputs.build_windows == true
     runs-on: windows-latest
+    permissions:
+      actions: write
+      contents: read
     strategy:
+      fail-fast: true
       matrix:
         arch: [amd64, arm64]
     steps:
@@ -297,12 +312,23 @@ jobs:
             windows-${{ matrix.arch }}.zip
             windows-${{ matrix.arch }}.msi
 
+      - name: Cancel workflow on failure
+        if: ${{ failure() }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+
   # ── Linux ──
   build_linux:
     needs: [setup]
     if: github.event_name == 'release' || inputs.build_linux == true
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
     strategy:
+      fail-fast: true
       matrix:
         arch: [amd64, arm64]
     steps:
@@ -408,12 +434,22 @@ jobs:
             linux-${{ matrix.arch }}.rpm
             linux-${{ matrix.arch }}-aur.tar.zst
 
+      - name: Cancel workflow on failure
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+
   # ── macOS ──
   build_macos:
     needs: [setup]
     if: github.event_name == 'release' || inputs.build_macos == true
     runs-on: macos-latest
+    permissions:
+      actions: write
+      contents: read
     strategy:
+      fail-fast: true
       matrix:
         arch: [amd64, arm64]
     env:
@@ -558,6 +594,12 @@ jobs:
             macos-${{ matrix.arch }}.zip
             macos-${{ matrix.arch }}.dmg
 
+      - name: Cancel workflow on failure
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+
   # ── AUR ──
   publish_aur:
     name: Publish to AUR
@@ -569,6 +611,9 @@ jobs:
       needs.build_linux.result == 'success'
     runs-on: ubuntu-latest
     environment: aur
+    permissions:
+      actions: write
+      contents: read
 
     steps:
       - name: Download Linux artifacts
@@ -752,11 +797,24 @@ jobs:
           git diff --cached --quiet || git commit -m "Update to version ${{ needs.setup.outputs.version }}"
           git push --force origin master
 
+      - name: Cancel workflow on failure
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+
   # ── Release: upload artifacts and update release body ──
   release:
     needs: [setup, build_android, build_windows, build_linux, build_macos, publish_aur]
-    # Run even if some build jobs were skipped, but require setup to succeed
-    if: always() && !cancelled() && needs.setup.result == 'success'
+    # Run only if no build job failed; skipped jobs are tolerated (user may disable some platforms)
+    if: |
+      always() && !cancelled() &&
+      needs.setup.result == 'success' &&
+      needs.build_android.result != 'failure' &&
+      needs.build_windows.result != 'failure' &&
+      needs.build_linux.result != 'failure' &&
+      needs.build_macos.result != 'failure' &&
+      needs.publish_aur.result != 'failure'
     runs-on: ubuntu-latest
     permissions:
       contents: write
