@@ -109,9 +109,10 @@ jobs:
       - name: Setup Go Modules
         working-directory: ClashMetaForAndroid
         run: |
+          set -e
           sudo apt-get install -y ca-certificates
           sudo update-ca-certificates
-          cd core
+          cd core/src/foss/golang
           go mod download
           go mod tidy
 
