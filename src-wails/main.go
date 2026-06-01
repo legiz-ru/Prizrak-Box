@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"log/slog"
 	"net/url"
 	"os"
 	"runtime"
@@ -65,8 +66,13 @@ func main() {
 			application.NewService(system),
 			application.NewService(tun),
 		},
+		// Keep Wails' own logging quiet (px already logs plenty); the noisy
+		// per-request asset logs and benign "Window #N not found" warnings on
+		// shutdown are suppressed.
+		LogLevel: slog.LevelError,
 		Assets: application.AssetOptions{
-			Handler: application.BundledAssetFileServer(distFS),
+			Handler:        application.BundledAssetFileServer(distFS),
+			DisableLogging: true,
 		},
 		SingleInstance: &application.SingleInstanceOptions{
 			UniqueID: "com.legiz-ru.prizrak-box",
