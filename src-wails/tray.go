@@ -67,7 +67,10 @@ func setupTray(app *application.App, win *application.WebviewWindow) *trayContro
 	app.Event.On("proxyGroups", func(e *application.CustomEvent) { c.set(func() { c.groups = asArr(e.Data) }) })
 	app.Event.On("dashboards", func(e *application.CustomEvent) { c.set(func() { c.dashboards = asArr(e.Data) }) })
 
-	c.rebuild()
+	// Initial build runs on the main thread (we're still inside main(), before
+	// app.Run()), so build directly — InvokeSync would dereference a nil
+	// main-thread dispatcher and crash.
+	c.buildMenu()
 	return c
 }
 
@@ -85,105 +88,109 @@ func (c *trayController) label(id, fallback string) string {
 	return fallback
 }
 
-// rebuild constructs a fresh menu from the current state and assigns it to the
-// tray on the main thread.
+// rebuild reassigns the menu from an event callback (a background goroutine),
+// so it must hop onto the main thread.
 func (c *trayController) rebuild() {
+	application.InvokeSync(c.buildMenu)
+}
+
+// buildMenu constructs a fresh menu from the current state and assigns it to
+// the tray. It MUST be called on the main thread.
+func (c *trayController) buildMenu() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	application.InvokeSync(func() {
-		menu := c.app.NewMenu()
+	menu := c.app.NewMenu()
 
-		menu.Add(c.label("tray.show", "Show")).OnClick(func(_ *application.Context) {
-			c.win.Show()
-			c.win.Focus()
+	menu.Add(c.label("tray.show", "Show")).OnClick(func(_ *application.Context) {
+		c.win.Show()
+		c.win.Focus()
+	})
+	menu.AddSeparator()
+
+	c.addMode(menu, "tray.rule", "Rule", "rule")
+	c.addMode(menu, "tray.global", "Global", "global")
+	c.addMode(menu, "tray.direct", "Direct", "direct")
+	menu.AddSeparator()
+
+	// Profiles (multi-select checkboxes).
+	profiles := menu.AddSubmenu(c.label("tray.profiles", "Profiles"))
+	for _, p := range c.profiles {
+		pm := asMap(p)
+		if pm == nil {
+			continue
+		}
+		title := asStr(pm["title"])
+		selected := asBool(pm["selected"])
+		profile := pm
+		profiles.AddCheckbox(title, selected).OnClick(func(_ *application.Context) {
+			c.emit("switchProfiles", map[string]any{
+				"profile":   profile,
+				"selected":  true,
+				"exclusive": false,
+			})
 		})
-		menu.AddSeparator()
+	}
 
-		c.addMode(menu, "tray.rule", "Rule", "rule")
-		c.addMode(menu, "tray.global", "Global", "global")
-		c.addMode(menu, "tray.direct", "Direct", "direct")
-		menu.AddSeparator()
-
-		// Profiles (multi-select checkboxes).
-		profiles := menu.AddSubmenu(c.label("tray.profiles", "Profiles"))
-		for _, p := range c.profiles {
-			pm := asMap(p)
-			if pm == nil {
+	// Proxy groups (each group is a submenu of radio items).
+	groups := menu.AddSubmenu(c.label("tray.proxyGroups", "Proxy Groups"))
+	for _, g := range c.groups {
+		gm := asMap(g)
+		if gm == nil {
+			continue
+		}
+		gname := asStr(gm["name"])
+		proxies := asArr(gm["proxies"])
+		if gname == "" || len(proxies) == 0 {
+			continue
+		}
+		sub := groups.AddSubmenu(gname)
+		for _, pr := range proxies {
+			prm := asMap(pr)
+			if prm == nil {
 				continue
 			}
-			title := asStr(pm["title"])
-			selected := asBool(pm["selected"])
-			profile := pm
-			profiles.AddCheckbox(title, selected).OnClick(func(_ *application.Context) {
-				c.emit("switchProfiles", map[string]any{
-					"profile":   profile,
-					"selected":  true,
-					"exclusive": false,
-				})
+			pname := asStr(prm["name"])
+			now := asBool(prm["now"])
+			group, proxy := gname, pname
+			sub.AddRadio(pname, now).OnClick(func(_ *application.Context) {
+				c.emit("switchProxyInGroup", map[string]any{"group": group, "proxy": proxy})
 			})
 		}
+	}
 
-		// Proxy groups (each group is a submenu of radio items).
-		groups := menu.AddSubmenu(c.label("tray.proxyGroups", "Proxy Groups"))
-		for _, g := range c.groups {
-			gm := asMap(g)
-			if gm == nil {
-				continue
-			}
-			gname := asStr(gm["name"])
-			proxies := asArr(gm["proxies"])
-			if gname == "" || len(proxies) == 0 {
-				continue
-			}
-			sub := groups.AddSubmenu(gname)
-			for _, pr := range proxies {
-				prm := asMap(pr)
-				if prm == nil {
-					continue
-				}
-				pname := asStr(prm["name"])
-				now := asBool(prm["now"])
-				group, proxy := gname, pname
-				sub.AddRadio(pname, now).OnClick(func(_ *application.Context) {
-					c.emit("switchProxyInGroup", map[string]any{"group": group, "proxy": proxy})
-				})
-			}
+	// Dashboards (open external URL).
+	dash := menu.AddSubmenu(c.label("tray.dashboard", "Open Dashboard"))
+	for _, d := range c.dashboards {
+		dm := asMap(d)
+		if dm == nil {
+			continue
 		}
-
-		// Dashboards (open external URL).
-		dash := menu.AddSubmenu(c.label("tray.dashboard", "Open Dashboard"))
-		for _, d := range c.dashboards {
-			dm := asMap(d)
-			if dm == nil {
-				continue
-			}
-			name := asStr(dm["name"])
-			url := asStr(dm["url"])
-			if name == "" || url == "" {
-				continue
-			}
-			u := url
-			dash.Add(name).OnClick(func(_ *application.Context) { openExternal(u) })
+		name := asStr(dm["name"])
+		url := asStr(dm["url"])
+		if name == "" || url == "" {
+			continue
 		}
-		menu.AddSeparator()
+		u := url
+		dash.Add(name).OnClick(func(_ *application.Context) { openExternal(u) })
+	}
+	menu.AddSeparator()
 
-		menu.AddCheckbox(c.label("tray.proxy", "System Proxy"), c.proxy).OnClick(func(_ *application.Context) {
-			c.emit("switchProxy", nil)
-		})
-		menu.AddCheckbox(c.label("tray.tun", "TUN"), c.tun).OnClick(func(_ *application.Context) {
-			c.emit("switchTun", nil)
-		})
-		menu.AddSeparator()
-
-		menu.Add(c.label("tray.quit", "Quit")).OnClick(func(_ *application.Context) {
-			// Graceful: the frontend disables the system proxy (api.exit) before
-			// the app quits via the doQuit event.
-			c.emit("readyToQuit", nil)
-		})
-
-		c.tray.SetMenu(menu)
+	menu.AddCheckbox(c.label("tray.proxy", "System Proxy"), c.proxy).OnClick(func(_ *application.Context) {
+		c.emit("switchProxy", nil)
 	})
+	menu.AddCheckbox(c.label("tray.tun", "TUN"), c.tun).OnClick(func(_ *application.Context) {
+		c.emit("switchTun", nil)
+	})
+	menu.AddSeparator()
+
+	menu.Add(c.label("tray.quit", "Quit")).OnClick(func(_ *application.Context) {
+		// Graceful: the frontend disables the system proxy (api.exit) before
+		// the app quits via the doQuit event.
+		c.emit("readyToQuit", nil)
+	})
+
+	c.tray.SetMenu(menu)
 }
 
 func (c *trayController) addMode(menu *application.Menu, id, fallback, mode string) {
