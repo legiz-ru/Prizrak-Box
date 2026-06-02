@@ -63,8 +63,13 @@ and config-directory migration.
 ### Quickest: the helper script (no `task` needed)
 
 ```bash
-# from the repo root, on macOS / Linux:
+# macOS / Linux (from the repo root):
 ./src-wails/run-dev.sh
+```
+
+```powershell
+# Windows (from the repo root):
+powershell -ExecutionPolicy Bypass -File .\src-wails\run-dev.ps1
 ```
 
 It builds the Vue frontend into `frontend/dist`, builds `px` if missing
