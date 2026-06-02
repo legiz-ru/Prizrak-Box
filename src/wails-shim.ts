@@ -92,16 +92,21 @@ export function installWailsShim(): void {
     }
 
     // --- Tray event bus, backed by Wails events (Go <-> frontend) ---
+    // IMPORTANT: emit and on use DISJOINT channel prefixes so the frontend
+    // never receives its own emits. Electron used separate ipc directions
+    // (renderer->main vs main->renderer); a single Wails bus would loop an
+    // emitted "profiles" back into the frontend's own "profiles" listener and
+    // overwrite freshly-set state. px:fe:* = frontend->Go, px:be:* = Go->frontend.
     w.pxTray = {
         on: (name: string, cb: (...a: any[]) => void) => {
             runtime()
-                .then(({ Events }) => Events.On(name, (e: any) => cb(e?.data)))
+                .then(({ Events }) => Events.On('px:be:' + name, (e: any) => cb(e?.data)))
                 .catch(() => { /* ignore */ });
         },
         off: (_name: string, _cb: (...a: any[]) => void) => { /* later phase */ },
         emit: (name: string, data: any) => {
             runtime()
-                .then(({ Events }) => Events.Emit(name, data))
+                .then(({ Events }) => Events.Emit('px:fe:' + name, data))
                 .catch(() => { /* ignore */ });
         },
     };

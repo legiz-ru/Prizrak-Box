@@ -49,8 +49,8 @@ func setupTray(app *application.App, win *application.WebviewWindow) *trayContro
 		c.tray.SetIcon(trayIcon)
 	}
 
-	// Inbound state from the frontend → update state and rebuild.
-	app.Event.On("translate", func(e *application.CustomEvent) {
+	// Inbound state from the frontend (px:fe:* channels) → update + rebuild.
+	app.Event.On("px:fe:translate", func(e *application.CustomEvent) {
 		if m := asMap(e.Data); m != nil {
 			c.mu.Lock()
 			for k, v := range m {
@@ -60,12 +60,12 @@ func setupTray(app *application.App, win *application.WebviewWindow) *trayContro
 		}
 		c.rebuild()
 	})
-	app.Event.On("mode", func(e *application.CustomEvent) { c.set(func() { c.mode = asStr(e.Data) }) })
-	app.Event.On("proxy", func(e *application.CustomEvent) { c.set(func() { c.proxy = asBool(e.Data) }) })
-	app.Event.On("tun", func(e *application.CustomEvent) { c.set(func() { c.tun = asBool(e.Data) }) })
-	app.Event.On("profiles", func(e *application.CustomEvent) { c.set(func() { c.profiles = asArr(e.Data) }) })
-	app.Event.On("proxyGroups", func(e *application.CustomEvent) { c.set(func() { c.groups = asArr(e.Data) }) })
-	app.Event.On("dashboards", func(e *application.CustomEvent) { c.set(func() { c.dashboards = asArr(e.Data) }) })
+	app.Event.On("px:fe:mode", func(e *application.CustomEvent) { c.set(func() { c.mode = asStr(e.Data) }) })
+	app.Event.On("px:fe:proxy", func(e *application.CustomEvent) { c.set(func() { c.proxy = asBool(e.Data) }) })
+	app.Event.On("px:fe:tun", func(e *application.CustomEvent) { c.set(func() { c.tun = asBool(e.Data) }) })
+	app.Event.On("px:fe:profiles", func(e *application.CustomEvent) { c.set(func() { c.profiles = asArr(e.Data) }) })
+	app.Event.On("px:fe:proxyGroups", func(e *application.CustomEvent) { c.set(func() { c.groups = asArr(e.Data) }) })
+	app.Event.On("px:fe:dashboards", func(e *application.CustomEvent) { c.set(func() { c.dashboards = asArr(e.Data) }) })
 
 	// Initial build runs on the main thread (we're still inside main(), before
 	// app.Run()), so build directly — InvokeSync would dereference a nil
@@ -200,11 +200,12 @@ func (c *trayController) addMode(menu *application.Menu, id, fallback, mode stri
 }
 
 func (c *trayController) emit(name string, data any) {
+	// px:be:* = Go -> frontend (the shim's pxTray.on listens on these).
 	if data == nil {
-		c.win.EmitEvent(name)
+		c.win.EmitEvent("px:be:" + name)
 		return
 	}
-	c.win.EmitEvent(name, data)
+	c.win.EmitEvent("px:be:"+name, data)
 }
 
 // openExternal opens a URL in the default browser.

@@ -115,16 +115,16 @@ func main() {
 	// Window controls emitted by the Vue frontend (MyTitleBar.vue / Off.vue)
 	// via window.pxTray.emit -> Wails events. This replaces the Electron
 	// ipcMain handlers in src-electron/tray.ts.
-	app.Event.On("close", func(_ *application.CustomEvent) { app.Quit() }) // custom titlebar X quits (matches Electron)
-	app.Event.On("hide", func(_ *application.CustomEvent) { win.Hide() })
-	app.Event.On("min", func(_ *application.CustomEvent) { win.Minimise() })
-	app.Event.On("max", func(_ *application.CustomEvent) { win.ToggleMaximise() })
-	app.Event.On("boot", func(e *application.CustomEvent) {
+	app.Event.On("px:fe:close", func(_ *application.CustomEvent) { app.Quit() }) // custom titlebar X quits (matches Electron)
+	app.Event.On("px:fe:hide", func(_ *application.CustomEvent) { win.Hide() })
+	app.Event.On("px:fe:min", func(_ *application.CustomEvent) { win.Minimise() })
+	app.Event.On("px:fe:max", func(_ *application.CustomEvent) { win.ToggleMaximise() })
+	app.Event.On("px:fe:boot", func(e *application.CustomEvent) {
 		if err := system.SetAutostart(asBool(e.Data)); err != nil {
 			app.Logger.Error("autostart toggle failed", "error", err)
 		}
 	})
-	app.Event.On("doQuit", func(_ *application.CustomEvent) {
+	app.Event.On("px:fe:doQuit", func(_ *application.CustomEvent) {
 		// The Exit button (Off.vue) fires this after asking px to shut down.
 		// It may carry data:false when px exits before confirming over HTTP,
 		// but the user's intent is always to quit, so quit unconditionally.
