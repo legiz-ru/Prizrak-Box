@@ -31,47 +31,42 @@ func serviceExeName() string {
 //
 // Resolution order:
 //  1. PRIZRAK_PX_BIN environment variable (explicit override).
-//  2. Next to the running executable (packaged layout).
-//  3. ../src-go/px relative to the working directory (dev layout).
+//  2. Next to the running executable (Wails dev / portable layout).
+//  3. <exeDir>/resources/ (packaged layout, matches the Electron MSI).
+//  4. ../src-go/px relative to the working directory (repo dev layout).
 func PxBinary() string {
-	if v := os.Getenv("PRIZRAK_PX_BIN"); v != "" {
-		return v
-	}
-	if exe, err := os.Executable(); err == nil {
-		candidate := filepath.Join(filepath.Dir(exe), pxExeName())
-		if fileExists(candidate) {
-			return candidate
-		}
-	}
-	// dev layout: repo-root/src-go/px, shell runs from repo-root/src-wails
-	if wd, err := os.Getwd(); err == nil {
-		candidate := filepath.Join(wd, "..", "src-go", pxExeName())
-		if fileExists(candidate) {
-			return candidate
-		}
-	}
-	// last resort: rely on PATH
-	return pxExeName()
+	return resolveBinary("PRIZRAK_PX_BIN", pxExeName(), "src-go")
 }
 
 // ServiceBinary returns the path to the px-service binary (TUN helper).
 func ServiceBinary() string {
-	if v := os.Getenv("PRIZRAK_PX_SERVICE_BIN"); v != "" {
+	return resolveBinary("PRIZRAK_PX_SERVICE_BIN", serviceExeName(), "src-service")
+}
+
+// resolveBinary applies the shared lookup order for a bundled Go binary.
+func resolveBinary(envVar, exeName, devDir string) string {
+	if v := os.Getenv(envVar); v != "" {
 		return v
 	}
 	if exe, err := os.Executable(); err == nil {
-		candidate := filepath.Join(filepath.Dir(exe), serviceExeName())
-		if fileExists(candidate) {
-			return candidate
+		dir := filepath.Dir(exe)
+		// next to the executable
+		if c := filepath.Join(dir, exeName); fileExists(c) {
+			return c
+		}
+		// packaged layout: <exeDir>/resources/<exe> (matches the Electron MSI)
+		if c := filepath.Join(dir, "resources", exeName); fileExists(c) {
+			return c
 		}
 	}
+	// repo dev layout: ../<devDir>/<exe> relative to the working directory
 	if wd, err := os.Getwd(); err == nil {
-		candidate := filepath.Join(wd, "..", "src-service", serviceExeName())
-		if fileExists(candidate) {
-			return candidate
+		if c := filepath.Join(wd, "..", devDir, exeName); fileExists(c) {
+			return c
 		}
 	}
-	return serviceExeName()
+	// last resort: rely on PATH
+	return exeName
 }
 
 // HomeDir returns the per-user data directory passed to px via -home.

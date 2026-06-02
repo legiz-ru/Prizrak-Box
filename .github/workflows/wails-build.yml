@@ -1,10 +1,14 @@
 name: Build Wails (PoC)
 
-# Initial CI for the Wails v3 shell (src-wails), built in parallel with the
-# Electron release workflow. Produces UNSIGNED artifacts for manual testing.
-# Code signing / notarization and native installers (dmg / NSIS / deb) come
-# in a later step. Geo/model files are vendored in src-go/internal/em, so px
-# builds without any downloads.
+# CI for the Wails v3 shell (src-wails), built in parallel with the Electron
+# release workflow.
+#
+# - Geo/model data (src-go/internal/em/*) is refreshed at build time from the
+#   same sources the Electron workflow uses, so builds are always up to date.
+# - Linux / macOS produce UNSIGNED archives. Windows builds the SAME MSI
+#   installer as the Electron build (installer/build-msi.js + installer/wix),
+#   which installs/reinstalls the TUN service (selected by default, can be
+#   opted out) and registers the prizrak-box:// protocol.
 
 on:
   workflow_dispatch:
@@ -37,6 +41,12 @@ jobs:
           check-latest: true
       - name: Install WebKitGTK
         run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev
+      - name: Refresh geo/model data
+        run: |
+          wget -qO src-go/internal/em/Model.bin       https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
+          wget -qO src-go/internal/em/geoip.metadb     https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
+          wget -qO src-go/internal/em/GeoSite.dat       https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          wget -qO src-go/internal/em/GeoLite2-ASN.mmdb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
       - name: Build frontend
         run: |
           npm install --no-audit --no-fund
@@ -70,6 +80,12 @@ jobs:
         with:
           go-version: '1.26'
           check-latest: true
+      - name: Refresh geo/model data
+        run: |
+          curl -fsSL -o src-go/internal/em/Model.bin       https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
+          curl -fsSL -o src-go/internal/em/geoip.metadb     https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
+          curl -fsSL -o src-go/internal/em/GeoSite.dat       https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          curl -fsSL -o src-go/internal/em/GeoLite2-ASN.mmdb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
       - name: Build frontend
         run: |
           npm install --no-audit --no-fund
@@ -116,6 +132,13 @@ jobs:
         with:
           go-version: '1.26'
           check-latest: true
+      - name: Refresh geo/model data
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin -OutFile src-go/internal/em/Model.bin
+          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb -OutFile src-go/internal/em/geoip.metadb
+          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat -OutFile src-go/internal/em/GeoSite.dat
+          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb -OutFile src-go/internal/em/GeoLite2-ASN.mmdb
       - name: Build frontend
         run: |
           npm install --no-audit --no-fund
@@ -127,20 +150,46 @@ jobs:
         run: |
           cd src-go;       $env:CGO_ENABLED='0'; go build -tags=with_gvisor -trimpath -o px.exe .; cd ..
           cd src-service;  $env:CGO_ENABLED='0'; go build -ldflags="-s -w" -o px-service.exe .;   cd ..
-      - name: Build Wails app
+      - name: Build Wails app (Prizrak-Box.exe with icon)
         shell: pwsh
         env:
           GOARCH: amd64
           CGO_ENABLED: '0'
         run: |
+          go install github.com/tc-hib/go-winres@latest
           cd src-wails
-          go build -trimpath -o bin/prizrak-box-wails.exe .
-      - name: Stage bundle
+          # Embed the app icon + a standard GUI manifest into the exe.
+          go-winres simply --icon ../build/appicon.ico --manifest gui --product-name "Prizrak-Box"
+          go build -trimpath -o bin/Prizrak-Box.exe .
+          Remove-Item rsrc_windows_*.syso -ErrorAction SilentlyContinue
+      - name: Stage app (Electron MSI layout)
         shell: pwsh
         run: |
-          Copy-Item src-go/px.exe, src-service/px-service.exe src-wails/bin/
-          Compress-Archive -Path src-wails/bin/* -DestinationPath wails-windows-amd64.zip -Force
+          $dir = "out/Prizrak-Box-win32-x64"
+          New-Item -ItemType Directory -Force -Path "$dir/resources" | Out-Null
+          Copy-Item src-wails/bin/Prizrak-Box.exe "$dir/Prizrak-Box.exe"
+          Copy-Item src-go/px.exe                 "$dir/resources/px.exe"
+          Copy-Item src-service/px-service.exe    "$dir/resources/px-service.exe"
+      - name: Install WiX Toolset
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip" -OutFile "wix.zip"
+          Expand-Archive -Path "wix.zip" -DestinationPath "C:\wix" -Force
+          "C:\wix" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Build MSI (reuses installer/build-msi.js — TUN service + protocol)
+        shell: pwsh
+        env:
+          ARCH: x64
+        run: |
+          $env:PATH = "C:\wix;$env:PATH"
+          node installer/build-msi.js
+          Copy-Item out/msi/x64/windows-x64.msi prizrak-box-wails-windows-amd64.msi
+      - name: Stage portable zip
+        shell: pwsh
+        run: Compress-Archive -Path out/Prizrak-Box-win32-x64/* -DestinationPath prizrak-box-wails-windows-amd64.zip -Force
       - uses: actions/upload-artifact@v4
         with:
           name: wails-windows-amd64
-          path: wails-windows-amd64.zip
+          path: |
+            prizrak-box-wails-windows-amd64.msi
+            prizrak-box-wails-windows-amd64.zip
