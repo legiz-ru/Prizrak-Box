@@ -113,24 +113,7 @@ func (c *trayController) buildMenu() {
 	c.addMode(menu, "tray.direct", "Direct", "direct")
 	menu.AddSeparator()
 
-	// Profiles (multi-select checkboxes).
-	profiles := menu.AddSubmenu(c.label("tray.profiles", "Profiles"))
-	for _, p := range c.profiles {
-		pm := asMap(p)
-		if pm == nil {
-			continue
-		}
-		title := asStr(pm["title"])
-		selected := asBool(pm["selected"])
-		profile := pm
-		profiles.AddCheckbox(title, selected).OnClick(func(_ *application.Context) {
-			c.emit("switchProfiles", map[string]any{
-				"profile":   profile,
-				"selected":  true,
-				"exclusive": false,
-			})
-		})
-	}
+	// Profile selection from the tray is intentionally disabled.
 
 	// Proxy groups (each group is a submenu of radio items).
 	groups := menu.AddSubmenu(c.label("tray.proxyGroups", "Proxy Groups"))
