@@ -17,10 +17,12 @@ $RepoRoot  = Split-Path -Parent $ScriptDir
 
 Write-Host '==> [1/3] Building frontend (vite -> src-wails/frontend/dist)'
 Set-Location $RepoRoot
-if (-not (Test-Path node_modules)) {
-    npm install --no-audit --no-fund
-}
+# Always install so newly-added deps (e.g. @wailsio/runtime) are present even
+# when node_modules was created by an earlier checkout.
+npm install --no-audit --no-fund
+if ($LASTEXITCODE -ne 0) { throw 'npm install failed' }
 npx vite build --outDir src-wails/frontend/dist --emptyOutDir
+if ($LASTEXITCODE -ne 0) { throw 'frontend build failed' }
 
 Write-Host '==> [2/3] Ensuring px.exe + px-service.exe'
 $env:CGO_ENABLED = '0'

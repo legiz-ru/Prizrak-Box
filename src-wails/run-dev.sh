@@ -26,10 +26,9 @@ esac
 
 echo "==> [1/3] Building frontend (vite -> src-wails/frontend/dist)"
 cd "$REPO_ROOT"
-if [ ! -d node_modules ]; then
-  echo "    installing npm deps..."
-  npm install --no-audit --no-fund
-fi
+# Always install so newly-added deps (e.g. @wailsio/runtime) are present even
+# when node_modules was created by an earlier checkout.
+npm install --no-audit --no-fund
 npx vite build --outDir src-wails/frontend/dist --emptyOutDir
 
 echo "==> [2/3] Ensuring px backend (src-go/$PX_EXE) and px-service"
