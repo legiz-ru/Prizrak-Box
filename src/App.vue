@@ -49,6 +49,7 @@
 import {useMenuStore} from "@/store/menuStore";
 import {preloadBackgroundImage, changeTheme} from "@/util/theme";
 import {getCachedBg, setCachedBg, clearCachedBg} from "@/util/bgCache";
+import {getCachedLogo, setCachedLogo, clearCachedLogo} from "@/util/logoCache";
 import DeepLinkImportOverlay from "@/components/DeepLinkImportOverlay.vue";
 import HwidNotSupportedDialog from "@/components/HwidNotSupportedDialog.vue";
 import HwidMaxDevicesDialog from "@/components/HwidMaxDevicesDialog.vue";
@@ -79,7 +80,12 @@ const updateBannerMessage = computed(() => t('updates.banner.message'));
 const defaultTitle = "Prizrak-Box";
 const defaultLogo = new URL("@/assets/images/appicon.png", import.meta.url).href;
 
-const activeProfile = ref<any | null>(null);
+const activeProfile = ref<any | null>((() => {
+  // Hydrate from the synchronous logo cache so a custom logo/title shows
+  // instantly on launch (no flash of the default), before loadProfiles() runs.
+  const cached = getCachedLogo();
+  return cached ? {id: cached.id, logo: cached.logo, headerTitle: cached.title} : null;
+})());
 const hasCustomLogo = computed(() => {
   const logo = activeProfile.value?.logo;
   return typeof logo === "string" && logo.trim() !== "";
@@ -229,6 +235,14 @@ onMounted(() => {
 
 const applyProfile = (data: any | null) => {
   activeProfile.value = data;
+  // Keep the logo cache in sync: store on apply/refresh, clear on rollback
+  // (profile without a custom logo) so the next launch shows the right thing.
+  const logo = typeof data?.logo === "string" ? data.logo.trim() : "";
+  if (logo) {
+    setCachedLogo(String(data?.id ?? ""), logo, typeof data?.headerTitle === "string" ? data.headerTitle : "");
+  } else {
+    clearCachedLogo();
+  }
 };
 
 watch(logoUrl, async (url) => {
