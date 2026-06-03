@@ -422,7 +422,8 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  -webkit-app-region: drag;
+  -webkit-app-region: drag; /* Electron */
+  --wails-draggable: drag;  /* Wails (frameless on Windows/Linux) */
   user-select: none;
 }
 

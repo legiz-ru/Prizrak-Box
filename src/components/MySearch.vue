@@ -330,7 +330,8 @@ watch(() => proxiesStore.now, async (newNow) => {
 .search-container {
   padding-top: 25px;
   position: relative;
-  -webkit-app-region: drag;
+  -webkit-app-region: drag; /* Electron */
+  --wails-draggable: drag;  /* Wails (frameless on Windows/Linux) */
 }
 
 .win {
@@ -339,6 +340,7 @@ watch(() => proxiesStore.now, async (newNow) => {
 
 .no-drag {
   -webkit-app-region: no-drag;
+  --wails-draggable: no-drag;
 }
 
 /* Header Content - одна линия */
@@ -573,6 +575,7 @@ watch(() => proxiesStore.now, async (newNow) => {
   color: var(--text-color);
   cursor: pointer;
   -webkit-app-region: no-drag;
+  --wails-draggable: no-drag;
 }
 
 .minus-win {
@@ -583,5 +586,6 @@ watch(() => proxiesStore.now, async (newNow) => {
   color: var(--text-color);
   cursor: pointer;
   -webkit-app-region: no-drag;
+  --wails-draggable: no-drag;
 }
 </style>

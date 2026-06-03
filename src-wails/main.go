@@ -20,6 +20,7 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -100,17 +101,24 @@ func main() {
 
 	// macOS: hidden-inset title bar (native traffic lights over full-size
 	// content) to match the Electron `titleBarStyle: hiddenInset` look.
-	win = app.Window.NewWithOptions(application.WebviewWindowOptions{
+	winOpts := application.WebviewWindowOptions{
 		Name:   "main",
 		Title:  "Prizrak-Box",
 		Width:  1100,
 		Height: 760,
 		Hidden: true, // shown once the backend is ready
 		URL:    "/",
-		Mac: application.MacWindow{
-			TitleBar: application.MacTitleBarHiddenInset,
-		},
-	})
+	}
+	if runtime.GOOS == "darwin" {
+		// macOS keeps the native hidden-inset title bar (traffic lights).
+		winOpts.Mac = application.MacWindow{TitleBar: application.MacTitleBarHiddenInset}
+	} else {
+		// Windows / Linux: frameless so the web UI fills the window. The Vue
+		// MyTitleBar provides min/max/close (handled via px:fe:* events) and
+		// the --wails-draggable regions in the frontend provide dragging.
+		winOpts.Frameless = true
+	}
+	win = app.Window.NewWithOptions(winOpts)
 
 	// Window controls emitted by the Vue frontend (MyTitleBar.vue / Off.vue)
 	// via window.pxTray.emit -> Wails events. This replaces the Electron
