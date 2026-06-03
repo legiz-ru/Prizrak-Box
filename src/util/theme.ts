@@ -349,8 +349,57 @@ export function preloadBackgroundImage(
 
     isBgLoading = true; // 设置加载中标记
 
-    const img = new Image();
     let isResolved = false; // 标记是否已处理加载结果
+    // 标记是否已经尝试过不带 crossOrigin 的二次加载（避免无限重试）。
+    let triedWithoutCors = false;
+
+    const finish = (img: HTMLImageElement) => {
+        if (isResolved) return; // 避免重复处理
+        isResolved = true;
+        isBgLoading = false;
+        // 主题分析依赖 canvas 像素读取（colorthief）。当图片来自跨域且未启用
+        // CORS 时，canvas 会被污染，getImageData 抛出 SecurityError。
+        // Electron 通过 webSecurity:false 规避；Wails(WKWebView) 无法关闭，
+        // 因此这里必须容错：即便配色分析失败，也要照常应用背景图片。
+        let useWhite = false;
+        try {
+            useWhite = changeTheme(img);
+        } catch (e) {
+            console.warn("Theme color analysis failed (tainted canvas?); applying background without recolor:", e);
+        }
+        cb(bg, useWhite, img); // 图片加载成功，应用主题（或仅应用背景）
+    };
+
+    // 加载入口：先尝试带 crossOrigin（允许配色分析与缓存），失败则降级为
+    // 不带 crossOrigin 的纯展示加载，最后才回退到默认背景。
+    const load = (withCors: boolean) => {
+        const img = new Image();
+        if (withCors) img.crossOrigin = "anonymous";
+
+        img.onload = () => {
+            if (isResolved) return;
+            clearTimeout(timeoutId);
+            finish(img);
+        };
+
+        img.onerror = () => {
+            if (isResolved) return;
+            if (withCors && !triedWithoutCors) {
+                // 跨域且服务器未返回 CORS 头：重试一次纯展示加载，
+                // 这样动漫等网络图片至少能正常显示（与 Electron 行为一致）。
+                triedWithoutCors = true;
+                load(false);
+                return;
+            }
+            clearTimeout(timeoutId);
+            isResolved = true;
+            console.error(`Failed to load background image: ${imgUrl}`);
+            isBgLoading = false;
+            preloadBackgroundImage(DEFAULT_BACKGROUND_IMAGE, cb); // 图片加载失败，回退到默认背景
+        };
+
+        img.src = imgUrl;
+    };
 
     const timeoutId = setTimeout(() => {
         if (!isResolved) {
@@ -361,22 +410,7 @@ export function preloadBackgroundImage(
         }
     }, IMAGE_LOAD_TIMEOUT);
 
-    img.onload = () => {
-        if (isResolved) return; // 避免重复处理
-        clearTimeout(timeoutId);
-        isResolved = true;
-        isBgLoading = false;
-        cb(bg, changeTheme(img), img); // 图片加载成功，应用主题
-    };
-
-    img.onerror = () => {
-        if (isResolved) return; // 避免重复处理
-        clearTimeout(timeoutId);
-        isResolved = true;
-        console.error(`Failed to load background image: ${imgUrl}`);
-        isBgLoading = false;
-        preloadBackgroundImage(DEFAULT_BACKGROUND_IMAGE, cb); // 图片加载失败，回退到默认背景
-    };
-
-    img.src = imgUrl;
+    // 本地/同源图片（如内置 /images/*、data: URL、file:）天然可读，
+    // 带 crossOrigin 不会有副作用；网络图片则按上面的两段式降级处理。
+    load(true);
 }

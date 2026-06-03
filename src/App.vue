@@ -211,7 +211,13 @@ const applyBackground = (value: string) => {
   if (cachedDataUrl) {
     const img = new Image();
     img.onload = () => {
-      changeBg(`url('${cachedDataUrl}')`, changeTheme(img));
+      let useWhite = false;
+      try {
+        useWhite = changeTheme(img);
+      } catch (e) {
+        console.warn('[bg-cache] theme analysis failed for cached image:', e);
+      }
+      changeBg(`url('${cachedDataUrl}')`, useWhite);
     };
     img.onerror = () => {
       clearCachedBg();

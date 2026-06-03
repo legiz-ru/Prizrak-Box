@@ -77,6 +77,16 @@ func main() {
 			Handler:        application.BundledAssetFileServer(distFS),
 			DisableLogging: true,
 		},
+		// Mirror Electron's `webSecurity:false` on Windows WebView2. Theme
+		// background images can be cross-origin (e.g. anime image hosts that
+		// return a different image per request and serve no CORS headers).
+		// Relaxing web security lets the renderer read those pixels via canvas
+		// (colorthief recolor + background caching) instead of tainting the
+		// canvas. The frontend still degrades gracefully where this isn't
+		// available (e.g. macOS WKWebView), showing the image without recolor.
+		Windows: application.WindowsOptions{
+			AdditionalBrowserArgs: []string{"--disable-web-security"},
+		},
 		SingleInstance: &application.SingleInstanceOptions{
 			UniqueID: "com.legiz-ru.prizrak-box",
 			OnSecondInstanceLaunch: func(data application.SecondInstanceData) {
