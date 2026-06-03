@@ -43,11 +43,17 @@ func setupTray(app *application.App, win *application.WebviewWindow) *trayContro
 
 	c.tray = app.SystemTray.New()
 	c.tray.SetTooltip("Prizrak-Box")
-	if runtime.GOOS == "darwin" {
+	switch runtime.GOOS {
+	case "darwin":
 		c.tray.SetTemplateIcon(trayIconMac)
-	} else {
+	case "windows":
+		// Multi-size .ico → Windows picks the crisp 16px frame for the tray.
+		c.tray.SetIcon(trayIconWin)
+	default:
 		c.tray.SetIcon(trayIcon)
 	}
+	// Open the menu on left-click too (not only right-click).
+	c.tray.OnClick(func() { c.tray.OpenMenu() })
 
 	// Inbound state from the frontend (px:fe:* channels) → update + rebuild.
 	app.Event.On("px:fe:translate", func(e *application.CustomEvent) {

@@ -38,6 +38,9 @@ var appIcon []byte
 //go:embed build/tray.png
 var trayIcon []byte
 
+//go:embed build/tray.ico
+var trayIconWin []byte
+
 //go:embed build/tray-macos.png
 var trayIconMac []byte
 
@@ -102,12 +105,14 @@ func main() {
 	// macOS: hidden-inset title bar (native traffic lights over full-size
 	// content) to match the Electron `titleBarStyle: hiddenInset` look.
 	winOpts := application.WebviewWindowOptions{
-		Name:   "main",
-		Title:  "Prizrak-Box",
-		Width:  1100,
-		Height: 760,
-		Hidden: true, // shown once the backend is ready
-		URL:    "/",
+		Name:      "main",
+		Title:     "Prizrak-Box",
+		Width:     1100,
+		Height:    760,
+		MinWidth:  960, // matches the Electron window minimums
+		MinHeight: 660,
+		Hidden:    true, // shown once the backend is ready
+		URL:       "/",
 	}
 	if runtime.GOOS == "darwin" {
 		// macOS keeps the native hidden-inset title bar (traffic lights).
