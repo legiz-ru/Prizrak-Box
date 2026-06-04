@@ -34,7 +34,7 @@ npx vite build --outDir src-wails/frontend/dist --emptyOutDir
 echo "==> [2/3] Ensuring px backend (src-go/$PX_EXE) and px-service"
 if [ ! -x "src-go/$PX_EXE" ]; then
   echo "    building px (geo/model files are already vendored in src-go/internal/em)..."
-  ( cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -o "$PX_EXE" . )
+  ( cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags "-X github.com/legiz-ru/prizrak-box/api.Version=v-test" -o "$PX_EXE" . )
 else
   echo "    found existing src-go/$PX_EXE"
 fi
