@@ -198,6 +198,17 @@ export function installWailsShim(): void {
                     return undefined;
                 }
             }
+            // App icon for a process executable in the connections "Processes"
+            // view (mirrors Electron's 'get-file-icon' → app.getFileIcon().
+            // toDataURL()). Returns a PNG data URL or null.
+            if (channel === 'get-file-icon') {
+                try {
+                    const url = (await callCore('FileIcon', args[0])) as string;
+                    return url || null;
+                } catch {
+                    return null;
+                }
+            }
             void args;
             return undefined;
         },
