@@ -31,6 +31,16 @@ const services = () =>
         '@wbind/github.com/legiz-ru/prizrak-box-wails/services/index.js'
     ));
 
+// Call a CoreService method by its fully-qualified name via the Wails runtime.
+// Used for methods added without regenerating the static bindings (the Wails
+// server binds every exported method of a registered service at runtime, so
+// Call.ByName resolves them — format: "<importpath>.<Type>.<Method>").
+const CORE_FQN = 'github.com/legiz-ru/prizrak-box-wails/services.CoreService';
+const callCore = async (method: string, ...args: any[]): Promise<any> => {
+    const { Call } = await runtime();
+    return Call.ByName(`${CORE_FQN}.${method}`, ...args);
+};
+
 export function installWailsShim(): void {
     const w = window as AnyWindow;
 
@@ -81,7 +91,12 @@ export function installWailsShim(): void {
     };
 
     w.pxShowInFolder = (_path: string): void => { /* later phase */ };
-    w.pxConfigDir = (_path: string): void => { /* later phase */ };
+    // Open the data directory in the OS file manager (mirrors Electron's
+    // shell.openPath). The frontend passes the dir, but the Go side opens its
+    // own resolved home dir (same path), so the argument is unused.
+    w.pxConfigDir = (_path: string): void => {
+        callCore('OpenConfigDir').catch(() => { /* ignore */ });
+    };
 
     // pxShowBar must exist ONLY on Windows/Linux: MyTitleBar.vue treats its
     // presence as "show the custom min/max/close buttons". On macOS the native
@@ -156,30 +171,36 @@ export function installWailsShim(): void {
         },
     };
 
+    // Current data directory (…/Prizrak-Box-V3) so the settings page's
+    // "directory must end with Prizrak-Box-V3" check passes. Mirrors Electron's
+    // `pre-config-dir`.
     w.pxPreConfigDir = async (): Promise<string> => {
-        // Report px's actual data directory (…/Prizrak-Box-V3) so the settings
-        // page's "directory must end with Prizrak-Box-V3" check passes. The Wails
-        // shell already points px at the same home dir as Electron (see
-        // locate.HomeDir); the stub used to return "" which always tripped the
-        // warning. Read host/port/secret from the URL the shell loaded us with.
         try {
-            const p = new URLSearchParams(window.location.search);
-            const host = p.get('host') || '127.0.0.1';
-            const port = p.get('port') || '9686';
-            const secret = p.get('secret') || '';
-            const resp = await fetch(`http://${host}:${port}/prizrak/configDir`, {
-                headers: { Authorization: 'Bearer ' + secret },
-            });
-            if (resp.ok) return (await resp.text()).trim();
+            return (await callCore('ConfigDir')) as string;
         } catch {
-            /* fall through to empty */
+            return '';
         }
-        return '';
     };
-    w.pxChangeConfigDir = async (_dir: string): Promise<void> => { /* later phase */ };
+    // Move the data dir into <dir>/Prizrak-Box-V3, persist it and relaunch
+    // (mirrors Electron's `change-config-dir` → doChange).
+    w.pxChangeConfigDir = async (dir: string): Promise<void> => {
+        await callCore('ChangeConfigDir', dir);
+    };
 
     w.electron = {
-        invoke: async (_channel: string, ..._args: any[]): Promise<any> => undefined,
+        invoke: async (channel: string, ...args: any[]): Promise<any> => {
+            // Native folder picker for "Change config dir" (mirrors Electron's
+            // ipcMain 'select-directory').
+            if (channel === 'select-directory') {
+                try {
+                    return (await callCore('SelectDirectory')) as string;
+                } catch {
+                    return undefined;
+                }
+            }
+            void args;
+            return undefined;
+        },
     };
 }
 

@@ -9,7 +9,15 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
+
+// workDirName is the per-user data sub-directory name, shared with Electron and
+// the px backend (src-go constant.DefaultWorkDir).
+const workDirName = "Prizrak-Box-V3"
+
+// WorkDirName returns the shared data sub-directory name ("Prizrak-Box-V3").
+func WorkDirName() string { return workDirName }
 
 // pxExeName returns the platform-specific filename for the px backend.
 func pxExeName() string {
@@ -71,18 +79,53 @@ func resolveBinary(envVar, exeName, devDir string) string {
 
 // HomeDir returns the per-user data directory passed to px via -home.
 //
-// We match the Electron build's location ($HOME/Prizrak-Box-V3) so that the
-// Wails shell reuses existing profiles/config and the frontend's
-// "directory must end with Prizrak-Box-V3" check passes. Override with
-// PRIZRAK_HOME to isolate the Wails build's data.
+// Resolution order:
+//  1. PRIZRAK_HOME environment variable (explicit override, e.g. for tests).
+//  2. A directory persisted via SetHomeOverride (the settings "Change config
+//     dir" action), mirroring Electron's stored appConfigDir.
+//  3. $HOME/Prizrak-Box-V3 — the Electron default, so the Wails shell reuses
+//     existing profiles/config and the frontend's "must end with
+//     Prizrak-Box-V3" check passes.
 func HomeDir() string {
 	if v := os.Getenv("PRIZRAK_HOME"); v != "" {
 		return v
 	}
-	home, _ := os.UserHomeDir()
-	dir := filepath.Join(home, "Prizrak-Box-V3")
+	dir := readHomeOverride()
+	if dir == "" {
+		home, _ := os.UserHomeDir()
+		dir = filepath.Join(home, workDirName)
+	}
 	_ = os.MkdirAll(dir, 0o755)
 	return dir
+}
+
+// homeOverrideFile is where a custom data directory chosen via "Change config
+// dir" is persisted. It deliberately lives OUTSIDE the data directory (which the
+// change operation moves) in the OS user-config dir.
+func homeOverrideFile() string {
+	base, err := os.UserConfigDir()
+	if err != nil || base == "" {
+		base, _ = os.UserHomeDir()
+	}
+	return filepath.Join(base, "prizrak-box", "home.path")
+}
+
+// readHomeOverride returns the persisted custom data directory, or "".
+func readHomeOverride() string {
+	b, err := os.ReadFile(homeOverrideFile())
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(b))
+}
+
+// SetHomeOverride persists a custom data directory so the next launch uses it.
+func SetHomeOverride(dir string) error {
+	f := homeOverrideFile()
+	if err := os.MkdirAll(filepath.Dir(f), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(f, []byte(dir), 0o644)
 }
 
 func fileExists(p string) bool {
