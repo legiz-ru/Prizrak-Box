@@ -1136,6 +1136,26 @@ const shortcutDialogVisible = ref(false);
   gap: 12px;
 }
 
+/* The shared .px-toggle colours derive from the background image (--text-color
+   / --left-nav-btn-bg) and can blend into the dialog's own surface, leaving the
+   switch invisible on some themes. Inside the dialog use self-contained colours
+   with a clear off/on contrast and a white thumb so it reads on any theme. */
+.shortcut-controls .px-toggle {
+  background-color: rgba(120, 120, 120, 0.45);
+  box-shadow: inset 0 0 0 1.5px rgba(150, 150, 150, 0.55);
+}
+.shortcut-controls .px-toggle.is-on {
+  background-color: var(--el-color-primary, #409eff);
+  box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, 0.15);
+}
+.shortcut-controls .px-toggle__thumb {
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+.shortcut-controls .px-toggle.is-on .px-toggle__thumb {
+  background-color: #fff;
+}
+
 /* DNS Query Tool */
 .dns-query-results-row {
   flex-direction: column !important;

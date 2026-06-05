@@ -102,12 +102,37 @@ func HomeDir() string {
 // homeOverrideFile is where a custom data directory chosen via "Change config
 // dir" is persisted. It deliberately lives OUTSIDE the data directory (which the
 // change operation moves) in the OS user-config dir.
-func homeOverrideFile() string {
+func homeOverrideFile() string { return flagFile("home.path") }
+
+// flagFile returns a path under the OS user-config dir for a small persisted
+// preference that must survive moving the data directory.
+func flagFile(name string) string {
 	base, err := os.UserConfigDir()
 	if err != nil || base == "" {
 		base, _ = os.UserHomeDir()
 	}
-	return filepath.Join(base, "prizrak-box", "home.path")
+	return filepath.Join(base, "prizrak-box", name)
+}
+
+// StartMinimized reports whether the app should start hidden in the tray. It
+// mirrors Electron reading the persisted "startMinimized" setting at boot; the
+// frontend keeps this flag in sync (see MyEvent.vue / px:fe:startMinimized).
+func StartMinimized() bool {
+	b, err := os.ReadFile(flagFile("start-minimized"))
+	return err == nil && strings.TrimSpace(string(b)) == "1"
+}
+
+// SetStartMinimized persists the "start minimized to tray" preference.
+func SetStartMinimized(v bool) error {
+	f := flagFile("start-minimized")
+	if err := os.MkdirAll(filepath.Dir(f), 0o755); err != nil {
+		return err
+	}
+	val := "0"
+	if v {
+		val = "1"
+	}
+	return os.WriteFile(f, []byte(val), 0o644)
 }
 
 // readHomeOverride returns the persisted custom data directory, or "".

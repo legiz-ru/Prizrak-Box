@@ -26,6 +26,7 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
 
+	"github.com/legiz-ru/prizrak-box-wails/internal/locate"
 	"github.com/legiz-ru/prizrak-box-wails/services"
 )
 
@@ -147,6 +148,15 @@ func main() {
 			app.Logger.Error("autostart toggle failed", "error", err)
 		}
 	})
+	// Persist the "start minimized to tray" preference so the next launch can
+	// honour it (read by locate.StartMinimized below). The frontend emits this
+	// on change and once on mount to keep the flag in sync.
+	app.Event.On("px:fe:startMinimized", func(e *application.CustomEvent) {
+		_ = locate.SetStartMinimized(asBool(e.Data))
+	})
+
+	// Global "Show/Hide window" hotkey (Windows; no-op elsewhere).
+	installHotkeys(app, win)
 	app.Event.On("px:fe:doQuit", func(_ *application.CustomEvent) {
 		// The Exit button (Off.vue) fires this after asking px to shut down.
 		// It may carry data:false when px exits before confirming over HTTP,
@@ -169,11 +179,15 @@ func main() {
 		}
 		win.SetURL(fmt.Sprintf("/?host=%s&port=%d&secret=%s",
 			info.Host, info.Port, url.QueryEscape(info.Secret)))
-		win.Show()
 
-		// Handle a deep link passed on the very first launch via argv
-		// (Windows / Linux). macOS uses ApplicationLaunchedWithUrl above.
-		if u, ok := findSchemeURL(os.Args[1:]); ok {
+		// "Start minimized to tray": stay hidden unless a deep link needs the
+		// import UI surfaced. The tray's "Show" item and the global hotkey both
+		// reveal the window. Mirrors src-electron/main.ts startMinimized.
+		u, hasDeep := findSchemeURL(os.Args[1:])
+		if hasDeep || !locate.StartMinimized() {
+			win.Show()
+		}
+		if hasDeep {
 			win.EmitEvent("deeplink", u)
 		}
 	}()
