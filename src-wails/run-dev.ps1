@@ -42,6 +42,24 @@ if (-not (Test-Path src-service/px-service.exe)) {
 Write-Host '==> [3/3] Building & running the Wails shell'
 Set-Location $ScriptDir
 New-Item -ItemType Directory -Force -Path bin | Out-Null
+
+# Embed the app icon into the .exe so the taskbar / Explorer icon is the app
+# icon and crisp at every size (matches the release build). Best-effort: if
+# go-winres isn't installed and can't be fetched, the build still works and
+# Wails falls back to the embedded PNG for the window icon.
+Remove-Item rsrc_windows_*.syso -ErrorAction SilentlyContinue
+if (-not (Get-Command go-winres -ErrorAction SilentlyContinue)) {
+    Write-Host '    installing go-winres (one-time)...'
+    go install github.com/tc-hib/go-winres@latest 2>$null
+}
+$winres = Get-Command go-winres -ErrorAction SilentlyContinue
+if ($winres) {
+    go-winres simply --icon build/appicon.ico --manifest gui --product-name "Prizrak-Box"
+} else {
+    Write-Host '    go-winres unavailable; building without embedded .exe icon'
+}
+
 go build -trimpath -o bin/prizrak-box-wails.exe .
+Remove-Item rsrc_windows_*.syso -ErrorAction SilentlyContinue
 Write-Host '    launching bin/prizrak-box-wails.exe ...'
 & ./bin/prizrak-box-wails.exe
