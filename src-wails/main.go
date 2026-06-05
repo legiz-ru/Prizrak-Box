@@ -39,8 +39,20 @@ var appIcon []byte
 //go:embed build/tray.png
 var trayIcon []byte
 
-//go:embed build/tray.ico
-var trayIconWin []byte
+// Windows tray icons: per-theme tiles (Wails swaps light/dark by taskbar theme)
+// with an "active" variant carrying a green badge when TUN or system proxy is on.
+//
+//go:embed build/tray-win-light.ico
+var trayWinLight []byte
+
+//go:embed build/tray-win-dark.ico
+var trayWinDark []byte
+
+//go:embed build/tray-win-light-active.ico
+var trayWinLightActive []byte
+
+//go:embed build/tray-win-dark-active.ico
+var trayWinDarkActive []byte
 
 //go:embed build/tray-macos.png
 var trayIconMac []byte

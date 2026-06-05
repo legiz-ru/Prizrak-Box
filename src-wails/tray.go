@@ -12,17 +12,19 @@ import (
 // pushes over Wails events, mirroring src-electron/tray.ts.
 //
 // Inbound events (frontend -> Go), via window.pxTray.emit:
-//   translate   map[trayID]label      localised labels
-//   mode        "rule"|"global"|"direct"
-//   proxy       bool                  system-proxy on/off
-//   tun         bool                  TUN on/off
-//   profiles    [{title,selected,...}]
-//   proxyGroups [{name,proxies:[{name,now}]}]
-//   dashboards  [{name,url,key}]
+//
+//	translate   map[trayID]label      localised labels
+//	mode        "rule"|"global"|"direct"
+//	proxy       bool                  system-proxy on/off
+//	tun         bool                  TUN on/off
+//	profiles    [{title,selected,...}]
+//	proxyGroups [{name,proxies:[{name,now}]}]
+//	dashboards  [{name,url,key}]
 //
 // Outbound events (Go -> frontend), via window.pxTray.on:
-//   switchMode <mode> | switchProfiles {profile,selected,exclusive}
-//   switchProxyInGroup {group,proxy} | switchProxy | switchTun | readyToQuit
+//
+//	switchMode <mode> | switchProfiles {profile,selected,exclusive}
+//	switchProxyInGroup {group,proxy} | switchProxy | switchTun | readyToQuit
 type trayController struct {
 	app  *application.App
 	win  *application.WebviewWindow
@@ -47,8 +49,9 @@ func setupTray(app *application.App, win *application.WebviewWindow) *trayContro
 	case "darwin":
 		c.tray.SetTemplateIcon(trayIconMac)
 	case "windows":
-		// Multi-size .ico → Windows picks the crisp 16px frame for the tray.
-		c.tray.SetIcon(trayIconWin)
+		// Monochrome-style tiles, theme-aware (light/dark), with a green badge
+		// when TUN or system proxy is active. See applyWinTrayIcon.
+		c.applyWinTrayIcon()
 	default:
 		c.tray.SetIcon(trayIcon)
 	}
@@ -67,8 +70,14 @@ func setupTray(app *application.App, win *application.WebviewWindow) *trayContro
 		c.rebuild()
 	})
 	app.Event.On("px:fe:mode", func(e *application.CustomEvent) { c.set(func() { c.mode = asStr(e.Data) }) })
-	app.Event.On("px:fe:proxy", func(e *application.CustomEvent) { c.set(func() { c.proxy = asBool(e.Data) }) })
-	app.Event.On("px:fe:tun", func(e *application.CustomEvent) { c.set(func() { c.tun = asBool(e.Data) }) })
+	app.Event.On("px:fe:proxy", func(e *application.CustomEvent) {
+		c.set(func() { c.proxy = asBool(e.Data) })
+		c.applyWinTrayIcon()
+	})
+	app.Event.On("px:fe:tun", func(e *application.CustomEvent) {
+		c.set(func() { c.tun = asBool(e.Data) })
+		c.applyWinTrayIcon()
+	})
 	app.Event.On("px:fe:profiles", func(e *application.CustomEvent) { c.set(func() { c.profiles = asArr(e.Data) }) })
 	app.Event.On("px:fe:proxyGroups", func(e *application.CustomEvent) { c.set(func() { c.groups = asArr(e.Data) }) })
 	app.Event.On("px:fe:dashboards", func(e *application.CustomEvent) { c.set(func() { c.dashboards = asArr(e.Data) }) })
@@ -78,6 +87,26 @@ func setupTray(app *application.App, win *application.WebviewWindow) *trayContro
 	// main-thread dispatcher and crash.
 	c.buildMenu()
 	return c
+}
+
+// applyWinTrayIcon sets the Windows tray icon pair (light/dark, swapped by Wails
+// per the taskbar theme) to the inactive variant, or the active variant with a
+// green badge when TUN or system proxy is enabled. No-op on macOS/Linux, so the
+// macOS template icon is never touched.
+func (c *trayController) applyWinTrayIcon() {
+	if runtime.GOOS != "windows" {
+		return
+	}
+	c.mu.Lock()
+	active := c.proxy || c.tun
+	c.mu.Unlock()
+	if active {
+		c.tray.SetIcon(trayWinLightActive)
+		c.tray.SetDarkModeIcon(trayWinDarkActive)
+	} else {
+		c.tray.SetIcon(trayWinLight)
+		c.tray.SetDarkModeIcon(trayWinDark)
+	}
 }
 
 func (c *trayController) set(mutate func()) {
