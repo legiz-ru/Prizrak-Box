@@ -156,7 +156,26 @@ export function installWailsShim(): void {
         },
     };
 
-    w.pxPreConfigDir = async (): Promise<string> => '';
+    w.pxPreConfigDir = async (): Promise<string> => {
+        // Report px's actual data directory (…/Prizrak-Box-V3) so the settings
+        // page's "directory must end with Prizrak-Box-V3" check passes. The Wails
+        // shell already points px at the same home dir as Electron (see
+        // locate.HomeDir); the stub used to return "" which always tripped the
+        // warning. Read host/port/secret from the URL the shell loaded us with.
+        try {
+            const p = new URLSearchParams(window.location.search);
+            const host = p.get('host') || '127.0.0.1';
+            const port = p.get('port') || '9686';
+            const secret = p.get('secret') || '';
+            const resp = await fetch(`http://${host}:${port}/prizrak/configDir`, {
+                headers: { Authorization: 'Bearer ' + secret },
+            });
+            if (resp.ok) return (await resp.text()).trim();
+        } catch {
+            /* fall through to empty */
+        }
+        return '';
+    };
     w.pxChangeConfigDir = async (_dir: string): Promise<void> => { /* later phase */ };
 
     w.electron = {
