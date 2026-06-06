@@ -90,7 +90,11 @@ export function installWailsShim(): void {
             });
     };
 
-    w.pxShowInFolder = (_path: string): void => { /* later phase */ };
+    // Reveal a file in the OS file manager (mirrors Electron's
+    // shell.showItemInFolder): used by the connections "Show in explorer" action.
+    w.pxShowInFolder = (path: string): void => {
+        callCore('ShowInFolder', path).catch(() => { /* ignore */ });
+    };
     // Open the data directory in the OS file manager (mirrors Electron's
     // shell.openPath). The frontend passes the dir, but the Go side opens its
     // own resolved home dir (same path), so the argument is unused.
