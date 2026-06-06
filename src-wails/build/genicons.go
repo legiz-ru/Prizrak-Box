@@ -1,19 +1,14 @@
 //go:build ignore
 
-// Generates the Windows/Linux icon assets from the app icon
-// (src-wails/build/appicon.png) so the tray, taskbar and .exe all show the app
-// icon, crisp at small sizes. Plain Go (no external tools), high-quality
-// area-averaging downscale, PNG-in-ICO encoding.
+// SU P E R S E D E D — use the Node.js script instead:
 //
-// Run from the src-wails directory:
+//	node src-wails/build/gen-icons.mjs
 //
-//	go run build/genicons.go
+// That script uses sharp (Lanczos downscale) for sharper results at every
+// size and writes BMP-in-ICO entries for maximum compatibility with
+// go-winres / Electron Packager.
 //
-// Produces (all under src-wails/build):
-//
-//	tray.ico     multi-size Windows tray icon (16,20,24,32,40,48,64,128,256)
-//	tray.png     256px Linux tray icon (= app icon)
-//	appicon.ico  multi-size icon embedded into Prizrak-Box.exe via go-winres
+// Kept only as reference; remove once the migration is confirmed stable.
 package main
 
 import (

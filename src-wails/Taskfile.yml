@@ -21,6 +21,12 @@ tasks:
     cmds:
       - npx vite build --outDir "{{.DIST}}" --emptyOutDir
 
+  icons:
+    desc: Regenerate .ico / tray.png from master appicon.png (sharp)
+    dir: "{{.TASKFILE_DIR}}/build"
+    cmds:
+      - node gen-icons.mjs
+
   px:
     desc: Build the px backend (CGO disabled, gvisor TUN)
     dir: "{{.REPO_ROOT}}/src-go"

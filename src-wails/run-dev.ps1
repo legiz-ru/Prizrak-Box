@@ -43,6 +43,18 @@ Write-Host '==> [3/3] Building & running the Wails shell'
 Set-Location $ScriptDir
 New-Item -ItemType Directory -Force -Path bin | Out-Null
 
+# Generate multi-size .ico / tray.png from the master appicon.png using sharp
+# (Lanczos downscale, BMP-in-ICO entries for maximum tool compatibility).
+Write-Host '    generating icons (gen-icons.mjs)...'
+Push-Location (Split-Path -Parent $ScriptDir)
+if (Test-Path node_modules/sharp) {
+    node src-wails/build/gen-icons.mjs
+} else {
+    Write-Host '    WARNING: sharp not available; skipping icon regeneration.'
+    Write-Host '    (committed icons are used instead.)'
+}
+Pop-Location
+
 # Embed the app icon into the .exe so the taskbar / Explorer icon is the app
 # icon and crisp at every size (matches the release build). Best-effort: if
 # go-winres isn't installed and can't be fetched, the build still works and
