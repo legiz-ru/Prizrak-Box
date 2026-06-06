@@ -212,6 +212,7 @@ jobs:
         run: |
           Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb -OutFile src-go/internal/em/geoip.metadb
           Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat -OutFile src-go/internal/em/GeoSite.dat
+          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z -OutFile src-go/internal/em/BundleMRS.7z
           Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb -OutFile src-go/internal/em/GeoLite2-ASN.mmdb
 
       - name: Set Version
@@ -411,6 +412,7 @@ jobs:
         run: |
           wget -O src-go/internal/em/geoip.metadb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
           wget -O src-go/internal/em/GeoSite.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          wget -O src-go/internal/em/BundleMRS.7z https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
           wget -O src-go/internal/em/GeoLite2-ASN.mmdb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
 
       - name: Set Version
@@ -602,6 +604,7 @@ jobs:
         run: |
           wget -O src-go/internal/em/geoip.metadb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
           wget -O src-go/internal/em/GeoSite.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          wget -O src-go/internal/em/BundleMRS.7z https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
           wget -O src-go/internal/em/GeoLite2-ASN.mmdb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
 
       - name: Set Version
@@ -1024,6 +1027,7 @@ jobs:
           curl -fsSL -o src-go/internal/em/Model.bin        https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
           curl -fsSL -o src-go/internal/em/geoip.metadb      https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
           curl -fsSL -o src-go/internal/em/GeoSite.dat        https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          curl -fsSL -o src-go/internal/em/BundleMRS.7z        https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
           curl -fsSL -o src-go/internal/em/GeoLite2-ASN.mmdb  https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
       - name: Build frontend
         run: |
@@ -1140,6 +1144,7 @@ jobs:
           Invoke-WebRequest -Uri https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin -OutFile src-go/internal/em/Model.bin
           Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb -OutFile src-go/internal/em/geoip.metadb
           Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat -OutFile src-go/internal/em/GeoSite.dat
+          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z -OutFile src-go/internal/em/BundleMRS.7z
           Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb -OutFile src-go/internal/em/GeoLite2-ASN.mmdb
       - name: Build frontend
         run: |

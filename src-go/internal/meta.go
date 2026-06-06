@@ -80,6 +80,7 @@ func Init() {
 	GeoSite = nil
 	ASN = nil
 	ModelBin = nil
+	BundleMRS = nil
 
 	EnsureBuiltinTemplates()
 }
@@ -1244,5 +1245,12 @@ func releaseGeoData() {
 	ASNPath := utils.GetUserHomeDir("ASN.mmdb")
 	if !utils.FileExists(ASNPath) {
 		_, _ = utils.SaveFile(ASNPath, ASN)
+	}
+
+	// Bundled .mrs rule-set archive. mihomo's rules/bundle resolves it from
+	// <homeDir>/BundleMRS.7z (C.Path.BundleMRS()), so it just needs to be here.
+	BundleMRSPath := utils.GetUserHomeDir("BundleMRS.7z")
+	if !utils.FileExists(BundleMRSPath) {
+		_, _ = utils.SaveFile(BundleMRSPath, BundleMRS)
 	}
 }

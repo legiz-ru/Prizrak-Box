@@ -4,6 +4,7 @@ const excludeGroupName: any = {
     REJECT: true,
     "REJECT-DROP": true,
     PASS: true,
+    "PASS-RULE": true,
     COMPATIBLE: true,
     GLOBAL: true
 }
@@ -27,6 +28,7 @@ const includeProxy: any = {
     LoadBalance: true,
     Selector: true,
     Pass: true,
+    PassRule: true,
     Relay: true,
     Fallback: true,
     Smart: true,
