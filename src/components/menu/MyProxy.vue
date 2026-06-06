@@ -286,8 +286,11 @@ onMounted(async () => {
     await applySystemProxyMode(settingStore.systemProxyMode, false);
   }
 
-  // Restore TUN state silently if it was previously enabled
-  if (homeStore.os != "Windows" && menuStore.tun) {
+  // Restore TUN state silently if it was previously enabled.
+  // Works on all platforms (incl. Windows) — the allowTun check below ensures
+  // we only enable when the app is admin or the privileged service is running,
+  // otherwise TUN is silently left off.
+  if (menuStore.tun) {
     await api.waitRunning();
 
     // Check if we have permission to enable TUN without showing dialogs

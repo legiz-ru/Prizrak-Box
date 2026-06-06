@@ -253,7 +253,20 @@ Events.On('shortcut:result', (result: boolean) => {
   console.log('Shortcut registration result:', result);
 });
 
+// "Start minimized to tray": keep the shell's persisted flag in sync. The Wails
+// shell reads it at startup to decide whether to show the window; harmless under
+// Electron (no handler — Electron reads the setting from its own store).
+watch(() => settingStore.startMinimized, (val) => {
+  Events.Emit({name: 'startMinimized', data: !!val});
+});
+
 onMounted(async () => {
+  // Publish the current settings the shell needs at startup (hotkey + start
+  // minimized), so the persisted flags match the UI even without a change.
+  Events.Emit({name: 'startMinimized', data: !!settingStore.startMinimized});
+  if (settingStore.sc_switch) {
+    Events.Emit({name: 'shortcut:register', data: {name: 'showOrHide', key: settingStore.sc_switch_key}});
+  }
   // 获取初始数据
   const res = await api.getMihomo()
   menuStore.setRule(res.mode)

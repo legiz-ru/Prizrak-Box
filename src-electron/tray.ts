@@ -244,7 +244,7 @@ const createTrayMenu = () => [
     trayMap.get('tray.global'),
     trayMap.get('tray.direct'),
     {type: 'separator'},
-    trayMap.get('tray.profiles'),
+    // Profile selection from the tray is intentionally disabled.
     trayMap.get('tray.proxyGroups'),
     trayMap.get('tray.dashboard'),
     {type: 'separator'},

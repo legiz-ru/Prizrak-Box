@@ -212,6 +212,7 @@ jobs:
         run: |
           Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb -OutFile src-go/internal/em/geoip.metadb
           Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat -OutFile src-go/internal/em/GeoSite.dat
+          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z -OutFile src-go/internal/em/BundleMRS.7z
           Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb -OutFile src-go/internal/em/GeoLite2-ASN.mmdb
 
       - name: Set Version
@@ -411,6 +412,7 @@ jobs:
         run: |
           wget -O src-go/internal/em/geoip.metadb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
           wget -O src-go/internal/em/GeoSite.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          wget -O src-go/internal/em/BundleMRS.7z https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
           wget -O src-go/internal/em/GeoLite2-ASN.mmdb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
 
       - name: Set Version
@@ -602,6 +604,7 @@ jobs:
         run: |
           wget -O src-go/internal/em/geoip.metadb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
           wget -O src-go/internal/em/GeoSite.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          wget -O src-go/internal/em/BundleMRS.7z https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
           wget -O src-go/internal/em/GeoLite2-ASN.mmdb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
 
       - name: Set Version
@@ -990,9 +993,224 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
 
+  # ── Wails (experimental) macOS — same packaging as Electron, files suffixed -wails ──
+  build_macos_wails:
+    needs: [setup]
+    if: github.event_name == 'release' || inputs.build_macos == true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: macos-13
+          - arch: arm64
+            runner: macos-latest
+    runs-on: ${{ matrix.runner }}
+    env:
+      MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+      MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
+      TEAM_ID: ${{ secrets.TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - uses: actions/setup-go@v6
+        with: { go-version: '1.26', check-latest: true }
+      - name: Set Version
+        run: echo "VERSION=${{ needs.setup.outputs.version }}" >> $GITHUB_ENV
+      - name: Sync VERSION to package.json
+        run: node build/sync-version.js
+      - name: Refresh geo/model data
+        run: |
+          curl -fsSL -o src-go/internal/em/Model.bin        https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
+          curl -fsSL -o src-go/internal/em/geoip.metadb      https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
+          curl -fsSL -o src-go/internal/em/GeoSite.dat        https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          curl -fsSL -o src-go/internal/em/BundleMRS.7z        https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
+          curl -fsSL -o src-go/internal/em/GeoLite2-ASN.mmdb  https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
+      - name: Build frontend
+        run: |
+          npm install --no-audit --no-fund
+          npx vite build --outDir src-wails/frontend/dist --emptyOutDir
+      - name: Build px + px-service
+        env: { GOARCH: '${{ matrix.arch }}' }
+        run: |
+          (cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags="-s -w" -o px .)
+          (cd src-service && CGO_ENABLED=0 go build -ldflags="-s -w" -o px-service .)
+      - name: Build Wails app
+        env: { GOARCH: '${{ matrix.arch }}', CGO_ENABLED: '1' }
+        run: |
+          cd src-wails
+          go build -trimpath -o /tmp/prizrak-box-wails .
+      - name: Assemble .app
+        run: |
+          APP="Prizrak-Box.app"
+          rm -rf "$APP"
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+          cp /tmp/prizrak-box-wails "$APP/Contents/MacOS/Prizrak-Box"
+          cp src-go/px src-service/px-service "$APP/Contents/MacOS/"
+          chmod +x "$APP/Contents/MacOS/"*
+          cp build/appicon.icns "$APP/Contents/Resources/appicon.icns" || true
+          cp src-wails/build/darwin/Info.plist "$APP/Contents/Info.plist"
+          # Stamp the release version into the bundle (CFBundle versions must be
+          # numeric, so strip the leading 'v').
+          VER="${VERSION#v}"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VER" -c "Set :CFBundleShortVersionString $VER" "$APP/Contents/Info.plist" || true
+      - name: Sign (if certificate secrets are present)
+        run: |
+          set -euo pipefail
+          if [ -z "${MACOS_CERTIFICATE:-}" ]; then
+            echo "No MACOS_CERTIFICATE secret — producing an UNSIGNED build."
+            exit 0
+          fi
+          KEYCHAIN="ci-signing.keychain-db"
+          KEYCHAIN_PATH="$HOME/Library/Keychains/$KEYCHAIN"
+          CERT_PATH="$(mktemp /tmp/cert-XXXXXXXX.p12)"
+          security delete-keychain "$KEYCHAIN" >/dev/null 2>&1 || true
+          echo "$MACOS_CERTIFICATE" | base64 --decode > "$CERT_PATH" 2>/dev/null || echo "$MACOS_CERTIFICATE" | base64 -d > "$CERT_PATH"
+          security create-keychain -p "$MACOS_CERT_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings "$KEYCHAIN"
+          security unlock-keychain -p "$MACOS_CERT_PASSWORD" "$KEYCHAIN"
+          security import "$CERT_PATH" -k "$KEYCHAIN_PATH" -P "$MACOS_CERT_PASSWORD" -A
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | sed 's/"//g')
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$MACOS_CERT_PASSWORD" "$KEYCHAIN_PATH"
+          rm -f "$CERT_PATH"
+          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | head -n 1 | sed -E 's/^.*"(.+)"$/\1/')
+          echo "Using identity: $IDENTITY"
+          APP="Prizrak-Box.app"
+          # codesign/AMFI rejects CRLF line endings in the entitlements plist
+          # ("AMFIUnserializeXML: syntax error near line 1"); normalise to LF.
+          ENT="$RUNNER_TEMP/entitlements.mac.plist"
+          tr -d '\r' < build/entitlements.mac.plist > "$ENT"
+          # Sign nested helpers with the same entitlements (matches Electron's
+          # entitlements-inherit), then the bundle.
+          codesign --force --options runtime --timestamp \
+            --entitlements "$ENT" --sign "$IDENTITY" "$APP/Contents/MacOS/px" "$APP/Contents/MacOS/px-service"
+          codesign --force --deep --options runtime --timestamp \
+            --entitlements "$ENT" --sign "$IDENTITY" "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+      - name: Notarize (if Apple ID secrets are present)
+        run: |
+          set -euo pipefail
+          if [ -z "${MACOS_CERTIFICATE:-}" ] || [ -z "${APPLE_ID:-}" ] || [ -z "${APP_SPECIFIC_PASSWORD:-}" ] || [ -z "${TEAM_ID:-}" ]; then
+            echo "Notarization secrets not all present — skipping notarization."
+            exit 0
+          fi
+          ditto -c -k --keepParent "Prizrak-Box.app" "notarize.zip"
+          xcrun notarytool submit "notarize.zip" --apple-id "$APPLE_ID" --password "$APP_SPECIFIC_PASSWORD" --team-id "$TEAM_ID" --wait
+          xcrun stapler staple "Prizrak-Box.app"
+      - name: Package .zip + .dmg
+        run: |
+          set -euo pipefail
+          zip -qr "macos-${{ matrix.arch }}-wails.zip" "Prizrak-Box.app"
+          hdiutil create -volname "Prizrak-Box" -srcfolder "Prizrak-Box.app" -ov -format UDZO "macos-${{ matrix.arch }}-wails.dmg"
+          if [ -n "${MACOS_CERTIFICATE:-}" ]; then
+            IDENTITY=$(security find-identity -v -p codesigning "$HOME/Library/Keychains/ci-signing.keychain-db" | head -n 1 | sed -E 's/^.*"(.+)"$/\1/')
+            codesign --force --timestamp --sign "$IDENTITY" "macos-${{ matrix.arch }}-wails.dmg" || true
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wails-macos-${{ matrix.arch }}
+          path: |
+            macos-${{ matrix.arch }}-wails.zip
+            macos-${{ matrix.arch }}-wails.dmg
+      - name: Cancel workflow on failure
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+
+  # ── Wails (experimental) Windows — same WiX MSI + portable zip, files suffixed -wails ──
+  build_windows_wails:
+    needs: [setup]
+    if: github.event_name == 'release' || inputs.build_windows == true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            msiarch: x64
+          - arch: arm64
+            msiarch: arm64
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - uses: actions/setup-go@v6
+        with: { go-version: '1.26', check-latest: true }
+      - name: Set Version
+        shell: bash
+        run: echo "VERSION=${{ needs.setup.outputs.version }}" >> $GITHUB_ENV
+      - name: Sync VERSION to package.json
+        run: node build/sync-version.js
+      - name: Refresh geo/model data
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin -OutFile src-go/internal/em/Model.bin
+          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb -OutFile src-go/internal/em/geoip.metadb
+          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat -OutFile src-go/internal/em/GeoSite.dat
+          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z -OutFile src-go/internal/em/BundleMRS.7z
+          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb -OutFile src-go/internal/em/GeoLite2-ASN.mmdb
+      - name: Build frontend
+        run: |
+          npm install --no-audit --no-fund
+          npx vite build --outDir src-wails/frontend/dist --emptyOutDir
+      - name: Build px + px-service
+        shell: pwsh
+        env: { GOARCH: '${{ matrix.arch }}' }
+        run: |
+          cd src-go;       $env:CGO_ENABLED='0'; go build -tags=with_gvisor -trimpath -ldflags="-s -w" -o px.exe .; cd ..
+          cd src-service;  $env:CGO_ENABLED='0'; go build -ldflags="-s -w" -o px-service.exe .;   cd ..
+      - name: Build Wails app (Prizrak-Box.exe with icon)
+        shell: pwsh
+        env: { GOARCH: '${{ matrix.arch }}', CGO_ENABLED: '0' }
+        run: |
+          go install github.com/tc-hib/go-winres@latest
+          cd src-wails
+          go-winres simply --icon build/appicon.ico --manifest gui --product-name "Prizrak-Box"
+          go build -trimpath -o bin/Prizrak-Box.exe .
+          Remove-Item rsrc_windows_*.syso -ErrorAction SilentlyContinue
+      - name: Stage app (Electron MSI layout)
+        shell: pwsh
+        run: |
+          $dir = "out/Prizrak-Box-win32-${{ matrix.msiarch }}"
+          New-Item -ItemType Directory -Force -Path "$dir/resources" | Out-Null
+          Copy-Item src-wails/bin/Prizrak-Box.exe "$dir/Prizrak-Box.exe"
+          Copy-Item src-go/px.exe                 "$dir/resources/px.exe"
+          Copy-Item src-service/px-service.exe    "$dir/resources/px-service.exe"
+      - name: Install WiX Toolset
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip" -OutFile "wix.zip"
+          Expand-Archive -Path "wix.zip" -DestinationPath "C:\wix" -Force
+          "C:\wix" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Build MSI (reuses installer/build-msi.js — TUN service + protocol)
+        shell: pwsh
+        env: { ARCH: '${{ matrix.msiarch }}' }
+        run: |
+          $env:PATH = "C:\wix;$env:PATH"
+          node installer/build-msi.js
+          Copy-Item "out/msi/${{ matrix.msiarch }}/windows-${{ matrix.msiarch }}.msi" "windows-${{ matrix.arch }}-wails.msi"
+      - name: Stage portable zip
+        shell: pwsh
+        run: Compress-Archive -Path "out/Prizrak-Box-win32-${{ matrix.msiarch }}/*" -DestinationPath "windows-${{ matrix.arch }}-wails.zip" -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wails-windows-${{ matrix.arch }}
+          path: |
+            windows-${{ matrix.arch }}-wails.msi
+            windows-${{ matrix.arch }}-wails.zip
+      - name: Cancel workflow on failure
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+
   # ── Release: upload artifacts and update release body ──
   release:
-    needs: [setup, build_android, build_windows, build_linux, build_macos, publish_aur]
+    needs: [setup, build_android, build_windows, build_linux, build_macos, build_windows_wails, build_macos_wails, publish_aur]
     # Run only if no build job failed; skipped jobs are tolerated (user may disable some platforms)
     if: |
       always() && !cancelled() &&
@@ -1001,6 +1219,8 @@ jobs:
       needs.build_windows.result != 'failure' &&
       needs.build_linux.result != 'failure' &&
       needs.build_macos.result != 'failure' &&
+      needs.build_windows_wails.result != 'failure' &&
+      needs.build_macos_wails.result != 'failure' &&
       needs.publish_aur.result != 'failure'
     runs-on: ubuntu-latest
     permissions:
@@ -1057,6 +1277,30 @@ jobs:
                 </thead>
                 <tbody align=left>
                     <tr>
+                        <td colspan="2" align="center"><strong>Wails Experiment Builds</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Windows</td>
+                        <td>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64-wails.msi"><img src="https://img.shields.io/badge/Setup-x64-2d7d9a.svg?logo=windows"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64-wails.msi"><img src="https://img.shields.io/badge/Setup-arm-2d7d9a.svg?logo=windows"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64-wails.zip"><img src="https://img.shields.io/badge/Portable-x64-67b7d1.svg?logo=windows"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64-wails.zip"><img src="https://img.shields.io/badge/Portable-arm-67b7d1.svg?logo=windows"></a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>macOS</td>
+                        <td>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/macos-arm64-wails.dmg"><img src="https://img.shields.io/badge/DMG-Apple%20Silicon-%23000000.svg?logo=apple"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/macos-amd64-wails.dmg"><img src="https://img.shields.io/badge/DMG-Intel%20X64-%2300A9E0.svg?logo=apple"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/macos-arm64-wails.zip"><img src="https://img.shields.io/badge/ZIP-Apple%20Silicon-%23000000.svg?logo=apple"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/macos-amd64-wails.zip"><img src="https://img.shields.io/badge/ZIP-Intel%20X64-%2300A9E0.svg?logo=apple"></a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" align="center"><strong>Android</strong></td>
+                    </tr>
+                    <tr>
                         <td>Android</td>
                         <td>
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/prizrak-box-android-universal.apk"><img src="https://img.shields.io/badge/APK-universal-96ed89.svg?logo=android"></a><br>
@@ -1064,6 +1308,9 @@ jobs:
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/prizrak-box-android-armeabi-v7a.apk"><img src="https://img.shields.io/badge/APK-ARMv7-45bf55.svg?logo=android"></a><br>
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/prizrak-box-android-x86_64.apk"><img src="https://img.shields.io/badge/APK-x64-96ed89.svg?logo=android"></a>
                         </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" align="center"><strong>Electron Builds</strong></td>
                     </tr>
                     <tr>
                         <td>Windows</td>

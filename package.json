@@ -57,6 +57,7 @@
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
     "@intlify/unplugin-vue-i18n": "^11.0.1",
+    "@wailsio/runtime": "^3.0.0-alpha.79",
     "ace-builds": "^1.40.1",
     "apexcharts": "^5.3.6",
     "auto-launch": "^5.0.6",

@@ -467,7 +467,18 @@ func downloadProfileLogo(logoURL string) ([]byte, string, error) {
 		return nil, "", fmt.Errorf("unsupported logo url scheme: %s", parsed.Scheme)
 	}
 
-	data, headers, err := utils.SendGetBytes(logoURL, map[string]string{}, proxy.GetProxyUrl())
+	// Try a direct connection first: at profile add-time the proxy core may not
+	// be up yet (the old proxy-only fetch failed with "connection refused" and
+	// the logo only appeared after a manual refresh). Fall back to the proxy
+	// for CDNs that are only reachable through it.
+	data, headers, err := utils.SendGetBytes(logoURL, map[string]string{}, "")
+	if err != nil || len(data) == 0 {
+		if proxyURL := proxy.GetProxyUrl(); proxyURL != "" {
+			if d, h, e := utils.SendGetBytes(logoURL, map[string]string{}, proxyURL); e == nil && len(d) > 0 {
+				data, headers, err = d, h, nil
+			}
+		}
+	}
 	if err != nil {
 		return nil, "", err
 	}

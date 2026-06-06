@@ -1,3 +1,6 @@
+// Must be first: installs the window.px* shim before any module (e.g. @/runtime)
+// captures those globals at import time. No-op under Electron.
+import "./wails-shim";
 import {createApp, watch, toRaw} from "vue";
 import App from "./App.vue";
 import router from "@/router";
