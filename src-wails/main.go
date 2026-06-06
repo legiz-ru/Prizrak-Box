@@ -41,17 +41,19 @@ var trayIcon []byte
 
 // Windows tray icons: per-theme tiles (Wails swaps light/dark by taskbar theme)
 // with an "active" variant carrying a green badge when TUN or system proxy is on.
+// These are single-image PNGs (CreateIconFromResourceEx, used by Wails' Windows
+// systray, accepts a PNG — not a multi-image .ico container).
 //
-//go:embed build/tray-win-light.ico
+//go:embed build/tray-win-light.png
 var trayWinLight []byte
 
-//go:embed build/tray-win-dark.ico
+//go:embed build/tray-win-dark.png
 var trayWinDark []byte
 
-//go:embed build/tray-win-light-active.ico
+//go:embed build/tray-win-light-active.png
 var trayWinLightActive []byte
 
-//go:embed build/tray-win-dark-active.ico
+//go:embed build/tray-win-dark-active.png
 var trayWinDarkActive []byte
 
 //go:embed build/tray-macos.png
