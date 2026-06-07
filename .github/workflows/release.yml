@@ -1167,9 +1167,8 @@ jobs:
         shell: pwsh
         env: { GOARCH: '${{ matrix.arch }}', CGO_ENABLED: '0' }
         run: |
-          go install github.com/tc-hib/go-winres@latest
           cd src-wails
-          go-winres simply --icon build/appicon.ico --manifest gui --product-name "Prizrak-Box"
+          go run github.com/tc-hib/go-winres@latest simply --icon build/appicon.ico --manifest gui --product-name "Prizrak-Box"
           go build -trimpath -o bin/Prizrak-Box.exe .
           Remove-Item rsrc_windows_*.syso -ErrorAction SilentlyContinue
       - name: Stage app (Electron MSI layout)

@@ -9,6 +9,7 @@ import MyBind from "@/components/setting/MyBind.vue";
 import MyTun from "@/components/setting/MyTun.vue";
 import MyService from "@/components/setting/MyService.vue";
 import MyHotkeyInput from "@/components/setting/MyHotkeyInput.vue";
+import MyAgeKeypair from "@/components/setting/MyAgeKeypair.vue";
 import {ArrowDown, EditPen} from "@element-plus/icons-vue";
 import {useWebStore} from "@/store/webStore";
 import {useHomeStore} from "@/store/homeStore";
@@ -395,6 +396,8 @@ watch(dashboardDialogVisible, (visible) => {
 
 const shortcutDialogVisible = ref(false);
 
+const ageKeypairDialogVisible = ref(false);
+
 </script>
 
 <template>
@@ -468,6 +471,13 @@ const shortcutDialogVisible = ref(false);
               </div>
             </div>
           </li>
+          <li class="age-row">
+            <strong>{{ $t('age.settings.label') }} :</strong>
+            <button class="pill-btn" @click="ageKeypairDialogVisible = true">
+              {{ $t('age.settings.generateBtn') }}
+            </button>
+          </li>
+          <MyAgeKeypair v-model="ageKeypairDialogVisible" />
           <li class="api-row">
             <div class="api-row__info">
               <strong>Api :</strong>
@@ -800,6 +810,13 @@ const shortcutDialogVisible = ref(false);
   display: flex;
   align-items: center;
   flex-wrap: wrap;
+  gap: 12px;
+  min-height: 30px;
+}
+
+.age-row {
+  display: flex;
+  align-items: center;
   gap: 12px;
   min-height: 30px;
 }

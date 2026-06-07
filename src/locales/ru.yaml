@@ -497,3 +497,25 @@ hwid:
     support: Поддержка
   active:
     tooltip: Данный профиль использует отправку HWID
+
+age:
+  keypair:
+    title: Генератор ключей Age
+    algorithm: Алгоритм
+    publicKey: Публичный ключ
+    secretKey: Секретный ключ
+    generate: Сгенерировать
+    regenerate: Перегенерировать
+    copy: Копировать
+    copied: Скопировано
+    generating: Генерация...
+  settings:
+    label: Секретный ключ Age
+    generateBtn: Сгенерировать
+  profile:
+    toggleOff: Указать age-secret-key для данного профиля (по необходимости, если это было указано в инструкции)
+    toggleOn: Не добавлять age-secret-key при добавлении профиля
+    keyPlaceholder: AGE-SECRET-KEY-1...
+  file:
+    title: Введите age-secret-key
+    hint: Для расшифровки .age файла укажите секретный ключ

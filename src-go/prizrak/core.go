@@ -31,6 +31,7 @@ func StartCore(server string) (port int, secret string) {
 	route.Register(handlers.DNS)
 	route.Register(handlers.Mihomo)
 	route.Register(handlers.Prizrak)
+	route.Register(handlers.Age)
 
 	// 设置地址
 	host := "127.0.0.1"
