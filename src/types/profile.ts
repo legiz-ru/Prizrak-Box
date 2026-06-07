@@ -24,6 +24,7 @@ export class Profile {
     pxdTemplateUrl?: string;
     pxdTemplateScheme?: string;
     hwidActive?: boolean;
+    ageSecretKey?: string;
 }
 
 export interface ProfileSelectionPayload {
