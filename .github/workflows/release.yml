@@ -1079,9 +1079,16 @@ jobs:
           IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | head -n 1 | sed -E 's/^.*"(.+)"$/\1/')
           echo "Using identity: $IDENTITY"
           APP="Prizrak-Box.app"
-          codesign --force --options runtime --timestamp --sign "$IDENTITY" "$APP/Contents/MacOS/px" "$APP/Contents/MacOS/px-service"
+          # codesign/AMFI rejects CRLF line endings in the entitlements plist
+          # ("AMFIUnserializeXML: syntax error near line 1"); normalise to LF.
+          ENT="$RUNNER_TEMP/entitlements.mac.plist"
+          tr -d '\r' < build/entitlements.mac.plist > "$ENT"
+          # Sign nested helpers with the same entitlements (matches Electron's
+          # entitlements-inherit), then the bundle.
+          codesign --force --options runtime --timestamp \
+            --entitlements "$ENT" --sign "$IDENTITY" "$APP/Contents/MacOS/px" "$APP/Contents/MacOS/px-service"
           codesign --force --deep --options runtime --timestamp \
-            --entitlements build/entitlements.mac.plist --sign "$IDENTITY" "$APP"
+            --entitlements "$ENT" --sign "$IDENTITY" "$APP"
           codesign --verify --deep --strict --verbose=2 "$APP"
       - name: Notarize (if Apple ID secrets are present)
         run: |
