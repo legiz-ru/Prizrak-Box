@@ -1107,14 +1107,11 @@ watch(() => webStore.dProfile, async (pList) => {
             :content="addForm.useAgeKey ? t('age.profile.toggleOn') : t('age.profile.toggleOff')"
             placement="top"
         >
-          <div class="age-toggle-wrap">
+          <div class="age-toggle-wrap" @click="addForm.useAgeKey = !addForm.useAgeKey">
             <el-icon class="age-toggle-icon" :class="{ 'age-toggle-icon--active': addForm.useAgeKey }">
               <icon-mdi-key-variant/>
             </el-icon>
-            <div
-                :class="['px-toggle', { 'is-on': addForm.useAgeKey }]"
-                @click="addForm.useAgeKey = !addForm.useAgeKey"
-            >
+            <div :class="['px-toggle', { 'is-on': addForm.useAgeKey }]">
               <div class="px-toggle__thumb"></div>
             </div>
           </div>
