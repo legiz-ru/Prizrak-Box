@@ -497,3 +497,25 @@ hwid:
     support: Support
   active:
     tooltip: This profile uses HWID sending
+
+age:
+  keypair:
+    title: Age Key Generator
+    algorithm: Algorithm
+    publicKey: Public Key
+    secretKey: Secret Key
+    generate: Generate
+    regenerate: Regenerate
+    copy: Copy
+    copied: Copied
+    generating: Generating...
+  settings:
+    label: Age Secret Key
+    generateBtn: Generate
+  profile:
+    toggleOff: Specify age-secret-key for this profile (if required by the instructions)
+    toggleOn: Do not add age-secret-key when adding profile
+    keyPlaceholder: AGE-SECRET-KEY-1...
+  file:
+    title: Enter age-secret-key
+    hint: Provide the secret key to decrypt the .age file

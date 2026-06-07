@@ -34,6 +34,8 @@ const addFormVisible = ref(false)
 const isNowAdd = ref(false)
 const addForm = reactive({
   content: '',
+  useAgeKey: false,
+  ageSecretKey: '',
 })
 
 async function add() {
@@ -44,6 +46,9 @@ async function add() {
   isNowAdd.value = true
   const p = new Profile()
   p.content = addForm.content
+  if (addForm.useAgeKey && addForm.ageSecretKey.trim()) {
+    p.ageSecretKey = addForm.ageSecretKey.trim()
+  }
   try {
     const pList = await api.addProfileFromInput(p)
     if (pList && pList.length > 0) {
@@ -51,6 +56,8 @@ async function add() {
     }
     sendOrder(profiles)
     addForm.content = ""
+    addForm.useAgeKey = false
+    addForm.ageSecretKey = ""
     addFormVisible.value = false
   } catch (e) {
     const hwid = parseHwidFromError(e)
@@ -69,6 +76,8 @@ async function add() {
 
 function handleAdd() {
   addForm.content = ""
+  addForm.useAgeKey = false
+  addForm.ageSecretKey = ""
   addFormVisible.value = true
 }
 
@@ -1077,18 +1086,50 @@ watch(() => webStore.dProfile, async (pList) => {
             v-model="addForm.content"
         />
       </el-form-item>
+      <el-form-item v-if="addForm.useAgeKey" class="age-key-field">
+        <el-input
+            autocapitalize="off"
+            autocomplete="off"
+            spellcheck="false"
+            :placeholder="t('age.profile.keyPlaceholder')"
+            v-model="addForm.ageSecretKey"
+            clearable
+        >
+          <template #prefix>
+            <el-icon><icon-mdi-key-variant/></el-icon>
+          </template>
+        </el-input>
+      </el-form-item>
     </el-form>
     <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="addFormVisible = false">
-          {{ t('cancel') }}
-        </el-button>
-        <el-button
-            :loading="isNowAdd"
-            type="primary"
-            @click="add">
-          {{ t('confirm') }}
-        </el-button>
+      <div class="dialog-footer dialog-footer--split">
+        <el-tooltip
+            :content="addForm.useAgeKey ? t('age.profile.toggleOn') : t('age.profile.toggleOff')"
+            placement="top"
+        >
+          <div class="age-toggle-wrap">
+            <el-icon class="age-toggle-icon" :class="{ 'age-toggle-icon--active': addForm.useAgeKey }">
+              <icon-mdi-key-variant/>
+            </el-icon>
+            <div
+                :class="['px-toggle', { 'is-on': addForm.useAgeKey }]"
+                @click="addForm.useAgeKey = !addForm.useAgeKey"
+            >
+              <div class="px-toggle__thumb"></div>
+            </div>
+          </div>
+        </el-tooltip>
+        <div class="dialog-footer__actions">
+          <el-button @click="addFormVisible = false">
+            {{ t('cancel') }}
+          </el-button>
+          <el-button
+              :loading="isNowAdd"
+              type="primary"
+              @click="add">
+            {{ t('confirm') }}
+          </el-button>
+        </div>
       </div>
     </template>
   </el-dialog>
@@ -1511,5 +1552,26 @@ watch(() => webStore.dProfile, async (pList) => {
   font-size: 20px;
   color: var(--el-color-primary);
   opacity: 0.85;
+}
+
+.age-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.age-toggle-icon {
+  font-size: 20px;
+  color: var(--el-text-color-secondary);
+  transition: color 0.2s;
+}
+
+.age-toggle-icon--active {
+  color: var(--el-color-primary);
+}
+
+.age-key-field {
+  margin-bottom: 0;
 }
 </style>

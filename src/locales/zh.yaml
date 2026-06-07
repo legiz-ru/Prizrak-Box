@@ -497,3 +497,25 @@ hwid:
     support: 联系支持
   active:
     tooltip: 该配置文件使用 HWID 发送
+
+age:
+  keypair:
+    title: Age 密钥生成器
+    algorithm: 算法
+    publicKey: 公钥
+    secretKey: 私钥
+    generate: 生成
+    regenerate: 重新生成
+    copy: 复制
+    copied: 已复制
+    generating: 生成中...
+  settings:
+    label: Age 私钥
+    generateBtn: 生成
+  profile:
+    toggleOff: 为此配置文件指定 age-secret-key（如说明中有要求）
+    toggleOn: 添加配置文件时不使用 age-secret-key
+    keyPlaceholder: AGE-SECRET-KEY-1...
+  file:
+    title: 输入 age-secret-key
+    hint: 请提供私钥以解密 .age 文件

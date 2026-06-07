@@ -8,12 +8,43 @@
       <input
           ref="importInputRef"
           type="file"
-          accept=".yaml,.yml"
+          accept=".yaml,.yml,.age"
           hidden
           @change="handleImportFile"
       />
     </div>
   </div>
+
+  <el-dialog
+      v-model="ageKeyDialogVisible"
+      :title="t('age.file.title')"
+      width="420"
+      draggable
+      append-to-body
+      :close-on-click-modal="false"
+  >
+    <div class="age-file-body">
+      <p class="age-file-hint">{{ t('age.file.hint') }}</p>
+      <el-input
+          v-model="ageKeyInput"
+          :placeholder="t('age.profile.keyPlaceholder')"
+          autocapitalize="off"
+          autocomplete="off"
+          spellcheck="false"
+          clearable
+      >
+        <template #prefix>
+          <el-icon><icon-mdi-key-variant/></el-icon>
+        </template>
+      </el-input>
+    </div>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="cancelAgeFileImport">{{ t('cancel') }}</el-button>
+        <el-button type="primary" :disabled="!ageKeyInput.trim()" @click="confirmAgeFileImport">{{ t('confirm') }}</el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
@@ -34,10 +65,62 @@ const {proxy} = getCurrentInstance()!;
 const api = createApi(proxy);
 
 const importInputRef = ref<HTMLInputElement | null>(null);
+const ageKeyDialogVisible = ref(false);
+const ageKeyInput = ref('');
+let pendingAgeImport: { content: string; title: string } | null = null;
 
 const openImportDialog = () => {
   importInputRef.value?.click();
 };
+
+async function doImportProfile(content: string, title: string, ageSecretKey?: string) {
+  await pLoad(t("drag.add"), async () => {
+    const p = new Profile();
+    p.content = content;
+    p.title = title;
+    if (ageSecretKey) {
+      p.ageSecretKey = ageSecretKey;
+    }
+    try {
+      const pList = await api.addProfileFromInput(p);
+      if (pList && pList.length > 0) {
+        webStore.dProfile = pList;
+        pSuccess(t("drag.success"));
+        webStore.dnd = false;
+        changeMenu("Profiles", router);
+
+        api.getProfileList().then((list) => {
+          Events.Emit({
+            name: "profiles",
+            data: list,
+          });
+        });
+      }
+    } catch (e) {
+      if (e && typeof e === 'object' && 'message' in e && typeof e.message === 'string') {
+        pError(e.message);
+      } else {
+        pError(t("drag.error"));
+      }
+    }
+  });
+}
+
+async function confirmAgeFileImport() {
+  if (!pendingAgeImport) return;
+  const { content, title } = pendingAgeImport;
+  const key = ageKeyInput.value.trim();
+  ageKeyDialogVisible.value = false;
+  ageKeyInput.value = '';
+  pendingAgeImport = null;
+  await doImportProfile(content, title, key);
+}
+
+function cancelAgeFileImport() {
+  ageKeyDialogVisible.value = false;
+  ageKeyInput.value = '';
+  pendingAgeImport = null;
+}
 
 const handleImportFile = async (event: Event) => {
   const target = event.target as HTMLInputElement | null;
@@ -55,35 +138,18 @@ const handleImportFile = async (event: Event) => {
   }
 
   const file = files[0];
+  const isAgefile = file.name.toLowerCase().endsWith('.age');
+
   const reader = new FileReader();
   reader.onload = async (loadEvent) => {
-    await pLoad(t("drag.add"), async () => {
-      const p = new Profile();
-      p.content = loadEvent.target?.result ?? '';
-      p.title = file.name;
-      try {
-        const pList = await api.addProfileFromInput(p);
-        if (pList && pList.length > 0) {
-          webStore.dProfile = pList;
-          pSuccess(t("drag.success"));
-          webStore.dnd = false;
-          changeMenu("Profiles", router);
-
-          api.getProfileList().then((list) => {
-            Events.Emit({
-              name: "profiles",
-              data: list,
-            });
-          });
-        }
-      } catch (e) {
-        if (e && typeof e === 'object' && 'message' in e && typeof e.message === 'string') {
-          pError(e.message);
-        } else {
-          pError(t("drag.error"));
-        }
-      }
-    });
+    const content = (loadEvent.target?.result ?? '') as string;
+    if (isAgefile) {
+      pendingAgeImport = { content, title: file.name };
+      ageKeyInput.value = '';
+      ageKeyDialogVisible.value = true;
+    } else {
+      await doImportProfile(content, file.name);
+    }
   };
 
   reader.onerror = (error) => {
@@ -129,43 +195,24 @@ function handleDrop(e: any) {
   }
 
   files.forEach((file: any) => {
+    const isAgefile = (file.name as string).toLowerCase().endsWith('.age');
     const reader = new FileReader();
 
     reader.onload = async (event) => {
-      console.log(`Content of ${file.name}:`);
-      // console.log(event.target.result);
-
-      await pLoad(t("drag.add"), async () => {
-        const p = new Profile();
-        p.content = event.target.result;
-        p.title = file.name;
-        try {
-          const pList = await api.addProfileFromInput(p);
-          if (pList && pList.length > 0) {
-            webStore.dProfile = pList;
-            pSuccess(t("drag.success"));
-
-            // 发送订阅配置数据
-            api.getProfileList().then((list) => {
-              Events.Emit({
-                name: "profiles",
-                data: list,
-              });
-            });
-          }
-        } catch (e) {
-          if (e["message"]) {
-            pError(e["message"]);
-          }
-        }
-      });
+      const content = event.target.result as string;
+      if (isAgefile) {
+        pendingAgeImport = { content, title: file.name };
+        ageKeyInput.value = '';
+        ageKeyDialogVisible.value = true;
+      } else {
+        await doImportProfile(content, file.name);
+      }
     };
 
     reader.onerror = (error) => {
       console.error(`Error reading ${file.name}:`, error);
     };
 
-    // 使用 readAsText 方法读取文件内容
     reader.readAsText(file);
   });
 }
@@ -208,5 +255,24 @@ h3 {
   min-width: 200px;
   --el-border-radius-base: 999px;
   border-radius: 999px;
+}
+
+.age-file-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.age-file-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.5;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 </style>

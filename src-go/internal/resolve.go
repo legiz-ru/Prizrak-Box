@@ -78,6 +78,19 @@ func MapsToProxies(ray []map[string]any) ([]map[string]any, error) {
 func Resolve(content string, profile *models.Profile, refresh bool) error {
 	// 解析内容预处理
 	tempStr := strings.TrimSpace(content)
+
+	// age-encrypted content: decrypt before further processing
+	if IsAgeEncrypted(tempStr) {
+		if profile.AgeSecretKey == "" {
+			return errors.New("age-secret-key required to decrypt this profile")
+		}
+		decrypted, err := DecryptAge(tempStr, profile.AgeSecretKey)
+		if err != nil {
+			return err
+		}
+		tempStr = strings.TrimSpace(decrypted)
+	}
+
 	tempBytes := []byte(tempStr)
 
 	// 如果不是刷新则创建 id
