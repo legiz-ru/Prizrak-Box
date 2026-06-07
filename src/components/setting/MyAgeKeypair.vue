@@ -10,16 +10,10 @@
     <div class="age-keypair-body">
       <div class="algo-section">
         <span class="algo-label">{{ $t('age.keypair.algorithm') }}</span>
-        <div class="algo-radios">
-          <label class="algo-radio">
-            <input type="radio" v-model="selectedType" value="mlkem768-x25519" @change="regenerate" />
-            <span>MLKEM768-X25519</span>
-          </label>
-          <label class="algo-radio">
-            <input type="radio" v-model="selectedType" value="x25519" @change="regenerate" />
-            <span>X25519</span>
-          </label>
-        </div>
+        <el-radio-group v-model="selectedType" @change="regenerate">
+          <el-radio value="mlkem768-x25519">MLKEM768-X25519</el-radio>
+          <el-radio value="x25519">X25519</el-radio>
+        </el-radio-group>
       </div>
 
       <div v-if="loading" class="loading-hint">{{ $t('age.keypair.generating') }}</div>
@@ -128,13 +122,13 @@ function onClosed() {
 .age-keypair-body {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
 }
 
 .algo-section {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .algo-label {
@@ -144,30 +138,10 @@ function onClosed() {
   white-space: nowrap;
 }
 
-.algo-radios {
-  display: flex;
-  gap: 16px;
-}
-
-.algo-radio {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--el-text-color-regular);
-  user-select: none;
-}
-
-.algo-radio input[type="radio"] {
-  accent-color: var(--el-color-primary);
-  cursor: pointer;
-}
-
 .key-row {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .key-label {
@@ -185,7 +159,8 @@ function onClosed() {
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color);
   border-radius: 10px;
-  padding: 10px 12px;
+  padding: 8px 12px;
+  min-width: 0;
 }
 
 .key-value {
@@ -193,8 +168,10 @@ function onClosed() {
   font-family: monospace;
   font-size: 12px;
   color: var(--el-text-color-primary);
-  word-break: break-all;
-  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .loading-hint,
@@ -228,6 +205,7 @@ function onClosed() {
   user-select: none;
   transition: border-color 0.2s, color 0.2s;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .pill-btn:hover {
