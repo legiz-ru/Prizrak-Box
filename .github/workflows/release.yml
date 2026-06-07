@@ -1168,6 +1168,7 @@ jobs:
         env: { GOARCH: '${{ matrix.arch }}', CGO_ENABLED: '0' }
         run: |
           go install github.com/tc-hib/go-winres@latest
+          $env:PATH = "$(go env GOPATH)\bin;$env:PATH"
           cd src-wails
           go-winres simply --icon build/appicon.ico --manifest gui --product-name "Prizrak-Box"
           go build -trimpath -o bin/Prizrak-Box.exe .
