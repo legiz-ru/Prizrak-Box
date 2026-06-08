@@ -204,16 +204,28 @@ jobs:
           go mod tidy
 
       - name: Get Latest LightGBM Model Mihomo Smart
+        shell: pwsh
         run: |
-          Invoke-WebRequest -Uri https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin -OutFile src-go/internal/em/Model.bin
+          $headers = @{ Authorization = "token ${{ secrets.GITHUB_TOKEN }}" }
+          for ($i = 1; $i -le 4; $i++) {
+            try { Invoke-WebRequest -Uri https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin -Headers $headers -OutFile src-go/internal/em/Model.bin; break }
+            catch { if ($i -eq 4) { throw }; Write-Host "Attempt $i failed, retrying in 5s..."; Start-Sleep 5 }
+          }
 
       - name: Download Geo Files
         shell: pwsh
         run: |
-          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb -OutFile src-go/internal/em/geoip.metadb
-          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat -OutFile src-go/internal/em/GeoSite.dat
-          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z -OutFile src-go/internal/em/BundleMRS.7z
-          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb -OutFile src-go/internal/em/GeoLite2-ASN.mmdb
+          function Fetch($uri, $out) {
+            $headers = @{ Authorization = "token ${{ secrets.GITHUB_TOKEN }}" }
+            for ($i = 1; $i -le 4; $i++) {
+              try { Invoke-WebRequest -Uri $uri -Headers $headers -OutFile $out; return }
+              catch { if ($i -eq 4) { throw }; Write-Host "Attempt $i failed, retrying in 5s..."; Start-Sleep 5 }
+            }
+          }
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb" "src-go/internal/em/geoip.metadb"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat" "src-go/internal/em/GeoSite.dat"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z" "src-go/internal/em/BundleMRS.7z"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb" "src-go/internal/em/GeoLite2-ASN.mmdb"
 
       - name: Set Version
         shell: bash
@@ -406,14 +418,14 @@ jobs:
 
       - name: Get Latest LightGBM Model Mihomo Smart
         run: |
-          wget -O src-go/internal/em/Model.bin https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
+          wget -O src-go/internal/em/Model.bin --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
 
       - name: Get Latest Geo Data
         run: |
-          wget -O src-go/internal/em/geoip.metadb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
-          wget -O src-go/internal/em/GeoSite.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
-          wget -O src-go/internal/em/BundleMRS.7z https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
-          wget -O src-go/internal/em/GeoLite2-ASN.mmdb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
+          wget -O src-go/internal/em/geoip.metadb    --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
+          wget -O src-go/internal/em/GeoSite.dat      --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          wget -O src-go/internal/em/BundleMRS.7z      --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
+          wget -O src-go/internal/em/GeoLite2-ASN.mmdb --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
 
       - name: Set Version
         run: echo "VERSION=${{ needs.setup.outputs.version }}" >> $GITHUB_ENV
@@ -598,14 +610,14 @@ jobs:
 
       - name: Get Latest LightGBM Model Mihomo Smart
         run: |
-          wget -O src-go/internal/em/Model.bin https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
+          wget -O src-go/internal/em/Model.bin --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
 
       - name: Get Latest Geo Data
         run: |
-          wget -O src-go/internal/em/geoip.metadb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
-          wget -O src-go/internal/em/GeoSite.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
-          wget -O src-go/internal/em/BundleMRS.7z https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
-          wget -O src-go/internal/em/GeoLite2-ASN.mmdb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
+          wget -O src-go/internal/em/geoip.metadb    --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
+          wget -O src-go/internal/em/GeoSite.dat      --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          wget -O src-go/internal/em/BundleMRS.7z      --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
+          wget -O src-go/internal/em/GeoLite2-ASN.mmdb --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
 
       - name: Set Version
         run: echo "VERSION=${{ needs.setup.outputs.version }}" >> $GITHUB_ENV
@@ -1024,11 +1036,11 @@ jobs:
         run: node build/sync-version.js
       - name: Refresh geo/model data
         run: |
-          curl -fsSL -o src-go/internal/em/Model.bin        https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
-          curl -fsSL -o src-go/internal/em/geoip.metadb      https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
-          curl -fsSL -o src-go/internal/em/GeoSite.dat        https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
-          curl -fsSL -o src-go/internal/em/BundleMRS.7z        https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
-          curl -fsSL -o src-go/internal/em/GeoLite2-ASN.mmdb  https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
+          curl -fsSL --retry 3 --retry-delay 5 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o src-go/internal/em/Model.bin        https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
+          curl -fsSL --retry 3 --retry-delay 5 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o src-go/internal/em/geoip.metadb      https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
+          curl -fsSL --retry 3 --retry-delay 5 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o src-go/internal/em/GeoSite.dat        https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          curl -fsSL --retry 3 --retry-delay 5 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o src-go/internal/em/BundleMRS.7z        https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
+          curl -fsSL --retry 3 --retry-delay 5 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o src-go/internal/em/GeoLite2-ASN.mmdb  https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
       - name: Build frontend
         run: |
           npm install --no-audit --no-fund
@@ -1036,7 +1048,7 @@ jobs:
       - name: Build px + px-service
         env: { GOARCH: '${{ matrix.arch }}' }
         run: |
-          (cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags="-s -w" -o px .)
+          (cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags="-s -w -X github.com/legiz-ru/prizrak-box/api.Version=${{ env.VERSION }}" -o px .)
           (cd src-service && CGO_ENABLED=0 go build -ldflags="-s -w" -o px-service .)
       - name: Build Wails app
         env: { GOARCH: '${{ matrix.arch }}', CGO_ENABLED: '1' }
@@ -1104,7 +1116,7 @@ jobs:
         run: |
           set -euo pipefail
           zip -qr "macos-${{ matrix.arch }}-wails.zip" "Prizrak-Box.app"
-          hdiutil create -volname "Prizrak-Box" -srcfolder "Prizrak-Box.app" -ov -format UDZO "macos-${{ matrix.arch }}-wails.dmg"
+          node src-wails/build/darwin/create-macos-dmg.mjs ${{ matrix.arch }} macos-${{ matrix.arch }}-wails.dmg
           if [ -n "${MACOS_CERTIFICATE:-}" ]; then
             IDENTITY=$(security find-identity -v -p codesigning "$HOME/Library/Keychains/ci-signing.keychain-db" | head -n 1 | sed -E 's/^.*"(.+)"$/\1/')
             codesign --force --timestamp --sign "$IDENTITY" "macos-${{ matrix.arch }}-wails.dmg" || true
@@ -1148,11 +1160,18 @@ jobs:
       - name: Refresh geo/model data
         shell: pwsh
         run: |
-          Invoke-WebRequest -Uri https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin -OutFile src-go/internal/em/Model.bin
-          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb -OutFile src-go/internal/em/geoip.metadb
-          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat -OutFile src-go/internal/em/GeoSite.dat
-          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z -OutFile src-go/internal/em/BundleMRS.7z
-          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb -OutFile src-go/internal/em/GeoLite2-ASN.mmdb
+          function Fetch($uri, $out) {
+            $headers = @{ Authorization = "token ${{ secrets.GITHUB_TOKEN }}" }
+            for ($i = 1; $i -le 4; $i++) {
+              try { Invoke-WebRequest -Uri $uri -Headers $headers -OutFile $out; return }
+              catch { if ($i -eq 4) { throw }; Write-Host "Attempt $i failed, retrying in 5s..."; Start-Sleep 5 }
+            }
+          }
+          Fetch "https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin" "src-go/internal/em/Model.bin"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb" "src-go/internal/em/geoip.metadb"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat" "src-go/internal/em/GeoSite.dat"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z" "src-go/internal/em/BundleMRS.7z"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb" "src-go/internal/em/GeoLite2-ASN.mmdb"
       - name: Build frontend
         run: |
           npm install --no-audit --no-fund
@@ -1161,7 +1180,7 @@ jobs:
         shell: pwsh
         env: { GOARCH: '${{ matrix.arch }}' }
         run: |
-          cd src-go;       $env:CGO_ENABLED='0'; go build -tags=with_gvisor -trimpath -ldflags="-s -w" -o px.exe .; cd ..
+          cd src-go;       $env:CGO_ENABLED='0'; go build -tags=with_gvisor -trimpath -ldflags="-s -w -X github.com/legiz-ru/prizrak-box/api.Version=$env:VERSION" -o px.exe .; cd ..
           cd src-service;  $env:CGO_ENABLED='0'; go build -ldflags="-s -w" -o px-service.exe .;   cd ..
       - name: Build Wails app (Prizrak-Box.exe with icon)
         shell: pwsh
@@ -1169,7 +1188,7 @@ jobs:
         run: |
           cd src-wails
           go run github.com/tc-hib/go-winres@latest simply --icon build/appicon.ico --manifest gui --product-name "Prizrak-Box"
-          go build -trimpath -o bin/Prizrak-Box.exe .
+          go build -trimpath -ldflags="-H windowsgui -s -w" -o bin/Prizrak-Box.exe .
           Remove-Item rsrc_windows_*.syso -ErrorAction SilentlyContinue
       - name: Stage app (Electron MSI layout)
         shell: pwsh
