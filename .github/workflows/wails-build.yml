@@ -48,11 +48,11 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev
       - name: Refresh geo/model data
         run: |
-          wget -qO src-go/internal/em/Model.bin        https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
-          wget -qO src-go/internal/em/geoip.metadb      https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
-          wget -qO src-go/internal/em/GeoSite.dat        https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
-          wget -qO src-go/internal/em/BundleMRS.7z        https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
-          wget -qO src-go/internal/em/GeoLite2-ASN.mmdb  https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
+          wget -qO src-go/internal/em/Model.bin       --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
+          wget -qO src-go/internal/em/geoip.metadb     --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
+          wget -qO src-go/internal/em/GeoSite.dat       --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          wget -qO src-go/internal/em/BundleMRS.7z       --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
+          wget -qO src-go/internal/em/GeoLite2-ASN.mmdb --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
       - name: Build frontend
         run: |
           npm install --no-audit --no-fund
@@ -106,11 +106,11 @@ jobs:
         with: { go-version: '1.26', check-latest: true }
       - name: Refresh geo/model data
         run: |
-          curl -fsSL -o src-go/internal/em/Model.bin        https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
-          curl -fsSL -o src-go/internal/em/geoip.metadb      https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
-          curl -fsSL -o src-go/internal/em/GeoSite.dat        https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
-          curl -fsSL -o src-go/internal/em/BundleMRS.7z        https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
-          curl -fsSL -o src-go/internal/em/GeoLite2-ASN.mmdb  https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
+          curl -fsSL --retry 3 --retry-delay 5 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o src-go/internal/em/Model.bin        https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
+          curl -fsSL --retry 3 --retry-delay 5 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o src-go/internal/em/geoip.metadb      https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
+          curl -fsSL --retry 3 --retry-delay 5 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o src-go/internal/em/GeoSite.dat        https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          curl -fsSL --retry 3 --retry-delay 5 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o src-go/internal/em/BundleMRS.7z        https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
+          curl -fsSL --retry 3 --retry-delay 5 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o src-go/internal/em/GeoLite2-ASN.mmdb  https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
       - name: Build frontend
         run: |
           npm install --no-audit --no-fund
@@ -217,11 +217,18 @@ jobs:
       - name: Refresh geo/model data
         shell: pwsh
         run: |
-          Invoke-WebRequest -Uri https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin -OutFile src-go/internal/em/Model.bin
-          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb -OutFile src-go/internal/em/geoip.metadb
-          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat -OutFile src-go/internal/em/GeoSite.dat
-          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z -OutFile src-go/internal/em/BundleMRS.7z
-          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb -OutFile src-go/internal/em/GeoLite2-ASN.mmdb
+          function Fetch($uri, $out) {
+            $headers = @{ Authorization = "token ${{ secrets.GITHUB_TOKEN }}" }
+            for ($i = 1; $i -le 4; $i++) {
+              try { Invoke-WebRequest -Uri $uri -Headers $headers -OutFile $out; return }
+              catch { if ($i -eq 4) { throw }; Write-Host "Attempt $i failed, retrying in 5s..."; Start-Sleep 5 }
+            }
+          }
+          Fetch "https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin" "src-go/internal/em/Model.bin"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb" "src-go/internal/em/geoip.metadb"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat" "src-go/internal/em/GeoSite.dat"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z" "src-go/internal/em/BundleMRS.7z"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb" "src-go/internal/em/GeoLite2-ASN.mmdb"
       - name: Build frontend
         run: |
           npm install --no-audit --no-fund
