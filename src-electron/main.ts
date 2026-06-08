@@ -1,17 +1,45 @@
-import {app, BrowserWindow, BrowserWindowConstructorOptions, ipcMain, session} from 'electron';
+import {app, BrowserWindow, BrowserWindowConstructorOptions, ipcMain, nativeImage, session} from 'electron';
 import path from 'node:path';
+import fs from 'node:fs';
 import {startServer, storeInfo} from "./server";
 import {doQuit, initTray, showWindow} from "./tray";
+import {initShortcut} from "./shortcut";
 import {startBackend} from "./admin";
 import log from './log';
 import {initStore, storeGet} from "./store";
 import {isBootAutoLaunch, updateAutoLaunchRegistration, waitForNetworkReady} from "./launch";
+import {
+    getServiceStatus,
+    installService,
+    uninstallService,
+    isServiceRunning,
+    showServiceInstallDialog,
+    ServiceStatus
+} from "./service";
+import {selectDirectory} from "./selector";
+import {doChange} from "./change";
+
+// Force GTK 4 on Linux to avoid GTK 2/3 vs GTK 4 conflict (e.g. Fedora 42)
+if (process.platform === 'linux') {
+    app.commandLine.appendSwitch('gtk-version', '4');
+}
 
 // 是否在开发模式
 const isDev = !app.isPackaged;
 
+// Set application name for notifications
+app.name = 'Prizrak-Box';
+
+// Set App User Model ID for Windows notifications
+if (process.platform === 'win32') {
+    app.setAppUserModelId('com.legiz-ru.prizrak-box');
+}
+
 // 主窗口
 let mainWindow: BrowserWindow | null = null;
+
+// Флаг для отслеживания первого запуска с startMinimized
+let isFirstLaunchMinimized = false;
 
 // 深度链接相关
 const DEEP_LINK_SCHEME = 'prizrak-box';
@@ -24,6 +52,7 @@ let deepLinkHandlerReady = false;
 process.env["ELECTRON_DISABLE_SECURITY_WARNINGS"] = "true";
 const createWindow = (isBoot: boolean) => {
     let windowOptions: BrowserWindowConstructorOptions = {
+        title: 'Prizrak-Box',
         minWidth: 960,
         minHeight: 660,
         width: 1100,
@@ -61,6 +90,9 @@ const createWindow = (isBoot: boolean) => {
     // 托盘
     initTray(mainWindow);
 
+    // 快捷键
+    initShortcut(mainWindow);
+
     // 页面加载
     const listenAddr = storeInfo.listenAddr();
     const queryParams = new URLSearchParams();
@@ -88,9 +120,9 @@ const createWindow = (isBoot: boolean) => {
         ? `${devBase}${queryString ? `?${queryString}` : ''}`
         : `${prodBase}${queryString ? `?${queryString}` : ''}`;
 
-    log.info('准备加载页面');
+    log.info('Preparing to load page');
     mainWindow.loadURL(filePath).catch((err) => {
-        log.error('页面加载失败:', err);
+        log.error('Page loading failed:', err);
     });
 
     mainWindow.webContents.on('did-start-loading', () => {
@@ -103,18 +135,62 @@ const createWindow = (isBoot: boolean) => {
 
     // 页面加载完成再显示，避免白屏
     mainWindow.webContents.once('did-finish-load', () => {
+        // Get settings
+        let settings: any = storeGet('setting');
+        // Parse settings if it's a JSON string
+        if (typeof settings === 'string') {
+            try {
+                settings = JSON.parse(settings);
+            } catch (e) {
+                log.error('Settings parsing error:', e);
+                settings = {};
+            }
+        }
+        const startMinimized = settings?.startMinimized === true;
+
+        log.info('Startup settings check - isBoot:', isBoot, ', settings:', JSON.stringify(settings), ', startMinimized:', startMinimized);
+
         if (isBoot) {
-            log.info('静默启动完成');
+            log.info('Silent startup complete (isBoot:', isBoot, ')');
+        } else if (startMinimized) {
+            // Start minimized to tray: hide window and dock
+            isFirstLaunchMinimized = true;
+            mainWindow.hide();
+            app.dock?.hide();
+            log.info('Starting minimized to tray');
+
+            // Reset flag after a short delay to prevent immediate window showing
+            setTimeout(() => {
+                isFirstLaunchMinimized = false;
+                log.info('isFirstLaunchMinimized flag reset');
+            }, 1000);
         } else {
             mainWindow.show();
             mainWindow.focus();
-            log.info('页面加载成功');
+            log.info('Page loaded successfully');
         }
     });
 
     mainWindow.on('closed', () => {
         deepLinkHandlerReady = false;
         mainWindow = null;
+    });
+
+    // Reload on renderer crash (blank white screen prevention)
+    mainWindow.webContents.on('render-process-gone', (_event, details) => {
+        if (details.reason !== 'clean-exit') {
+            log.warn('[Main] Renderer process gone, reason:', details.reason, '— reloading');
+            mainWindow?.webContents.reload();
+        }
+    });
+
+    // Ignore ERR_ABORTED (-3) which is intentional navigation cancellation,
+    // not an actual load failure
+    mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, _url, isMainFrame) => {
+        if (errorCode !== -3 && isMainFrame) {
+            log.warn('[Main] Page load failed:', errorCode, errorDescription, '— reloading');
+            mainWindow?.webContents.reload();
+        }
     });
 };
 
@@ -139,7 +215,7 @@ const processPendingDeepLinks = () => {
             continue;
         }
 
-        log.info('处理深度链接队列:', url);
+        log.info('Processing deep link queue:', url);
         mainWindow.webContents.send(DEEP_LINK_EVENT, {rawUrl: url});
     }
 };
@@ -163,13 +239,13 @@ function handleDeepLink(url: string) {
 
         const host = parsedUrl.hostname || parsedUrl.host;
         if (host && host.toLowerCase() === DEEP_LINK_HOST_INSTALL) {
-            log.info('收到深度链接:', trimmed);
+            log.info('Received deep link:', trimmed);
             enqueueDeepLink(trimmed);
         } else {
-            log.warn('未知深度链接:', trimmed);
+            log.warn('Unknown deep link:', trimmed);
         }
     } catch (error) {
-        log.error('解析深度链接失败:', error);
+        log.error('Failed to parse deep link:', error);
     }
 }
 
@@ -180,6 +256,91 @@ ipcMain.on(DEEP_LINK_READY_EVENT, (event) => {
 
     deepLinkHandlerReady = true;
     processPendingDeepLinks();
+});
+
+// IPC обработчики для кэширования фонового изображения
+// Хранится в отдельном файле userData/px-bg-cache.json, независимо от порта сервера
+const getBgCacheFile = () => path.join(app.getPath('userData'), 'px-bg-cache.json');
+
+ipcMain.handle('bgcache:read', async () => {
+    try {
+        const content = await fs.promises.readFile(getBgCacheFile(), 'utf8');
+        return JSON.parse(content);
+    } catch {
+        return null;
+    }
+});
+
+ipcMain.handle('bgcache:write', async (_event, forBg: string, dataUrl: string) => {
+    const file = getBgCacheFile();
+    const tmp = file + '.tmp';
+    await fs.promises.writeFile(tmp, JSON.stringify({forBg, dataUrl}), 'utf8');
+    await fs.promises.rename(tmp, file);
+});
+
+ipcMain.handle('bgcache:clear', async () => {
+    try { await fs.promises.unlink(getBgCacheFile()); } catch {}
+});
+
+// IPC обработчики для сервиса
+ipcMain.handle('service:getStatus', async (): Promise<ServiceStatus> => {
+    return await getServiceStatus();
+});
+
+ipcMain.handle('service:install', async (): Promise<boolean> => {
+    return await installService();
+});
+
+ipcMain.handle('service:uninstall', async (): Promise<boolean> => {
+    return await uninstallService();
+});
+
+ipcMain.handle('service:isRunning', async (): Promise<boolean> => {
+    return await isServiceRunning();
+});
+
+ipcMain.handle('service:restartBackend', async (): Promise<boolean> => {
+    const addr = storeInfo.listenAddr();
+    if (!addr) {
+        log.error('[Service] Backend restart failed: missing listen address');
+        return false;
+    }
+    await startBackend(addr);
+    return true;
+});
+
+ipcMain.handle('service:showInstallDialog', async (): Promise<'install' | 'skip' | 'cancel'> => {
+    return await showServiceInstallDialog();
+});
+
+// IPC обработчик для получения иконки файла/приложения
+ipcMain.handle('get-file-icon', async (_event, filePath: string) => {
+    try {
+        const icon = await app.getFileIcon(filePath, { size: 'normal' });
+        return icon.toDataURL();
+    } catch (e) {
+        log.warn('Failed to get file icon for:', filePath, e);
+        return null;
+    }
+});
+
+// IPC обработчик для выбора директории
+ipcMain.handle('select-directory', async () => {
+    return await selectDirectory();
+});
+
+// IPC обработчик для получения текущей директории конфигурации
+ipcMain.handle('pre-config-dir', () => {
+    return log.getAppConfigDir();
+});
+
+// IPC обработчик для изменения директории конфигурации
+ipcMain.handle('change-config-dir', async (_event, dir: string) => {
+    const addr = storeInfo.listenAddr();
+    if (!addr) {
+        throw new Error('Listen address not found');
+    }
+    await doChange(dir, addr);
 });
 
 // 等待 backend 传来的 port 和 secret
@@ -218,7 +379,7 @@ const registerDeepLinkProtocol = () => {
             app.setAsDefaultProtocolClient(DEEP_LINK_SCHEME);
         }
     } catch (error) {
-        log.error('注册深度链接协议失败:', error);
+        log.error('Failed to register deep link protocol:', error);
     }
 };
 
@@ -226,6 +387,24 @@ for (const arg of process.argv) {
     if (isDeepLinkUrl(arg)) {
         pendingDeepLinks.push(arg);
     }
+}
+
+// Clean up stale Chromium singleton lock files on Linux.
+// These are left behind when the app crashes or is force-killed,
+// and prevent the next launch from acquiring the lock (causing silent exit).
+if (process.platform === 'linux') {
+    try {
+        const configDir = app.getPath('userData');
+        const singletonSocket = path.join(configDir, 'SingletonSocket');
+        if (fs.existsSync(singletonSocket)) {
+            const target = fs.readlinkSync(singletonSocket);
+            if (!fs.existsSync(target)) {
+                for (const name of ['SingletonSocket', 'SingletonCookie', 'SingletonLock']) {
+                    try { fs.rmSync(path.join(configDir, name)); } catch {}
+                }
+            }
+        }
+    } catch {}
 }
 
 // 单例模式
@@ -253,50 +432,53 @@ if (!gotTheLock) {
     }
 
     app.whenReady().then(async () => {
-        // 判断是否开机启动
+        // Check if launched at boot
         const isBoot = await isBootAutoLaunch();
-        log.info('是否开机启动:', isBoot);
+        log.info('Boot launch:', isBoot);
 
-        // 如果是开机启动，则等待网络就绪（最多30秒）
+        // If launched at boot, wait for network to be ready (up to 30 seconds)
         if (isBoot) {
-            // 先隐藏dock
+            // Hide dock first
             app.dock?.hide()
 
-            log.info('开机启动，等待网络准备...');
+            log.info('Boot launch, waiting for network...');
             const networkReady = await waitForNetworkReady(30000, 'bing.com');
             if (!networkReady) {
-                log.warn('网络检测超时，继续启动但可能无网络');
+                log.warn('Network detection timeout, continuing but network may be unavailable');
             } else {
-                log.info('网络已准备好');
+                log.info('Network is ready');
             }
         }
 
-        // 初始化前端数据库
+        // Initialize frontend store first (needed before log.initLog)
         initStore(log.getHomeDir())
 
-        // 启动前端静态服务
+        // Initialize log system with stored config directory
+        log.initLog()
+
+        // Start frontend static server
         startServer(resolveReady, startBackend)
 
-        // 等待后端启动
+        // Wait for backend to start
         await waitForReady;
 
         registerDeepLinkProtocol();
 
-        // 设置请求头 Referer
+        // Set request headers
         const agent = agents[Math.floor(Math.random() * agents.length)];
         session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
-            details.requestHeaders['Referer'] = new URL(details.url).origin // 只发送域名
+            details.requestHeaders['Referer'] = new URL(details.url).origin // Only send domain
             details.requestHeaders['User-Agent'] = agent.ua;
             details.requestHeaders['sec-ch-ua-platform'] = agent.platform;
             details.requestHeaders['sec-ch-ua'] = agent.secChUa;
             callback({requestHeaders: details.requestHeaders})
         })
 
-        // 启动UI
-        log.info('准备就绪，启动窗口，port=', storeInfo.port(), ' secret=', storeInfo.secret());
+        // Start UI
+        log.info('Ready, starting window, port=', storeInfo.port(), ' secret=', storeInfo.secret());
         createWindow(isBoot);
 
-        // 更新开机自启路径
+        // Update auto-launch registration path
         await updateAutoLaunchRegistration()
     });
 }

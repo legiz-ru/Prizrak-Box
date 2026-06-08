@@ -60,8 +60,10 @@ search: Поиск прокси
 drag:
   hear: Перетащите профиль сюда для импорта
   size: Разрешён импорт только одного файла
+  open: Выбрать файл
   add: Импортируется...
   success: Импорт успешно завершён
+  error: Не удалось импортировать профиль
 
 home:
   download: Загрузка
@@ -89,6 +91,7 @@ home:
     isp: Провайдер
     asn: ASN
     time-zone: Часовой пояс
+    service-tip: Для проверки IP используется сервис ip-api.com
   system:
     title: Система
     os: ОС
@@ -102,22 +105,45 @@ home:
 
 setting:
   title: Настройки
+  tab:
+    app: Настройки приложения
+    core: Настройки ядра
   mihomo:
     port: Смешанный порт
     port-error: Номер порта должен быть больше 0 и меньше 65535
     dns: DNS-переопределение
+    dnsQuery:
+      queryTitle: DNS запрос
+      query: Запросить
+      noResults: Записи не найдены
     lan: ЛВС
     bindAddress: Привязать адрес
     bind-error: Неверный адрес
+    independentDelayTest: Независимый тест задержки
+    groupTestUrls: URL тестов для групп
+    groupName: Имя группы
+    addGroupUrl: Добавить
+    testUrlPlaceholder: 'https://example.com'
   px:
     auth: Совет по аутентификации
     startup: Автозапуск
+    startMinimized: Запускать свернутым в трей
+    systemProxyMode: Режим системного прокси
     dir: Конфиг
     open: Открыть
+    change: Изменить
+    change-warn: Выбранная директория не заканчивается на "Prizrak-Box-V3", рекомендуется выбрать папку, которая будет содержать подпапку Prizrak-Box-V3
+    change-success: Директория конфигурации успешно изменена
     import: Импортировать
     export: Экспортировать
     update: Обновить
     check: Проверить
+
+  shortcut:
+    title: Горячие клавиши
+    showHide: Показать/Скрыть окно
+    recording: Нажмите комбинацию клавиш...
+    edit: Изменить комбинацию
 
   dashboard:
     open: Открыть панель
@@ -162,14 +188,39 @@ proxies:
   sort-off: Сортировать по задержке
   vertical-on: Переключить группировку на горизонтальную
   vertical-off: Переключить группировку на выпадающую
+  full-view: Переключить группировку на полный просмотр
   direct: В настоящее время прямой режим
   loading: Тестирование...
+  selected-label: Выбрано
+  smart:
+    most-used: Приоритетный
+    occasional-used: Вспомогательный
+    rarely-used: Редко используемый
+    most-used-tip: "Приоритетное подключение — вес: {weight}"
+    occasional-used-tip: "Вспомогательное подключение — вес: {weight}"
+    rarely-used-tip: "Редко используемое подключение — вес: {weight}"
+    no-data: "Информация о стабильности подключения ещё не получена"
+  test-group: Тест задержки группы
+  auto-group-no-manual-select: "Данная группа является автоматической, в ней запрещён ручной выбор."
 
 profiles:
   title: Профили
+  primary: Основной
   add: Добавить
   paste: Импорт из буфера обмена
   open: Импорт из файла
+  multi-select:
+    enable: Включить мультивыбор
+    disable: Отключить мультивыбор
+    info: Показать подсказку
+    title: Мультивыбор профилей
+    description: Мультипрофиль — это расширенная функция.
+    description-secondary: При включении мультивыбора серверы из разных профилей могут попадать в одни и те же группы правил.
+    description-tertiary: Если в основной подписке используются сложные или динамические правила, это может привести к некорректной маршрутизации трафика (например, выбор сервера с неподходящей локацией).
+    description-warning: Рекомендуется использовать мультипрофиль только если вы понимаете, как работают группы и правила.
+    question: Вы уверены, что хотите продолжить?
+    accept: Да
+    decline: Нет
   available: Доступно
   use: Использовано
   expire: Истекает
@@ -177,12 +228,15 @@ profiles:
   placeholder: Подписка, ShareLink, Yaml, Base64, Json
   home: Перейти на страницу подписки
   support: Перейти на страницу поддержки
+  announce: Анонс
+  announce-url: Перейти по ссылке
   del-tip: Используется, нельзя удалить
   edit:
     title: Название
     url: URL
     update: Интервал обновления (часы)
     template: Шаблон группировки правил
+    pxd-subscription: "⭐ Шаблон от подписки"
     title-tip: Название не может быть пустым
     url-tip: URL не может быть пустым
     url-error: Неверный формат URL
@@ -203,6 +257,15 @@ profiles:
     cancel-import: Отменить импорт
     cancel-hint: Нажмите Esc, чтобы отменить
     import-cancelled: Импорт профиля отменён
+  tv-send: Отправить профиль на Prizrak-Box Android TV
+  tv-dialog:
+    title: Отправка профиля на Android TV
+    warning: "⚠️ Устройства должны находиться в одной локальной сети"
+    ip: IP-адрес устройства
+    port: Порт
+    submit: Отправить профиль на TV
+    success: Профиль успешно отправлен на Android TV
+    error: Ошибка импорта профиля на устройство с Prizrak-Box Android TV
 
 rule:
   title: Правило
@@ -238,6 +301,28 @@ rule:
     title: Игнорируемые домены
     tip: Разделяйте по строкам
     place: Введите здесь
+  providers:
+    title: Провайдеры правил
+    refresh: Обновить данные
+    updateAll: Обновить все
+    update: Обновить
+    updateSuccess: '«{name}» обновлён'
+    updateAllSuccess: Все провайдеры правил обновлены
+    lastUpdate: Последнее обновление
+    ruleCount: Количество правил
+    path: Локальный путь
+    never: Никогда
+    empty: Провайдеры правил не найдены
+    viewRules: Просмотр правил
+    rulesSearch: Поиск правил
+    rulesEmpty: Правила не найдены
+    prevMatch: Предыдущее совпадение
+    nextMatch: Следующее совпадение
+    name: Провайдер
+    ruleCountShort: Количество
+    updatedAt: Время обновления
+    viewCards: Карточки
+    viewTable: Таблица
 
 connections:
   title: Соединения
@@ -252,6 +337,50 @@ connections:
   copy-log: Копировать лог
   dialog-title: Лог соединения
   dialog-close: Закрыть
+  toggleView: Переключить режим просмотра
+  topology: Топология соединений
+  noData: Нет данных
+  pause: Пауза
+  resume: Возобновить
+  list: Список
+  topology-view: Топология
+  process-view: Процессы
+  active: Активные
+  closed: Закрытые
+  unknown-process: Неизвестно
+  connections-count: '{count} соединений'
+  back: Назад
+  section-traffic: ТРАФИК
+  section-routing: МАРШРУТИЗАЦИЯ
+  section-network: СЕТЬ
+  section-process: ПРОЦЕСС
+  section-inbound: ВХОДЯЩЕЕ
+  section-other: ПРОЧЕЕ
+  upload-speed: Скорость загрузки
+  download-speed: Скорость скачивания
+  duration: Длительность
+  proxy-chain: Цепочка прокси
+  conn-type: Тип
+  dest-ip: IP назначения
+  source-ip: IP источника
+  source-port: Порт источника
+  dest-port: Порт назначения
+  remote-dest: Удалённый адрес
+  sniff-host: Определённый хост
+  process-label: Процесс
+  process-path: Путь процесса
+  inbound-ip: Входящий IP
+  inbound-port: Входящий порт
+  inbound-name: Входящее имя
+  inbound-user: Пользователь
+  dns-mode: Режим DNS
+  special-proxy: Спец. прокси
+  special-rules: Спец. правила
+  dscp: DSCP
+  copy-value: Копировать
+  open-ipinfo: Открыть ipinfo.io
+  open-in-browser: Открыть в браузере
+  show-in-explorer: Показать в проводнике
 
 log:
   title: Журнал
@@ -269,9 +398,10 @@ bg:
   women: Девушка
   stars: Звёздный
   handle: Призрак
-  comics: Комиксы
+  comics: Аниме
   game: Игры
   random: Случайный
+  rails: Рельс
   custom: Своя картинка
   upload: Загрузить картинку
   too-large: Изображение слишком большое. Выберите файл меньше 1 МБ.
@@ -284,10 +414,15 @@ tray:
   global: Глобальный
   direct: Прямой
   profiles: Профили
+  proxyGroups: Группы прокси
   dashboard: Открыть панель
   proxy: Прокси
   tun: TUN
   quit: Выйти
+
+proxySelector:
+  group: Группа
+  proxy: Прокси
 
 errors:
   request-failed: Не удалось выполнить запрос
@@ -296,3 +431,91 @@ errors:
   response-empty: Пустой ответ сервера
   unknown-reason: Неизвестная причина
 
+service:
+  dialog-title: Режим TUN
+  dialog-message: Для использования TUN режима требуются права администратора
+  dialog-description: Вы можете установить сервис, который позволит использовать TUN режим без постоянного запуска приложения от администратора. Установка сервиса требует однократного подтверждения прав администратора.
+  dialog-restart-admin: Если вы хотите включить TUN без установки сервиса, перезапустите приложение с правами администратора.
+  admin-title: Режим TUN
+  admin-message: Приложение запущено с правами администратора
+  admin-description: Вы можете запустить TUN сразу или установить сервис, чтобы в будущем запускать TUN без прав администратора.
+  admin-run-btn: Запустить TUN
+  admin-install-btn: Установить сервис
+  install-btn: Установить сервис
+  installing: Установка сервиса...
+  install-success: Сервис успешно установлен
+  install-failed: Не удалось установить сервис
+  uninstall-btn: Удалить сервис
+  uninstalling: Удаление сервиса...
+  uninstall-success: Сервис успешно удалён
+  uninstall-failed: Не удалось удалить сервис
+  restart-required: Для применения изменений перезапустите приложение
+  status-running: Сервис запущен
+  status-stopped: Сервис остановлен
+  status-not-installed: Сервис не установлен
+  status-no-admin: Запущен без прав админа
+  check-status: Проверка статуса сервиса
+  mode: Режим сервиса
+  mode-description: Позволяет использовать TUN без прав администратора
+
+onboarding:
+  service-setup:
+    title: Настройка службы
+    description: Установка сервиса позволит использовать режим TUN без постоянного запроса администраторских прав
+    install-btn: Установить сервис
+    skip-btn: Пропустить
+    installing: Установка сервиса...
+    install-success: Сервис успешно установлен
+    install-warning: Не удалось установить сервис. Вы можете продолжить без установки.
+  welcome:
+    title: Добро пожаловать!
+    subtitle: Добавьте свой первый профиль для начала работы
+    add-profile: Добавить профиль
+  active-profile:
+    current-profile: "Текущий профиль:"
+    switch-profiles: Переключить профили
+    refresh-profile: Обновить профиль
+    add-from-clipboard: Добавить из буфера обмена
+    clipboard-empty: Буфер обмена пуст
+    stats:
+      used: Использовано
+      available: Доступно
+      expire: Истекает
+      update: Обновлено
+  first-profile-info:
+    title: Информация
+    message: Теперь вы можете включить режим прокси или режим сетевого адаптера (TUN)
+    ok: Ок
+hwid:
+  not-supported:
+    title: Ошибка добавления профиля
+    message: Для добавления данного профиля требуется включить отправку HWID в настройках приложения. После включения вы можете добавить данный профиль повторно.
+    go-settings: В настройки
+  max-devices:
+    title: Лимит устройств исчерпан
+    message: Достигнуто максимальное количество устройств для данной подписки. Профиль не был добавлен.
+    support: Поддержка
+  active:
+    tooltip: Данный профиль использует отправку HWID
+
+age:
+  keypair:
+    title: Генератор ключей Age
+    algorithm: Алгоритм
+    publicKey: Публичный ключ
+    secretKey: Секретный ключ
+    generate: Сгенерировать
+    regenerate: Перегенерировать
+    copy: Копировать
+    copied: Скопировано
+    generating: Генерация...
+  settings:
+    label: Секретный ключ Age
+    generateBtn: Сгенерировать
+  profile:
+    toggleOff: Указать age-secret-key для данного профиля (по необходимости, если это было указано в инструкции)
+    toggleOn: Не добавлять age-secret-key при добавлении профиля
+    keyPlaceholder: AGE-SECRET-KEY-1...
+  file:
+    title: Введите age-secret-key
+    hint: Для расшифровки .age файла укажите секретный ключ

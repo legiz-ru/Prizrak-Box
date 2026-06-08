@@ -60,8 +60,10 @@ search: Search proxy
 drag:
   hear: Drag the profile here to import
   size: Only allowed to import single file
+  open: Choose file
   add: Importing...
   success: Import Success
+  error: Failed to import profile
 
 home:
   download: Download
@@ -89,6 +91,7 @@ home:
     isp: ISP
     asn: ASN
     time-zone: T-Zone
+    service-tip: IP lookup is provided by ip-api.com
   system:
     title: System
     os: OS
@@ -102,22 +105,45 @@ home:
 
 setting:
   title: Setting
+  tab:
+    app: App Settings
+    core: Core Settings
   mihomo:
     port: Mixed-Port
     port-error: The port number must be greater than 0 and less than 65535
     dns: DNS Override
+    dnsQuery:
+      queryTitle: DNS Query
+      query: Query
+      noResults: No records found
     lan: LAN
     bindAddress: Bind Address
     bind-error: Wrong address
+    independentDelayTest: Independent latency test
+    groupTestUrls: Per-group test URLs
+    groupName: Group name
+    addGroupUrl: Add
+    testUrlPlaceholder: 'https://example.com'
   px:
     auth: Auth Tip
     startup: Boot Startup
+    startMinimized: Start Minimized to Tray
+    systemProxyMode: System Proxy Mode
     dir: Config
     open: Open
+    change: Change
+    change-warn: The selected directory does not end with "Prizrak-Box-V3", it is recommended to select a folder that will contain the Prizrak-Box-V3 subfolder
+    change-success: Config directory changed successfully
     import: Import
     export: Export
     update: Update
     check: Check
+
+  shortcut:
+    title: Keyboard Shortcuts
+    showHide: Show/Hide Window
+    recording: Press a key combination...
+    edit: Edit key combination
 
   dashboard:
     open: Open dashboard
@@ -162,14 +188,39 @@ proxies:
   sort-off: Sort by latency
   vertical-on: Switch grouping to left-right style
   vertical-off: Switch grouping to drop-down style
+  full-view: Switch grouping to full-view style
   direct: Currently in direct mode
   loading: Testing...
+  selected-label: Selected
+  smart:
+    most-used: Priority
+    occasional-used: Secondary
+    rarely-used: Rarely used
+    most-used-tip: "Priority connection — weight: {weight}"
+    occasional-used-tip: "Secondary connection — weight: {weight}"
+    rarely-used-tip: "Rarely used connection — weight: {weight}"
+    no-data: "Stability information not yet available"
+  test-group: Test Group Latency
+  auto-group-no-manual-select: "This group is automatic — manual proxy selection is not allowed."
 
 profiles:
   title: Profiles
+  primary: Primary
   add: Add
   paste: Import from Clipboard
   open: Import from file
+  multi-select:
+    enable: Enable multi-select
+    disable: Disable multi-select
+    info: Show help
+    title: Multi-profile selection
+    description: Multi-profile is an advanced feature.
+    description-secondary: When multi-select is enabled, servers from different profiles can end up in the same rule groups.
+    description-tertiary: If the primary subscription uses complex or dynamic rules, this can lead to incorrect traffic routing (for example, selecting a server with an unsuitable location).
+    description-warning: Use multi-profile only if you understand how groups and rules work.
+    question: Are you sure you want to continue?
+    accept: Yes
+    decline: No
   available: Available
   use: Used
   expire: Expiration
@@ -177,12 +228,15 @@ profiles:
   placeholder: Subscription, ShareLink, Yaml, Base64, Json
   home: Visit the Subscription Home Page
   support: Visit the Support Page
+  announce: Announcement
+  announce-url: Go to Link
   del-tip: In use, cannot be deleted
   edit:
     title: Title
     url: URL
     update: Update Interval (hour)
     template: Rule Grouping Template
+    pxd-subscription: "⭐ Subscription Template"
     title-tip: The title cannot be empty
     url-tip: The URL cannot be empty
     url-error: Wrong URL format
@@ -203,6 +257,15 @@ profiles:
     cancel-import: Cancel import
     cancel-hint: Press Esc to cancel
     import-cancelled: Profile import cancelled
+  tv-send: Send profile to Prizrak-Box Android TV
+  tv-dialog:
+    title: Send Profile to Android TV
+    warning: "⚠️ Both devices must be on the same local network"
+    ip: Device IP address
+    port: Port
+    submit: Send Profile to TV
+    success: Profile successfully sent to Android TV
+    error: Failed to import profile on Prizrak-Box Android TV device
 
 rule:
   title: Rule
@@ -238,6 +301,28 @@ rule:
     title: Ignore these domains
     tip: Split by row
     place: Type Here
+  providers:
+    title: Rule providers
+    refresh: Refresh data
+    updateAll: Update all
+    update: Update
+    updateSuccess: "{name} updated"
+    updateAllSuccess: Updated all rule providers
+    lastUpdate: Last update
+    ruleCount: Rule count
+    path: Local path
+    never: Never updated
+    empty: No rule providers found
+    viewRules: View rules
+    rulesSearch: Search rules
+    rulesEmpty: No rules found
+    prevMatch: Previous match
+    nextMatch: Next match
+    name: Provider
+    ruleCountShort: Count
+    updatedAt: Updated at
+    viewCards: Cards
+    viewTable: Table
 
 connections:
   title: Connections
@@ -252,6 +337,50 @@ connections:
   copy-log: Copy log
   dialog-title: Connection log
   dialog-close: Close
+  toggleView: Toggle view mode
+  topology: Connection Topology
+  noData: No data available
+  pause: Pause
+  resume: Resume
+  list: List
+  topology-view: Topology
+  process-view: Processes
+  active: Active
+  closed: Closed
+  unknown-process: Unknown
+  connections-count: '{count} connections'
+  back: Back
+  section-traffic: TRAFFIC
+  section-routing: ROUTING
+  section-network: NETWORK
+  section-process: PROCESS
+  section-inbound: INBOUND
+  section-other: OTHER
+  upload-speed: Upload speed
+  download-speed: Download speed
+  duration: Duration
+  proxy-chain: Proxy chain
+  conn-type: Type
+  dest-ip: Destination IP
+  source-ip: Source IP
+  source-port: Source port
+  dest-port: Destination port
+  remote-dest: Remote destination
+  sniff-host: Sniffed host
+  process-label: Process
+  process-path: Process path
+  inbound-ip: Inbound IP
+  inbound-port: Inbound port
+  inbound-name: Inbound name
+  inbound-user: User
+  dns-mode: DNS mode
+  special-proxy: Special proxy
+  special-rules: Special rules
+  dscp: DSCP
+  copy-value: Copy
+  open-ipinfo: Open ipinfo.io
+  open-in-browser: Open in browser
+  show-in-explorer: Show in Explorer
 
 log:
   title: Log
@@ -269,9 +398,10 @@ bg:
   women: Serious
   stars: Starry
   handle: Prizrak
-  comics: Comics
+  comics: Anime
   game: Game
   random: Random
+  rails: Rails
   custom: Custom image
   upload: Upload image
   too-large: Image is too large. Please choose a file smaller than 1 MB.
@@ -284,10 +414,15 @@ tray:
   global: Global
   direct: Direct
   profiles: Profiles
+  proxyGroups: Proxy Groups
   dashboard: Open dashboard
   proxy: Proxy
   tun: TUN
   quit: Quit
+
+proxySelector:
+  group: Group
+  proxy: Proxy
 
 errors:
   request-failed: Request failed
@@ -296,3 +431,91 @@ errors:
   response-empty: Response body is empty
   unknown-reason: Unknown reason
 
+service:
+  dialog-title: TUN Mode
+  dialog-message: TUN mode requires administrator privileges
+  dialog-description: You can install a service that allows TUN mode to work without running the application as administrator. Installing the service requires a one-time administrator confirmation.
+  dialog-restart-admin: If you want to enable TUN without installing the service, restart the app with administrator privileges.
+  admin-title: TUN Mode
+  admin-message: The app is running with administrator privileges
+  admin-description: You can start TUN now or install the service so TUN can run later without admin rights.
+  admin-run-btn: Start TUN
+  admin-install-btn: Install Service
+  install-btn: Install Service
+  installing: Installing service...
+  install-success: Service installed successfully
+  install-failed: Failed to install service
+  uninstall-btn: Uninstall Service
+  uninstalling: Uninstalling service...
+  uninstall-success: Service uninstalled successfully
+  uninstall-failed: Failed to uninstall service
+  restart-required: Please restart the application to apply changes
+  status-running: Service is running
+  status-stopped: Service is stopped
+  status-not-installed: Service is not installed
+  status-no-admin: Running without admin rights
+  check-status: Check service status
+  mode: Service Mode
+  mode-description: Allows TUN mode without administrator privileges
+
+onboarding:
+  service-setup:
+    title: Service Setup
+    description: Installing the service will allow you to use TUN mode without constant administrator privilege requests
+    install-btn: Install Service
+    skip-btn: Skip
+    installing: Installing service...
+    install-success: Service installed successfully
+    install-warning: Failed to install service. You can continue without installation.
+  welcome:
+    title: Welcome!
+    subtitle: Add your first profile to get started
+    add-profile: Add Profile
+  active-profile:
+    current-profile: "Current profile:"
+    switch-profiles: Switch profiles
+    refresh-profile: Refresh profile
+    add-from-clipboard: Add from clipboard
+    clipboard-empty: Clipboard is empty
+    stats:
+      used: Used
+      available: Available
+      expire: Expiration
+      update: Updated
+  first-profile-info:
+    title: Information
+    message: You can now enable proxy mode or network adapter mode (TUN)
+    ok: Ok
+hwid:
+  not-supported:
+    title: HWID Not Supported
+    message: To add this profile, you need to enable HWID sending in the application settings. After enabling it, you can add this profile again.
+    go-settings: Go to Settings
+  max-devices:
+    title: Device Limit Reached
+    message: The maximum number of devices for this subscription has been reached. The profile was not added.
+    support: Support
+  active:
+    tooltip: This profile uses HWID sending
+
+age:
+  keypair:
+    title: Age Key Generator
+    algorithm: Algorithm
+    publicKey: Public Key
+    secretKey: Secret Key
+    generate: Generate
+    regenerate: Regenerate
+    copy: Copy
+    copied: Copied
+    generating: Generating...
+  settings:
+    label: Age Secret Key
+    generateBtn: Generate
+  profile:
+    toggleOff: Specify age-secret-key for this profile (if required by the instructions)
+    toggleOn: Do not add age-secret-key when adding profile
+    keyPlaceholder: AGE-SECRET-KEY-1...
+  file:
+    title: Enter age-secret-key
+    hint: Provide the secret key to decrypt the .age file

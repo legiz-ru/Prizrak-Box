@@ -1,5 +1,5 @@
 <template>
-  <div class="vdc-out-container" :style="`width:${props.width}`">
+  <div class="vdc-out-container" :style="`width:${props.width}`" :data-tick="renderTick">
     <TransitionGroup name="fade" tag="div" class="vdc-trans-group-container"
                      :style="{ '--vdc-gap': gap + 'px',
                      '--vdc-top': top + 'px'
@@ -8,7 +8,7 @@
       <div class="vdc-item-container"
            :draggable="draggable"
            v-for="(item, index) in items"
-           :key="item"
+           :key="(item && item.id) ?? index"
            @dragstart="drag($event, index)"
            @dragover="over"
            @drop="drop($event, index)">
@@ -21,7 +21,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import {reactive, ref} from 'vue'
+import {reactive, ref, watch} from 'vue'
 import {eType, istate} from './VDContainer'
 
 // eslint-disable-next-line no-undef, no-unused-vars
@@ -49,6 +49,14 @@ const state: istate = reactive({
 })
 const getItems = () => props.data
 const items = ref(getItems())
+
+// The cards are rendered through this component's scoped slot (the parent reads
+// e.g. data.selected). The child render effect doesn't read those nested props
+// itself, so an in-place mutation of an item (selecting a profile) wouldn't
+// re-invoke the slot until remount. Deep-watch the data and bump renderTick
+// (referenced in the template) to force a re-render on any nested change.
+const renderTick = ref(0)
+watch(() => props.data, () => { renderTick.value++ }, {deep: true})
 
 // eslint-disable-next-line no-undef
 const emit = defineEmits([

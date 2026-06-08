@@ -63,7 +63,7 @@ onBeforeUnmount(() => {
 
 .deeplink-import-overlay__content {
   width: min(420px, 100%);
-  border-radius: 18px;
+  border-radius: 20px;
   background: rgba(16, 16, 16, 0.85);
   box-shadow: 0 18px 38px rgba(0, 0, 0, 0.35);
   padding: 36px 32px 28px;

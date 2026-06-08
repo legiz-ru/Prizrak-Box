@@ -15,6 +15,10 @@ export default defineConfig({
     resolve: {
         alias: {
             '@': pathSrc,
+            // Wails v3 generated Go bindings (used only by the Wails shell via
+            // src/wails-shim.ts; dynamically imported, so the Electron build
+            // never executes them).
+            '@wbind': path.resolve(__dirname, 'src-wails/frontend/bindings'),
         },
     },
     plugins: [vue(),

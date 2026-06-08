@@ -88,9 +88,15 @@ typings/
 
 # Vite
 .vite/
+dist/
 
 # Electron-Forge
 out/
 
 src-go/px
 src-go/prizrak-box
+src-go/px.exe
+
+src-service/px-service
+src-service/px-service.exe
+src-service/px-service-*

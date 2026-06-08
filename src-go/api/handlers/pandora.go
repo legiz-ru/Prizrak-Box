@@ -2,12 +2,9 @@ package handlers
 
 import (
 	"errors"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/render"
-	"github.com/metacubex/mihomo/component/process"
-	"github.com/metacubex/mihomo/hub/executor"
-	"github.com/metacubex/mihomo/log"
-	"github.com/metacubex/mihomo/tunnel/statistic"
+	"net/netip"
+	"os"
+
 	"github.com/legiz-ru/prizrak-box/api"
 	"github.com/legiz-ru/prizrak-box/api/job"
 	"github.com/legiz-ru/prizrak-box/api/models"
@@ -15,9 +12,13 @@ import (
 	"github.com/legiz-ru/prizrak-box/pkg/constant"
 	sys "github.com/legiz-ru/prizrak-box/pkg/sys/proxy"
 	"github.com/legiz-ru/prizrak-box/pkg/utils"
-	"net/http"
-	"net/netip"
-	"os"
+	"github.com/metacubex/chi"
+	"github.com/metacubex/chi/render"
+	"github.com/metacubex/http"
+	"github.com/metacubex/mihomo/component/process"
+	"github.com/metacubex/mihomo/hub/executor"
+	"github.com/metacubex/mihomo/log"
+	"github.com/metacubex/mihomo/tunnel/statistic"
 	"strings"
 )
 
@@ -30,7 +31,7 @@ func PrizrakRouter() chi.Router {
 	r := chi.NewRouter()
 	// 代理相关
 	r.Put("/enableProxy", enableProxy)
-	r.Get("/disableProxy", disableProxy)
+	r.Put("/disableProxy", disableProxy)
 
 	// 地址相关
 	r.Put("/checkAddressPort", checkAddressPort)
@@ -56,21 +57,60 @@ func enableProxy(w http.ResponseWriter, r *http.Request) {
 	mi := struct {
 		BindAddress string `json:"bindAddress"`
 		Port        int    `json:"port"`
+		Username    string `json:"username"`
 	}{}
 	if err := render.DecodeJSON(r.Body, &mi); err != nil {
 		ErrorResponse(w, r, err)
 		return
 	}
 
-	// 开启
-	_ = sys.EnableProxy(mi.BindAddress, mi.Port)
+	log.Infoln("EnableProxy request: bindAddress=", mi.BindAddress, ", port=", mi.Port, ", username=", mi.Username)
+
+	// 开启 - если указан username, используем EnableProxyForUser
+	var err error
+	if mi.Username != "" {
+		log.Infoln("Enabling system proxy for user:", mi.Username)
+		err = sys.EnableProxyForUser(mi.BindAddress, mi.Port, mi.Username)
+		if err == nil {
+			log.Infoln("System proxy successfully enabled for user", mi.Username)
+		}
+	} else {
+		log.Infoln("Enabling system proxy for current user (no username provided)")
+		err = sys.EnableProxy(mi.BindAddress, mi.Port)
+		if err == nil {
+			log.Infoln("System proxy successfully enabled")
+		}
+	}
+
+	if err != nil {
+		log.Errorln("Failed to enable system proxy:", err)
+		ErrorResponse(w, r, err)
+		return
+	}
 
 	render.NoContent(w, r)
 }
 
 func disableProxy(w http.ResponseWriter, r *http.Request) {
-	sys.DisableProxy()
-	log.Warnln("System proxy disabled")
+	// Читаем username из тела запроса
+	mi := struct {
+		Username string `json:"username"`
+	}{}
+	// Игнорируем ошибку чтения body - если body пустой, username будет пустым
+	_ = render.DecodeJSON(r.Body, &mi)
+
+	log.Infoln("DisableProxy request: username=", mi.Username)
+
+	if mi.Username != "" {
+		log.Infoln("Disabling system proxy for user:", mi.Username)
+		sys.DisableProxyForUser(mi.Username)
+		log.Infoln("System proxy successfully disabled for user", mi.Username)
+	} else {
+		log.Infoln("Disabling system proxy for current user (no username provided)")
+		sys.DisableProxy()
+		log.Infoln("System proxy successfully disabled")
+	}
+
 	if !executor.GetGeneral().Tun.Enable {
 		statistic.DefaultManager.Range(func(c statistic.Tracker) bool {
 			_ = c.Close()
@@ -152,25 +192,20 @@ func updateHTTPClientConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 构建用户代理字符串
-	userAgent := ""
-	if config.EnableHWID && config.Version != "" {
-		userAgent = "prizrak-box/" + config.Version
-	} else {
-		userAgent = "clash-verge/v2.3.0"
-	}
-
-	// 更新配置
+	// UA строится внутри UpdateHTTPClientConfig в едином формате.
 	httpConfig := &utils.HTTPClientConfig{
 		EnableHWID:  config.EnableHWID,
 		Version:     config.Version,
 		DeviceOS:    config.DeviceOS,
 		DeviceOSVer: config.DeviceOSVer,
 		DeviceModel: config.DeviceModel,
-		UserAgent:   userAgent,
 	}
 
 	utils.UpdateHTTPClientConfig(httpConfig)
+
+	// Persist EnableHWID so it survives a backend restart and is available
+	// before the cron scheduler fires DoRefresh on next startup.
+	_ = cache.Put(constant.EnableHWIDKey, config.EnableHWID)
 
 	details := utils.GetResolvedDeviceDetails()
 	render.JSON(w, r, details)

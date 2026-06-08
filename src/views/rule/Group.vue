@@ -44,6 +44,7 @@ let now = reactive({
 const innerTemplate = ['m1', 'm2', 'm3']
 // 是否可删除
 const canDelete = ref(false)
+const isSwitchingTemplate = ref(false)
 
 function isDefault(data: any) {
   return innerTemplate.indexOf(data) !== -1
@@ -77,14 +78,14 @@ const initPage = async () => {
 onMounted(initPage);
 
 // Template 下拉列表逻辑
-const isDropdownOpen = ref(false);
-const selectOption = async (item: any) => {
-  Object.assign(now, item);
-  // 处理编辑器内容
-  yamlContent.value = await api.getTemplateById(item.id);
-  isDropdownOpen.value = false;
-
-  canDelete.value = !isDefault(item.title);
+const handleTemplateChange = async (id: string) => {
+  const item = tList.find(i => i.id === id);
+  if (item) {
+    Object.assign(now, item);
+    // 处理编辑器内容
+    yamlContent.value = await api.getTemplateById(item.id);
+    canDelete.value = !isDefault(item.title);
+  }
 };
 
 // 添加逻辑
@@ -179,24 +180,36 @@ const switchTemplate = async () => {
   if (!now.id) {
     return
   }
-  await pLoad(t('rule.group.switch.ing'), async () => {
-    try {
-      await api.switchTemplate(now);
-      tList = await api.getTemplateList();
+  if (isSwitchingTemplate.value) {
+    return
+  }
+  isSwitchingTemplate.value = true
+  try {
+    await pLoad(t('rule.group.switch.ing'), async () => {
+      try {
+        await api.switchTemplate(now);
+        tList = await api.getTemplateList();
 
-      await api.waitRunning()
-      pSuccess(t('rule.group.switch.success'))
+        // Sync now.selected from refreshed list so the toggle reflects actual state
+        const updated = tList.find((i: any) => i.id === now.id);
+        if (updated) Object.assign(now, updated);
 
-      proxiesStore.active = ""
-      api.getRuleNum().then((res) => {
-        menuStore.setRuleNum(res);
-      });
-    } catch (e) {
-      if (e['message']) {
-        pError(e['message'])
+        await api.waitRunning()
+        pSuccess(t('rule.group.switch.success'))
+
+        proxiesStore.active = ""
+        api.getRuleNum().then((res) => {
+          menuStore.setRuleNum(res);
+        });
+      } catch (e) {
+        if (e['message']) {
+          pError(e['message'])
+        }
       }
-    }
-  })
+    })
+  } finally {
+    isSwitchingTemplate.value = false
+  }
 }
 
 
@@ -205,39 +218,33 @@ const switchTemplate = async () => {
 <template>
   <div class="group">
     <el-space class="op">
-      <div class="dropdown">
-        <button class="dropdown-btn" @click="isDropdownOpen = !isDropdownOpen">
-          {{ getTemplateTitle(t, now.title) }}
-        </button>
-        <ul v-if="isDropdownOpen" class="dropdown-list">
-          <li
-              :key="item.id + index"
-              @click="selectOption(item)"
-              class="dropdown-item"
-              v-for="(item, index) in tList"
-          >
-            {{ getTemplateTitle(t, item.title) }}
-          </li>
-        </ul>
+      <el-select v-model="now.id" @change="handleTemplateChange" class="template-select">
+        <el-option
+            v-for="item in tList"
+            :key="item.id"
+            :label="getTemplateTitle(t, item.title)"
+            :value="item.id"
+        />
+      </el-select>
+      <el-divider direction="vertical" border-style="dashed"/>
+      <button class="pill-btn" @click="saveTemplate">{{ t("save") }}</button>
+      <button class="pill-btn" @click="addVisible=true;addForm.content=''">{{ t("add") }}</button>
+      <button class="pill-btn pill-btn--danger" @click="deleteTemplate" v-if="canDelete">{{ t("delete") }}</button>
+      <el-divider direction="vertical" border-style="dashed"/>
+      <div class="pill-toggle">
+        <button
+            :class="['pill-toggle__btn', { 'is-active': !now.selected }]"
+            :disabled="!now.id"
+            type="button"
+            @click="if (now.selected) { now.selected = false; switchTemplate() }"
+        >{{ t("off") }}</button>
+        <button
+            :class="['pill-toggle__btn', { 'is-active': now.selected }]"
+            :disabled="!now.id"
+            type="button"
+            @click="if (!now.selected) { now.selected = true; switchTemplate() }"
+        >{{ t("on") }}</button>
       </div>
-      <el-divider direction="vertical" border-style="dashed"/>
-      <el-button @click="saveTemplate">
-        {{ t("save") }}
-      </el-button>
-      <el-button @click="addVisible=true;addForm.content=''">
-        {{ t("add") }}
-      </el-button>
-      <el-button @click="deleteTemplate" v-if="canDelete">
-        {{ t("delete") }}
-      </el-button>
-      <el-divider direction="vertical" border-style="dashed"/>
-      <el-text :class="now.selected ? 'sf' : 'st'">{{ t("off") }}</el-text>
-      <el-switch
-          @click="switchTemplate"
-          v-model="now.selected"
-          :disabled="!now.id"
-          class="set-switch"/>
-      <el-text :class="now.selected ? 'st' : 'sf'">{{ t("on") }}</el-text>
     </el-space>
 
     <VAceEditor
@@ -245,7 +252,7 @@ const switchTemplate = async () => {
         lang="yaml"
         theme="monokai"
         :options="editorOptions"
-        style="width: 100%; height: calc(100vh - 325px)"
+        style="width: 100%; height: 100%"
         class="editor"
     />
   </div>
@@ -289,112 +296,128 @@ const switchTemplate = async () => {
 
 <style scoped>
 .group {
-  width: 95%;
-  margin-left: 10px;
+  width: 100%;
+  margin-left: 0;
   margin-top: 5px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .op {
   margin-top: 2px;
 }
 
-.dropdown {
-  position: relative;
-  display: inline-block;
+.template-select {
+  width: 150px;
+  flex-shrink: 0;
 }
 
-.dropdown-btn {
+:deep(.el-select__wrapper) {
+  height: 38px;
+  border-radius: 999px;
+  background: var(--left-nav-btn-bg);
+  box-shadow: var(--left-nav-shadow);
+  border: none;
+  padding: 0 12px 0 16px;
+}
+
+:deep(.el-select__wrapper:hover) {
+  box-shadow: var(--left-nav-hover-shadow);
+}
+
+:deep(.el-select__placeholder),
+:deep(.el-select__selected-item) {
+  color: var(--text-color);
+}
+
+:deep(.el-select__suffix .el-icon) {
+  color: var(--text-color);
+  opacity: 0.6;
+}
+
+.pill-toggle {
+  display: inline-flex;
+  border-radius: 999px;
+  background-color: var(--left-nav-btn-bg);
+  box-shadow: var(--left-nav-shadow);
+  padding: 4px;
+  gap: 2px;
+}
+
+.pill-toggle:hover {
+  box-shadow: var(--left-nav-hover-shadow);
+}
+
+.pill-toggle__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  width: auto;
+  padding: 0 14px;
+  font-size: 15px;
+  border: none;
+  border-radius: 999px;
   background: transparent;
   color: var(--text-color);
-  border: 2px solid var(--text-color);
-  padding: 5px 10px;
   cursor: pointer;
-  font-size: 15px;
-  outline: none;
-  border-radius: 8px;
-  min-width: 150px;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  white-space: nowrap;
 }
 
-.dropdown-btn:hover {
-  opacity: 0.8;
+.pill-toggle__btn:hover {
+  background-color: var(--left-nav-btn-hover-bg);
 }
 
-.dropdown-list {
-  position: absolute;
-  background: var(--skin-bg-color);
-  border: 2px solid var(--text-color);
-  margin-top: 4px;
-  padding: 0;
-  list-style: none;
-  min-width: 146px;
-  z-index: 20;
-  border-radius: 8px;
-  font-size: 15px;
-  text-align: center;
+.pill-toggle__btn.is-active {
+  background-color: var(--left-item-selected-bg);
+  box-shadow: var(--left-nav-hover-shadow);
 }
 
-.dropdown-item {
+.pill-toggle__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pill-btn {
+  border: none;
+  border-radius: 999px;
+  background-color: var(--left-nav-btn-bg);
   color: var(--text-color);
-  padding: 8px;
+  padding: 9px 18px;
+  font-size: 15px;
   cursor: pointer;
+  box-shadow: var(--left-nav-shadow);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.dropdown-item:hover {
-  background: var(--skin-hover-color);
+.pill-btn:hover {
+  background-color: var(--left-item-selected-bg);
+  box-shadow: var(--left-nav-hover-shadow);
 }
 
-.set-switch {
-  margin-left: 10px;
-  --el-switch-border-color: var(--text-color);
-  --el-switch-on-color: var(--left-item-selected-bg);
-  --el-switch-off-color: transparent;
-}
-
-:deep(.el-switch__core) {
-  width: 46px;
-  height: 26px;
-  border-radius: 12px;
-  border: 2px solid var(--text-color);
-}
-
-:deep(.el-switch__core .el-switch__action) {
-  margin-left: 2px;
-}
-
-:deep(.el-switch.is-checked .el-switch__core .el-switch__action) {
-  left: calc(100% - 21px);
-}
-
-.op :deep(.el-button) {
-  padding: 2px 10px;
-  --el-button-bg-color: transparent;
-  --el-button-text-color: var(--text-color);
-  --el-button-hover-text-color: var(--left-item-selected-bg);
-  --el-button-hover-bg-color: var(--text-color);
-}
-
-.st {
-  color: var(--top-hr-color);
-}
-
-.sf {
-  color: var(--text-color);
+.pill-btn--danger:hover {
+  background-color: #f56c6c;
 }
 
 .editor {
   margin-top: 25px;
+  flex: 1;
+  min-height: 200px;
 }
 
 :deep(.ace_editor) {
   border: 2px solid var(--text-color);
-  border-radius: 8px;
+  border-radius: 20px;
   font: 15px "Twemoji", "Monaco", "Menlo", "Ubuntu Mono", "Consolas",
   "Source Code Pro", "source-code-pro", monospace;
 }
 
 :deep(.ace_gutter) {
-  border-top-left-radius: 8px;
-  border-bottom-left-radius: 8px;
+  border-top-left-radius: 20px;
+  border-bottom-left-radius: 20px;
 }
 
 :deep(.ace_search.right) {

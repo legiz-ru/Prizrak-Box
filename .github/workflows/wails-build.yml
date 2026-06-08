@@ -1,0 +1,285 @@
+name: Build Wails (PoC)
+
+# CI for the Wails v3 shell (src-wails), built in parallel with the Electron
+# release workflow. Geo/model data (src-go/internal/em/*) is refreshed at build
+# time from the same sources as the Electron workflow.
+#
+# Artifacts (per architecture):
+#   Linux   amd64/arm64  -> .deb + .rpm (nfpm)            [native arm64 runner]
+#   macOS   amd64/arm64  -> .app .zip + .dmg (signed if secrets present)
+#   Windows amd64/arm64  -> .msi (same WiX installer as Electron) + portable .zip
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_linux:
+        description: 'Build Linux (deb/rpm, amd64+arm64)'
+        type: boolean
+        default: true
+      build_macos:
+        description: 'Build macOS (amd64+arm64, signed)'
+        type: boolean
+        default: true
+      build_windows:
+        description: 'Build Windows (msi, amd64+arm64)'
+        type: boolean
+        default: true
+
+jobs:
+  # ───────────────────────────── Linux ─────────────────────────────
+  linux:
+    if: ${{ inputs.build_linux }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - uses: actions/setup-go@v6
+        with: { go-version: '1.26', check-latest: true }
+      - name: Install WebKitGTK
+        run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev
+      - name: Refresh geo/model data
+        run: |
+          wget -qO src-go/internal/em/Model.bin       --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
+          wget -qO src-go/internal/em/geoip.metadb     --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
+          wget -qO src-go/internal/em/GeoSite.dat       --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          wget -qO src-go/internal/em/BundleMRS.7z       --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
+          wget -qO src-go/internal/em/GeoLite2-ASN.mmdb --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
+      - name: Build frontend
+        run: |
+          npm install --no-audit --no-fund
+          npx vite build --outDir src-wails/frontend/dist --emptyOutDir
+      - name: Build px + px-service
+        env: { GOARCH: '${{ matrix.arch }}' }
+        run: |
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          (cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags="-s -w -X github.com/legiz-ru/prizrak-box/api.Version=${PKG_VERSION}" -o px .)
+          (cd src-service && CGO_ENABLED=0 go build -ldflags="-s -w" -o px-service .)
+      - name: Build Wails app
+        run: |
+          cd src-wails
+          CGO_ENABLED=1 go build -trimpath -o bin/prizrak-box-wails .
+      - name: Package .deb + .rpm (nfpm)
+        run: |
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
+          export PKG_ARCH='${{ matrix.arch }}'
+          export PKG_VERSION="$(node -p "require('./package.json').version")"
+          "$(go env GOPATH)/bin/nfpm" pkg -p deb -f src-wails/build/linux/nfpm.yaml -t "prizrak-box-linux-${{ matrix.arch }}.deb"
+          "$(go env GOPATH)/bin/nfpm" pkg -p rpm -f src-wails/build/linux/nfpm.yaml -t "prizrak-box-linux-${{ matrix.arch }}.rpm"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wails-linux-${{ matrix.arch }}
+          path: |
+            prizrak-box-linux-${{ matrix.arch }}.deb
+            prizrak-box-linux-${{ matrix.arch }}.rpm
+
+  # ───────────────────────────── macOS ─────────────────────────────
+  macos:
+    if: ${{ inputs.build_macos }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: macos-latest
+          - arch: arm64
+            runner: macos-latest
+    runs-on: ${{ matrix.runner }}
+    env:
+      MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+      MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
+      TEAM_ID: ${{ secrets.TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - uses: actions/setup-go@v6
+        with: { go-version: '1.26', check-latest: true }
+      - name: Refresh geo/model data
+        run: |
+          curl -fsSL --retry 3 --retry-delay 5 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o src-go/internal/em/Model.bin        https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
+          curl -fsSL --retry 3 --retry-delay 5 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o src-go/internal/em/geoip.metadb      https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
+          curl -fsSL --retry 3 --retry-delay 5 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o src-go/internal/em/GeoSite.dat        https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          curl -fsSL --retry 3 --retry-delay 5 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o src-go/internal/em/BundleMRS.7z        https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
+          curl -fsSL --retry 3 --retry-delay 5 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o src-go/internal/em/GeoLite2-ASN.mmdb  https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
+      - name: Build frontend
+        run: |
+          npm install --no-audit --no-fund
+          npx vite build --outDir src-wails/frontend/dist --emptyOutDir
+      - name: Build px + px-service
+        env: { GOARCH: '${{ matrix.arch }}' }
+        run: |
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          (cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags="-s -w -X github.com/legiz-ru/prizrak-box/api.Version=${PKG_VERSION}" -o px .)
+          (cd src-service && CGO_ENABLED=0 go build -ldflags="-s -w" -o px-service .)
+      - name: Build Wails app
+        env: { GOARCH: '${{ matrix.arch }}', CGO_ENABLED: '1' }
+        run: |
+          cd src-wails
+          go build -trimpath -o /tmp/prizrak-box-wails .
+      - name: Assemble .app
+        run: |
+          APP="Prizrak-Box.app"
+          rm -rf "$APP"
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+          cp /tmp/prizrak-box-wails "$APP/Contents/MacOS/Prizrak-Box"
+          cp src-go/px src-service/px-service "$APP/Contents/MacOS/"
+          chmod +x "$APP/Contents/MacOS/"*
+          cp build/appicon.icns "$APP/Contents/Resources/appicon.icns" || true
+          cp src-wails/build/darwin/Info.plist "$APP/Contents/Info.plist"
+      - name: Sign (if certificate secrets are present)
+        run: |
+          set -euo pipefail
+          if [ -z "${MACOS_CERTIFICATE:-}" ]; then
+            echo "No MACOS_CERTIFICATE secret — producing an UNSIGNED build."
+            exit 0
+          fi
+          KEYCHAIN="ci-signing.keychain-db"
+          KEYCHAIN_PATH="$HOME/Library/Keychains/$KEYCHAIN"
+          CERT_PATH="$(mktemp /tmp/cert-XXXXXXXX.p12)"
+          security delete-keychain "$KEYCHAIN" >/dev/null 2>&1 || true
+          echo "$MACOS_CERTIFICATE" | base64 --decode > "$CERT_PATH" 2>/dev/null || echo "$MACOS_CERTIFICATE" | base64 -d > "$CERT_PATH"
+          security create-keychain -p "$MACOS_CERT_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings "$KEYCHAIN"
+          security unlock-keychain -p "$MACOS_CERT_PASSWORD" "$KEYCHAIN"
+          security import "$CERT_PATH" -k "$KEYCHAIN_PATH" -P "$MACOS_CERT_PASSWORD" -A
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | sed 's/"//g')
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$MACOS_CERT_PASSWORD" "$KEYCHAIN_PATH"
+          rm -f "$CERT_PATH"
+          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | head -n 1 | sed -E 's/^.*"(.+)"$/\1/')
+          echo "Using identity: $IDENTITY"
+          APP="Prizrak-Box.app"
+          # codesign/AMFI rejects CRLF in the entitlements plist; normalise to LF.
+          ENT="$RUNNER_TEMP/entitlements.mac.plist"
+          tr -d '\r' < build/entitlements.mac.plist > "$ENT"
+          # Sign the nested helpers (same entitlements) first, then the bundle.
+          codesign --force --options runtime --timestamp \
+            --entitlements "$ENT" --sign "$IDENTITY" "$APP/Contents/MacOS/px" "$APP/Contents/MacOS/px-service"
+          codesign --force --deep --options runtime --timestamp \
+            --entitlements "$ENT" --sign "$IDENTITY" "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+      - name: Notarize (if Apple ID secrets are present)
+        run: |
+          set -euo pipefail
+          if [ -z "${MACOS_CERTIFICATE:-}" ] || [ -z "${APPLE_ID:-}" ] || [ -z "${APP_SPECIFIC_PASSWORD:-}" ] || [ -z "${TEAM_ID:-}" ]; then
+            echo "Notarization secrets not all present — skipping notarization."
+            exit 0
+          fi
+          ditto -c -k --keepParent "Prizrak-Box.app" "notarize.zip"
+          xcrun notarytool submit "notarize.zip" --apple-id "$APPLE_ID" --password "$APP_SPECIFIC_PASSWORD" --team-id "$TEAM_ID" --wait
+          xcrun stapler staple "Prizrak-Box.app"
+      - name: Package .zip + .dmg
+        run: |
+          set -euo pipefail
+          zip -qr "wails-macos-${{ matrix.arch }}.zip" "Prizrak-Box.app"
+          node src-wails/build/darwin/create-macos-dmg.mjs ${{ matrix.arch }} wails-macos-${{ matrix.arch }}.dmg
+          if [ -n "${MACOS_CERTIFICATE:-}" ]; then
+            IDENTITY=$(security find-identity -v -p codesigning "$HOME/Library/Keychains/ci-signing.keychain-db" | head -n 1 | sed -E 's/^.*"(.+)"$/\1/')
+            codesign --force --timestamp --sign "$IDENTITY" "wails-macos-${{ matrix.arch }}.dmg" || true
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wails-macos-${{ matrix.arch }}
+          path: |
+            wails-macos-${{ matrix.arch }}.zip
+            wails-macos-${{ matrix.arch }}.dmg
+
+  # ──────────────────────────── Windows ────────────────────────────
+  windows:
+    if: ${{ inputs.build_windows }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            msiarch: x64
+          - arch: arm64
+            msiarch: arm64
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - uses: actions/setup-go@v6
+        with: { go-version: '1.26', check-latest: true }
+      - name: Refresh geo/model data
+        shell: pwsh
+        run: |
+          function Fetch($uri, $out) {
+            $headers = @{ Authorization = "token ${{ secrets.GITHUB_TOKEN }}" }
+            for ($i = 1; $i -le 4; $i++) {
+              try { Invoke-WebRequest -Uri $uri -Headers $headers -OutFile $out; return }
+              catch { if ($i -eq 4) { throw }; Write-Host "Attempt $i failed, retrying in 5s..."; Start-Sleep 5 }
+            }
+          }
+          Fetch "https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin" "src-go/internal/em/Model.bin"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb" "src-go/internal/em/geoip.metadb"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat" "src-go/internal/em/GeoSite.dat"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z" "src-go/internal/em/BundleMRS.7z"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb" "src-go/internal/em/GeoLite2-ASN.mmdb"
+      - name: Build frontend
+        run: |
+          npm install --no-audit --no-fund
+          npx vite build --outDir src-wails/frontend/dist --emptyOutDir
+      - name: Build px + px-service
+        shell: pwsh
+        env: { GOARCH: '${{ matrix.arch }}' }
+        run: |
+          $VERSION = node -p "require('./package.json').version"
+          cd src-go;       $env:CGO_ENABLED='0'; go build -tags=with_gvisor -trimpath -ldflags="-s -w -X github.com/legiz-ru/prizrak-box/api.Version=$VERSION" -o px.exe .; cd ..
+          cd src-service;  $env:CGO_ENABLED='0'; go build -ldflags="-s -w" -o px-service.exe .;   cd ..
+      - name: Regenerate icons (gen-icons.mjs)
+        shell: pwsh
+        run: |
+          node src-wails/build/gen-icons.mjs
+      - name: Build Wails app (Prizrak-Box.exe with icon)
+        shell: pwsh
+        env: { GOARCH: '${{ matrix.arch }}', CGO_ENABLED: '0' }
+        run: |
+          cd src-wails
+          # Multi-size app icon (16..256) so the .exe / taskbar / Explorer icon
+          # is the app icon and crisp at every size (build/appicon.ico is
+          # generated by build/gen-icons.mjs from build/appicon.png).
+          go run github.com/tc-hib/go-winres@latest simply --icon build/appicon.ico --manifest gui --product-name "Prizrak-Box"
+          go build -trimpath -ldflags="-H windowsgui -s -w" -o bin/Prizrak-Box.exe .
+          Remove-Item rsrc_windows_*.syso -ErrorAction SilentlyContinue
+      - name: Stage app (Electron MSI layout)
+        shell: pwsh
+        run: |
+          $dir = "out/Prizrak-Box-win32-${{ matrix.msiarch }}"
+          New-Item -ItemType Directory -Force -Path "$dir/resources" | Out-Null
+          Copy-Item src-wails/bin/Prizrak-Box.exe "$dir/Prizrak-Box.exe"
+          Copy-Item src-go/px.exe                 "$dir/resources/px.exe"
+          Copy-Item src-service/px-service.exe    "$dir/resources/px-service.exe"
+      - name: Install WiX Toolset
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip" -OutFile "wix.zip"
+          Expand-Archive -Path "wix.zip" -DestinationPath "C:\wix" -Force
+          "C:\wix" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Build MSI (reuses installer/build-msi.js — TUN service + protocol)
+        shell: pwsh
+        env: { ARCH: '${{ matrix.msiarch }}', BUILD_TYPE: 'wails' }
+        run: |
+          $env:PATH = "C:\wix;$env:PATH"
+          node installer/build-msi.js
+          Copy-Item "out/msi/${{ matrix.msiarch }}/windows-${{ matrix.msiarch }}.msi" "prizrak-box-wails-windows-${{ matrix.arch }}.msi"
+      - name: Stage portable zip
+        shell: pwsh
+        run: Compress-Archive -Path "out/Prizrak-Box-win32-${{ matrix.msiarch }}/*" -DestinationPath "prizrak-box-wails-windows-${{ matrix.arch }}.zip" -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wails-windows-${{ matrix.arch }}
+          path: |
+            prizrak-box-wails-windows-${{ matrix.arch }}.msi
+            prizrak-box-wails-windows-${{ matrix.arch }}.zip

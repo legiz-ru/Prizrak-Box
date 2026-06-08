@@ -10,7 +10,10 @@ import createPrizrakApi from "@/api/prizrak";
 export default function createApi(proxy: any) {
     return {
         getDelay: createProxiesApi(proxy).getDelay,
+        testProxyLatency: createProxiesApi(proxy).testProxyLatency,
+        getGroupTestUrl: createProxiesApi(proxy).getGroupTestUrl,
         getGroups: createProxiesApi(proxy).getGroups,
+        getGroupWeights: createProxiesApi(proxy).getGroupWeights,
         getProxies: createProxiesApi(proxy).getProxies,
         setProxy: createProxiesApi(proxy).setProxy,
         getVersion: createHomeApi(proxy).getVersion,
@@ -25,6 +28,8 @@ export default function createApi(proxy: any) {
         closeConnection: createConnApi(proxy).closeConnection,
         closeAllConnection: createConnApi(proxy).closeAllConnection,
         getRules: createRuleApi(proxy).getRules,
+        getRuleProviders: createRuleApi(proxy).getRuleProviders,
+        updateRuleProvider: createRuleApi(proxy).updateRuleProvider,
         getRuleNum: createRuleApi(proxy).getRuleNum,
         getIgnore: createRuleApi(proxy).getIgnore,
         updateIgnore: createRuleApi(proxy).updateIgnore,
@@ -35,6 +40,7 @@ export default function createApi(proxy: any) {
         createTemplate: createRuleApi(proxy).createTemplate,
         testTemplate: createRuleApi(proxy).testTemplate,
         switchTemplate: createRuleApi(proxy).switchTemplate,
+        getRuleProviderRules: createRuleApi(proxy).getRuleProviderRules,
         addProfileFromInput: createProfilesApi(proxy).addProfileFromInput,
         addProfileFromFile: createProfilesApi(proxy).addProfileFromFile,
         deleteProfile: createProfilesApi(proxy).deleteProfile,

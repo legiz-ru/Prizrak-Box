@@ -7,6 +7,7 @@ import {useI18n} from "vue-i18n";
 import {pUpdateMihomo} from "@/util/mihomo";
 import {useMenuStore} from "@/store/menuStore";
 import createApi from "@/api";
+import {updateSystemProxy} from "@/util/systemProxy";
 
 // 使用 store
 const menuStore = useMenuStore()
@@ -62,11 +63,7 @@ const savePort = async () => {
       pUpdateMihomo(menuStore, settingStore, api)
 
       if (menuStore.proxy) {
-        // 未被占用开启代理
-        api.enableProxy({
-          "bindAddress": settingStore.bindAddress,
-          "port": settingStore.port,
-        })
+        updateSystemProxy(api, settingStore, settingStore.systemProxyMode);
       }
     });
 
@@ -108,24 +105,15 @@ onMounted(() => {
     <template v-else>
       <span class="content">{{ settingStore.port }}</span>
     </template>
-    <el-icon
-        class="btn"
-        @click="toggleEditing"
-        v-if="!isEditing">
-      <EditPen/>
-    </el-icon>
-    <el-icon
-        class="btn"
-        @click="savePort"
-        v-if="isEditing">
-      <icon-ep-select/>
-    </el-icon>
-    <el-icon
-        class="btn"
-        @click="cancelEdit"
-        v-if="isEditing">
-      <icon-ep-close-bold/>
-    </el-icon>
+    <button class="action-btn" @click="toggleEditing" v-if="!isEditing">
+      <el-icon><EditPen/></el-icon>
+    </button>
+    <button class="action-btn" @click="savePort" v-if="isEditing">
+      <el-icon><icon-ep-select/></el-icon>
+    </button>
+    <button class="action-btn" @click="cancelEdit" v-if="isEditing">
+      <el-icon><icon-ep-close-bold/></el-icon>
+    </button>
   </div>
 </template>
 
@@ -161,12 +149,25 @@ input:focus {
   outline: none;
 }
 
-.btn {
-  font-size: 18px;
+.action-btn {
+  height: 36px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background-color: var(--left-nav-btn-bg);
+  color: var(--text-color);
+  box-shadow: var(--left-nav-shadow);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.btn:hover {
-  cursor: pointer;
-  color: var(--hr-color);
+.action-btn:hover {
+  background-color: var(--left-item-selected-bg);
+  box-shadow: var(--left-nav-hover-shadow);
 }
 </style>

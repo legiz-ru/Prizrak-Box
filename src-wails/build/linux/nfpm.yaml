@@ -1,0 +1,44 @@
+# nfpm config for the Wails build's Linux .deb / .rpm packages.
+# Arch/version come from the environment (set by CI). Run from the repo root:
+#   PKG_ARCH=amd64 PKG_VERSION=1.0.1 nfpm pkg -p deb -f src-wails/build/linux/nfpm.yaml -t out.deb
+name: prizrak-box
+arch: ${PKG_ARCH}
+version: ${PKG_VERSION}
+version_schema: none
+section: net
+priority: optional
+maintainer: legiz-ru <legiz-ru@users.noreply.github.com>
+description: A Simple Mihomo GUI (Wails build)
+homepage: https://github.com/legiz-ru/Prizrak-Box
+license: GPL-3.0
+
+contents:
+  - src: src-wails/bin/prizrak-box-wails
+    dst: /usr/lib/prizrak-box/prizrak-box-wails
+    file_info: { mode: 0755 }
+  - src: src-go/px
+    dst: /usr/lib/prizrak-box/px
+    file_info: { mode: 0755 }
+  - src: src-service/px-service
+    dst: /usr/lib/prizrak-box/px-service
+    file_info: { mode: 0755 }
+  - src: build/appicon.png
+    dst: /usr/share/icons/hicolor/512x512/apps/prizrak-box.png
+  - src: src-wails/build/linux/prizrak-box.desktop
+    dst: /usr/share/applications/prizrak-box.desktop
+  - src: /usr/lib/prizrak-box/prizrak-box-wails
+    dst: /usr/bin/prizrak-box
+    type: symlink
+
+scripts:
+  postinstall: src-wails/build/linux/postinstall.sh
+
+overrides:
+  deb:
+    depends:
+      - libgtk-4-1
+      - libwebkitgtk-6.0-4
+  rpm:
+    depends:
+      - gtk4
+      - webkitgtk6.0

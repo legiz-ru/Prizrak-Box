@@ -60,8 +60,10 @@ search: 搜索节点
 drag:
   hear: 拖拽配置文件到这里导入
   size: 只允许单文件导入
+  open: 选择文件
   add: 导入中。。。
   success: 导入成功
+  error: 导入失败
 
 home:
   download: 下载
@@ -89,6 +91,7 @@ home:
     isp: 服务商
     asn: 自治域
     time-zone: 时区
+    service-tip: IP 查询由 ip-api.com 提供
   system:
     title: 系统信息
     os: 操作系统
@@ -102,22 +105,45 @@ home:
 
 setting:
   title: 设置
+  tab:
+    app: 应用设置
+    core: 内核设置
   mihomo:
     port: 端口
     port-error: 端口号必须大于0，小于65535
     dns: DNS覆写
+    dnsQuery:
+      queryTitle: DNS查询
+      query: 查询
+      noResults: 未找到记录
     lan: 局域网
     bindAddress: 监听地址
     bind-error: 错误的地址
+    independentDelayTest: 独立延迟测试
+    groupTestUrls: 分组测试URL
+    groupName: 分组名称
+    addGroupUrl: 添加
+    testUrlPlaceholder: 'https://example.com'
   px:
     auth: 授权提示
     startup: 开机自启
+    startMinimized: 启动时最小化到托盘
+    systemProxyMode: 系统代理模式
     dir: 配置目录
     open: 打开
+    change: 更改
+    change-warn: 所选目录未以"Prizrak-Box-V3"结尾，建议选择将包含Prizrak-Box-V3子文件夹的文件夹
+    change-success: 配置目录更改成功
     import: 导入
     export: 导出
     update: 软件更新
     check: 检查
+
+  shortcut:
+    title: 键盘快捷键
+    showHide: 显示/隐藏窗口
+    recording: 请按下组合键...
+    edit: 修改组合键
 
   dashboard:
     open: 打开面板
@@ -162,14 +188,39 @@ proxies:
   sort-off: 按延迟排序
   vertical-on: 切换分组为左右样式
   vertical-off: 切换分组为下拉样式
+  full-view: 切换分组为全视图样式
   direct: 当前处于直连模式
   loading: 测试中。。。
+  selected-label: 当前节点
+  smart:
+    most-used: 优先
+    occasional-used: 备用
+    rarely-used: 极少使用
+    most-used-tip: "优先连接 — 权重: {weight}"
+    occasional-used-tip: "备用连接 — 权重: {weight}"
+    rarely-used-tip: "极少使用连接 — 权重: {weight}"
+    no-data: "尚未获取连接稳定性信息"
+  test-group: 测试分组延迟
+  auto-group-no-manual-select: "该组为自动组，不允许手动选择代理。"
 
 profiles:
   title: 订阅
+  primary: 主要
   add: 添加订阅
   paste: 从剪贴板导入
   open: 从文件导入
+  multi-select:
+    enable: 启用多选
+    disable: 关闭多选
+    info: 查看说明
+    title: 多订阅选择
+    description: 多订阅是一项高级功能。
+    description-secondary: 启用多选后，不同订阅的节点可能会进入同一个规则组。
+    description-tertiary: 如果主订阅使用复杂或动态规则，可能导致流量路由不正确（例如选择了位置不合适的节点）。
+    description-warning: 建议仅在你了解组和规则如何工作时使用多订阅。
+    question: 确定要继续吗？
+    accept: 是
+    decline: 否
   available: 可用
   use: 已用
   expire: 到期时间
@@ -177,12 +228,15 @@ profiles:
   placeholder: 订阅地址、分享链接、Yaml、Base64、Json
   home: 访问订阅主页
   support: 访问支持页面
+  announce: 公告
+  announce-url: 访问链接
   del-tip: 正在使用中，不可删除
   edit:
     title: 标题
     url: 地址
     update: 更新间隔 (小时)
     template: 规则分组模版
+    pxd-subscription: "⭐ 订阅模板"
     title-tip: 标题不能为空
     url-tip: 地址不能为空
     url-error: 地址格式错误
@@ -203,6 +257,15 @@ profiles:
     cancel-import: 取消导入
     cancel-hint: 按 Esc 键取消
     import-cancelled: 配置导入已取消
+  tv-send: 发送配置到 Prizrak-Box Android TV
+  tv-dialog:
+    title: 发送配置到 Android TV
+    warning: "⚠️ 两台设备必须在同一局域网内"
+    ip: 设备 IP 地址
+    port: 端口
+    submit: 发送配置到电视
+    success: 配置已成功发送到 Android TV
+    error: 向 Prizrak-Box Android TV 设备导入配置失败
 
 rule:
   title: 规则
@@ -238,6 +301,28 @@ rule:
     title: 忽略这些域名
     tip: 按行分割
     place: 在这里输入
+  providers:
+    title: 规则提供者
+    refresh: 刷新数据
+    updateAll: 全部更新
+    update: 更新
+    updateSuccess: 已更新 {name}
+    updateAllSuccess: 所有规则提供者已更新
+    lastUpdate: 上次更新
+    ruleCount: 规则数量
+    path: 本地路径
+    never: 从未更新
+    empty: 暂无规则提供者
+    viewRules: 查看规则
+    rulesSearch: 搜索规则
+    rulesEmpty: 暂无规则
+    prevMatch: 上一个匹配
+    nextMatch: 下一个匹配
+    name: 提供者
+    ruleCountShort: 数量
+    updatedAt: 更新时间
+    viewCards: 卡片
+    viewTable: 表格
 
 connections:
   title: 连接
@@ -252,6 +337,50 @@ connections:
   copy-log: 复制日志
   dialog-title: 连接日志
   dialog-close: 关闭
+  toggleView: 切换视图模式
+  topology: 连接拓扑
+  noData: 无数据
+  pause: 暂停
+  resume: 恢复
+  list: 列表
+  active: 活跃
+  closed: 已关闭
+  topology-view: 拓扑
+  process-view: 进程
+  unknown-process: 未知
+  connections-count: '{count} 个连接'
+  back: 返回
+  section-traffic: 流量
+  section-routing: 路由
+  section-network: 网络
+  section-process: 进程
+  section-inbound: 入站
+  section-other: 其他
+  upload-speed: 上传速度
+  download-speed: 下载速度
+  duration: 时长
+  proxy-chain: 代理链
+  conn-type: 类型
+  dest-ip: 目标IP
+  source-ip: 源IP
+  source-port: 源端口
+  dest-port: 目标端口
+  remote-dest: 远程目标
+  sniff-host: 嗅探主机
+  process-label: 进程
+  process-path: 进程路径
+  inbound-ip: 入站IP
+  inbound-port: 入站端口
+  inbound-name: 入站名称
+  inbound-user: 用户
+  dns-mode: DNS模式
+  special-proxy: 特殊代理
+  special-rules: 特殊规则
+  dscp: DSCP
+  copy-value: 复制
+  open-ipinfo: 打开 ipinfo.io
+  open-in-browser: 在浏览器中打开
+  show-in-explorer: 在资源管理器中显示
 
 log:
   title: 日志
@@ -269,9 +398,10 @@ bg:
   women: 严肃
   stars: 星空
   handle: 幽灵
-  comics: 二次元
+  comics: 动漫
   game: 游戏
   random: 随机
+  rails: 铁路
   custom: 自定义图片
   upload: 上传图片
   too-large: 图片过大，请选择小于 1 MB 的文件。
@@ -284,10 +414,15 @@ tray:
   global: 全局
   direct: 直连
   profiles: 订阅
+  proxyGroups: 代理组
   dashboard: 打开面板
   proxy: 系统代理
   tun: Tun模式
   quit: 退出
+
+proxySelector:
+  group: 组
+  proxy: 代理
 
 errors:
   request-failed: 请求失败
@@ -296,3 +431,91 @@ errors:
   response-empty: 响应内容为空
   unknown-reason: 原因未知
 
+service:
+  dialog-title: TUN 模式
+  dialog-message: TUN 模式需要管理员权限
+  dialog-description: 您可以安装一个服务，让 TUN 模式无需以管理员身份运行应用程序即可工作。安装服务需要一次性的管理员确认。
+  dialog-restart-admin: 如果想在不安装服务的情况下启用 TUN，请以管理员权限重启应用。
+  admin-title: TUN 模式
+  admin-message: 应用已以管理员权限运行
+  admin-description: 您可以直接启动 TUN，或安装服务以便以后无需管理员权限即可使用。
+  admin-run-btn: 启动 TUN
+  admin-install-btn: 安装服务
+  install-btn: 安装服务
+  installing: 正在安装服务...
+  install-success: 服务安装成功
+  install-failed: 服务安装失败
+  uninstall-btn: 卸载服务
+  uninstalling: 正在卸载服务...
+  uninstall-success: 服务卸载成功
+  uninstall-failed: 服务卸载失败
+  restart-required: 请重启应用程序以应用更改
+  status-running: 服务运行中
+  status-stopped: 服务已停止
+  status-not-installed: 服务未安装
+  status-no-admin: 无管理员权限运行
+  check-status: 检查服务状态
+  mode: 服务模式
+  mode-description: 允许无需管理员权限使用 TUN 模式
+
+onboarding:
+  service-setup:
+    title: 服务设置
+    description: 安装服务后，您可以在无需持续请求管理员权限的情况下使用 TUN 模式
+    install-btn: 安装服务
+    skip-btn: 跳过
+    installing: 正在安装服务...
+    install-success: 服务安装成功
+    install-warning: 服务安装失败。您可以在不安装的情况下继续。
+  welcome:
+    title: 欢迎！
+    subtitle: 添加您的第一个配置以开始使用
+    add-profile: 添加配置
+  active-profile:
+    current-profile: "当前配置："
+    switch-profiles: 切换配置
+    refresh-profile: 刷新配置
+    add-from-clipboard: 从剪贴板添加
+    clipboard-empty: 剪贴板为空
+    stats:
+      used: 已用
+      available: 可用
+      expire: 到期时间
+      update: 更新时间
+  first-profile-info:
+    title: 信息
+    message: 现在您可以启用代理模式或网络适配器模式（TUN）
+    ok: 确定
+hwid:
+  not-supported:
+    title: 不支持 HWID
+    message: 要添加此配置文件，需要在应用设置中启用 HWID 发送功能。启用后，您可以重新添加此配置文件。
+    go-settings: 前往设置
+  max-devices:
+    title: 设备数量已达上限
+    message: 此订阅的设备数量已达到最大限制，配置文件未被添加。
+    support: 联系支持
+  active:
+    tooltip: 该配置文件使用 HWID 发送
+
+age:
+  keypair:
+    title: Age 密钥生成器
+    algorithm: 算法
+    publicKey: 公钥
+    secretKey: 私钥
+    generate: 生成
+    regenerate: 重新生成
+    copy: 复制
+    copied: 已复制
+    generating: 生成中...
+  settings:
+    label: Age 私钥
+    generateBtn: 生成
+  profile:
+    toggleOff: 为此配置文件指定 age-secret-key（如说明中有要求）
+    toggleOn: 添加配置文件时不使用 age-secret-key
+    keyPlaceholder: AGE-SECRET-KEY-1...
+  file:
+    title: 输入 age-secret-key
+    hint: 请提供私钥以解密 .age 文件

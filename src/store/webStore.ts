@@ -39,6 +39,9 @@ export const useWebStore = defineStore('web', {
             // 在头部添加新日志
             this.logs.unshift(log);
         },
+        clearLogs() {
+            this.logs = [];
+        },
         addCustomDashboard(dashboard: CustomDashboard) {
             this.customDashboards.push(dashboard);
         },

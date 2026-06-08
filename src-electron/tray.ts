@@ -8,6 +8,56 @@ import {disableAutoLaunch, enableAutoLaunch} from "./launch";
 // 是否在开发模式
 const isDev = !app.isPackaged;
 
+// Matches flag pairs AND all emoji blocks up to U+1FAFF (includes 🪢🪆🥷 etc.)
+const EMOJI_REGEX = /[\u{1F1E6}-\u{1F1FF}]{2}|[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u;
+const EMOJI_REGEX_GLOBAL = /[\u{1F1E6}-\u{1F1FF}]{2}|[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
+
+function extractEmoji(text: string): string | null {
+    const match = text.match(EMOJI_REGEX);
+    return match ? match[0] : null;
+}
+
+// Returns all emoji in the text concatenated, e.g. "🇨🇭🇩🇪 Twisted" → "🇨🇭🇩🇪"
+function extractAllEmoji(text: string): string {
+    const matches = text.match(EMOJI_REGEX_GLOBAL);
+    return matches ? matches.join('') : '';
+}
+
+function removeEmoji(text: string): string {
+    return text.replace(EMOJI_REGEX_GLOBAL, '').trim();
+}
+
+// Cache for emoji icons
+const emojiIconCache = new Map();
+
+// Renders emoji via Chromium canvas in the renderer window — no CDN required.
+// System emoji fonts (Apple Color Emoji / Segoe UI Emoji / Noto Color Emoji) are
+// used automatically by Chromium, so all Unicode emoji including U+1FA00–U+1FAFF render.
+async function createEmojiIcon(emoji: string): Promise<any> {
+    if (emojiIconCache.has(emoji)) {
+        return emojiIconCache.get(emoji);
+    }
+    try {
+        if (!mainWindow || mainWindow.isDestroyed()) return null;
+        const dataUrl: string | null = await mainWindow.webContents.executeJavaScript(
+            `typeof window.pxDrawEmoji === 'function' ? window.pxDrawEmoji(${JSON.stringify(emoji)}) : null`
+        );
+        if (!dataUrl) return null;
+        const base64 = dataUrl.replace(/^data:image\/png;base64,/, '');
+        const raw = nativeImage.createFromBuffer(Buffer.from(base64, 'base64'));
+        const { width, height } = raw.getSize();
+        // Preserve aspect ratio: composite of N emoji is N×64 wide, 64 tall → N×16 × 16
+        const iconH = 16;
+        const iconW = Math.max(16, Math.round(width / height * iconH));
+        const icon = raw.resize({ width: iconW, height: iconH });
+        emojiIconCache.set(emoji, icon);
+        return icon;
+    } catch (e) {
+        console.error('Failed to create emoji icon:', e);
+        return null;
+    }
+}
+
 // 托盘
 let tray: Tray;
 // 托盘菜单
@@ -122,7 +172,17 @@ function switchProfiles(menuItem, profile) {
         menuItem.checked = true
         return
     }
-    emitWindow("switchProfiles", profile);
+    emitWindow("switchProfiles", {
+        profile,
+        selected: menuItem.checked,
+        exclusive: false
+    });
+}
+
+// Switch proxy in a group
+function switchProxyInGroup(menuItem, groupName, proxyName) {
+    // Always emit the event to switch proxy, Electron will handle checkbox state
+    emitWindow("switchProxyInGroup", {group: groupName, proxy: proxyName});
 }
 
 const trayMap: Map<any, any> = new Map();
@@ -154,6 +214,7 @@ trayMap.set('tray.direct', {
     click: (menuItem) => switchMode(menuItem, 'direct')
 });
 trayMap.set('tray.profiles', {id: 'tray.profiles', label: '订阅', submenu: []});
+trayMap.set('tray.proxyGroups', {id: 'tray.proxyGroups', label: 'Proxy Groups', submenu: []});
 trayMap.set('tray.dashboard', {
     id: 'tray.dashboard',
     label: 'Open Dashboard',
@@ -183,7 +244,8 @@ const createTrayMenu = () => [
     trayMap.get('tray.global'),
     trayMap.get('tray.direct'),
     {type: 'separator'},
-    trayMap.get('tray.profiles'),
+    // Profile selection from the tray is intentionally disabled.
+    trayMap.get('tray.proxyGroups'),
     trayMap.get('tray.dashboard'),
     {type: 'separator'},
     trayMap.get('tray.proxy'),
@@ -194,6 +256,18 @@ const createTrayMenu = () => [
 
 // 初始化托盘菜单
 currentMenu = Menu.buildFromTemplate(createTrayMenu());
+
+// Resolves the path to a file from the public/ directory.
+// In dev mode: <project_root>/public/<filename>
+// In packaged app: <app.asar>/.vite/renderer/px_window/<filename>
+// This fixes the bug where path.join(__dirname, filename) pointed to
+// .vite/build/ which does NOT contain public/ assets.
+function getTrayIconPath(filename: string): string {
+    if (isDev) {
+        return path.join(app.getAppPath(), 'public', filename);
+    }
+    return path.join(app.getAppPath(), '.vite', 'renderer', 'px_window', filename);
+}
 
 // 初始化托盘
 export function initTray(browserWindow: BrowserWindow): void {
@@ -216,9 +290,13 @@ export function initTray(browserWindow: BrowserWindow): void {
     // 初始化tray
     let trayImage: any;
     if (process.platform === 'darwin') {
-        trayImage = nativeImage.createFromPath(path.join(__dirname, 'tray.png')).resize({width: 16, height: 16});
+        // macOS: use monochrome template PNG (black on transparent) so the system
+        // automatically adapts it to light/dark menu bar.
+        // Electron auto-picks tray-macos@2x.png on Retina displays.
+        trayImage = nativeImage.createFromPath(getTrayIconPath('tray-macos.png'));
+        trayImage.setTemplateImage(true);
     } else {
-        trayImage = nativeImage.createFromPath(path.join(__dirname, 'tray.png')).resize({width: 32, height: 32});
+        trayImage = nativeImage.createFromPath(getTrayIconPath('tray.png')).resize({width: 32, height: 32});
     }
     tray = new Tray(trayImage);
     tray.setToolTip('Prizrak-Box');
@@ -323,6 +401,59 @@ onWindow("dashboards", function (dashboards) {
     const menuItem = trayMap.get(key);
     menuItem.submenu = items;
     menuItem.enabled = items.length > 0;
+    currentMenu = Menu.buildFromTemplate(createTrayMenu());
+    tray.setContextMenu(currentMenu);
+})
+
+onWindow("proxyGroups", async function (proxyGroups) {
+    const key = 'tray.proxyGroups';
+    const groupMenus: any[] = [];
+
+    if (Array.isArray(proxyGroups) && proxyGroups.length > 0) {
+        for (const group of proxyGroups) {
+            if (!group || !group.name || !Array.isArray(group.proxies) || group.proxies.length === 0) {
+                continue;
+            }
+
+            // Create all proxy items with icons loaded in parallel
+            const proxyItems = await Promise.all(group.proxies.map(async (proxy) => {
+                const menuItem: any = {
+                    label: proxy.name,
+                    type: 'radio',
+                    checked: proxy.now || false,
+                    click: (menuItem) => switchProxyInGroup(menuItem, group.name, proxy.name)
+                };
+
+                // If emoji found, create icon from it and remove emoji from label
+                const emoji = extractAllEmoji(proxy.name);
+                if (emoji) {
+                    const icon = await createEmojiIcon(emoji);
+                    if (icon) {
+                        menuItem.icon = icon;
+                        menuItem.label = removeEmoji(proxy.name);
+                    }
+                }
+
+                return menuItem;
+            }));
+
+            const groupItem: any = {
+                label: group.name,
+                submenu: proxyItems,
+            };
+            const groupEmoji = extractAllEmoji(group.name);
+            if (groupEmoji) {
+                const groupIcon = await createEmojiIcon(groupEmoji);
+                if (groupIcon) {
+                    groupItem.icon = groupIcon;
+                    groupItem.label = removeEmoji(group.name);
+                }
+            }
+            groupMenus.push(groupItem);
+        }
+    }
+
+    trayMap.get(key).submenu = groupMenus;
     currentMenu = Menu.buildFromTemplate(createTrayMenu());
     tray.setContextMenu(currentMenu);
 })

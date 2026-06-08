@@ -1,14 +1,178 @@
 name: Release App
 
+run-name: Release App ${{ inputs.version || github.ref_name }}
+
 on:
-  push:
-    tags:
-      - 'v*'
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v1.0.21)'
+        type: string
+        required: true
+      prerelease:
+        description: 'Mark as pre-release'
+        type: boolean
+        default: false
+      build_windows:
+        description: 'Build Windows'
+        type: boolean
+        default: true
+      build_macos:
+        description: 'Build macOS'
+        type: boolean
+        default: true
+      build_linux:
+        description: 'Build Linux'
+        type: boolean
+        default: true
+      build_android:
+        description: 'Build Android'
+        type: boolean
+        default: true
 
 jobs:
+  # ── Setup: determine version, create tag + release on workflow_dispatch ──
+  setup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create tag and GitHub release (workflow_dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ inputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Create tag if it doesn't exist yet
+          git tag "$VERSION" || true
+          git push origin "$VERSION" || true
+          # Create release (ignore error if already exists)
+          gh release create "$VERSION" \
+            --title "$VERSION" \
+            ${{ inputs.prerelease == true && '--prerelease' || '' }} \
+            --notes "" || true
+
+  # ── Android ──
+  build_android:
+    needs: [setup]
+    if: github.event_name == 'release' || inputs.build_android == true
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Checkout Prizrak-Box
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout ClashMetaForAndroid (prizrak branch)
+        uses: actions/checkout@v4
+        with:
+          repository: legiz-ru/ClashMetaForAndroid
+          ref: prizrak
+          path: ClashMetaForAndroid
+          fetch-depth: 0
+
+      - name: Set Up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set Up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.26'
+          check-latest: true
+
+      - name: Setup Go Modules
+        working-directory: ClashMetaForAndroid
+        run: |
+          set -e
+          sudo apt-get install -y ca-certificates
+          sudo update-ca-certificates
+          cd core/src/foss/golang
+          go mod download
+          go mod tidy
+
+      - name: Setup Signing
+        working-directory: ClashMetaForAndroid
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          set -e
+          echo "$KEYSTORE_BASE64" | base64 -d > release.keystore
+          cat > signing.properties << EOF
+          keystore.password=${SIGNING_STORE_PASSWORD}
+          key.alias=${SIGNING_KEY_ALIAS}
+          key.password=${SIGNING_KEY_PASSWORD}
+          EOF
+
+      - name: Build APKs
+        working-directory: ClashMetaForAndroid
+        run: ./gradlew --no-daemon app:assembleMetaRelease
+
+      - name: Rename APKs
+        run: |
+          find ClashMetaForAndroid/app/build/outputs/apk -name "*.apk" | while read f; do
+            name=$(basename "$f")
+            case "$name" in
+              *universal*) dest="prizrak-box-android-universal.apk" ;;
+              *arm64-v8a*) dest="prizrak-box-android-arm64-v8a.apk" ;;
+              *armeabi-v7a*) dest="prizrak-box-android-armeabi-v7a.apk" ;;
+              *x86_64*) dest="prizrak-box-android-x86_64.apk" ;;
+              *x86*) dest="prizrak-box-android-x86.apk" ;;
+              *) continue ;;
+            esac
+            cp "$f" "$dest"
+          done
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: prizrak-box-android-*.apk
+
+      - name: Cancel workflow on failure
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+
+  # ── Windows ──
   build_windows:
+    needs: [setup]
+    if: github.event_name == 'release' || inputs.build_windows == true
     runs-on: windows-latest
+    permissions:
+      actions: write
+      contents: read
     strategy:
+      fail-fast: true
       matrix:
         arch: [amd64, arm64]
     steps:
@@ -20,18 +184,18 @@ jobs:
       - name: Set Up Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: 'latest'
+          node-version: '22'
 
       - name: Install Frontend Dependencies
         run: npm install
 
-      - name: Install Makers
-        run: npm install --save-dev @electron-forge/maker-squirrel @electron-forge/maker-wix @electron-forge/maker-deb @electron-forge/maker-rpm @electron-forge/maker-zip
-
       - name: Set Up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25'
+          go-version: '1.26'
+          cache-dependency-path: |
+            src-go/go.sum
+            src-service/go.sum
 
       - name: Install Backend Dependencies
         shell: pwsh
@@ -39,18 +203,33 @@ jobs:
           cd src-go
           go mod tidy
 
+      - name: Get Latest LightGBM Model Mihomo Smart
+        shell: pwsh
+        run: |
+          $headers = @{ Authorization = "token ${{ secrets.GITHUB_TOKEN }}" }
+          for ($i = 1; $i -le 4; $i++) {
+            try { Invoke-WebRequest -Uri https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin -Headers $headers -OutFile src-go/internal/em/Model.bin; break }
+            catch { if ($i -eq 4) { throw }; Write-Host "Attempt $i failed, retrying in 5s..."; Start-Sleep 5 }
+          }
+
       - name: Download Geo Files
         shell: pwsh
         run: |
-          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb -OutFile src-go/internal/em/geoip.metadb
-          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat -OutFile src-go/internal/em/GeoSite.dat
-          Invoke-WebRequest -Uri https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb -OutFile src-go/internal/em/GeoLite2-ASN.mmdb
+          function Fetch($uri, $out) {
+            $headers = @{ Authorization = "token ${{ secrets.GITHUB_TOKEN }}" }
+            for ($i = 1; $i -le 4; $i++) {
+              try { Invoke-WebRequest -Uri $uri -Headers $headers -OutFile $out; return }
+              catch { if ($i -eq 4) { throw }; Write-Host "Attempt $i failed, retrying in 5s..."; Start-Sleep 5 }
+            }
+          }
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb" "src-go/internal/em/geoip.metadb"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat" "src-go/internal/em/GeoSite.dat"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z" "src-go/internal/em/BundleMRS.7z"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb" "src-go/internal/em/GeoLite2-ASN.mmdb"
 
-      - name: Get Tag Version
+      - name: Set Version
         shell: bash
-        run: |
-          VERSION=$(git describe --tags --abbrev=0)
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+        run: echo "VERSION=${{ needs.setup.outputs.version }}" >> $GITHUB_ENV
 
       - name: Build Backend for ${{ matrix.arch }}
         shell: pwsh
@@ -63,10 +242,32 @@ jobs:
             -ldflags "-s -w -X github.com/legiz-ru/prizrak-box/api.Version=$env:VERSION" `
             -o px.exe
 
+      - name: Build px-service for ${{ matrix.arch }}
+        shell: pwsh
+        env:
+          CGO_ENABLED: 0
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          cd src-service
+          go mod download
+          go build -ldflags "-s -w" -o px-service.exe .
+
       - name: Sync VERSION to package.json
         run: node build/sync-version.js
 
-      - name: Build Frontend for ${{ matrix.arch }}
+      - name: Install WiX Toolset
+        shell: pwsh
+        run: |
+          Write-Host "Downloading WiX Toolset..."
+          Invoke-WebRequest -Uri "https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip" -OutFile "wix.zip"
+          Write-Host "Extracting WiX Toolset..."
+          Expand-Archive -Path "wix.zip" -DestinationPath "C:\wix" -Force
+          Write-Host "Adding WiX to PATH..."
+          echo "C:\wix" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          Write-Host "Verifying WiX installation..."
+          & "C:\wix\candle.exe" -? | Select-Object -First 1
+
+      - name: Build Frontend (Package Only)
         shell: pwsh
         run: |
           $arch = "${{ matrix.arch }}"
@@ -75,54 +276,87 @@ jobs:
           }
           npm dedupe
           npm prune
-          npx electron-forge make --arch=$arch
+          npx electron-forge package --arch=$arch
+
+      - name: Build Custom MSI Installer
+        shell: pwsh
+        env:
+          ARCH: ${{ matrix.arch == 'amd64' && 'x64' || matrix.arch }}
+        run: |
+          $env:PATH = "C:\wix;$env:PATH"
+          Write-Host "Verifying WiX is accessible..."
+          candle.exe -? | Select-Object -First 1
+          Write-Host "Building custom MSI installer..."
+          node installer/build-msi.js
 
       - name: Prepare Release Assets
         shell: pwsh
         run: |
           $arch = "${{ matrix.arch }}"
           $electronArch = if ($arch -eq "amd64") { "x64" } else { $arch }
-          
-          # --- Portable Zip ---
-          $portableDir = Get-ChildItem -Path "out" -Directory | Where-Object { $_.Name -like "Prizrak-Box*" } | Select-Object -First 1
+
+          if (-not (Test-Path "out")) {
+              Write-Error "out directory is missing after build"
+              exit 1
+          }
+
+          $portableDir = Get-ChildItem -Path "out" -Directory | Where-Object { $_.Name -like "Prizrak-Box-win32-*" } | Select-Object -First 1
           if ($portableDir) {
-              Compress-Archive -Path "$($portableDir.FullName)\*" -DestinationPath "windows-${arch}.zip"
+              Write-Host "Creating portable ZIP from: $($portableDir.FullName)"
+              Compress-Archive -Path "$($portableDir.FullName)\*" -DestinationPath "windows-${arch}.zip" -Force
           } else {
               Write-Error "Portable directory not found"
+              Get-ChildItem -Path "out" -Recurse -Directory | ForEach-Object { Write-Host "  Dir: $($_.FullName)" }
               exit 1
           }
-          
-          # --- MSI Installer ---
-          $msiFile = Get-ChildItem -Path "out\make\wix\$electronArch" -Filter "*.msi" | Select-Object -First 1
-          if ($msiFile) {
-              Copy-Item -Path $msiFile.FullName -Destination "windows-${arch}.msi"
+
+          $msiSourceName = "windows-${electronArch}.msi"
+          $msiSourcePath = "out\msi\$electronArch\$msiSourceName"
+          if (Test-Path $msiSourcePath) {
+              Write-Host "Found MSI: $msiSourcePath"
+              Copy-Item -Path $msiSourcePath -Destination "windows-${arch}.msi" -Force
           } else {
-              Write-Error "MSI file not found in out\make\wix\$electronArch"
-              exit 1
+              $msiFallback = Get-ChildItem -Path "out" -Recurse -Filter "*.msi" | Where-Object {
+                  $_.FullName -match "(\\|/)($electronArch|$arch)(\\|/)" -or $_.Name -match "[-_]($electronArch|$arch)\.msi$"
+              } | Select-Object -First 1
+
+              if (-not $msiFallback) {
+                  $msiFallback = Get-ChildItem -Path "out" -Recurse -Filter "*.msi" | Select-Object -First 1
+              }
+
+              if ($msiFallback) {
+                  Write-Host "Using fallback MSI: $($msiFallback.FullName)"
+                  Copy-Item -Path $msiFallback.FullName -Destination "windows-${arch}.msi" -Force
+              } else {
+                  Write-Error "MSI file not found. Expected: $msiSourcePath"
+                  Get-ChildItem -Path "out" -Recurse -Directory | ForEach-Object { Write-Host "  Dir: $($_.FullName)" }
+                  exit 1
+              }
           }
-          
-          # --- Squirrel.Windows Assets (FIXED LOGIC) ---
-          $squirrelDir = "out\make\squirrel.windows\$electronArch"
-          
-          # 1. Find the actual Setup.exe installer file
-          $installerFile = Get-ChildItem -Path $squirrelDir -Filter "*Setup.exe" | Select-Object -First 1
-          if ($installerFile) {
-              Copy-Item -Path $installerFile.FullName -Destination "windows-${arch}-Setup.exe"
-          } else {
-              Write-Error "Squirrel.Windows installer (*Setup.exe) file not found in $squirrelDir. Ensure the Squirrel maker ran successfully."
-              exit 1
+
+      - name: Validate Release Assets
+        shell: pwsh
+        run: |
+          $arch = "${{ matrix.arch }}"
+          $expected = @(
+            "windows-${arch}.zip",
+            "windows-${arch}.msi"
+          )
+
+          $missing = @()
+          foreach ($file in $expected) {
+            if (-not (Test-Path $file)) {
+              $missing += $file
+            }
           }
-          
-          # 2. Copy RELEASES file (required for Squirrel auto-update)
-          Copy-Item -Path "$squirrelDir\RELEASES" -Destination "RELEASES" -Force
-          
-          # 3. Find the full nupkg file
-          $nupkgFile = Get-ChildItem -Path $squirrelDir -Filter "*-full.nupkg" | Select-Object -First 1
-          if ($nupkgFile) {
-              Copy-Item -Path $nupkgFile.FullName -Destination "windows-${arch}-full.nupkg"
-          } else {
-              Write-Error "Squirrel.Windows NUPKG file (*-full.nupkg) not found in $squirrelDir."
-              exit 1
+
+          if ($missing.Count -gt 0) {
+            Write-Error "Missing Windows artifacts: $($missing -join ', ')"
+            if (Test-Path "out") {
+              Get-ChildItem -Path "out" -Recurse -File | ForEach-Object { Write-Host "  Out file: $($_.FullName)" }
+            }
+            Get-ChildItem -Path "." -File | ForEach-Object { Write-Host "  Root file: $($_.Name)" }
+            exit 1
           }
 
       - name: Upload Artifacts
@@ -132,13 +366,24 @@ jobs:
           path: |
             windows-${{ matrix.arch }}.zip
             windows-${{ matrix.arch }}.msi
-            windows-${{ matrix.arch }}-Setup.exe
-            RELEASES
-            windows-${{ matrix.arch }}-full.nupkg
 
+      - name: Cancel workflow on failure
+        if: ${{ failure() }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+
+  # ── Linux ──
   build_linux:
+    needs: [setup]
+    if: github.event_name == 'release' || inputs.build_linux == true
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
     strategy:
+      fail-fast: true
       matrix:
         arch: [amd64, arm64]
     steps:
@@ -150,13 +395,10 @@ jobs:
       - name: Set Up Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: 'latest'
+          node-version: '22'
 
       - name: Install Frontend Dependencies
         run: npm install
-
-      - name: Install Makers
-        run: npm install --save-dev @electron-forge/maker-squirrel @electron-forge/maker-wix @electron-forge/maker-deb @electron-forge/maker-rpm @electron-forge/maker-zip
 
       - name: Install packaging tools
         run: sudo apt-get update && sudo apt-get install -y libarchive-tools
@@ -164,24 +406,29 @@ jobs:
       - name: Set Up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25'
+          go-version: '1.26'
+          cache-dependency-path: |
+            src-go/go.sum
+            src-service/go.sum
 
       - name: Install Backend Dependencies
         run: |
           cd src-go
           go mod tidy
 
+      - name: Get Latest LightGBM Model Mihomo Smart
+        run: |
+          wget -O src-go/internal/em/Model.bin --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
+
       - name: Get Latest Geo Data
         run: |
-          wget -O src-go/internal/em/geoip.metadb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
-          wget -O src-go/internal/em/GeoSite.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
-          wget -O src-go/internal/em/GeoLite2-ASN.mmdb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
+          wget -O src-go/internal/em/geoip.metadb    --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
+          wget -O src-go/internal/em/GeoSite.dat      --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          wget -O src-go/internal/em/BundleMRS.7z      --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
+          wget -O src-go/internal/em/GeoLite2-ASN.mmdb --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
 
-      - name: Get Tag Version
-        shell: bash
-        run: |
-          VERSION=$(git describe --tags --abbrev=0)
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+      - name: Set Version
+        run: echo "VERSION=${{ needs.setup.outputs.version }}" >> $GITHUB_ENV
 
       - name: Build Backend for ${{ matrix.arch }}
         env:
@@ -192,6 +439,15 @@ jobs:
           go build -tags=with_gvisor -trimpath \
             -ldflags "-s -w -X github.com/legiz-ru/prizrak-box/api.Version=${{ env.VERSION }}" \
             -o px
+
+      - name: Build px-service for ${{ matrix.arch }}
+        env:
+          CGO_ENABLED: 0
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          cd src-service
+          go mod download
+          go build -ldflags "-s -w" -o px-service .
 
       - name: Sync VERSION to package.json
         run: node build/sync-version.js
@@ -208,18 +464,89 @@ jobs:
 
       - name: Prepare Release Assets
         run: |
+          set -e
           arch="${{ matrix.arch }}"
           electron_arch="$arch"
           if [ "$arch" = "amd64" ]; then
             electron_arch="x64"
           fi
-          find out/make/deb/$electron_arch -name "*.deb" -exec mv {} linux-${arch}.deb \;
-          find out/make/rpm/$electron_arch -name "*.rpm" -exec mv {} linux-${arch}.rpm \;
+
+          if [ ! -d out ]; then
+            echo "out directory is missing after make" >&2
+            exit 1
+          fi
+
+          if [ ! -d out/make ]; then
+            echo "out/make is missing after make" >&2
+            find out -maxdepth 4 -print
+            exit 1
+          fi
+
+          pick_package() {
+            package_ext="$1"
+            selected=""
+
+            while IFS= read -r candidate; do
+              if [ -z "$selected" ]; then
+                selected="$candidate"
+              fi
+
+              case "$candidate" in
+                *"/$electron_arch/"*|*"-$electron_arch."*|*"_$electron_arch."*|*"/$arch/"*|*"-$arch."*|*"_$arch."*)
+                  selected="$candidate"
+                  break
+                  ;;
+              esac
+            done < <(find out/make -type f -name "*.${package_ext}")
+
+            printf '%s' "$selected"
+          }
+
+          deb_source="$(pick_package deb)"
+          if [ -n "$deb_source" ]; then
+            mv "$deb_source" "linux-${arch}.deb"
+          else
+            echo "No .deb package found under out/make"
+            find out -maxdepth 4 -type d
+            exit 1
+          fi
+
+          rpm_source="$(pick_package rpm)"
+          if [ -n "$rpm_source" ]; then
+            mv "$rpm_source" "linux-${arch}.rpm"
+          else
+            echo "No .rpm package found under out/make"
+            find out -maxdepth 4 -type d
+            exit 1
+          fi
+
           if [ -f "linux-${arch}.rpm" ]; then
             aur_root=$(mktemp -d)
             bsdtar -xf "linux-${arch}.rpm" -C "$aur_root"
             tar --zstd -cf "linux-${arch}-aur.tar.zst" -C "$aur_root" usr
             rm -rf "$aur_root"
+          fi
+
+      - name: Validate Release Assets
+        run: |
+          set -e
+          arch="${{ matrix.arch }}"
+          missing=0
+          for file in "linux-${arch}.deb" "linux-${arch}.rpm" "linux-${arch}-aur.tar.zst"; do
+            if [ ! -f "$file" ]; then
+              echo "Missing Linux artifact: $file" >&2
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            if [ -d out ]; then
+              echo "===== out tree (depth 5) ====="
+              find out -maxdepth 5 -print
+            fi
+            echo "===== repo root files ====="
+            find . -maxdepth 1 -type f -print
+            exit 1
           fi
 
       - name: Upload Artifacts
@@ -231,9 +558,22 @@ jobs:
             linux-${{ matrix.arch }}.rpm
             linux-${{ matrix.arch }}-aur.tar.zst
 
+      - name: Cancel workflow on failure
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+
+  # ── macOS ──
   build_macos:
+    needs: [setup]
+    if: github.event_name == 'release' || inputs.build_macos == true
     runs-on: macos-latest
+    permissions:
+      actions: write
+      contents: read
     strategy:
+      fail-fast: true
       matrix:
         arch: [amd64, arm64]
     env:
@@ -250,35 +590,37 @@ jobs:
       - name: Set Up Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: 'latest'
+          node-version: '22'
 
       - name: Install Frontend Dependencies
         run: npm install
 
-      - name: Install Makers
-        run: npm install --save-dev @electron-forge/maker-squirrel @electron-forge/maker-wix @electron-forge/maker-deb @electron-forge/maker-rpm @electron-forge/maker-zip
-
       - name: Set Up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25'
+          go-version: '1.26'
+          cache-dependency-path: |
+            src-go/go.sum
+            src-service/go.sum
 
       - name: Install Backend Dependencies
         run: |
           cd src-go
           go mod tidy
 
+      - name: Get Latest LightGBM Model Mihomo Smart
+        run: |
+          wget -O src-go/internal/em/Model.bin --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
+
       - name: Get Latest Geo Data
         run: |
-          wget -O src-go/internal/em/geoip.metadb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
-          wget -O src-go/internal/em/GeoSite.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
-          wget -O src-go/internal/em/GeoLite2-ASN.mmdb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
+          wget -O src-go/internal/em/geoip.metadb    --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
+          wget -O src-go/internal/em/GeoSite.dat      --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          wget -O src-go/internal/em/BundleMRS.7z      --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
+          wget -O src-go/internal/em/GeoLite2-ASN.mmdb --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
 
-      - name: Get Tag Version
-        shell: bash
-        run: |
-          VERSION=$(git describe --tags --abbrev=0)
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+      - name: Set Version
+        run: echo "VERSION=${{ needs.setup.outputs.version }}" >> $GITHUB_ENV
 
       - name: Configure Code Signing
         env:
@@ -319,6 +661,22 @@ jobs:
             -ldflags "-s -w -X github.com/legiz-ru/prizrak-box/api.Version=${{ env.VERSION }}" \
             -o px
 
+      - name: Build px-service for ${{ matrix.arch }}
+        env:
+          CGO_ENABLED: 0
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          cd src-service
+          go mod download
+          go build -ldflags "-s -w" -o px-service .
+
+      - name: Sign Go Binaries
+        run: |
+          codesign --force --sign "$CODESIGN_IDENTITY" --options runtime --timestamp src-go/px
+          codesign --force --sign "$CODESIGN_IDENTITY" --options runtime --timestamp src-service/px-service
+          codesign --verify --verbose src-go/px
+          codesign --verify --verbose src-service/px-service
+
       - name: Sync VERSION to package.json
         run: node build/sync-version.js
 
@@ -327,28 +685,137 @@ jobs:
           arch="${{ matrix.arch }}"
           if [ "$arch" = "amd64" ]; then
             arch="x64"
-            npm install electron@25
           fi
           npm dedupe
           npm prune
           npm run make -- --arch=$arch
 
+      - name: Diagnose make output
+        if: ${{ always() }}
+        run: |
+          echo "===== electron-forge package versions ====="
+          npm ls --depth=0 2>/dev/null | grep -E "@electron-forge|^Prizrak-Box" || true
+          echo
+          echo "===== @electron-forge/* in node_modules ====="
+          ls node_modules/@electron-forge/ 2>/dev/null || echo "(@electron-forge dir missing)"
+          echo
+          echo "===== resolved versions for core/maker-base/maker-dmg/maker-zip ====="
+          for pkg in @electron-forge/core @electron-forge/maker-base @electron-forge/maker-dmg @electron-forge/maker-zip; do
+            v=$(node -p "try { require('${pkg}/package.json').version } catch(e) { 'NOT INSTALLED' }" 2>/dev/null)
+            printf "%-35s %s\n" "$pkg" "$v"
+          done
+          echo
+          echo "===== out/ tree (depth 4) ====="
+          if [ -d out ]; then
+            find out -maxdepth 4 -print
+          else
+            echo "(out/ does not exist)"
+          fi
+
       - name: Compress Executable
         run: |
-          cd out/make
-          zip -r ../../macos-${{ matrix.arch }}.zip .
+          set -e
+          arch="${{ matrix.arch }}"
+
+          if [ ! -d out ]; then
+            echo "out directory is missing after make" >&2
+            exit 1
+          fi
+
+          zip_source=""
+          if [ -d out/make ]; then
+            zip_source="out/make"
+          else
+            app_dir=$(find out -maxdepth 1 -type d -name "Prizrak-Box-darwin-*" | head -1)
+            if [ -n "$app_dir" ]; then
+              zip_source="$app_dir"
+            fi
+          fi
+
+          if [ -z "$zip_source" ]; then
+            echo "No suitable directory found to create macos-${arch}.zip" >&2
+            find out -maxdepth 4 -print
+            exit 1
+          fi
+
+          zip -r "macos-${arch}.zip" "$zip_source"
+
+      - name: Extract DMG from ZIP
+        run: |
+          set -e
+          arch="${{ matrix.arch }}"
+
+          dmg=$(find out -type f -name "*.dmg" | head -1)
+          if [ -z "$dmg" ]; then
+            rm -rf zip-extract
+            mkdir zip-extract
+            unzip -q "macos-${arch}.zip" -d zip-extract
+            dmg=$(find zip-extract -type f -name "*.dmg" | head -1)
+          fi
+
+          if [ -z "$dmg" ]; then
+            echo "No DMG found in out/ or macos-${arch}.zip" >&2
+            if [ -d out ]; then
+              find out -maxdepth 4 -print
+            fi
+            if [ -d zip-extract ]; then
+              find zip-extract -maxdepth 4 -print
+            fi
+            exit 1
+          fi
+          mv "$dmg" "macos-${arch}.dmg"
+          rm -rf zip-extract
+
+      - name: Validate Release Assets
+        run: |
+          set -e
+          arch="${{ matrix.arch }}"
+          missing=0
+          for file in "macos-${arch}.zip" "macos-${arch}.dmg"; do
+            if [ ! -f "$file" ]; then
+              echo "Missing macOS artifact: $file" >&2
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            if [ -d out ]; then
+              echo "===== out tree (depth 5) ====="
+              find out -maxdepth 5 -print
+            fi
+            echo "===== repo root files ====="
+            find . -maxdepth 1 -type f -print
+            exit 1
+          fi
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macos-${{ matrix.arch }}
-          path: macos-${{ matrix.arch }}.zip
+          path: |
+            macos-${{ matrix.arch }}.zip
+            macos-${{ matrix.arch }}.dmg
 
+      - name: Cancel workflow on failure
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+
+  # ── AUR ──
   publish_aur:
     name: Publish to AUR
+    needs: [setup, build_linux]
+    # Run only if Linux was built (or not skipped) and succeeded
+    if: |
+      always() && !cancelled() &&
+      needs.setup.result == 'success' &&
+      needs.build_linux.result == 'success'
     runs-on: ubuntu-latest
-    needs: build_linux
     environment: aur
+    permissions:
+      actions: write
+      contents: read
 
     steps:
       - name: Download Linux artifacts
@@ -371,12 +838,10 @@ jobs:
 
       - name: Generate AUR files (.SRCINFO, PKGBUILD, prizrak-box.sh)
         run: |
-          # --- version handling ---
-          TAG="${GITHUB_REF_NAME}"               # e.g. v1.0.20-alpha3
-          PKGVER_RAW="${TAG#v}"                    # 1.0.20-alpha2
-          PKGVER="${PKGVER_RAW//-/_}"              # 1.0.20_alpha2 (AUR-compliant)
+          TAG="${{ needs.setup.outputs.version }}"
+          PKGVER_RAW="${TAG#v}"
+          PKGVER="${PKGVER_RAW//-/_}"
 
-          # --- launcher script (from pandora template, renamed to prizrak-box) ---
           cat > prizrak-box.sh << 'EOSH'
           #!/bin/bash
           set -e
@@ -420,7 +885,7 @@ jobs:
           EOSH
           chmod +x prizrak-box.sh
 
-          ELEC_VER=36
+          ELEC_VER=41
           PKGNAME=prizrak-box-bin
           PKGNAME_BASE="${PKGNAME%-bin}"
           PKGREL=1
@@ -428,7 +893,6 @@ jobs:
           URL="https://github.com/legiz-ru/prizrak-box"
           SH_SUM=$(sha256sum prizrak-box.sh | awk '{print $1}')
 
-          # --- PKGBUILD ---
           cat > PKGBUILD <<EOF
           pkgname=${PKGNAME}
           _pkgname=Prizrak-Box
@@ -480,13 +944,13 @@ jobs:
             install -Dm755 "\${srcdir}/prizrak-box.sh" "\${pkgdir}/usr/bin/\${pkgname%-bin}"
             install -Dm644 "\${srcdir}/app.asar" -t "\${pkgdir}/usr/lib/\${pkgname%-bin}"
             install -Dm755 "\${srcdir}/usr/lib/\${_pkgname}/resources/px" -t "\${pkgdir}/usr/lib/\${pkgname%-bin}"
+            install -Dm755 "\${srcdir}/usr/lib/\${_pkgname}/resources/px-service" -t "\${pkgdir}/usr/lib/\${pkgname%-bin}"
             install -Dm644 "\${srcdir}/usr/share/pixmaps/\${_pkgname}.png" "\${pkgdir}/usr/share/pixmaps/\${pkgname%-bin}.png"
             install -Dm644 "\${srcdir}/usr/share/applications/\${_pkgname}.desktop" "\${pkgdir}/usr/share/applications/\${pkgname%-bin}.desktop"
             install -Dm644 "\${srcdir}/usr/share/doc/\${_pkgname}/copyright" "\${pkgdir}/usr/share/licenses/\${pkgname}/LICENSE"
           }
           EOF
 
-          # --- .SRCINFO ---
           cat > .SRCINFO <<EOF
           pkgbase = ${PKGNAME}
             pkgdesc = A Simple Mihomo GUI.(Prebuilt version.Use system-wide electron)
@@ -510,40 +974,286 @@ jobs:
           pkgname = ${PKGNAME}
           EOF
 
+      - name: Setup SSH for AUR
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.AUR_SSH_PRIVATE_KEY }}" > ~/.ssh/aur_key
+          chmod 600 ~/.ssh/aur_key
+          ssh-keyscan -t rsa,ecdsa,ed25519 aur.archlinux.org >> ~/.ssh/known_hosts
+          cat > ~/.ssh/config << 'SSHEOF'
+          Host aur.archlinux.org
+            IdentityFile ~/.ssh/aur_key
+            User aur
+          SSHEOF
+          chmod 600 ~/.ssh/config
+
       - name: Publish to AUR
-        uses: KSXGitHub/github-actions-deploy-aur@v2.7.0
+        run: |
+          git clone ssh://aur@aur.archlinux.org/prizrak-box-bin.git aur-repo
+          cp PKGBUILD .SRCINFO prizrak-box.sh aur-repo/
+          cd aur-repo
+          git config user.name "${{ secrets.AUR_USERNAME }}"
+          git config user.email "${{ secrets.AUR_COMMIT_EMAIL }}"
+          git add PKGBUILD .SRCINFO prizrak-box.sh
+          git diff --cached --quiet || git commit -m "Update to version ${{ needs.setup.outputs.version }}"
+          git push --force origin master
+
+      - name: Cancel workflow on failure
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+
+  # ── Wails (experimental) macOS — same packaging as Electron, files suffixed -wails ──
+  build_macos_wails:
+    needs: [setup]
+    if: github.event_name == 'release' || inputs.build_macos == true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: macos-latest
+          - arch: arm64
+            runner: macos-latest
+    runs-on: ${{ matrix.runner }}
+    env:
+      MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+      MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
+      TEAM_ID: ${{ secrets.TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - uses: actions/setup-go@v6
+        with: { go-version: '1.26', check-latest: true }
+      - name: Set Version
+        run: echo "VERSION=${{ needs.setup.outputs.version }}" >> $GITHUB_ENV
+      - name: Sync VERSION to package.json
+        run: node build/sync-version.js
+      - name: Refresh geo/model data
+        run: |
+          curl -fsSL --retry 3 --retry-delay 5 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o src-go/internal/em/Model.bin        https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
+          curl -fsSL --retry 3 --retry-delay 5 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o src-go/internal/em/geoip.metadb      https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
+          curl -fsSL --retry 3 --retry-delay 5 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o src-go/internal/em/GeoSite.dat        https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          curl -fsSL --retry 3 --retry-delay 5 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o src-go/internal/em/BundleMRS.7z        https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
+          curl -fsSL --retry 3 --retry-delay 5 -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o src-go/internal/em/GeoLite2-ASN.mmdb  https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
+      - name: Build frontend
+        run: |
+          npm install --no-audit --no-fund
+          npx vite build --outDir src-wails/frontend/dist --emptyOutDir
+      - name: Build px + px-service
+        env: { GOARCH: '${{ matrix.arch }}' }
+        run: |
+          (cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags="-s -w -X github.com/legiz-ru/prizrak-box/api.Version=${{ env.VERSION }}" -o px .)
+          (cd src-service && CGO_ENABLED=0 go build -ldflags="-s -w" -o px-service .)
+      - name: Build Wails app
+        env: { GOARCH: '${{ matrix.arch }}', CGO_ENABLED: '1' }
+        run: |
+          cd src-wails
+          go build -trimpath -o /tmp/prizrak-box-wails .
+      - name: Assemble .app
+        run: |
+          APP="Prizrak-Box.app"
+          rm -rf "$APP"
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+          cp /tmp/prizrak-box-wails "$APP/Contents/MacOS/Prizrak-Box"
+          cp src-go/px src-service/px-service "$APP/Contents/MacOS/"
+          chmod +x "$APP/Contents/MacOS/"*
+          cp build/appicon.icns "$APP/Contents/Resources/appicon.icns" || true
+          cp src-wails/build/darwin/Info.plist "$APP/Contents/Info.plist"
+          # Stamp the release version into the bundle (CFBundle versions must be
+          # numeric, so strip the leading 'v').
+          VER="${VERSION#v}"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VER" -c "Set :CFBundleShortVersionString $VER" "$APP/Contents/Info.plist" || true
+      - name: Sign (if certificate secrets are present)
+        run: |
+          set -euo pipefail
+          if [ -z "${MACOS_CERTIFICATE:-}" ]; then
+            echo "No MACOS_CERTIFICATE secret — producing an UNSIGNED build."
+            exit 0
+          fi
+          KEYCHAIN="ci-signing.keychain-db"
+          KEYCHAIN_PATH="$HOME/Library/Keychains/$KEYCHAIN"
+          CERT_PATH="$(mktemp /tmp/cert-XXXXXXXX.p12)"
+          security delete-keychain "$KEYCHAIN" >/dev/null 2>&1 || true
+          echo "$MACOS_CERTIFICATE" | base64 --decode > "$CERT_PATH" 2>/dev/null || echo "$MACOS_CERTIFICATE" | base64 -d > "$CERT_PATH"
+          security create-keychain -p "$MACOS_CERT_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings "$KEYCHAIN"
+          security unlock-keychain -p "$MACOS_CERT_PASSWORD" "$KEYCHAIN"
+          security import "$CERT_PATH" -k "$KEYCHAIN_PATH" -P "$MACOS_CERT_PASSWORD" -A
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | sed 's/"//g')
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$MACOS_CERT_PASSWORD" "$KEYCHAIN_PATH"
+          rm -f "$CERT_PATH"
+          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | head -n 1 | sed -E 's/^.*"(.+)"$/\1/')
+          echo "Using identity: $IDENTITY"
+          APP="Prizrak-Box.app"
+          # codesign/AMFI rejects CRLF line endings in the entitlements plist
+          # ("AMFIUnserializeXML: syntax error near line 1"); normalise to LF.
+          ENT="$RUNNER_TEMP/entitlements.mac.plist"
+          tr -d '\r' < build/entitlements.mac.plist > "$ENT"
+          # Sign nested helpers with the same entitlements (matches Electron's
+          # entitlements-inherit), then the bundle.
+          codesign --force --options runtime --timestamp \
+            --entitlements "$ENT" --sign "$IDENTITY" "$APP/Contents/MacOS/px" "$APP/Contents/MacOS/px-service"
+          codesign --force --deep --options runtime --timestamp \
+            --entitlements "$ENT" --sign "$IDENTITY" "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+      - name: Notarize (if Apple ID secrets are present)
+        run: |
+          set -euo pipefail
+          if [ -z "${MACOS_CERTIFICATE:-}" ] || [ -z "${APPLE_ID:-}" ] || [ -z "${APP_SPECIFIC_PASSWORD:-}" ] || [ -z "${TEAM_ID:-}" ]; then
+            echo "Notarization secrets not all present — skipping notarization."
+            exit 0
+          fi
+          ditto -c -k --keepParent "Prizrak-Box.app" "notarize.zip"
+          xcrun notarytool submit "notarize.zip" --apple-id "$APPLE_ID" --password "$APP_SPECIFIC_PASSWORD" --team-id "$TEAM_ID" --wait
+          xcrun stapler staple "Prizrak-Box.app"
+      - name: Package .zip + .dmg
+        run: |
+          set -euo pipefail
+          zip -qr "macos-${{ matrix.arch }}-wails.zip" "Prizrak-Box.app"
+          node src-wails/build/darwin/create-macos-dmg.mjs ${{ matrix.arch }} macos-${{ matrix.arch }}-wails.dmg
+          if [ -n "${MACOS_CERTIFICATE:-}" ]; then
+            IDENTITY=$(security find-identity -v -p codesigning "$HOME/Library/Keychains/ci-signing.keychain-db" | head -n 1 | sed -E 's/^.*"(.+)"$/\1/')
+            codesign --force --timestamp --sign "$IDENTITY" "macos-${{ matrix.arch }}-wails.dmg" || true
+          fi
+      - uses: actions/upload-artifact@v4
         with:
-          pkgname: prizrak-box-bin
-          pkgbuild: ./PKGBUILD
-          assets: |
-            prizrak-box.sh
-          commit_username: ${{ secrets.AUR_USERNAME }}
-          commit_email: ${{ secrets.AUR_COMMIT_EMAIL }}
-          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          commit_message: "Update to version ${{ github.ref_name }}"
-          ssh_keyscan_types: rsa,ecdsa,ed25519
-          force_push: "true"
+          name: wails-macos-${{ matrix.arch }}
+          path: |
+            macos-${{ matrix.arch }}-wails.zip
+            macos-${{ matrix.arch }}-wails.dmg
+      - name: Cancel workflow on failure
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
 
+  # ── Wails (experimental) Windows — same WiX MSI + portable zip, files suffixed -wails ──
+  build_windows_wails:
+    needs: [setup]
+    if: github.event_name == 'release' || inputs.build_windows == true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            msiarch: x64
+          - arch: arm64
+            msiarch: arm64
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - uses: actions/setup-go@v6
+        with: { go-version: '1.26', check-latest: true }
+      - name: Set Version
+        shell: bash
+        run: echo "VERSION=${{ needs.setup.outputs.version }}" >> $GITHUB_ENV
+      - name: Sync VERSION to package.json
+        run: node build/sync-version.js
+      - name: Refresh geo/model data
+        shell: pwsh
+        run: |
+          function Fetch($uri, $out) {
+            $headers = @{ Authorization = "token ${{ secrets.GITHUB_TOKEN }}" }
+            for ($i = 1; $i -le 4; $i++) {
+              try { Invoke-WebRequest -Uri $uri -Headers $headers -OutFile $out; return }
+              catch { if ($i -eq 4) { throw }; Write-Host "Attempt $i failed, retrying in 5s..."; Start-Sleep 5 }
+            }
+          }
+          Fetch "https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin" "src-go/internal/em/Model.bin"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb" "src-go/internal/em/geoip.metadb"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat" "src-go/internal/em/GeoSite.dat"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z" "src-go/internal/em/BundleMRS.7z"
+          Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb" "src-go/internal/em/GeoLite2-ASN.mmdb"
+      - name: Build frontend
+        run: |
+          npm install --no-audit --no-fund
+          npx vite build --outDir src-wails/frontend/dist --emptyOutDir
+      - name: Build px + px-service
+        shell: pwsh
+        env: { GOARCH: '${{ matrix.arch }}' }
+        run: |
+          cd src-go;       $env:CGO_ENABLED='0'; go build -tags=with_gvisor -trimpath -ldflags="-s -w -X github.com/legiz-ru/prizrak-box/api.Version=$env:VERSION" -o px.exe .; cd ..
+          cd src-service;  $env:CGO_ENABLED='0'; go build -ldflags="-s -w" -o px-service.exe .;   cd ..
+      - name: Build Wails app (Prizrak-Box.exe with icon)
+        shell: pwsh
+        env: { GOARCH: '${{ matrix.arch }}', CGO_ENABLED: '0' }
+        run: |
+          cd src-wails
+          go run github.com/tc-hib/go-winres@latest simply --icon build/appicon.ico --manifest gui --product-name "Prizrak-Box"
+          go build -trimpath -ldflags="-H windowsgui -s -w" -o bin/Prizrak-Box.exe .
+          Remove-Item rsrc_windows_*.syso -ErrorAction SilentlyContinue
+      - name: Stage app (Electron MSI layout)
+        shell: pwsh
+        run: |
+          $dir = "out/Prizrak-Box-win32-${{ matrix.msiarch }}"
+          New-Item -ItemType Directory -Force -Path "$dir/resources" | Out-Null
+          Copy-Item src-wails/bin/Prizrak-Box.exe "$dir/Prizrak-Box.exe"
+          Copy-Item src-go/px.exe                 "$dir/resources/px.exe"
+          Copy-Item src-service/px-service.exe    "$dir/resources/px-service.exe"
+      - name: Install WiX Toolset
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip" -OutFile "wix.zip"
+          Expand-Archive -Path "wix.zip" -DestinationPath "C:\wix" -Force
+          "C:\wix" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Build MSI (reuses installer/build-msi.js — TUN service + protocol)
+        shell: pwsh
+        env: { ARCH: '${{ matrix.msiarch }}', BUILD_TYPE: 'wails' }
+        run: |
+          $env:PATH = "C:\wix;$env:PATH"
+          node installer/build-msi.js
+          Copy-Item "out/msi/${{ matrix.msiarch }}/windows-${{ matrix.msiarch }}.msi" "windows-${{ matrix.arch }}-wails.msi"
+      - name: Stage portable zip
+        shell: pwsh
+        run: Compress-Archive -Path "out/Prizrak-Box-win32-${{ matrix.msiarch }}/*" -DestinationPath "windows-${{ matrix.arch }}-wails.zip" -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wails-windows-${{ matrix.arch }}
+          path: |
+            windows-${{ matrix.arch }}-wails.msi
+            windows-${{ matrix.arch }}-wails.zip
+      - name: Cancel workflow on failure
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
 
+  # ── Release: upload artifacts and update release body ──
   release:
-    needs: [build_windows, build_linux, build_macos, publish_aur]
+    needs: [setup, build_android, build_windows, build_linux, build_macos, build_windows_wails, build_macos_wails, publish_aur]
+    # Run only if no build job failed; skipped jobs are tolerated (user may disable some platforms)
+    if: |
+      always() && !cancelled() &&
+      needs.setup.result == 'success' &&
+      needs.build_android.result != 'failure' &&
+      needs.build_windows.result != 'failure' &&
+      needs.build_linux.result != 'failure' &&
+      needs.build_macos.result != 'failure' &&
+      needs.build_windows_wails.result != 'failure' &&
+      needs.build_macos_wails.result != 'failure' &&
+      needs.publish_aur.result != 'failure'
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      
+
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
 
-      - name: Get Tag Version
-        id: get_version
-        run: echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
-
       - name: Update GitHub Release
-        id: update_release
         uses: actions/github-script@v7
+        env:
+          VERSION: ${{ needs.setup.outputs.version }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -552,6 +1262,7 @@ jobs:
             const tag = process.env.VERSION;
             const fs = require('fs');
             const path = require('path');
+            const dedent = s => s.replace(/\n {12}/g, '\n').replace(/^ {12}/m, '');
 
             let release;
             try {
@@ -560,30 +1271,96 @@ jobs:
               core.info(`Found release ID ${release.id} for tag ${tag}.`);
             } catch (error) {
               if (error.status === 404) {
-                core.setFailed(`Release with tag '${tag}' not found. Please create a draft release first.`);
+                core.setFailed(`Release with tag '${tag}' not found.`);
                 return;
               }
               throw error;
             }
 
-            const downloadLinks = [
-              `### Downloads`,
-              `* [Windows (amd64, Portable)](https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.zip)`,
-              `* [Windows (amd64, MSI Installer)](https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.msi)`,
-              `* [Windows (amd64, Setup)](https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64-Setup.exe)`,
-              `* [Windows (arm64, Portable)](https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.zip)`,
-              `* [Windows (arm64, MSI Installer)](https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.msi)`,
-              `* [Windows (arm64, Setup)](https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64-Setup.exe)`,
-              `* [Linux (amd64, deb)](https://github.com/${owner}/${repo}/releases/download/${tag}/linux-amd64.deb)`,
-              `* [Linux (amd64, rpm)](https://github.com/${owner}/${repo}/releases/download/${tag}/linux-amd64.rpm)`,
-              `* [Linux (arm64, deb)](https://github.com/${owner}/${repo}/releases/download/${tag}/linux-arm64.deb)`,
-              `* [Linux (arm64, rpm)](https://github.com/${owner}/${repo}/releases/download/${tag}/linux-arm64.rpm)`,
-              `* [Arch User Repository (AUR)](https://aur.archlinux.org/packages/prizrak-box-bin)`,
-              `* [macOS (amd64, zip)](https://github.com/${owner}/${repo}/releases/download/${tag}/macos-amd64.zip)`,
-              `* [macOS (arm64, zip)](https://github.com/${owner}/${repo}/releases/download/${tag}/macos-arm64.zip)`
-            ].join('\n');
+            const downloadLinks = dedent(`<div align=center>
 
-            const newBody = (release.body ? release.body + '\n\n' : '') + downloadLinks;
+            [![Release Downloads](https://img.shields.io/github/downloads/${owner}/${repo}/${tag}/total?style=flat-square&logo=github)](https://github.com/${owner}/${repo}/releases/${tag})
+
+            </div>
+
+            **Download based on your OS:**
+
+            <div align=left>
+            <table>
+                <thead align=left>
+                    <tr>
+                        <th>OS</th>
+                        <th>Download</th>
+                    </tr>
+                </thead>
+                <tbody align=left>
+                    <tr>
+                        <td colspan="2" align="center"><strong>Wails Experiment Builds</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Windows</td>
+                        <td>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64-wails.msi"><img src="https://img.shields.io/badge/Setup-x64-2d7d9a.svg?logo=windows"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64-wails.msi"><img src="https://img.shields.io/badge/Setup-arm-2d7d9a.svg?logo=windows"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64-wails.zip"><img src="https://img.shields.io/badge/Portable-x64-67b7d1.svg?logo=windows"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64-wails.zip"><img src="https://img.shields.io/badge/Portable-arm-67b7d1.svg?logo=windows"></a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>macOS</td>
+                        <td>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/macos-arm64-wails.dmg"><img src="https://img.shields.io/badge/DMG-Apple%20Silicon-%23000000.svg?logo=apple"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/macos-amd64-wails.dmg"><img src="https://img.shields.io/badge/DMG-Intel%20X64-%2300A9E0.svg?logo=apple"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/macos-arm64-wails.zip"><img src="https://img.shields.io/badge/ZIP-Apple%20Silicon-%23000000.svg?logo=apple"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/macos-amd64-wails.zip"><img src="https://img.shields.io/badge/ZIP-Intel%20X64-%2300A9E0.svg?logo=apple"></a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" align="center"><strong>Android</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Android</td>
+                        <td>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/prizrak-box-android-universal.apk"><img src="https://img.shields.io/badge/APK-universal-96ed89.svg?logo=android"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/prizrak-box-android-arm64-v8a.apk"><img src="https://img.shields.io/badge/APK-ARMv8-168039.svg?logo=android"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/prizrak-box-android-armeabi-v7a.apk"><img src="https://img.shields.io/badge/APK-ARMv7-45bf55.svg?logo=android"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/prizrak-box-android-x86_64.apk"><img src="https://img.shields.io/badge/APK-x64-96ed89.svg?logo=android"></a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" align="center"><strong>Electron Builds</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Windows</td>
+                        <td>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.msi"><img src="https://img.shields.io/badge/Setup-x64-2d7d9a.svg?logo=windows"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.msi"><img src="https://img.shields.io/badge/Setup-arm-2d7d9a.svg?logo=windows"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.zip"><img src="https://img.shields.io/badge/Portable-x64-67b7d1.svg?logo=windows"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.zip"><img src="https://img.shields.io/badge/Portable-arm-67b7d1.svg?logo=windows"></a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>macOS</td>
+                        <td>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/macos-arm64.dmg"><img src="https://img.shields.io/badge/DMG-Apple%20Silicon-%23000000.svg?logo=apple"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/macos-amd64.dmg"><img src="https://img.shields.io/badge/DMG-Intel%20X64-%2300A9E0.svg?logo=apple"></a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Linux</td>
+                        <td>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/linux-amd64.deb"><img src="https://img.shields.io/badge/DebPackage-x64-FF9966.svg?logo=debian"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/linux-amd64.rpm"><img src="https://img.shields.io/badge/RpmPackage-x64-F1B42F.svg?logo=redhat"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/linux-arm64.deb"><img src="https://img.shields.io/badge/DebPackage-arm64-FF9966.svg?logo=debian"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/linux-arm64.rpm"><img src="https://img.shields.io/badge/RpmPackage-arm64-F1B42F.svg?logo=redhat"></a><br>
+                            <a href="https://aur.archlinux.org/packages/prizrak-box-bin"><img src="https://img.shields.io/aur/version/prizrak-box-bin"></a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            </div>`);
+
+            const newBody = (release.body ? release.body.replace(/\n*<div align=center>[\s\S]*<\/div>\s*$/, '') + '\n\n' : '') + downloadLinks;
 
             await github.rest.repos.updateRelease({
               owner,
@@ -592,21 +1369,36 @@ jobs:
               body: newBody,
             });
             core.info(`Successfully updated release body.`);
-            
-            const uploadedAssets = new Set(); // <--- Добавлено: хранилище для отслеживания имен загруженных файлов
-            const artifactsDir = 'artifacts';
-            const platformDirs = fs.readdirSync(artifactsDir);
 
+            const uploadedAssets = new Set();
+            const artifactsDir = 'artifacts';
+
+            if (!fs.existsSync(artifactsDir)) {
+              core.info('No artifacts directory found, skipping upload.');
+              return;
+            }
+
+            // Fetch existing assets so re-runs can delete and replace them
+            const { data: existingAssets } = await github.rest.repos.listReleaseAssets({
+              owner, repo, release_id: release.id, per_page: 100,
+            });
+            const existingAssetMap = new Map(existingAssets.map(a => [a.name, a.id]));
+
+            const platformDirs = fs.readdirSync(artifactsDir);
             for (const platformDir of platformDirs) {
               const files = fs.readdirSync(path.join(artifactsDir, platformDir));
               for (const fileName of files) {
-                
-                // Пропускаем, если файл с таким именем уже загружен (например, RELEASES)
                 if (uploadedAssets.has(fileName)) {
-                    core.info(`Skipping duplicate asset: ${fileName}`);
-                    continue; 
+                  core.info(`Skipping duplicate asset: ${fileName}`);
+                  continue;
                 }
-                
+                // Delete stale asset from a previous run before re-uploading
+                if (existingAssetMap.has(fileName)) {
+                  core.info(`Replacing existing asset: ${fileName}`);
+                  await github.rest.repos.deleteReleaseAsset({
+                    owner, repo, asset_id: existingAssetMap.get(fileName),
+                  });
+                }
                 const filePath = path.join(artifactsDir, platformDir, fileName);
                 core.info(`Uploading asset: ${fileName}`);
                 await github.rest.repos.uploadReleaseAsset({
@@ -616,7 +1408,7 @@ jobs:
                   name: fileName,
                   data: fs.readFileSync(filePath),
                 });
-                uploadedAssets.add(fileName); // <--- Добавлено: отмечаем файл как загруженный
+                uploadedAssets.add(fileName);
               }
             }
             core.info('All assets uploaded successfully.');

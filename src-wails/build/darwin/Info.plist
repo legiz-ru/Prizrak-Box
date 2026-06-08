@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key><string>Prizrak-Box</string>
+    <key>CFBundleDisplayName</key><string>Prizrak-Box</string>
+    <key>CFBundleExecutable</key><string>Prizrak-Box</string>
+    <key>CFBundleIdentifier</key><string>com.legiz-ru.prizrak-box</string>
+    <key>CFBundleVersion</key><string>1.0.1</string>
+    <key>CFBundleShortVersionString</key><string>1.0.1</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleIconFile</key><string>appicon</string>
+    <key>LSMinimumSystemVersion</key><string>11.0.0</string>
+    <key>NSHighResolutionCapable</key><true/>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key><string>com.legiz-ru.prizrak-box</string>
+            <key>CFBundleURLSchemes</key>
+            <array><string>prizrak-box</string></array>
+        </dict>
+    </array>
+</dict>
+</plist>

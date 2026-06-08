@@ -5,6 +5,20 @@ const getRules = (proxy: any) =>
         return data["rules"];
     };
 
+// 获取规则提供者
+const getRuleProviders = (proxy: any) =>
+    async function () {
+        return await proxy.$http.get("/providers/rules");
+    };
+
+// 更新单个规则提供者
+const updateRuleProvider = (proxy: any) =>
+    async function (name: string) {
+        const encoded = encodeURIComponent(name);
+        return await proxy.$http.put(`/providers/rules/${encoded}`);
+    };
+
+
 // 获取规则数
 const getRuleNum = (proxy: any) =>
     async function () {
@@ -66,9 +80,18 @@ const switchTemplate = (proxy: any) =>
         return await proxy.$http.post(`/rule/switch`, data);
     };
 
+// 获取规则提供者内容
+const getRuleProviderRules = (proxy: any) =>
+    async function (name: string): Promise<string> {
+        const encoded = encodeURIComponent(name);
+        return await proxy.$http.get(`/rule/provider/${encoded}`);
+    };
+
 export default function createRuleApi(proxy: any) {
     return {
         getRules: getRules(proxy),
+        getRuleProviders: getRuleProviders(proxy),
+        updateRuleProvider: updateRuleProvider(proxy),
         getRuleNum: getRuleNum(proxy),
         getIgnore: getIgnore(proxy),
         updateIgnore: updateIgnore(proxy),
@@ -79,5 +102,6 @@ export default function createRuleApi(proxy: any) {
         createTemplate: createTemplate(proxy),
         testTemplate: testTemplate(proxy),
         switchTemplate: switchTemplate(proxy),
+        getRuleProviderRules: getRuleProviderRules(proxy),
     };
 }

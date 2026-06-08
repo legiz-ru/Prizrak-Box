@@ -1,13 +1,13 @@
 package handlers
 
 import (
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/render"
 	"github.com/legiz-ru/prizrak-box/api/models"
 	"github.com/legiz-ru/prizrak-box/pkg/cache"
 	"github.com/legiz-ru/prizrak-box/pkg/constant"
 	sys "github.com/legiz-ru/prizrak-box/pkg/sys/admin"
-	"net/http"
+	"github.com/metacubex/chi"
+	"github.com/metacubex/chi/render"
+	"github.com/metacubex/http"
 )
 
 func Mihomo(r chi.Router) {

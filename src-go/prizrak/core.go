@@ -31,6 +31,7 @@ func StartCore(server string) (port int, secret string) {
 	route.Register(handlers.DNS)
 	route.Register(handlers.Mihomo)
 	route.Register(handlers.Prizrak)
+	route.Register(handlers.Age)
 
 	// 设置地址
 	host := "127.0.0.1"
@@ -72,6 +73,16 @@ func StartCore(server string) (port int, secret string) {
 			}
 		}
 	}
+
+	// Restore EnableHWID from cache before starting cron jobs.
+	// gocron fires tasks immediately on StartAsync(), so the HTTP client config
+	// must reflect the persisted user preference before DoRefresh() runs.
+	var enableHWID bool
+	if err := cache.Get(constant.EnableHWIDKey, &enableHWID); err != nil {
+		// No persisted value yet — default to true (matches frontend default).
+		enableHWID = true
+	}
+	utils.UpdateHTTPClientConfig(&utils.HTTPClientConfig{EnableHWID: enableHWID})
 
 	// 开启定时任务
 	job.LogJob("px-server.log")

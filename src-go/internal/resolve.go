@@ -6,14 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/metacubex/mihomo/adapter"
-	"github.com/metacubex/mihomo/common/convert"
-	"github.com/metacubex/mihomo/config"
-	"github.com/metacubex/mihomo/log"
-	"github.com/legiz-ru/prizrak-box/api/models"
-	"github.com/legiz-ru/prizrak-box/pkg/constant"
-	"github.com/legiz-ru/prizrak-box/pkg/utils"
-	"gopkg.in/yaml.v3"
 	"math/big"
 	"net/http"
 	"net/url"
@@ -22,6 +14,16 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/legiz-ru/prizrak-box/api/models"
+	"github.com/legiz-ru/prizrak-box/pkg/constant"
+	"github.com/legiz-ru/prizrak-box/pkg/proxy"
+	"github.com/legiz-ru/prizrak-box/pkg/utils"
+	"github.com/metacubex/mihomo/adapter"
+	"github.com/metacubex/mihomo/common/convert"
+	"github.com/metacubex/mihomo/config"
+	"github.com/metacubex/mihomo/log"
+	"gopkg.in/yaml.v3"
 )
 
 // 保存文件
@@ -76,6 +78,19 @@ func MapsToProxies(ray []map[string]any) ([]map[string]any, error) {
 func Resolve(content string, profile *models.Profile, refresh bool) error {
 	// 解析内容预处理
 	tempStr := strings.TrimSpace(content)
+
+	// age-encrypted content: decrypt before further processing
+	if IsAgeEncrypted(tempStr) {
+		if profile.AgeSecretKey == "" {
+			return errors.New("age-secret-key required to decrypt this profile")
+		}
+		decrypted, err := DecryptAge(tempStr, profile.AgeSecretKey)
+		if err != nil {
+			return err
+		}
+		tempStr = strings.TrimSpace(decrypted)
+	}
+
 	tempBytes := []byte(tempStr)
 
 	// 如果不是刷新则创建 id
@@ -158,10 +173,20 @@ func Resolve(content string, profile *models.Profile, refresh bool) error {
 			// 防止重排序，重新赋值
 			rawCfg, _ = config.UnmarshalRawConfig(tempBytes)
 			// 对 provider 进行路径替换
-			findProvider := changeProvidersPath("profiles", profile.Order, rawCfg)
+			findProvider := false
+			rawConfigMap := map[string]any{}
+			if err := yaml.Unmarshal(tempBytes, &rawConfigMap); err == nil {
+				findProvider = updateProvidersPathRaw("profiles", profile.Order, rawConfigMap)
+			} else {
+				findProvider = changeProvidersPath("profiles", profile.Order, rawCfg)
+			}
 			var yml []byte
 			if findProvider {
-				yml, _ = yaml.Marshal(rawCfg)
+				if len(rawConfigMap) > 0 {
+					yml, _ = yaml.Marshal(rawConfigMap)
+				} else {
+					yml, _ = yaml.Marshal(rawCfg)
+				}
 				profile.Path = fmt.Sprintf("./profiles/%s/%s.yaml", profile.Order, profile.Id)
 			} else {
 				yml = tempBytes
@@ -213,6 +238,60 @@ func changeProvidersPath(baseDir, subDir string, config *config.RawConfig) (find
 	}
 
 	return
+}
+
+func updateProvidersPathRaw(baseDir, subDir string, raw map[string]any) (findProvider bool) {
+	findProvider = false
+	dir := fmt.Sprintf("./%s/%s/", baseDir, subDir)
+
+	if providers, ok := raw["proxy-providers"]; ok {
+		if updateProviderPaths(dir, "provider", providers) {
+			findProvider = true
+		}
+	}
+	if providers, ok := raw["proxyProviders"]; ok {
+		if updateProviderPaths(dir, "provider", providers) {
+			findProvider = true
+		}
+	}
+	if providers, ok := raw["rule-providers"]; ok {
+		if updateProviderPaths(dir, "ruleset", providers) {
+			findProvider = true
+		}
+	}
+	if providers, ok := raw["ruleProviders"]; ok {
+		if updateProviderPaths(dir, "ruleset", providers) {
+			findProvider = true
+		}
+	}
+
+	return
+}
+
+func updateProviderPaths(dir, kind string, providers any) bool {
+	providerMap, ok := providers.(map[string]any)
+	if !ok {
+		return false
+	}
+	updated := false
+	for key, value := range providerMap {
+		provider, ok := value.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		if path, findPath := provider["path"].(string); findPath {
+			provider["path"] = dir + getProviderBase(kind, path)
+			updated = true
+		} else if u, findUrl := provider["url"].(string); findUrl {
+			provider["path"] = dir + kind + "/" + utils.MD5(u)
+			updated = true
+		}
+
+		providerMap[key] = provider
+	}
+
+	return updated
 }
 
 func getProviderBase(provider, path string) string {
@@ -371,6 +450,131 @@ func MergeHeaders(primary http.Header, fallback http.Header) http.Header {
 	return merged
 }
 
+func parseProfileLogo(header http.Header, profile *models.Profile) {
+	logoURL := strings.TrimSpace(header.Get("Profile-Logo"))
+	if logoURL == "" {
+		profile.Logo = ""
+		return
+	}
+
+	data, contentType, err := downloadProfileLogo(logoURL)
+	if err != nil {
+		log.Warnln("[ParseHeaders] failed to download profile logo:", err)
+		return
+	}
+
+	dataURL := buildLogoDataURL(contentType, data)
+	if dataURL != "" {
+		profile.Logo = dataURL
+	}
+}
+
+func downloadProfileLogo(logoURL string) ([]byte, string, error) {
+	parsed, err := url.Parse(logoURL)
+	if err != nil {
+		return nil, "", fmt.Errorf("invalid logo url: %w", err)
+	}
+
+	scheme := strings.ToLower(parsed.Scheme)
+	if scheme != "http" && scheme != "https" {
+		return nil, "", fmt.Errorf("unsupported logo url scheme: %s", parsed.Scheme)
+	}
+
+	// Try a direct connection first: at profile add-time the proxy core may not
+	// be up yet (the old proxy-only fetch failed with "connection refused" and
+	// the logo only appeared after a manual refresh). Fall back to the proxy
+	// for CDNs that are only reachable through it.
+	data, headers, err := utils.SendGetBytes(logoURL, map[string]string{}, "")
+	if err != nil || len(data) == 0 {
+		if proxyURL := proxy.GetProxyUrl(); proxyURL != "" {
+			if d, h, e := utils.SendGetBytes(logoURL, map[string]string{}, proxyURL); e == nil && len(d) > 0 {
+				data, headers, err = d, h, nil
+			}
+		}
+	}
+	if err != nil {
+		return nil, "", err
+	}
+
+	if len(data) == 0 {
+		return nil, "", errors.New("logo response is empty")
+	}
+
+	if len(data) > 2*1024*1024 {
+		return nil, "", errors.New("logo file is too large")
+	}
+
+	contentType := normalizeLogoContentType(headers.Get("Content-Type"), data)
+	if contentType == "" {
+		return nil, "", errors.New("logo content type is not supported")
+	}
+
+	return data, contentType, nil
+}
+
+func normalizeLogoContentType(contentType string, data []byte) string {
+	trimmed := strings.ToLower(strings.TrimSpace(strings.Split(contentType, ";")[0]))
+	if trimmed == "" && len(data) > 0 {
+		trimmed = strings.ToLower(strings.TrimSpace(strings.Split(http.DetectContentType(data), ";")[0]))
+	}
+
+	if strings.HasPrefix(trimmed, "image/") {
+		return trimmed
+	}
+
+	return ""
+}
+
+func buildLogoDataURL(contentType string, data []byte) string {
+	if contentType == "" || len(data) == 0 {
+		return ""
+	}
+
+	encoded := base64.StdEncoding.EncodeToString(data)
+	return fmt.Sprintf("data:%s;base64,%s", contentType, encoded)
+}
+
+// limitAnnounceText limits the announce text to maxVisible displayed characters
+// excluding color codes in format #RRGGBB
+func limitAnnounceText(text string, maxVisible int) string {
+	if text == "" {
+		return text
+	}
+
+	runes := []rune(text)
+	visibleCount := 0
+	i := 0
+
+	for i < len(runes) {
+		// Check if this is a color code #RRGGBB
+		if runes[i] == '#' && i+6 < len(runes) {
+			isColorCode := true
+			for j := 1; j <= 6; j++ {
+				r := runes[i+j]
+				if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')) {
+					isColorCode = false
+					break
+				}
+			}
+			if isColorCode {
+				// Skip the color code (#RRGGBB = 7 characters)
+				i += 7
+				continue
+			}
+		}
+
+		// This is a visible character
+		visibleCount++
+		if visibleCount > maxVisible {
+			// Return text up to this position
+			return string(runes[:i])
+		}
+		i++
+	}
+
+	return text
+}
+
 // ParseHeaders 对请求头进行解析
 func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 	// 流量
@@ -420,6 +624,8 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 	// 文件名
 	nameFromDisposition := parseContentDisposition(header, url)
 	if profileTitle := parseProfileTitle(header); profileTitle != "" {
+		profile.HeaderTitle = profileTitle
+
 		baseName := strings.TrimSpace(nameFromDisposition)
 		if baseName == "" {
 			baseName = strings.TrimSpace(profile.Title)
@@ -430,8 +636,11 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 		} else {
 			profile.Title = profileTitle
 		}
-	} else if profile.Title == "" {
-		profile.Title = nameFromDisposition
+	} else {
+		profile.HeaderTitle = ""
+		if profile.Title == "" {
+			profile.Title = nameFromDisposition
+		}
 	}
 
 	// 更新间隔
@@ -448,4 +657,41 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 		profile.Support = val
 	}
 
+	// Announce
+	if val := header.Get("Announce"); val != "" {
+		announce := val
+		// Check if base64 encoded
+		if strings.HasPrefix(val, "base64:") {
+			decoded, err := base64.StdEncoding.DecodeString(val[7:])
+			if err == nil {
+				announce = string(decoded)
+			}
+		}
+		// Limit to 200 visible characters (excluding color codes)
+		announce = limitAnnounceText(announce, 200)
+		profile.Announce = announce
+	}
+
+	if val := header.Get("Announce-Url"); val != "" {
+		profile.AnnounceUrl = val
+	}
+
+	parseProfileLogo(header, profile)
+
+	// pxd-template
+	if val := strings.TrimSpace(header.Get("Pxd-Template")); val != "" {
+		profile.PxdTemplateUrl = val
+	} else {
+		profile.PxdTemplateUrl = ""
+	}
+
+	// pxd-template-scheme
+	if val := strings.TrimSpace(header.Get("Pxd-Template-Scheme")); val != "" {
+		profile.PxdTemplateScheme = val
+	} else {
+		profile.PxdTemplateScheme = ""
+	}
+
+	// HWID active flag — сохраняется в профиле чтобы edit-диалог мог показать индикатор
+	profile.HwidActive = strings.EqualFold(strings.TrimSpace(header.Get("X-Hwid-Active")), "true")
 }

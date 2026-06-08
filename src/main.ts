@@ -1,4 +1,7 @@
-import {createApp, watch} from "vue";
+// Must be first: installs the window.px* shim before any module (e.g. @/runtime)
+// captures those globals at import time. No-op under Electron.
+import "./wails-shim";
+import {createApp, watch, toRaw} from "vue";
 import App from "./App.vue";
 import router from "@/router";
 import {createPinia} from "pinia";
@@ -17,6 +20,7 @@ import {AxiosRequest} from "@/util/axiosRequest";
 import {useHomeStore} from "@/store/homeStore";
 import {useSettingStore} from "@/store/settingStore";
 import {memoryCache} from "@/types/persist"
+import {initBgCache} from "@/util/bgCache"
 import {detectLanguage} from "@/util/menu";
 import createApi from "@/api";
 import {Profile} from "@/types/profile";
@@ -26,6 +30,7 @@ import {useDeepLinkImportStore} from "@/store/deepLinkStore";
 import {useUpdateStore} from "@/store/updateStore";
 import {Browser, Events} from "@/runtime";
 import {createDashboardLinks} from "@/util/dashboard";
+import {initRendererIPC} from "./renderer-ipc";
 
 const app = createApp(App);
 const lang = detectLanguage();
@@ -54,10 +59,12 @@ function isCanceledError(error: any) {
 }
 
 async function bootstrap() {
+    initRendererIPC();
+
     // 加载缓存数据
     // @ts-ignore
     if (window["pxStore"]) {
-        const keys = ['menu', 'home', 'proxies', 'setting', 'web'];
+        const keys = ['menu', 'home', 'proxies', 'setting', 'web', 'onboarding'];
         for (const key of keys) {
             // @ts-ignore
             const val = await window["pxStore"].get(key);
@@ -65,6 +72,18 @@ async function bootstrap() {
                 memoryCache[key] = val;
             }
         }
+    }
+
+    // Загрузить кэш фона до монтирования Vue, чтобы applyBackground мог использовать его синхронно
+    // @ts-ignore
+    if (window["pxBgCache"]) {
+        try {
+            // @ts-ignore
+            const cached = await window["pxBgCache"].read();
+            if (cached?.forBg && cached?.dataUrl) {
+                initBgCache(cached.forBg, cached.dataUrl);
+            }
+        } catch {}
     }
 
     // 国际化设置
@@ -168,6 +187,11 @@ async function bootstrap() {
         }
     };
 
+    // Start the backend HWID config request immediately so the backend receives
+    // enableHWID=true before it can fire a startup auto-refresh of subscriptions.
+    // We still await the promise at the end of bootstrap before mounting the app.
+    const httpConfigPromise = updateHttpClientConfig();
+
     watch(() => settingStore.hwid, () => {
         void updateHttpClientConfig();
     });
@@ -188,6 +212,22 @@ async function bootstrap() {
         menuStore.setLanguage(lang);
     }
 
+    // Sync i18n locale to stored preference immediately — before app.mount()
+    // so that any tray interaction before Language.vue mounts shows the correct language
+    i18n.global.locale.value = menuStore.language;
+
+    // Pre-send tray translations with the correct language before the slow HTTP call
+    // (updateHttpClientConfig below). Without this the tray shows Chinese default labels
+    // until Language.vue mounts, which can take a few seconds on slow Mihomo startup.
+    const _trayMenuId = ['tray.show','tray.rule','tray.global','tray.direct',
+        'tray.profiles','tray.proxyGroups','tray.dashboard','tray.proxy','tray.tun','tray.quit'];
+    if ((window as any)?.pxTray?.emit) {
+        const _translate: Record<string, string> = {};
+        _trayMenuId.forEach(k => { _translate[k] = i18n.global.t(k); });
+        (window as any).pxTray.emit('translate', _translate);
+        (window as any).pxTray.emit('tunAuthTip', i18n.global.t('tun-auth-tip'));
+    }
+
     // 设置起始时间 和 操作系统类型
     // 获取系统类型
     homeStore.setOS(window.pxOs());
@@ -195,7 +235,7 @@ async function bootstrap() {
     // 设置软件开始时间
     homeStore.setStartTime(Date.now());
 
-    await updateHttpClientConfig();
+    await httpConfigPromise;
 
 }
 
@@ -281,6 +321,41 @@ function setupDeepLinkHandler() {
             }
 
             if (Array.isArray(result) && result.length > 0) {
+                const firstProfile = result[0];
+
+                try {
+                    await api.switchProfile({
+                        id: firstProfile.id,
+                        selected: true,
+                        exclusive: true,
+                    });
+
+                    await api.waitRunning();
+
+                    const fullList = await api.getProfileList();
+                    const activeProfile = fullList?.find((item: any) => item?.id === firstProfile.id) ?? firstProfile;
+
+                    Events.Emit({
+                        name: "profileChanged",
+                        data: {
+                            profile: activeProfile,
+                            exclusive: true,
+                        }
+                    });
+                    window.dispatchEvent(new CustomEvent('profile-changed'));
+
+                    Events.Emit({
+                        name: "profiles",
+                        data: toRaw(fullList)
+                    });
+
+                    window.dispatchEvent(new CustomEvent('vue-profiles-updated', {
+                        detail: { profiles: toRaw(fullList) }
+                    }));
+                } catch (error) {
+                    console.error('Failed to activate deeplink profile', error);
+                }
+
                 window.dispatchEvent(new CustomEvent(DEEP_LINK_IMPORTED_EVENT, {
                     detail: {profiles: result}
                 }));
@@ -511,6 +586,3 @@ function safeDecode(value?: string) {
 
 // 🚀 启动应用
 bootstrap().then(() => app.mount("#app"));
-
-
-

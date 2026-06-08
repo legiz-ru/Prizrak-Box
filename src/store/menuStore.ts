@@ -12,7 +12,9 @@ export const useMenuStore = defineStore('menu', {
         language: '',
         ruleMenu: 'Now',
         background: 'url("/images/default.jpg")',
-        useWhite: true
+        useWhite: true,
+        settingTab: 'app',
+        providersView: 'cards' as 'cards' | 'table',
     }),
     actions: {
         setMenu(menu: string) {
@@ -44,7 +46,13 @@ export const useMenuStore = defineStore('menu', {
         },
         setUseWhite(useWhite: boolean) {
             this.useWhite = useWhite;
-        }
+        },
+        setSettingTab(settingTab: string) {
+            this.settingTab = settingTab;
+        },
+        setProvidersView(view: 'cards' | 'table') {
+            this.providersView = view;
+        },
     },
     persist: defaultPersist,
 });
