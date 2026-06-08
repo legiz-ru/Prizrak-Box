@@ -31,32 +31,44 @@ execFileSync('cp', ['-R', appPath, path.join(stageDir, appName)])
 try { fs.symlinkSync('/Applications', path.join(stageDir, 'Applications')) } catch { /* ok */ }
 
 // README files — three languages (no Fix Quarantine: app is signed & notarized)
-fs.writeFileSync(path.join(stageDir, 'README.md'), `# Prizrak-Box — macOS Installation
+fs.writeFileSync(path.join(stageDir, 'README.txt'), `Prizrak-Box — macOS Installation
+=================================
 
-1. Drag **Prizrak-Box.app** into **Applications**.
+1. Drag "Prizrak-Box.app" into "Applications".
 2. Open the app from Applications.
 
-The app is digitally signed. If a security dialog appears, click **Open**.
+If a dialog appears saying "Prizrak-Box already exists. Replace it?" —
+click "Replace".
+
+The app is digitally signed. If a security dialog appears, click "Open".
 
 Support & updates: https://github.com/legiz-ru/prizrak-box
 `, 'utf8')
 
-fs.writeFileSync(path.join(stageDir, 'README.ru.md'), `# Prizrak-Box — Установка на macOS
+fs.writeFileSync(path.join(stageDir, 'README.ru.txt'), `Prizrak-Box — Установка на macOS
+=================================
 
-1. Перетащите **Prizrak-Box.app** в папку **Программы** (Applications).
+1. Перетащите «Prizrak-Box.app» в папку «Программы» (Applications).
 2. Откройте приложение из папки «Программы».
 
-Приложение подписано цифровой подписью. При появлении диалога безопасности нажмите **Открыть** (Open).
+Если появится диалог «В этой папке уже есть объект «Prizrak-Box».
+Заменить его копируемым объектом?» — нажмите «Заменить».
+
+Приложение подписано цифровой подписью. При появлении диалога
+безопасности нажмите «Открыть» (Open).
 
 Поддержка и обновления: https://github.com/legiz-ru/prizrak-box
 `, 'utf8')
 
-fs.writeFileSync(path.join(stageDir, 'README.zh.md'), `# Prizrak-Box — macOS 安装说明
+fs.writeFileSync(path.join(stageDir, 'README.zh.txt'), `Prizrak-Box — macOS 安装说明
+============================
 
-1. 将 **Prizrak-Box.app** 拖拽到 **应用程序** (Applications) 文件夹。
+1. 将「Prizrak-Box.app」拖拽到「应用程序」(Applications) 文件夹。
 2. 从「应用程序」文件夹打开应用。
 
-该应用已经过数字签名。如果出现安全对话框，请点击**打开** (Open)。
+如果出现「"Prizrak-Box"已存在，是否替换？」对话框，请点击「替换」。
+
+该应用已经过数字签名。如果出现安全对话框，请点击「打开」(Open)。
 
 支持与更新：https://github.com/legiz-ru/prizrak-box
 `, 'utf8')
@@ -102,13 +114,13 @@ tell application "Finder"
     set position of item "${appName}" of container window to {230, 240}
     set position of item "Applications" of container window to {700, 240}
     try
-      set position of item "README.md" of container window to {215, 460}
+      set position of item "README.txt" of container window to {215, 460}
     end try
     try
-      set position of item "README.ru.md" of container window to {465, 460}
+      set position of item "README.ru.txt" of container window to {465, 460}
     end try
     try
-      set position of item "README.zh.md" of container window to {715, 460}
+      set position of item "README.zh.txt" of container window to {715, 460}
     end try
     close
     open
