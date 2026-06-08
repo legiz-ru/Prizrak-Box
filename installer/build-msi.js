@@ -5,6 +5,14 @@ const { execSync } = require('child_process');
 const ARCH = process.env.ARCH || 'x64';
 const VERSION = require('../package.json').version;
 const IS_ARM64 = ARCH === 'arm64';
+const IS_WAILS = (process.env.BUILD_TYPE || 'electron') === 'wails';
+
+// Electron and Wails MSIs share the same install directory but must NOT
+// share an UpgradeCode — otherwise Windows Installer treats them as the same
+// product chain and silently rolls back whichever was installed first.
+const UPGRADE_CODE = IS_WAILS
+  ? 'd5f799e1-4b83-4a7f-b662-1a3c924d5e0f'   // Wails build — separate upgrade chain
+  : 'c1d377b2-2c61-4c5e-8773-8e3c703b8b41';  // Electron build (original)
 
 const PATHS = {
   root: path.resolve(__dirname, '..'),
@@ -47,7 +55,8 @@ async function buildMSI() {
     ProgramFilesFolder: 'ProgramFiles64Folder',
     SourceDir: PATHS.appFiles,
     Language: '1033', // Primary language: English
-    Culture: 'en-us'
+    Culture: 'en-us',
+    UpgradeCode: UPGRADE_CODE,
   };
 
   const wixDefines = Object.entries(wixVars)

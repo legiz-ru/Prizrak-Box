@@ -4,7 +4,6 @@
 
   <?define ProductName = "Prizrak-Box" ?>
   <?define Manufacturer = "legiz-ru" ?>
-  <?define UpgradeCode = "c1d377b2-2c61-4c5e-8773-8e3c703b8b41" ?>
   <?define HelpLink = "https://github.com/legiz-ru/Prizrak-Box" ?>
 
   <Product Id="*"
