@@ -180,7 +180,11 @@ jobs:
         run: |
           set -euo pipefail
           zip -qr "wails-macos-${{ matrix.arch }}.zip" "Prizrak-Box.app"
-          hdiutil create -volname "Prizrak-Box" -srcfolder "Prizrak-Box.app" -ov -format UDZO "wails-macos-${{ matrix.arch }}.dmg"
+          mkdir dmg-staging
+          cp -R "Prizrak-Box.app" dmg-staging/
+          ln -s /Applications dmg-staging/Applications
+          hdiutil create -volname "Prizrak-Box" -srcfolder dmg-staging -ov -format UDZO "wails-macos-${{ matrix.arch }}.dmg"
+          rm -rf dmg-staging
           if [ -n "${MACOS_CERTIFICATE:-}" ]; then
             IDENTITY=$(security find-identity -v -p codesigning "$HOME/Library/Keychains/ci-signing.keychain-db" | head -n 1 | sed -E 's/^.*"(.+)"$/\1/')
             codesign --force --timestamp --sign "$IDENTITY" "wails-macos-${{ matrix.arch }}.dmg" || true
