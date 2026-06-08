@@ -1378,6 +1378,12 @@ jobs:
               return;
             }
 
+            // Fetch existing assets so re-runs can delete and replace them
+            const { data: existingAssets } = await github.rest.repos.listReleaseAssets({
+              owner, repo, release_id: release.id, per_page: 100,
+            });
+            const existingAssetMap = new Map(existingAssets.map(a => [a.name, a.id]));
+
             const platformDirs = fs.readdirSync(artifactsDir);
             for (const platformDir of platformDirs) {
               const files = fs.readdirSync(path.join(artifactsDir, platformDir));
@@ -1385,6 +1391,13 @@ jobs:
                 if (uploadedAssets.has(fileName)) {
                   core.info(`Skipping duplicate asset: ${fileName}`);
                   continue;
+                }
+                // Delete stale asset from a previous run before re-uploading
+                if (existingAssetMap.has(fileName)) {
+                  core.info(`Replacing existing asset: ${fileName}`);
+                  await github.rest.repos.deleteReleaseAsset({
+                    owner, repo, asset_id: existingAssetMap.get(fileName),
+                  });
                 }
                 const filePath = path.join(artifactsDir, platformDir, fileName);
                 core.info(`Uploading asset: ${fileName}`);
