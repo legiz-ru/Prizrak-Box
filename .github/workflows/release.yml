@@ -1048,7 +1048,7 @@ jobs:
       - name: Build px + px-service
         env: { GOARCH: '${{ matrix.arch }}' }
         run: |
-          (cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags="-s -w" -o px .)
+          (cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags="-s -w -X github.com/legiz-ru/prizrak-box/api.Version=${{ env.VERSION }}" -o px .)
           (cd src-service && CGO_ENABLED=0 go build -ldflags="-s -w" -o px-service .)
       - name: Build Wails app
         env: { GOARCH: '${{ matrix.arch }}', CGO_ENABLED: '1' }
@@ -1180,7 +1180,7 @@ jobs:
         shell: pwsh
         env: { GOARCH: '${{ matrix.arch }}' }
         run: |
-          cd src-go;       $env:CGO_ENABLED='0'; go build -tags=with_gvisor -trimpath -ldflags="-s -w" -o px.exe .; cd ..
+          cd src-go;       $env:CGO_ENABLED='0'; go build -tags=with_gvisor -trimpath -ldflags="-s -w -X github.com/legiz-ru/prizrak-box/api.Version=$env:VERSION" -o px.exe .; cd ..
           cd src-service;  $env:CGO_ENABLED='0'; go build -ldflags="-s -w" -o px-service.exe .;   cd ..
       - name: Build Wails app (Prizrak-Box.exe with icon)
         shell: pwsh
