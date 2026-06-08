@@ -1188,7 +1188,7 @@ jobs:
         run: |
           cd src-wails
           go run github.com/tc-hib/go-winres@latest simply --icon build/appicon.ico --manifest gui --product-name "Prizrak-Box"
-          go build -trimpath -o bin/Prizrak-Box.exe .
+          go build -trimpath -ldflags="-H windowsgui -s -w" -o bin/Prizrak-Box.exe .
           Remove-Item rsrc_windows_*.syso -ErrorAction SilentlyContinue
       - name: Stage app (Electron MSI layout)
         shell: pwsh
