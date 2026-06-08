@@ -107,6 +107,7 @@ func (c *CoreService) RestartDirect() (ConnInfo, error) {
 	cmd := exec.Command(c.PxPath(), "-addr="+c.CbAddr(), "-home="+c.Home())
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	hideWindow(cmd)
 	if err := cmd.Start(); err != nil {
 		return ConnInfo{}, fmt.Errorf("spawn px (%s): %w", c.PxPath(), err)
 	}
