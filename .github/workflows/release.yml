@@ -418,14 +418,14 @@ jobs:
 
       - name: Get Latest LightGBM Model Mihomo Smart
         run: |
-          wget -O src-go/internal/em/Model.bin https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
+          wget -O src-go/internal/em/Model.bin --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
 
       - name: Get Latest Geo Data
         run: |
-          wget -O src-go/internal/em/geoip.metadb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
-          wget -O src-go/internal/em/GeoSite.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
-          wget -O src-go/internal/em/BundleMRS.7z https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
-          wget -O src-go/internal/em/GeoLite2-ASN.mmdb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
+          wget -O src-go/internal/em/geoip.metadb    --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
+          wget -O src-go/internal/em/GeoSite.dat      --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          wget -O src-go/internal/em/BundleMRS.7z      --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
+          wget -O src-go/internal/em/GeoLite2-ASN.mmdb --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
 
       - name: Set Version
         run: echo "VERSION=${{ needs.setup.outputs.version }}" >> $GITHUB_ENV
@@ -610,14 +610,14 @@ jobs:
 
       - name: Get Latest LightGBM Model Mihomo Smart
         run: |
-          wget -O src-go/internal/em/Model.bin https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
+          wget -O src-go/internal/em/Model.bin --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
 
       - name: Get Latest Geo Data
         run: |
-          wget -O src-go/internal/em/geoip.metadb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
-          wget -O src-go/internal/em/GeoSite.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
-          wget -O src-go/internal/em/BundleMRS.7z https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
-          wget -O src-go/internal/em/GeoLite2-ASN.mmdb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
+          wget -O src-go/internal/em/geoip.metadb    --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
+          wget -O src-go/internal/em/GeoSite.dat      --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          wget -O src-go/internal/em/BundleMRS.7z      --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
+          wget -O src-go/internal/em/GeoLite2-ASN.mmdb --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
 
       - name: Set Version
         run: echo "VERSION=${{ needs.setup.outputs.version }}" >> $GITHUB_ENV
