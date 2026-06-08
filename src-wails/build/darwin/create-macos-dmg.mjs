@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const repoRoot = path.resolve(__dirname, '..')
+const repoRoot = path.resolve(__dirname, '../../..')
 
 const arch    = process.argv[2] || 'arm64'
 const outName = process.argv[3] || `prizrak-box-macos-${arch}.dmg`

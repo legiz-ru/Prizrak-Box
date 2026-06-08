@@ -182,7 +182,7 @@ jobs:
         run: |
           set -euo pipefail
           zip -qr "wails-macos-${{ matrix.arch }}.zip" "Prizrak-Box.app"
-          node scripts/create-macos-dmg.mjs ${{ matrix.arch }} wails-macos-${{ matrix.arch }}.dmg
+          node src-wails/build/darwin/create-macos-dmg.mjs ${{ matrix.arch }} wails-macos-${{ matrix.arch }}.dmg
           if [ -n "${MACOS_CERTIFICATE:-}" ]; then
             IDENTITY=$(security find-identity -v -p codesigning "$HOME/Library/Keychains/ci-signing.keychain-db" | head -n 1 | sed -E 's/^.*"(.+)"$/\1/')
             codesign --force --timestamp --sign "$IDENTITY" "wails-macos-${{ matrix.arch }}.dmg" || true
