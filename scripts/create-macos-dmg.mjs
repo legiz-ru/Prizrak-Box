@@ -9,13 +9,13 @@ const repoRoot = path.resolve(__dirname, '..')
 const arch    = process.argv[2] || 'arm64'
 const outName = process.argv[3] || `prizrak-box-macos-${arch}.dmg`
 
-const appName   = 'Prizrak-Box.app'
-const appPath   = path.join(repoRoot, appName)
-const outPath   = path.join(repoRoot, outName)
-const tempDmg   = path.join(repoRoot, `prizrak-box-macos-${arch}-tmp.dmg`)
-const stageDir  = path.join(repoRoot, 'dmg-stage')
+const appName    = 'Prizrak-Box.app'
+const appPath    = path.join(repoRoot, appName)
+const outPath    = path.join(repoRoot, outName)
+const tempDmg    = path.join(repoRoot, `prizrak-box-macos-${arch}-tmp.dmg`)
+const stageDir   = path.join(repoRoot, 'dmg-stage')
 const volumeName = 'Prizrak-Box'
-const dmgBg     = path.join(repoRoot, 'build', 'dmg-background.png')
+const dmgBg      = path.join(repoRoot, 'build', 'dmg-background.png')
 
 if (!fs.existsSync(appPath)) {
   console.error(`[create-macos-dmg] .app not found: ${appPath}`)
@@ -30,18 +30,35 @@ execFileSync('cp', ['-R', appPath, path.join(stageDir, appName)])
 // /Applications symlink
 try { fs.symlinkSync('/Applications', path.join(stageDir, 'Applications')) } catch { /* ok */ }
 
-// README.txt (no Fix Quarantine — app is signed & notarized)
-fs.writeFileSync(path.join(stageDir, 'README.txt'), `Prizrak-Box — Установка на macOS
-=================================
+// README files — three languages (no Fix Quarantine: app is signed & notarized)
+fs.writeFileSync(path.join(stageDir, 'README.md'), `# Prizrak-Box — macOS Installation
 
-1) Перетащите «Prizrak-Box.app» в папку «Программы» (Applications).
-2) Откройте приложение из папки «Программы».
+1. Drag **Prizrak-Box.app** into **Applications**.
+2. Open the app from Applications.
 
-Приложение подписано цифровой подписью. При появлении диалога
-безопасности нажмите «Открыть» (Open).
+The app is digitally signed. If a security dialog appears, click **Open**.
 
-Поддержка и обновления:
-  https://github.com/legiz-ru/prizrak-box
+Support & updates: https://github.com/legiz-ru/prizrak-box
+`, 'utf8')
+
+fs.writeFileSync(path.join(stageDir, 'README.ru.md'), `# Prizrak-Box — Установка на macOS
+
+1. Перетащите **Prizrak-Box.app** в папку **Программы** (Applications).
+2. Откройте приложение из папки «Программы».
+
+Приложение подписано цифровой подписью. При появлении диалога безопасности нажмите **Открыть** (Open).
+
+Поддержка и обновления: https://github.com/legiz-ru/prizrak-box
+`, 'utf8')
+
+fs.writeFileSync(path.join(stageDir, 'README.zh.md'), `# Prizrak-Box — macOS 安装说明
+
+1. 将 **Prizrak-Box.app** 拖拽到 **应用程序** (Applications) 文件夹。
+2. 从「应用程序」文件夹打开应用。
+
+该应用已经过数字签名。如果出现安全对话框，请点击**打开** (Open)。
+
+支持与更新：https://github.com/legiz-ru/prizrak-box
 `, 'utf8')
 
 // Optional background image (add build/dmg-background.png to enable)
@@ -64,6 +81,8 @@ const device = deviceLine ? deviceLine.split(/\s+/)[0] : ''
 if (!device) throw new Error(`failed to parse mounted device:\n${attachOut}`)
 
 // Style with AppleScript
+// Window: 860×530 px content area — icons row at y=250, readme row at y=470
+// Three READMEs spread evenly across the bottom: x = 215, 465, 715
 const bgLine = useBackground
   ? `set background picture of opts to file ".background:dmg-background.png"`
   : 'set background color of opts to {65535, 65535, 65535}'
@@ -77,13 +96,19 @@ tell application "Finder"
     set the bounds of container window to {120, 120, 980, 650}
     set opts to the icon view options of container window
     set arrangement of opts to not arranged
-    set icon size of opts to 120
+    set icon size of opts to 100
     ${bgLine}
     delay 0.2
-    set position of item "${appName}" of container window to {230, 250}
-    set position of item "Applications" of container window to {700, 250}
+    set position of item "${appName}" of container window to {230, 240}
+    set position of item "Applications" of container window to {700, 240}
     try
-      set position of item "README.txt" of container window to {230, 470}
+      set position of item "README.md" of container window to {215, 460}
+    end try
+    try
+      set position of item "README.ru.md" of container window to {465, 460}
+    end try
+    try
+      set position of item "README.zh.md" of container window to {715, 460}
     end try
     close
     open
