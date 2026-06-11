@@ -23,8 +23,10 @@ const webStore = useWebStore();
 // Group and Proxy dropdowns
 const groupList = ref<ProxyGroupInfo[]>([]);
 const proxyList = ref<any[]>([]);
-const selectedGroup = ref('');
-const selectedProxy = ref('');
+// Pre-initialize from persisted store so the panel shows the correct value
+// immediately on mount, before any API call completes.
+const selectedGroup = ref(proxiesStore.active || '');
+const selectedProxy = ref(proxiesStore.now || '');
 const isGroupDropdownOpen = ref(false);
 const isProxyDropdownOpen = ref(false);
 
@@ -190,8 +192,6 @@ function handleClickOutside(event: MouseEvent) {
 }
 
 const handleProfileChanged = async () => {
-  selectedGroup.value = '';
-  selectedProxy.value = '';
   proxiesStore.setActive('');
   proxiesStore.setNow('');
   isGroupDropdownOpen.value = false;
@@ -238,19 +238,23 @@ Events.On("profileChanged", async () => {
   await handleProfileChanged();
 });
 
-// Watch for store changes (from other components)
-watch(() => proxiesStore.active, async (newActive) => {
+// Watch for store changes from other components (e.g. Proxies.vue).
+// Only update local refs — no API calls, no clearing proxyList.
+// proxyList is refreshed on next dropdown open or on a backend proxyChanged event.
+watch(() => proxiesStore.active, (newActive) => {
   if (newActive && newActive !== selectedGroup.value) {
     selectedGroup.value = newActive;
-    await loadProxies();
+    // Do NOT clear proxyList here — that would flash "Не выбрано".
   }
 });
 
-watch(() => proxiesStore.now, async (newNow) => {
-  if (newNow && newNow !== selectedProxy.value) {
-    selectedProxy.value = newNow;
-    // Reload proxies to update the 'now' status in the list
-    await loadProxies();
+watch(() => proxiesStore.now, (newNow) => {
+  // Ignore empty resets — they happen transiently during profile/group changes.
+  if (!newNow || newNow === selectedProxy.value) return;
+  selectedProxy.value = newNow;
+  // Optimistically mark the active proxy in the cached list without an API call.
+  if (proxyList.value.length > 0) {
+    proxyList.value = proxyList.value.map(p => ({ ...p, now: p.name === newNow }));
   }
 });
 
@@ -288,7 +292,7 @@ watch(() => proxiesStore.now, async (newNow) => {
           <div class="dropdown-button" @click="toggleProxyDropdown">
             <span class="dropdown-label"><span class="dropdown-label-text">{{ t('proxySelector.proxy') }}</span></span>
             <span class="dropdown-value">
-              {{ proxyList.find(p => p.now)?.displayName ?? proxyList.find(p => p.now)?.name ?? 'Не выбрано' }}
+              {{ (proxyList.find(p => p.now)?.displayName ?? proxyList.find(p => p.now)?.name ?? selectedProxy) || 'Не выбрано' }}
             </span>
             <el-icon class="dropdown-icon" @click.stop="toggleProxyDropdown">
               <icon-ep-arrow-down v-if="!isProxyDropdownOpen" />

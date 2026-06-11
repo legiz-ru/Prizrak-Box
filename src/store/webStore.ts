@@ -14,6 +14,7 @@ export const useWebStore = defineStore('web', {
         dnd: false,         // 拖拽显示
         dProfile: [],         // 传输文件 拖拽添加文件用
         fProfile: {}, // 更新profile 配置切换用
+        profileList: [] as any[], // кэш списка профилей для мгновенного показа при навигации
         customDashboards: [] as CustomDashboard[],
     }),
     getters: {

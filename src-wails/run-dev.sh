@@ -50,5 +50,22 @@ echo "==> [3/3] Building & running the Wails shell"
 cd "$SCRIPT_DIR"
 mkdir -p bin
 go build -o "bin/$WAILS_EXE" .
+
+# On macOS: wrap in a minimal .app bundle so the Dock and Cmd+Tab use the
+# proper .icns icon (CFBundleIconFile) instead of the programmatic NSImage.
+# Without a bundle, macOS scales the icon differently and it appears larger
+# than other apps.
+if [ "$(uname -s)" = "Darwin" ] && [ -f "build/darwin/appicon.icns" ]; then
+  APP="bin/Prizrak-Box.app"
+  mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+  cp build/darwin/appicon.icns "$APP/Contents/Resources/"
+  cp build/darwin/Info.plist   "$APP/Contents/"
+  # CFBundleExecutable in Info.plist is "Prizrak-Box" — binary must match exactly
+  cp "bin/$WAILS_EXE" "$APP/Contents/MacOS/Prizrak-Box"
+  codesign --force --deep --sign - "$APP" 2>/dev/null || true
+  echo "    launching $APP ..."
+  exec "$APP/Contents/MacOS/Prizrak-Box"
+fi
+
 echo "    launching bin/$WAILS_EXE ..."
 exec "./bin/$WAILS_EXE"

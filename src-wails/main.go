@@ -75,10 +75,19 @@ func main() {
 
 	var win *application.WebviewWindow
 
+	// On macOS the dock/Cmd+Tab icon comes from the .app bundle's appicon.icns
+	// (CFBundleIconFile). Passing Icon here would call [NSApp setApplicationIconImage:]
+	// with a raw PNG whose NSImage natural size makes it appear larger than other
+	// apps. Leave Icon nil on darwin so the OS uses the bundle icon directly.
+	var runtimeIcon []byte
+	if runtime.GOOS != "darwin" {
+		runtimeIcon = appIcon
+	}
+
 	app := application.New(application.Options{
 		Name:        "Prizrak-Box",
 		Description: "A Simple Mihomo GUI",
-		Icon:        appIcon,
+		Icon:        runtimeIcon,
 		Services: []application.Service{
 			application.NewService(core),
 			application.NewService(system),

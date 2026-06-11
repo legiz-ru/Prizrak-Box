@@ -110,6 +110,10 @@ export function installWailsShim(): void {
         w.pxShowBar = (): void => { /* custom title bar present */ };
     }
 
+    // Disable the default WebView context menu (WKWebView on macOS, WebView2 on
+    // Windows). A native app must not expose browser navigation controls.
+    document.addEventListener('contextmenu', e => e.preventDefault());
+
     // --- Tray event bus, backed by Wails events (Go <-> frontend) ---
     // IMPORTANT: emit and on use DISJOINT channel prefixes so the frontend
     // never receives its own emits. Electron used separate ipc directions

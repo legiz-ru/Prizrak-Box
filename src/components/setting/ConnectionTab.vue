@@ -651,12 +651,12 @@ function closeAll() {
   width: calc(95% - 10px);
   margin-left: 10px;
   border-radius: 20px;
+  overflow: hidden;
 }
 
 .info-list {
   max-height: calc(100vh - 250px);
   overflow-y: auto;
-  border-radius: 20px;
 }
 
 .info {
@@ -1034,6 +1034,10 @@ function closeAll() {
 .process-connections-wrap {
   display: flex;
   flex-direction: column;
+}
+
+.process-connections-wrap .info-list {
+  max-height: calc(100vh - 300px);
 }
 
 .process-back-bar {

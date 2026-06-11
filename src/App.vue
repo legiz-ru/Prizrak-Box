@@ -287,6 +287,7 @@ const handleVueProfilesUpdate = (event: Event) => {
 const loadProfiles = async () => {
   try {
     const list = await api.getProfileList();
+    if (Array.isArray(list)) webStore.profileList = list;
     pickSelectedProfile(list);
     // On startup fProfile is empty (no id), so Proxies.vue skips fetching
     // proxy groups. Set it from the active profile so groups load correctly

@@ -1057,7 +1057,12 @@ func startCore(profile models.Profile, profiles []models.Profile, reload bool) {
 	rawCfg.Tun.DNSHijack = []string{"any:53"}
 	rawCfg.Tun.AutoRoute = true
 	rawCfg.Tun.AutoDetectInterface = true
-	rawCfg.Tun.Device = "Prizrak"
+	// macOS (darwin) only supports utun* interface names; custom names like
+	// "Prizrak" are rejected by the kernel. Leave Device empty on darwin so
+	// Mihomo auto-selects the next available utun index (utun0, utun1, …).
+	if runtime.GOOS != "darwin" {
+		rawCfg.Tun.Device = "Prizrak"
+	}
 	rawCfg.UnifiedDelay = true
 
 	// 从数据库中获取 mihomo 配置,进行 rawCfg 赋值

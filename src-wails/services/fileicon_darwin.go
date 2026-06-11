@@ -12,12 +12,23 @@ package services
 #include <stdlib.h>
 #include <string.h>
 
+// bundlePath returns the .app bundle path if `p` is an executable inside one
+// (e.g. "/Applications/Foo.app/Contents/MacOS/Foo" → "/Applications/Foo.app"),
+// otherwise returns `p` unchanged. This makes NSWorkspace return the proper
+// app icon rather than the generic Unix-executable icon.
+static NSString* bundlePath(NSString* p) {
+    NSRange r = [p rangeOfString:@".app/" options:NSCaseInsensitiveSearch];
+    if (r.location == NSNotFound) return p;
+    return [p substringToIndex:r.location + 4]; // up to and including ".app"
+}
+
 // iconPNG returns malloc'd PNG bytes for the icon of `path` rendered at px×px,
 // or NULL. The length is written to *outLen. Caller frees the buffer.
 static unsigned char* iconPNG(const char* path, int px, int* outLen) {
     @autoreleasepool {
         NSString* p = [NSString stringWithUTF8String:path];
         if (p == nil) return NULL;
+        p = bundlePath(p);
         NSImage* img = [[NSWorkspace sharedWorkspace] iconForFile:p];
         if (img == nil) return NULL;
         NSRect rect = NSMakeRect(0, 0, px, px);

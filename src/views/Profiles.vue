@@ -217,6 +217,7 @@ const handleProfilesEvent = (list: any[]) => {
 async function getProfileList() {
   const list = await api.getProfileList()
   if (list && list.length != 0) {
+    if (Array.isArray(list)) webStore.profileList = list;
     applyProfileList(list)
     Events.Emit({
       name: "profiles",
@@ -819,6 +820,12 @@ let tList = reactive([]);
 onMounted(async () => {
   const urlTraffic = webStore.wsUrl + "/profile/order?token=" + webStore.secret;
   wsOrder = new WS(urlTraffic);
+
+  // Show cached list immediately (populated by App.vue on startup) so the
+  // view renders without waiting for the API round-trip.
+  if (webStore.profileList.length > 0) {
+    applyProfileList(webStore.profileList);
+  }
 
   await getProfileList()
   tList = await api.getTemplateList();

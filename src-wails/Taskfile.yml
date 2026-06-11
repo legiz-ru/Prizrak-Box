@@ -22,10 +22,25 @@ tasks:
       - npx vite build --outDir "{{.DIST}}" --emptyOutDir
 
   icons:
-    desc: Regenerate .ico / tray.png from master appicon.png (sharp)
+    desc: Regenerate .ico / tray.png from master appicon.png (sharp), and .icns for macOS
     dir: "{{.TASKFILE_DIR}}/build"
     cmds:
       - node gen-icons.mjs
+      - |
+        ICONSET=$(mktemp -d /tmp/appicon.XXXXXX.iconset)
+        sips -z 16   16   appicon.png --out "$ICONSET/icon_16x16.png"       >/dev/null
+        sips -z 32   32   appicon.png --out "$ICONSET/icon_16x16@2x.png"    >/dev/null
+        sips -z 32   32   appicon.png --out "$ICONSET/icon_32x32.png"       >/dev/null
+        sips -z 64   64   appicon.png --out "$ICONSET/icon_32x32@2x.png"    >/dev/null
+        sips -z 128  128  appicon.png --out "$ICONSET/icon_128x128.png"     >/dev/null
+        sips -z 256  256  appicon.png --out "$ICONSET/icon_128x128@2x.png"  >/dev/null
+        sips -z 256  256  appicon.png --out "$ICONSET/icon_256x256.png"     >/dev/null
+        sips -z 512  512  appicon.png --out "$ICONSET/icon_256x256@2x.png"  >/dev/null
+        sips -z 512  512  appicon.png --out "$ICONSET/icon_512x512.png"     >/dev/null
+        sips -z 1024 1024 appicon.png --out "$ICONSET/icon_512x512@2x.png"  >/dev/null
+        iconutil --convert icns "$ICONSET" --output darwin/appicon.icns
+        rm -rf "$ICONSET"
+        echo "Generated darwin/appicon.icns"
 
   px:
     desc: Build the px backend (CGO disabled, gvisor TUN)
@@ -49,6 +64,15 @@ tasks:
     deps: [frontend]
     cmds:
       - wails3 package
+
+  bundle:
+    desc: Wrap the built binary into a signed .app bundle (macOS only)
+    cmds:
+      - mkdir -p bin/Prizrak-Box.app/Contents/{MacOS,Resources}
+      - cp build/darwin/appicon.icns bin/Prizrak-Box.app/Contents/Resources/
+      - cp bin/Prizrak-Box bin/Prizrak-Box.app/Contents/MacOS/
+      - cp build/darwin/Info.plist bin/Prizrak-Box.app/Contents/
+      - codesign --force --deep --sign - bin/Prizrak-Box.app
 
   clean:
     cmds:

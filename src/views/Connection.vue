@@ -680,6 +680,7 @@ function closeAll() {
   width: 100%;
   margin-left: 0;
   margin-top: 2px;
+  flex-shrink: 0;
 }
 
 .title {
