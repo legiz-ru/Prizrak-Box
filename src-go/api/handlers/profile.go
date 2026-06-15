@@ -416,7 +416,8 @@ func addFromWeb(w http.ResponseWriter, r *http.Request) {
 
 		// 解析存盘
 		subProfile := &models.Profile{
-			Content: sub,
+			Content:      sub,
+			AgeSecretKey: profile.AgeSecretKey,
 		}
 		err = internal.Resolve(res.Body, subProfile, false)
 		if err == nil {
