@@ -23,6 +23,7 @@ proxy-switch-off: Proxy is OFF
 tun-switch: Tun
 tun-switch-on: Tun is ON
 tun-switch-off: Tun is OFF
+tun-unavailable: Couldn't enable Tun — the service is unavailable. Run as administrator or reinstall the service.
 tun-warning: The tun mode requires administrator privileges
 tun-auth-tip: Px requires authorization to enable TUN.
 

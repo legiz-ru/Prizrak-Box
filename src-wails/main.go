@@ -179,6 +179,12 @@ func main() {
 	app.Event.On("px:fe:startMinimized", func(e *application.CustomEvent) {
 		_ = locate.SetStartMinimized(asBool(e.Data))
 	})
+	// Persist whether TUN is enabled so the next launch knows to wait for the
+	// privileged service to come up before spawning px (see TunService.StartBackend).
+	// The frontend emits this on TUN toggle and once on mount to keep it in sync.
+	app.Event.On("px:fe:tunDesired", func(e *application.CustomEvent) {
+		_ = locate.SetTunDesired(asBool(e.Data))
+	})
 
 	// Global "Show/Hide window" hotkey (Windows; no-op elsewhere).
 	installHotkeys(app, win)
@@ -216,8 +222,10 @@ func main() {
 	}
 
 	// Start the backend, then point the window at it and reveal the window.
+	// StartBackend routes px through the elevated service when available (so TUN
+	// works without elevating the GUI) and otherwise spawns px directly.
 	go func() {
-		info, err := core.Start()
+		info, err := tun.StartBackend()
 		// Don't navigate until the webview has finished its initial embed.
 		awaitWebview()
 		if err != nil {

@@ -135,6 +135,28 @@ func SetStartMinimized(v bool) error {
 	return os.WriteFile(f, []byte(val), 0o644)
 }
 
+// TunDesired reports whether TUN mode was enabled in the last session. The
+// startup px launcher uses this to decide whether to wait for the privileged
+// service to come up after a reboot (the boot race) before falling back to a
+// direct, non-elevated spawn. The frontend keeps it in sync (px:fe:tunDesired).
+func TunDesired() bool {
+	b, err := os.ReadFile(flagFile("tun-desired"))
+	return err == nil && strings.TrimSpace(string(b)) == "1"
+}
+
+// SetTunDesired persists the "TUN was enabled" preference.
+func SetTunDesired(v bool) error {
+	f := flagFile("tun-desired")
+	if err := os.MkdirAll(filepath.Dir(f), 0o755); err != nil {
+		return err
+	}
+	val := "0"
+	if v {
+		val = "1"
+	}
+	return os.WriteFile(f, []byte(val), 0o644)
+}
+
 // readHomeOverride returns the persisted custom data directory, or "".
 func readHomeOverride() string {
 	b, err := os.ReadFile(homeOverrideFile())

@@ -23,6 +23,7 @@ proxy-switch-off: Прокси ВЫКЛЮЧЕН
 tun-switch: Tun
 tun-switch-on: Tun ВКЛЮЧЕН
 tun-switch-off: Tun ВЫКЛЮЧЕН
+tun-unavailable: Не удалось включить Tun — служба недоступна. Запустите от администратора или переустановите службу.
 tun-warning: Для режима Tun требуются права администратора
 tun-auth-tip: Для включения TUN требуется авторизация.
 

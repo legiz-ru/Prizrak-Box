@@ -23,6 +23,7 @@ proxy-switch-off: 代理已关闭
 tun-switch: 虚拟网卡
 tun-switch-on: 虚拟网卡已开启
 tun-switch-off: 虚拟网卡已关闭
+tun-unavailable: 无法开启 Tun — 服务不可用。请以管理员身份运行或重新安装服务。
 tun-warning: 开启Tun需要管理员权限
 tun-auth-tip: Px 需要授权才能使用 TUN 模式。
 
