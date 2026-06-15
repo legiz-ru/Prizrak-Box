@@ -1210,7 +1210,7 @@ watch(() => webStore.dProfile, async (pList) => {
       </el-form-item>
 
       <el-form-item
-          v-if="editHasAgeKey && editShowAgeKey"
+          v-if="editShowAgeKey"
           label="age-secret-key"
           label-width="120"
           class="age-key-field">
@@ -1241,8 +1241,8 @@ watch(() => webStore.dProfile, async (pList) => {
             </el-icon>
           </el-tooltip>
           <el-tooltip
-              v-if="editHasAgeKey"
-              :content="t('age.profile.replaceHint')"
+              v-if="editForm.type == 1 || editHasAgeKey"
+              :content="editHasAgeKey ? t('age.profile.replaceHint') : t('age.profile.toggleOff')"
               placement="top"
           >
             <el-icon
