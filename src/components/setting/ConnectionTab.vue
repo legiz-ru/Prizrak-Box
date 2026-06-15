@@ -658,11 +658,11 @@ function closeAll() {
   margin-left: 10px;
   border-radius: 20px;
   overflow: hidden;
-  /* Полупрозрачная подложка с блюром: текст читается поверх любых обоев,
-     но сохраняется «стеклянный» эффект (фон просвечивает размытым). */
-  background-color: rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  /* Лёгкая прозрачная подложка: фон обоев остаётся хорошо виден (стеклянный
+     эффект), читаемость держится за счёт blur и тени текста. */
+  background-color: rgba(0, 0, 0, 0.14);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .info-list {
