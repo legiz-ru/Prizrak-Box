@@ -69,6 +69,14 @@ function formatChains(chains: string[]): string {
   return [...chains].reverse().join(' → ')
 }
 
+// Полная строка маршрута (правило + цепочка) — используется и для отображения,
+// и для тултипа (title), когда строка не помещается и усекается.
+function routingText(item: any): string {
+  const rule = [item.rule, item.rulePayload].filter(Boolean).join(' / ')
+  const chains = item.chains?.length ? formatChains(item.chains) : ''
+  return [rule, chains].filter(Boolean).join(' · ')
+}
+
 function formatConnType(metadata: any): string {
   const net = (metadata?.network || '').toUpperCase()
   const type = metadata?.type || ''
@@ -379,28 +387,27 @@ function closeAll() {
                 <icon-mdi-content-copy/>
               </span>
             </div>
-            <div class="info-card__main">
-              <div class="info-card__host">{{ fHost(item.metadata) }}</div>
-              <div class="info-card__tags">
-                <el-tag type="success" size="small">{{ item.metadata.type }}</el-tag>
-                <el-tag v-if="item.metadata.process" type="primary" size="small">{{ item.metadata.process }}</el-tag>
-                <el-tag type="danger" size="small">{{ fDate(item.start) }}</el-tag>
+            <div class="info-card__body">
+              <div class="info-card__row info-card__row--top">
+                <div class="info-card__host">{{ fHost(item.metadata) }}</div>
+                <div class="info-card__traffic">
+                  <span class="info-traffic-item" :title="$t('connections.upload')">
+                    <icon-mdi-arrow-up class="traffic-icon traffic-icon--up"/>
+                    {{ prettyBytes(item.upload) }}
+                  </span>
+                  <span class="info-traffic-item" :title="$t('connections.download')">
+                    <icon-mdi-arrow-down class="traffic-icon traffic-icon--down"/>
+                    {{ prettyBytes(item.download) }}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div class="info-card__meta">
-              <div class="info-card__traffic">
-                <span class="info-traffic-item" :title="$t('connections.upload')">
-                  <icon-mdi-arrow-up class="traffic-icon traffic-icon--up"/>
-                  {{ prettyBytes(item.upload) }}
-                </span>
-                <span class="info-traffic-item" :title="$t('connections.download')">
-                  <icon-mdi-arrow-down class="traffic-icon traffic-icon--down"/>
-                  {{ prettyBytes(item.download) }}
-                </span>
-              </div>
-              <div class="info-card__routing">
-                <template v-if="item.rule">{{ [item.rule, item.rulePayload].filter(Boolean).join(' / ') }}<template v-if="item.chains?.length"> · </template></template>
-                <template v-if="item.chains?.length">{{ formatChains(item.chains) }}</template>
+              <div class="info-card__row info-card__row--bottom">
+                <div class="info-card__tags">
+                  <el-tag type="success" size="small">{{ item.metadata.type }}</el-tag>
+                  <el-tag v-if="item.metadata.process" type="primary" size="small">{{ item.metadata.process }}</el-tag>
+                  <el-tag type="danger" size="small">{{ fDate(item.start) }}</el-tag>
+                </div>
+                <div class="info-card__routing" :title="routingText(item)">{{ routingText(item) }}</div>
               </div>
             </div>
           </div>
@@ -479,27 +486,26 @@ function closeAll() {
                   <icon-mdi-content-copy/>
                 </span>
               </div>
-              <div class="info-card__main">
-                <div class="info-card__host">{{ fHost(item.metadata) }}</div>
-                <div class="info-card__tags">
-                  <el-tag type="success" size="small">{{ item.metadata.type }}</el-tag>
-                  <el-tag type="danger" size="small">{{ fDate(item.start) }}</el-tag>
+              <div class="info-card__body">
+                <div class="info-card__row info-card__row--top">
+                  <div class="info-card__host">{{ fHost(item.metadata) }}</div>
+                  <div class="info-card__traffic">
+                    <span class="info-traffic-item" :title="$t('connections.upload')">
+                      <icon-mdi-arrow-up class="traffic-icon traffic-icon--up"/>
+                      {{ prettyBytes(item.upload) }}
+                    </span>
+                    <span class="info-traffic-item" :title="$t('connections.download')">
+                      <icon-mdi-arrow-down class="traffic-icon traffic-icon--down"/>
+                      {{ prettyBytes(item.download) }}
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <div class="info-card__meta">
-                <div class="info-card__traffic">
-                  <span class="info-traffic-item" :title="$t('connections.upload')">
-                    <icon-mdi-arrow-up class="traffic-icon traffic-icon--up"/>
-                    {{ prettyBytes(item.upload) }}
-                  </span>
-                  <span class="info-traffic-item" :title="$t('connections.download')">
-                    <icon-mdi-arrow-down class="traffic-icon traffic-icon--down"/>
-                    {{ prettyBytes(item.download) }}
-                  </span>
-                </div>
-                <div class="info-card__routing">
-                  <template v-if="item.rule">{{ [item.rule, item.rulePayload].filter(Boolean).join(' / ') }}<template v-if="item.chains?.length"> · </template></template>
-                  <template v-if="item.chains?.length">{{ formatChains(item.chains) }}</template>
+                <div class="info-card__row info-card__row--bottom">
+                  <div class="info-card__tags">
+                    <el-tag type="success" size="small">{{ item.metadata.type }}</el-tag>
+                    <el-tag type="danger" size="small">{{ fDate(item.start) }}</el-tag>
+                  </div>
+                  <div class="info-card__routing" :title="routingText(item)">{{ routingText(item) }}</div>
                 </div>
               </div>
             </div>
@@ -652,6 +658,11 @@ function closeAll() {
   margin-left: 10px;
   border-radius: 20px;
   overflow: hidden;
+  /* Полупрозрачная подложка с блюром: текст читается поверх любых обоев,
+     но сохраняется «стеклянный» эффект (фон просвечивает размытым). */
+  background-color: rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .info-list {
@@ -662,18 +673,17 @@ function closeAll() {
 .info {
   border-bottom: 1px solid var(--sub-card-border);
   padding: 0;
-  background-color: var(--left-bg-color);
-  border-radius: 12px;
+  background-color: transparent;
 }
 
 .info-card {
   display: grid;
-  grid-template-columns: 40px 1fr minmax(140px, auto);
-  column-gap: 8px;
+  grid-template-columns: 36px minmax(0, 1fr);
+  column-gap: 10px;
   align-items: center;
   padding: 8px 12px 8px 8px;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.45;
 }
 
 .info-card__actions {
@@ -684,43 +694,54 @@ function closeAll() {
   flex-shrink: 0;
 }
 
-.info-card__main {
+.info-card__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.info-card__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   min-width: 0;
 }
 
 .info-card__host {
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 4px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
 }
 
 .info-card__tags {
+  flex: 0 1 auto;
+  min-width: 0;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 4px;
+  overflow: hidden;
 }
 
 .info-card__tags :deep(.el-tag) {
   border-radius: 999px;
-}
-
-.info-card__meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  min-width: 0;
+  flex-shrink: 0;
+  max-width: 160px;
 }
 
 .info-card__traffic {
+  flex: 0 0 auto;
   display: flex;
   gap: 10px;
   font-size: 13px;
   white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .info-traffic-item {
@@ -744,13 +765,15 @@ function closeAll() {
 }
 
 .info-card__routing {
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--el-text-color-regular);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
   text-align: right;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .icon-btn {
@@ -943,6 +966,8 @@ function closeAll() {
   height: calc(100vh - 220px);
   border: none;
   background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -1008,11 +1033,13 @@ function closeAll() {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
 }
 
 .process-stats {
   font-size: 14px;
-  opacity: 0.75;
+  opacity: 0.85;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .process-chevron {
