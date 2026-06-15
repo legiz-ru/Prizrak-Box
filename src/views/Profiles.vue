@@ -178,6 +178,15 @@ function getProfileDisplayTitle(profile: any) {
 
 let profiles = reactive<any[]>([])
 
+// webStore.profileList — единый источник/кэш списка профилей. Держим его в
+// синхроне с тем, что реально отрендерено: при переключении вкладок (компонент
+// каждый раз монтируется заново) onMounted мгновенно восстанавливает список из
+// этого кэша, поэтому экран не «мигает» пустотой. Глубокий watch ловит и
+// добавление/удаление/перестановку, и изменения внутри элементов (выбор профиля).
+watch(profiles, () => {
+  webStore.profileList = profiles.slice()
+}, {deep: true})
+
 const applyProfileList = (list: any[]) => {
   profiles.splice(0, profiles.length)
   if (Array.isArray(list) && list.length > 0) {
@@ -215,17 +224,30 @@ const handleProfilesEvent = (list: any[]) => {
 }
 
 async function getProfileList() {
-  const list = await api.getProfileList()
-  if (list && list.length != 0) {
-    if (Array.isArray(list)) webStore.profileList = list;
-    applyProfileList(list)
-    Events.Emit({
-      name: "profiles",
-      data: list
-    })
-  } else {
-    applyProfileList([])
+  let list: any
+  try {
+    list = await api.getProfileList()
+  } catch (e) {
+    // Транзиентная ошибка запроса (сеть/таймаут/отмена при быстром
+    // переключении вкладок) — сохраняем текущий список из кэша, не очищаем.
+    console.error('[Profiles] getProfileList failed', e)
+    return
   }
+
+  // Перехватчик axios возвращает undefined для не-200 ответов (204/304 и т.п.).
+  // Затирать список таким ответом нельзя — рендерим то, что уже есть в кэше.
+  if (!Array.isArray(list)) {
+    return
+  }
+
+  // Сюда попадает только реальный ответ сервера (в т.ч. честный пустой массив,
+  // когда профилей действительно нет). Синхронизация с webStore.profileList
+  // происходит автоматически через watch(profiles).
+  applyProfileList(list)
+  Events.Emit({
+    name: "profiles",
+    data: list
+  })
 }
 
 // 拖动相关
@@ -800,8 +822,10 @@ async function handleProfilesImported(event: Event) {
 
   try {
     const list = await api.getProfileList();
-    applyProfileList(list ?? []);
-    sendOrder(profiles);
+    if (Array.isArray(list)) {
+      applyProfileList(list);
+      sendOrder(profiles);
+    }
   } catch (error) {
     console.error('Failed to refresh profiles after deeplink import', error);
   }
