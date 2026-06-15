@@ -516,6 +516,8 @@ age:
     toggleOff: 为此配置文件指定 age-secret-key（如说明中有要求）
     toggleOn: 添加配置文件时不使用 age-secret-key
     keyPlaceholder: AGE-SECRET-KEY-1...
+    replace: 替换 age-secret-key
+    replaceHint: 此配置文件使用 age-secret-key 解密。点击以查看或替换。
   file:
     title: 输入 age-secret-key
     hint: 请提供私钥以解密 .age 文件

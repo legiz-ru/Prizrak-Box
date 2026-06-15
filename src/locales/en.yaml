@@ -516,6 +516,8 @@ age:
     toggleOff: Specify age-secret-key for this profile (if required by the instructions)
     toggleOn: Do not add age-secret-key when adding profile
     keyPlaceholder: AGE-SECRET-KEY-1...
+    replace: Replace age-secret-key
+    replaceHint: This profile is decrypted with an age-secret-key. Click to view or replace it.
   file:
     title: Enter age-secret-key
     hint: Provide the secret key to decrypt the .age file

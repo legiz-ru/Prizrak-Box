@@ -516,6 +516,8 @@ age:
     toggleOff: Указать age-secret-key для данного профиля (по необходимости, если это было указано в инструкции)
     toggleOn: Не добавлять age-secret-key при добавлении профиля
     keyPlaceholder: AGE-SECRET-KEY-1...
+    replace: Заменить age-secret-key
+    replaceHint: Этот профиль расшифровывается с помощью age-secret-key. Нажмите, чтобы посмотреть или заменить его.
   file:
     title: Введите age-secret-key
     hint: Для расшифровки .age файла укажите секретный ключ

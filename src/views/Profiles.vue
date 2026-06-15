@@ -644,6 +644,8 @@ function goAnnounceUrl() {
 
 // 修改配置
 const editFormVisible = ref(false)
+const editHasAgeKey = ref(false)
+const editShowAgeKey = ref(false)
 let editForm = reactive<any>({})
 let editFormD = {}
 
@@ -654,6 +656,8 @@ function updateProfile(data: any) {
   if (editForm.pxdTemplateUrl) {
     editForm.template = 'pxd_subscription'
   }
+  editHasAgeKey.value = !!(editForm.ageSecretKey && editForm.ageSecretKey.trim())
+  editShowAgeKey.value = false
   editFormVisible.value = true
 }
 
@@ -1205,19 +1209,50 @@ watch(() => webStore.dProfile, async (pList) => {
         </el-select>
       </el-form-item>
 
+      <el-form-item
+          v-if="editHasAgeKey && editShowAgeKey"
+          label="age-secret-key"
+          label-width="120"
+          class="age-key-field">
+        <el-input
+            v-model="editForm.ageSecretKey"
+            clearable
+            autocapitalize="off"
+            autocomplete="off"
+            spellcheck="false"
+            :placeholder="t('age.profile.keyPlaceholder')">
+          <template #prefix>
+            <el-icon><icon-mdi-key-variant/></el-icon>
+          </template>
+        </el-input>
+      </el-form-item>
+
     </el-form>
     <template #footer>
       <div class="dialog-footer dialog-footer--split">
-        <el-tooltip
-            v-if="editForm.hwidActive"
-            :content="t('hwid.active.tooltip')"
-            placement="top"
-        >
-          <el-icon class="hwid-active-icon">
-            <icon-mdi-shield-check />
-          </el-icon>
-        </el-tooltip>
-        <span v-else />
+        <div class="dialog-footer__indicators">
+          <el-tooltip
+              v-if="editForm.hwidActive"
+              :content="t('hwid.active.tooltip')"
+              placement="top"
+          >
+            <el-icon class="hwid-active-icon">
+              <icon-mdi-shield-check />
+            </el-icon>
+          </el-tooltip>
+          <el-tooltip
+              v-if="editHasAgeKey"
+              :content="t('age.profile.replaceHint')"
+              placement="top"
+          >
+            <el-icon
+                class="age-toggle-icon age-edit-icon"
+                :class="{ 'age-toggle-icon--active': editShowAgeKey }"
+                @click="editShowAgeKey = !editShowAgeKey">
+              <icon-mdi-key-variant/>
+            </el-icon>
+          </el-tooltip>
+        </div>
         <div class="dialog-footer__actions">
           <el-button @click="editFormVisible = false">
             {{ t('cancel') }}
@@ -1550,6 +1585,16 @@ watch(() => webStore.dProfile, async (pList) => {
 .dialog-footer__actions {
   display: flex;
   gap: 8px;
+}
+
+.dialog-footer__indicators {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.age-edit-icon {
+  cursor: pointer;
 }
 
 .hwid-active-icon {
