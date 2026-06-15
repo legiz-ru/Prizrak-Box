@@ -113,9 +113,17 @@ async function main() {
   const icnsHeader = Buffer.alloc(8);
   icnsHeader.write('icns', 0, 'ascii');
   icnsHeader.writeUInt32BE(8 + body.length, 4);
+  const icnsBin = Buffer.concat([icnsHeader, body]);
   const icnsOut = path.join(macDir, 'appicon.icns');
-  fs.writeFileSync(icnsOut, Buffer.concat([icnsHeader, body]));
+  fs.writeFileSync(icnsOut, icnsBin);
   console.log(`Wrote ${icnsOut} (${ICNS_ENTRIES.length} PNG entries)`);
+
+  // Also write the root build/appicon.icns — the macOS release / wails-build
+  // jobs copy *that* file into the .app bundle, so it must carry the same
+  // padded icon as the dev (run-dev.sh) bundle. Single source of truth.
+  const rootIcns = path.join(__dirname, '..', '..', 'build', 'appicon.icns');
+  fs.writeFileSync(rootIcns, icnsBin);
+  console.log(`Wrote ${rootIcns}`);
 }
 
 // Convert raw RGBA pixels to 32bpp BMP entry bytes.
