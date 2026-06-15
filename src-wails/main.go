@@ -22,6 +22,8 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
@@ -191,9 +193,33 @@ func main() {
 	// system-proxy / TUN), driven by data the frontend pushes over events.
 	setupTray(app, win)
 
+	// Webview-ready gate. The window is created with URL "/" and embeds the
+	// WebView2 on the main thread (setupChromium -> Embed). Re-navigating with
+	// SetURL before that initial embed+navigation completes dereferences a
+	// not-yet-created ICoreWebView2 and crashes with a nil-pointer panic inside
+	// Navigate. The frontend emits "px:fe:ready" once Vue has mounted on the
+	// first "/" load, which is a reliable "the webview can be navigated" signal.
+	// We wait for it (with a generous fallback timeout) before the first SetURL.
+	webviewReady := make(chan struct{})
+	var readyOnce sync.Once
+	app.Event.On("px:fe:ready", func(_ *application.CustomEvent) {
+		readyOnce.Do(func() { close(webviewReady) })
+	})
+	awaitWebview := func() {
+		select {
+		case <-webviewReady:
+		case <-time.After(10 * time.Second):
+			// Fallback: by now the initial embed has certainly finished even if
+			// the ready signal was missed (e.g. a frontend error before mount),
+			// so navigating is safe and we avoid a window that never appears.
+		}
+	}
+
 	// Start the backend, then point the window at it and reveal the window.
 	go func() {
 		info, err := core.Start()
+		// Don't navigate until the webview has finished its initial embed.
+		awaitWebview()
 		if err != nil {
 			log.Printf("core start failed: %v", err)
 			win.SetURL("/?error=backend")
