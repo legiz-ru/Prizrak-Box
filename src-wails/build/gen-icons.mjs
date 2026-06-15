@@ -83,11 +83,39 @@ async function main() {
   const macDir = path.join(__dirname, 'darwin');
   fs.mkdirSync(macDir, { recursive: true });
   const macOut = path.join(macDir, 'appicon-macos.png');
-  await sharp({ create: { width: CANVAS, height: CANVAS, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+  const paddedBuf = await sharp({ create: { width: CANVAS, height: CANVAS, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
     .composite([{ input: artBuf, left: inset, top: inset }])
     .png()
-    .toFile(macOut);
+    .toBuffer();
+  fs.writeFileSync(macOut, paddedBuf);
   console.log(`Wrote ${macOut} (${CONTENT}px content inset ${inset}px on ${CANVAS}px tile)`);
+
+  // Build the macOS .icns directly from the padded master so it can be produced
+  // on any OS (no sips / iconutil needed) and never drifts from the master.
+  // Each entry is a PNG; the OSType + render size pairs mirror what `iconutil`
+  // emits from a full .iconset (so Finder/Dock pick the right size everywhere).
+  const ICNS_ENTRIES = [
+    ['icp4', 16], ['ic11', 32],  // 16   + 16@2x
+    ['icp5', 32], ['ic12', 64],  // 32   + 32@2x
+    ['ic07', 128], ['ic13', 256], // 128  + 128@2x
+    ['ic08', 256], ['ic14', 512], // 256  + 256@2x
+    ['ic09', 512], ['ic10', 1024], // 512 + 512@2x
+  ];
+  const chunks = [];
+  for (const [osType, size] of ICNS_ENTRIES) {
+    const png = await sharp(paddedBuf).resize(size, size, { kernel: 'lanczos3' }).png().toBuffer();
+    const header = Buffer.alloc(8);
+    header.write(osType, 0, 'ascii');
+    header.writeUInt32BE(8 + png.length, 4);
+    chunks.push(header, png);
+  }
+  const body = Buffer.concat(chunks);
+  const icnsHeader = Buffer.alloc(8);
+  icnsHeader.write('icns', 0, 'ascii');
+  icnsHeader.writeUInt32BE(8 + body.length, 4);
+  const icnsOut = path.join(macDir, 'appicon.icns');
+  fs.writeFileSync(icnsOut, Buffer.concat([icnsHeader, body]));
+  console.log(`Wrote ${icnsOut} (${ICNS_ENTRIES.length} PNG entries)`);
 }
 
 // Convert raw RGBA pixels to 32bpp BMP entry bytes.

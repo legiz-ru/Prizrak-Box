@@ -22,30 +22,15 @@ tasks:
       - npx vite build --outDir "{{.DIST}}" --emptyOutDir
 
   icons:
-    desc: Regenerate .ico / tray.png from master appicon.png (sharp), and .icns for macOS
+    desc: Regenerate .ico / tray.png and the macOS .icns from master appicon.png (sharp)
     dir: "{{.TASKFILE_DIR}}/build"
     cmds:
+      # gen-icons.mjs emits the Windows .ico, the Linux tray.png, and the macOS
+      # darwin/appicon.icns (built from a padded master inset to Apple's
+      # icon-grid safe area so the Dock / Cmd+Tab icon matches native apps).
+      # The .icns is assembled in pure Node — no sips / iconutil needed — so it
+      # regenerates identically on any OS and never drifts from the master.
       - node gen-icons.mjs
-      # macOS .icns is built from the padded master (darwin/appicon-macos.png),
-      # which sits the artwork inside Apple's icon-grid safe area (~80.5% of the
-      # canvas) so the Dock / Cmd+Tab icon matches the size of native apps instead
-      # of filling the whole tile edge-to-edge. gen-icons.mjs regenerates it.
-      - |
-        SRC=darwin/appicon-macos.png
-        ICONSET=$(mktemp -d /tmp/appicon.XXXXXX.iconset)
-        sips -z 16   16   "$SRC" --out "$ICONSET/icon_16x16.png"       >/dev/null
-        sips -z 32   32   "$SRC" --out "$ICONSET/icon_16x16@2x.png"    >/dev/null
-        sips -z 32   32   "$SRC" --out "$ICONSET/icon_32x32.png"       >/dev/null
-        sips -z 64   64   "$SRC" --out "$ICONSET/icon_32x32@2x.png"    >/dev/null
-        sips -z 128  128  "$SRC" --out "$ICONSET/icon_128x128.png"     >/dev/null
-        sips -z 256  256  "$SRC" --out "$ICONSET/icon_128x128@2x.png"  >/dev/null
-        sips -z 256  256  "$SRC" --out "$ICONSET/icon_256x256.png"     >/dev/null
-        sips -z 512  512  "$SRC" --out "$ICONSET/icon_256x256@2x.png"  >/dev/null
-        sips -z 512  512  "$SRC" --out "$ICONSET/icon_512x512.png"     >/dev/null
-        sips -z 1024 1024 "$SRC" --out "$ICONSET/icon_512x512@2x.png"  >/dev/null
-        iconutil --convert icns "$ICONSET" --output darwin/appicon.icns
-        rm -rf "$ICONSET"
-        echo "Generated darwin/appicon.icns"
 
   px:
     desc: Build the px backend (CGO disabled, gvisor TUN)
