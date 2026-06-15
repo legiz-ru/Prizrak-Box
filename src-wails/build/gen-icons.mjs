@@ -11,6 +11,12 @@
 //   src-wails/build/tray.ico      — same as appicon.ico (historical alias)
 //   src-wails/build/tray.png      — 256px PNG (Linux tray)
 //   build/appicon.ico             — same ico for the Electron build
+//   src-wails/build/darwin/appicon-macos.png — 1024px padded master for the
+//                                   macOS .icns (Taskfile feeds it to sips +
+//                                   iconutil). Artwork is inset to Apple's
+//                                   icon-grid safe area so the Dock / Cmd+Tab
+//                                   icon matches native apps instead of filling
+//                                   the tile edge-to-edge.
 
 import sharp from 'sharp';
 import fs from 'node:fs';
@@ -63,6 +69,25 @@ async function main() {
   const rootOut = path.join(__dirname, '..', '..', 'build', 'appicon.ico');
   fs.writeFileSync(rootOut, icoBin);
   console.log(`Wrote ${rootOut}`);
+
+  // macOS padded master: inset the artwork into Apple's icon-grid safe area
+  // (~80.5% of the canvas, i.e. 824px content on a 1024px transparent tile) so
+  // the Dock / Cmd+Tab icon renders at the same visual size as native apps.
+  const CANVAS = 1024;
+  const CONTENT = Math.round(CANVAS * 0.8047); // Apple grid: 824 / 1024
+  const inset = Math.round((CANVAS - CONTENT) / 2);
+  const artBuf = await sharp(srcPng)
+    .resize(CONTENT, CONTENT, { kernel: 'lanczos3' })
+    .png()
+    .toBuffer();
+  const macDir = path.join(__dirname, 'darwin');
+  fs.mkdirSync(macDir, { recursive: true });
+  const macOut = path.join(macDir, 'appicon-macos.png');
+  await sharp({ create: { width: CANVAS, height: CANVAS, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite([{ input: artBuf, left: inset, top: inset }])
+    .png()
+    .toFile(macOut);
+  console.log(`Wrote ${macOut} (${CONTENT}px content inset ${inset}px on ${CANVAS}px tile)`);
 }
 
 // Convert raw RGBA pixels to 32bpp BMP entry bytes.
