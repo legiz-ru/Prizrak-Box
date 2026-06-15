@@ -84,7 +84,6 @@ declare module 'vue' {
     IconMdiContentPaste: typeof import('~icons/mdi/content-paste')['default']
     IconMdiDatabaseCheck: typeof import('~icons/mdi/database-check')['default']
     IconMdiDrag: typeof import('~icons/mdi/drag')['default']
-    IconMdiEarth: typeof import('~icons/mdi/earth')['default']
     IconMdiEye: typeof import('~icons/mdi/eye')['default']
     IconMdiEyeArrowRight: typeof import('~icons/mdi/eye-arrow-right')['default']
     IconMdiEyeOff: typeof import('~icons/mdi/eye-off')['default']

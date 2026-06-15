@@ -12,7 +12,6 @@ import {enUS, ru, zhCN} from 'date-fns/locale'
 import {useI18n} from "vue-i18n";
 import {ElMessage} from "element-plus";
 import createApi from "@/api";
-import 'country-flag-emoji-polyfill';
 
 // 获取当前 Vue 实例的 proxy 对象 和 api
 const {proxy} = getCurrentInstance()!;
@@ -185,27 +184,6 @@ function handleInputChange(value: any) {
 
 function fHost(metadata: any): string {
   return (metadata.host || metadata.destinationIP) + ':' + metadata.destinationPort
-}
-
-// Country flag for the exit node, derived from the proxy chain name (Mihomo
-// lists chains with the final/exit proxy first). Reuses the same lightweight
-// code→emoji map as the topology view; returns '' when no country is detected.
-const COUNTRY_FLAGS: Record<string, string> = {
-  'US': '🇺🇸', 'UK': '🇬🇧', 'GB': '🇬🇧', 'HK': '🇭🇰', 'JP': '🇯🇵', 'SG': '🇸🇬',
-  'KR': '🇰🇷', 'TW': '🇹🇼', 'CN': '🇨🇳', 'DE': '🇩🇪', 'FR': '🇫🇷', 'CA': '🇨🇦',
-  'AU': '🇦🇺', 'RU': '🇷🇺', 'IN': '🇮🇳', 'BR': '🇧🇷', 'NL': '🇳🇱', 'SE': '🇸🇪',
-  'CH': '🇨🇭', 'IT': '🇮🇹', 'ES': '🇪🇸', 'TR': '🇹🇷', 'FI': '🇫🇮', 'PL': '🇵🇱',
-  'AE': '🇦🇪', 'UA': '🇺🇦', 'AR': '🇦🇷', 'VN': '🇻🇳', 'AM': '🇦🇲', 'KZ': '🇰🇿',
-}
-
-function connFlag(item: any): string {
-  const chains: string[] = item?.chains || []
-  const name = chains[0] || ''
-  if (!name || /^direct$/i.test(name)) return ''
-  for (const [code, flag] of Object.entries(COUNTRY_FLAGS)) {
-    if (new RegExp(`\\b${code}\\b`, 'i').test(name)) return flag
-  }
-  return ''
 }
 
 function isLive(item: any): boolean {
@@ -460,10 +438,6 @@ function closeAll() {
           >
             <el-col :span="24">
               <div class="info-card" :class="{ 'info-card--live': isLive(item) }">
-                <div class="info-card__flag">
-                  <span v-if="connFlag(item)" class="flag-emoji">{{ connFlag(item) }}</span>
-                  <icon-mdi-earth v-else class="flag-fallback"/>
-                </div>
                 <div class="info-card__main">
                   <div class="info-card__host">{{ fHost(item.metadata) }}</div>
                   <div class="info-card__sub">
@@ -588,10 +562,6 @@ function closeAll() {
             >
               <el-col :span="24">
                 <div class="info-card" :class="{ 'info-card--live': isLive(item) }">
-                  <div class="info-card__flag">
-                    <span v-if="connFlag(item)" class="flag-emoji">{{ connFlag(item) }}</span>
-                    <icon-mdi-earth v-else class="flag-fallback"/>
-                  </div>
                   <div class="info-card__main">
                     <div class="info-card__host">{{ fHost(item.metadata) }}</div>
                     <div class="info-card__sub">
@@ -822,7 +792,7 @@ function closeAll() {
 
 .info-card {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   column-gap: 10px;
   align-items: center;
   padding: 8px 10px;
@@ -834,26 +804,6 @@ function closeAll() {
    profile-card visual language while flagging connections moving traffic. */
 .info-card--live {
   box-shadow: inset 3px 0 0 var(--el-color-primary);
-}
-
-.info-card__flag {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  font-size: 18px;
-  line-height: 1;
-}
-
-.flag-emoji {
-  font-family: 'Twemoji Country Flags', 'Twemoji', 'Nunito', sans-serif;
-}
-
-.flag-fallback {
-  width: 16px;
-  height: 16px;
-  opacity: 0.45;
-  color: var(--text-color);
 }
 
 .info-card__main {
@@ -874,7 +824,7 @@ function closeAll() {
   align-items: center;
   gap: 5px;
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-color);
   min-width: 0;
   white-space: nowrap;
 }
@@ -961,6 +911,9 @@ function closeAll() {
 }
 
 .info-card__actions {
+  /* Sit at the left edge of the card (before host/meta) while keeping the DOM
+     order; the card grid is actions | main | meta. */
+  order: -1;
   display: flex;
   flex-direction: column;
   align-items: center;
