@@ -26,18 +26,32 @@ if ($LASTEXITCODE -ne 0) { throw 'frontend build failed' }
 
 Write-Host '==> [2/3] Ensuring px.exe + px-service.exe'
 $env:CGO_ENABLED = '0'
-if (-not (Test-Path src-go/px.exe)) {
-    Write-Host '    building px.exe (geo/model files are vendored in src-go/internal/em)...'
+
+# Rebuild a Go binary when it is missing OR any source/asset under $srcDir is
+# newer than it. Without this, an edit to the core (e.g. a new embedded asset or
+# route) would be silently ignored because a stale binary already exists.
+function Test-GoStale($binary, $srcDir) {
+    if (-not (Test-Path $binary)) { return $true }
+    $binTime = (Get-Item $binary).LastWriteTime
+    $exts = '.go', '.zip', '.7z', '.dat', '.mmdb', '.metadb', '.bin', '.yaml', '.json'
+    $newer = Get-ChildItem -Path $srcDir -Recurse -File -ErrorAction SilentlyContinue |
+        Where-Object { $exts -contains $_.Extension -and $_.LastWriteTime -gt $binTime } |
+        Select-Object -First 1
+    return [bool]$newer
+}
+
+if (Test-GoStale 'src-go/px.exe' 'src-go') {
+    Write-Host '    building px.exe (geo/model/zashboard assets are vendored in src-go/internal/em)...'
     Push-Location src-go
     go build -tags=with_gvisor -trimpath -ldflags="-s -w" -o px.exe .
     Pop-Location
-} else { Write-Host '    found existing src-go/px.exe' }
-if (-not (Test-Path src-service/px-service.exe)) {
+} else { Write-Host '    found up-to-date src-go/px.exe' }
+if (Test-GoStale 'src-service/px-service.exe' 'src-service') {
     Write-Host '    building px-service.exe...'
     Push-Location src-service
     go build -ldflags="-s -w" -o px-service.exe .
     Pop-Location
-} else { Write-Host '    found existing src-service/px-service.exe' }
+} else { Write-Host '    found up-to-date src-service/px-service.exe' }
 
 Write-Host '==> [3/3] Building & running the Wails shell'
 Set-Location $ScriptDir
