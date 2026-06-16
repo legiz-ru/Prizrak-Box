@@ -39,3 +39,10 @@ var ModelBin []byte
 //
 //go:embed em/BundleMRS.7z
 var BundleMRS []byte
+
+// ZashboardZip is the bundled zashboard web panel (gh-pages-misans-only build).
+// It is unpacked at startup into <home>/ui/zashboard (see releaseZashboard) and
+// served by the controller at /ui/ via route.SetUIPath (external-ui).
+//
+//go:embed em/zashboard.zip
+var ZashboardZip []byte

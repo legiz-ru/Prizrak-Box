@@ -76,11 +76,15 @@ func Init() {
 		_, _ = utils.SaveFile(bin, ModelBin)
 	}
 
+	// 释放 zashboard 本地面板 (external-ui)
+	releaseZashboard()
+
 	GeoIp = nil
 	GeoSite = nil
 	ASN = nil
 	ModelBin = nil
 	BundleMRS = nil
+	ZashboardZip = nil
 
 	EnsureBuiltinTemplates()
 }
