@@ -23,6 +23,7 @@ proxy-switch-off: Proxy is OFF
 tun-switch: Tun
 tun-switch-on: Tun is ON
 tun-switch-off: Tun is OFF
+tun-unavailable: Couldn't enable Tun — the service is unavailable. Run as administrator or reinstall the service.
 tun-warning: The tun mode requires administrator privileges
 tun-auth-tip: Px requires authorization to enable TUN.
 
@@ -516,6 +517,8 @@ age:
     toggleOff: Specify age-secret-key for this profile (if required by the instructions)
     toggleOn: Do not add age-secret-key when adding profile
     keyPlaceholder: AGE-SECRET-KEY-1...
+    replace: Replace age-secret-key
+    replaceHint: This profile is decrypted with an age-secret-key. Click to view or replace it.
   file:
     title: Enter age-secret-key
     hint: Provide the secret key to decrypt the .age file

@@ -585,4 +585,15 @@ function safeDecode(value?: string) {
 }
 
 // 🚀 启动应用
-bootstrap().then(() => app.mount("#app"));
+bootstrap().then(() => {
+    app.mount("#app");
+    // Tell the native shell the webview has embedded and Vue is mounted, so it
+    // can safely re-navigate with the backend connection params (host/port/
+    // secret). Navigating before this crashes WebView2 (nil ICoreWebView2 during
+    // Embed). No-op under Electron / the web build.
+    try {
+        (window as any).pxTray?.emit?.("ready");
+    } catch {
+        /* ignore */
+    }
+});

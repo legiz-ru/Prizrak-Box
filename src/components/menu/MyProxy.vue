@@ -24,6 +24,28 @@ const {t} = useI18n();
 // 页面使用参数
 const tunOn = ref(false)
 
+// Keep the native shell's persisted "TUN desired" flag in sync. The shell reads
+// it at boot to decide whether to wait for the privileged service before
+// spawning px (so TUN survives an autostart instead of silently failing).
+watch(() => menuStore.tun, (v) => {
+  Events.Emit({name: "tunDesired", data: !!v});
+}, {immediate: true});
+
+// Whether the *running* px process is actually privileged. api.getAdmin() asks
+// px itself (admin token on Windows / uid 0 on unix), which is the real signal
+// for "can TUN come up": it's true when the app runs as admin OR px was started
+// by the elevated service, and false for a plain non-elevated spawn. We rely on
+// this instead of the persisted config flag, which used to make the UI show TUN
+// "on" while it did nothing.
+async function isPxPrivileged(): Promise<boolean> {
+  try {
+    const admin = await api.getAdmin();
+    return !!admin?.data;
+  } catch (e) {
+    return false;
+  }
+}
+
 
 async function selected() {
   const list = await api.getProfileList()
@@ -286,30 +308,42 @@ onMounted(async () => {
     await applySystemProxyMode(settingStore.systemProxyMode, false);
   }
 
-  // Restore TUN state silently if it was previously enabled.
-  // Works on all platforms (incl. Windows) — the allowTun check below ensures
-  // we only enable when the app is admin or the privileged service is running,
-  // otherwise TUN is silently left off.
+  // Restore TUN state if it was previously enabled. TUN can only work when the
+  // running px is privileged; we check that directly (isPxPrivileged) rather
+  // than trusting the persisted config flag, which used to leave the UI showing
+  // TUN "on" after an autostart while no traffic actually passed.
   if (menuStore.tun) {
     await api.waitRunning();
 
-    // Check if we have permission to enable TUN without showing dialogs
-    const admin = await api.getAdmin();
-    const hasAdmin = !!admin.data;
-    let allowTun = hasAdmin;
+    let privileged = await isPxPrivileged();
 
-    if (!allowTun) {
+    // Not privileged but the service is installed → px likely lost the boot race
+    // (spawned before the service was reachable). Recover by relaunching px
+    // through the elevated service, then re-check.
+    if (!privileged) {
+      let installed = false;
       try {
         // @ts-ignore
-        const status = await window.pxService.getStatus();
-        allowTun = status?.running && status?.isAdmin;
+        installed = !!(await window.pxService.getStatus())?.installed;
       } catch (e) {
-        allowTun = false;
+        installed = false;
+      }
+      if (installed) {
+        try {
+          // @ts-ignore
+          const restarted = await window.pxService.restartBackend();
+          if (restarted) {
+            await api.waitRunning();
+            privileged = await isPxPrivileged();
+          }
+        } catch (e) {
+          // fall through to the not-privileged branch below
+        }
       }
     }
 
-    if (allowTun) {
-      // Silently enable TUN without showing dialogs
+    if (privileged) {
+      // Silently enable TUN without showing dialogs.
       const select = await selected();
       if (select) {
         await enableTun();
@@ -319,9 +353,11 @@ onMounted(async () => {
         tunOn.value = false;
       }
     } else {
-      // No permission - silently disable TUN without showing dialog
+      // Can't bring TUN up (no elevation / service unavailable). Reflect the real
+      // state instead of pretending it's on, and tell the user.
       menuStore.setTun(false);
       tunOn.value = false;
+      pWarning(t("tun-unavailable"));
     }
   }
 })

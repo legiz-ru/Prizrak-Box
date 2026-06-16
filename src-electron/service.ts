@@ -95,6 +95,35 @@ export async function isServiceRunning(): Promise<boolean> {
 }
 
 /**
+ * Проверяет, установлен ли бинарник сервиса на диске (без попытки соединения).
+ */
+export function isServiceBinaryPresent(): boolean {
+    try {
+        return fs.existsSync(getServicePath());
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Ожидает готовности сервиса (пинг), опрашивая его с заданным шагом до общего
+ * бюджета времени. Используется при автозапуске, чтобы переждать гонку, когда
+ * приложение стартует раньше, чем сервис успел поднять свой IPC-канал.
+ */
+export async function waitForServiceReady(totalMs: number, stepMs: number): Promise<boolean> {
+    const deadline = Date.now() + totalMs;
+    for (;;) {
+        if (await isServiceRunning()) {
+            return true;
+        }
+        if (Date.now() >= deadline) {
+            return false;
+        }
+        await new Promise((r) => setTimeout(r, stepMs));
+    }
+}
+
+/**
  * Проверяет установлен ли сервис
  */
 export async function isServiceInstalled(): Promise<boolean> {

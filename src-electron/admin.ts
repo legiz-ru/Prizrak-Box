@@ -8,7 +8,9 @@ import {
     isServiceRunning,
     startPxViaService,
     stopPxViaService,
-    isServiceModeEnabled
+    isServiceModeEnabled,
+    isServiceBinaryPresent,
+    waitForServiceReady
 } from "./service";
 
 // 是否在开发模式
@@ -73,8 +75,20 @@ export async function startBackend(addr: string) {
     const args = ['-addr=' + addr, '-home=' + homeDir];
 
     // Проверяем, запущен ли сервис (независимо от флага настроек)
-    const serviceRunning = await isServiceRunning();
+    let serviceRunning = await isServiceRunning();
     const serviceModeFlag = isServiceModeEnabled();
+
+    // Гонка при автозапуске: после ребута приложение часто стартует раньше, чем
+    // сервис успел поднять свой IPC-канал. Если сервис установлен и режим сервиса
+    // включён, ждём его готовности до 15с, иначе px стартует без прав и TUN молча
+    // не работает до ручного перезапуска от админа.
+    if (!serviceRunning && serviceModeFlag && isServiceBinaryPresent()) {
+        log.info('[Backend] Service installed but not yet reachable; waiting up to 15s for it to come up...');
+        serviceRunning = await waitForServiceReady(15000, 500);
+        if (!serviceRunning) {
+            log.warn('[Backend] Service did not become reachable within budget; falling back to non-service start');
+        }
+    }
 
     // Автоопределение: если сервис запущен, но флаг не установлен - автоматически включаем режим сервиса
     // Это решает проблему, когда MSI установил сервис, но не установил флаг в настройках

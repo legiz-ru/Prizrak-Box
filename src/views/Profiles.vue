@@ -178,6 +178,15 @@ function getProfileDisplayTitle(profile: any) {
 
 let profiles = reactive<any[]>([])
 
+// webStore.profileList — единый источник/кэш списка профилей. Держим его в
+// синхроне с тем, что реально отрендерено: при переключении вкладок (компонент
+// каждый раз монтируется заново) onMounted мгновенно восстанавливает список из
+// этого кэша, поэтому экран не «мигает» пустотой. Глубокий watch ловит и
+// добавление/удаление/перестановку, и изменения внутри элементов (выбор профиля).
+watch(profiles, () => {
+  webStore.profileList = profiles.slice()
+}, {deep: true})
+
 const applyProfileList = (list: any[]) => {
   profiles.splice(0, profiles.length)
   if (Array.isArray(list) && list.length > 0) {
@@ -215,17 +224,30 @@ const handleProfilesEvent = (list: any[]) => {
 }
 
 async function getProfileList() {
-  const list = await api.getProfileList()
-  if (list && list.length != 0) {
-    if (Array.isArray(list)) webStore.profileList = list;
-    applyProfileList(list)
-    Events.Emit({
-      name: "profiles",
-      data: list
-    })
-  } else {
-    applyProfileList([])
+  let list: any
+  try {
+    list = await api.getProfileList()
+  } catch (e) {
+    // Транзиентная ошибка запроса (сеть/таймаут/отмена при быстром
+    // переключении вкладок) — сохраняем текущий список из кэша, не очищаем.
+    console.error('[Profiles] getProfileList failed', e)
+    return
   }
+
+  // Перехватчик axios возвращает undefined для не-200 ответов (204/304 и т.п.).
+  // Затирать список таким ответом нельзя — рендерим то, что уже есть в кэше.
+  if (!Array.isArray(list)) {
+    return
+  }
+
+  // Сюда попадает только реальный ответ сервера (в т.ч. честный пустой массив,
+  // когда профилей действительно нет). Синхронизация с webStore.profileList
+  // происходит автоматически через watch(profiles).
+  applyProfileList(list)
+  Events.Emit({
+    name: "profiles",
+    data: list
+  })
 }
 
 // 拖动相关
@@ -644,6 +666,8 @@ function goAnnounceUrl() {
 
 // 修改配置
 const editFormVisible = ref(false)
+const editHasAgeKey = ref(false)
+const editShowAgeKey = ref(false)
 let editForm = reactive<any>({})
 let editFormD = {}
 
@@ -654,6 +678,8 @@ function updateProfile(data: any) {
   if (editForm.pxdTemplateUrl) {
     editForm.template = 'pxd_subscription'
   }
+  editHasAgeKey.value = !!(editForm.ageSecretKey && editForm.ageSecretKey.trim())
+  editShowAgeKey.value = false
   editFormVisible.value = true
 }
 
@@ -796,8 +822,10 @@ async function handleProfilesImported(event: Event) {
 
   try {
     const list = await api.getProfileList();
-    applyProfileList(list ?? []);
-    sendOrder(profiles);
+    if (Array.isArray(list)) {
+      applyProfileList(list);
+      sendOrder(profiles);
+    }
   } catch (error) {
     console.error('Failed to refresh profiles after deeplink import', error);
   }
@@ -1205,19 +1233,50 @@ watch(() => webStore.dProfile, async (pList) => {
         </el-select>
       </el-form-item>
 
+      <el-form-item
+          v-if="editShowAgeKey"
+          label="age-secret-key"
+          label-width="120"
+          class="age-key-field">
+        <el-input
+            v-model="editForm.ageSecretKey"
+            clearable
+            autocapitalize="off"
+            autocomplete="off"
+            spellcheck="false"
+            :placeholder="t('age.profile.keyPlaceholder')">
+          <template #prefix>
+            <el-icon><icon-mdi-key-variant/></el-icon>
+          </template>
+        </el-input>
+      </el-form-item>
+
     </el-form>
     <template #footer>
       <div class="dialog-footer dialog-footer--split">
-        <el-tooltip
-            v-if="editForm.hwidActive"
-            :content="t('hwid.active.tooltip')"
-            placement="top"
-        >
-          <el-icon class="hwid-active-icon">
-            <icon-mdi-shield-check />
-          </el-icon>
-        </el-tooltip>
-        <span v-else />
+        <div class="dialog-footer__indicators">
+          <el-tooltip
+              v-if="editForm.hwidActive"
+              :content="t('hwid.active.tooltip')"
+              placement="top"
+          >
+            <el-icon class="hwid-active-icon">
+              <icon-mdi-shield-check />
+            </el-icon>
+          </el-tooltip>
+          <el-tooltip
+              v-if="editForm.type == 1 || editHasAgeKey"
+              :content="editHasAgeKey ? t('age.profile.replaceHint') : t('age.profile.toggleOff')"
+              placement="top"
+          >
+            <el-icon
+                class="age-toggle-icon age-edit-icon"
+                :class="{ 'age-toggle-icon--active': editShowAgeKey }"
+                @click="editShowAgeKey = !editShowAgeKey">
+              <icon-mdi-key-variant/>
+            </el-icon>
+          </el-tooltip>
+        </div>
         <div class="dialog-footer__actions">
           <el-button @click="editFormVisible = false">
             {{ t('cancel') }}
@@ -1550,6 +1609,16 @@ watch(() => webStore.dProfile, async (pList) => {
 .dialog-footer__actions {
   display: flex;
   gap: 8px;
+}
+
+.dialog-footer__indicators {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.age-edit-icon {
+  cursor: pointer;
 }
 
 .hwid-active-icon {

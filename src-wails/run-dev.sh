@@ -55,7 +55,12 @@ go build -o "bin/$WAILS_EXE" .
 # proper .icns icon (CFBundleIconFile) instead of the programmatic NSImage.
 # Without a bundle, macOS scales the icon differently and it appears larger
 # than other apps.
-if [ "$(uname -s)" = "Darwin" ] && [ -f "build/darwin/appicon.icns" ]; then
+if [ "$(uname -s)" = "Darwin" ]; then
+  # Keep the .icns in sync with the master (padded to Apple's icon-grid safe
+  # area). Pure-Node generator, so it works without sips/iconutil; non-fatal if
+  # sharp isn't available — we fall back to the committed icns.
+  ( cd build && node gen-icons.mjs ) >/dev/null 2>&1 || true
+
   APP="bin/Prizrak-Box.app"
   mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
   cp build/darwin/appicon.icns "$APP/Contents/Resources/"
@@ -63,6 +68,16 @@ if [ "$(uname -s)" = "Darwin" ] && [ -f "build/darwin/appicon.icns" ]; then
   # CFBundleExecutable in Info.plist is "Prizrak-Box" — binary must match exactly
   cp "bin/$WAILS_EXE" "$APP/Contents/MacOS/Prizrak-Box"
   codesign --force --deep --sign - "$APP" 2>/dev/null || true
+
+  # macOS caches Dock / Cmd+Tab icons by bundle path, so a replaced .icns often
+  # won't show until the bundle is touched, re-registered, and the icon caches
+  # are flushed. Do all three so the corrected icon appears on the next launch.
+  touch "$APP"
+  /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
+    -f "$APP" >/dev/null 2>&1 || true
+  rm -rf "$(getconf DARWIN_USER_CACHE_DIR 2>/dev/null)/com.apple.iconservices.store" 2>/dev/null || true
+  killall Dock 2>/dev/null || true
+
   echo "    launching $APP ..."
   exec "$APP/Contents/MacOS/Prizrak-Box"
 fi

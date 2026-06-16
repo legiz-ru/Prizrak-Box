@@ -1055,6 +1055,11 @@ jobs:
         run: |
           cd src-wails
           go build -trimpath -o /tmp/prizrak-box-wails .
+      - name: Regenerate icons (gen-icons.mjs)
+        # Refresh build/appicon.icns from the master so the bundle below gets the
+        # padded macOS icon (inset to Apple's icon-grid safe area). sharp is
+        # available after the "Build frontend" npm install above.
+        run: node src-wails/build/gen-icons.mjs
       - name: Assemble .app
         run: |
           APP="Prizrak-Box.app"

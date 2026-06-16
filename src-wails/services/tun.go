@@ -131,25 +131,78 @@ func (t *TunService) Uninstall() bool {
 	return true
 }
 
+// startViaService stops any running px (local or service-managed) and relaunches
+// it through the elevated px-service, returning the fresh connection info. The
+// service must already be reachable (ping) before calling. Because the service
+// runs as LocalSystem/root, the px it spawns is privileged and can bring up the
+// TUN adapter without the GUI itself being elevated.
+func (t *TunService) startViaService() (ConnInfo, error) {
+	t.core.KillPx()
+	_, _ = t.request("stop_px", nil, 5*time.Second)
+	t.core.Arm()
+	if _, err := t.request("start_px", startPxData{
+		PxPath:  t.core.PxPath(),
+		Addr:    t.core.CbAddr(),
+		HomeDir: t.core.Home(),
+	}, 10*time.Second); err != nil {
+		return ConnInfo{}, fmt.Errorf("service start_px: %w", err)
+	}
+	t.core.MarkStartedBySvc()
+	return t.core.Await(60 * time.Second)
+}
+
+// waitForService polls the px-service until it answers ping or the budget runs
+// out. Used at startup to ride out the boot race where the autostarted app
+// outruns the still-starting service.
+func (t *TunService) waitForService(total, step time.Duration) bool {
+	deadline := time.Now().Add(total)
+	for {
+		if t.ping() {
+			return true
+		}
+		if time.Now().After(deadline) {
+			return false
+		}
+		time.Sleep(step)
+	}
+}
+
+// StartBackend is the application startup entry point for launching px. When the
+// privileged px-service is installed it routes px through the service so TUN can
+// work without running the GUI as administrator — mirroring src-electron
+// admin.ts. If TUN was enabled last session it waits briefly for the service to
+// become reachable, covering the boot race where the autostarted (non-elevated)
+// app launches px before the service has finished starting; previously px was
+// always spawned directly, so TUN silently failed until a manual admin restart.
+// If the service never comes up (or isn't installed) px is spawned directly.
+func (t *TunService) StartBackend() (ConnInfo, error) {
+	if err := t.core.ensureCallbackServer(); err != nil {
+		return ConnInfo{}, fmt.Errorf("callback server: %w", err)
+	}
+	if serviceBinaryExists() {
+		reachable := t.ping()
+		if !reachable && locate.TunDesired() {
+			reachable = t.waitForService(15*time.Second, 500*time.Millisecond)
+		}
+		if reachable {
+			if info, err := t.startViaService(); err == nil {
+				return info, nil
+			} else {
+				application.Get().Logger.Warn("start px via service failed; falling back to direct spawn", "error", err)
+			}
+		} else if locate.TunDesired() {
+			application.Get().Logger.Warn("px-service not reachable within startup budget; falling back to direct spawn (TUN will be off until the service is available)")
+		}
+	}
+	return t.core.RestartDirect()
+}
+
 // RestartBackend restarts px. If the service is running, px is (re)started
 // through the elevated service so it can manage TUN; otherwise it is spawned
 // directly. Returns the fresh connection info for the frontend.
 func (t *TunService) RestartBackend() (ConnInfo, error) {
 	if t.ping() {
-		// Stop any existing px (local and via service), then start via service.
-		t.core.KillPx()
-		_, _ = t.request("stop_px", nil, 5*time.Second)
-		t.core.Arm()
-		_, err := t.request("start_px", startPxData{
-			PxPath:  t.core.PxPath(),
-			Addr:    t.core.CbAddr(),
-			HomeDir: t.core.Home(),
-		}, 10*time.Second)
-		if err != nil {
-			return ConnInfo{}, fmt.Errorf("service start_px: %w", err)
-		}
-		t.core.MarkStartedBySvc()
-		return t.core.Await(60 * time.Second)
+		return t.startViaService()
 	}
 	return t.core.RestartDirect()
 }

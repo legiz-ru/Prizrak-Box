@@ -183,6 +183,34 @@ function fHost(metadata: any): string {
   return (metadata.host || metadata.destinationIP) + ':' + metadata.destinationPort
 }
 
+function isLive(item: any): boolean {
+  return !connectionStore.showClosed && ((item?.uploadSpeed || 0) > 0 || (item?.downloadSpeed || 0) > 0)
+}
+
+// Per-connection live speed (bytes/s), diffed from the previous websocket frame
+// (Mihomo's /connections payload carries only cumulative upload/download).
+let prevConnStats = new Map<string, { u: number; d: number; t: number }>()
+
+function computeSpeeds(conns: any[]): void {
+  const now = Date.now()
+  const nextStats = new Map<string, { u: number; d: number; t: number }>()
+  for (const c of conns) {
+    const up = c.upload || 0
+    const down = c.download || 0
+    const prev = prevConnStats.get(c.id)
+    const dt = prev ? (now - prev.t) / 1000 : 0
+    if (prev && dt > 0) {
+      c.uploadSpeed = Math.max(0, Math.round((up - prev.u) / dt))
+      c.downloadSpeed = Math.max(0, Math.round((down - prev.d) / dt))
+    } else {
+      c.uploadSpeed = 0
+      c.downloadSpeed = 0
+    }
+    nextStats.set(c.id, { u: up, d: down, t: now })
+  }
+  prevConnStats = nextStats
+}
+
 function filterData(cacheData: any): any {
   if (!cacheData || cacheData.length === 0) {
     return
@@ -204,6 +232,7 @@ const paginatedData = ref<any[]>([]);
 function onConn(ev: MessageEvent) {
   const parsedData = JSON.parse(ev.data);
   const next: any[] = parsedData['connections'] ?? [];
+  computeSpeeds(next);
   connectionStore.recordClosed(paginatedData.value, next);
   paginatedData.value = next;
 }
@@ -362,7 +391,40 @@ function closeAll() {
     <div class="info-list">
       <el-row class="info" v-for="(item, i) in filterData(displayData)" :key="i">
         <el-col :span="24">
-          <div class="info-card">
+          <div class="info-card" :class="{ 'info-card--live': isLive(item) }">
+            <div class="info-card__main">
+              <div class="info-card__host">{{ fHost(item.metadata) }}</div>
+              <div class="info-card__sub">
+                <span class="sub-type">{{ formatConnType(item.metadata) }}</span>
+                <template v-if="item.metadata.process">
+                  <span class="sub-dot">·</span>
+                  <span class="sub-proc">{{ item.metadata.process }}</span>
+                </template>
+                <template v-if="item.rule || item.chains?.length">
+                  <span class="sub-dot">·</span>
+                  <span class="sub-route" :title="[[item.rule, item.rulePayload].filter(Boolean).join(' / '), item.chains?.length ? formatChains(item.chains) : ''].filter(Boolean).join('  ·  ')">
+                    <template v-if="item.rule">{{ [item.rule, item.rulePayload].filter(Boolean).join(' / ') }}<template v-if="item.chains?.length"> · </template></template><template v-if="item.chains?.length">{{ formatChains(item.chains) }}</template>
+                  </span>
+                </template>
+              </div>
+            </div>
+            <div class="info-card__meta">
+              <div class="info-card__traffic">
+                <span class="info-traffic-item" :title="$t('connections.upload')">
+                  <icon-mdi-arrow-up class="traffic-icon traffic-icon--up"/>
+                  {{ prettyBytes(item.upload) }}
+                </span>
+                <span class="info-traffic-item" :title="$t('connections.download')">
+                  <icon-mdi-arrow-down class="traffic-icon traffic-icon--down"/>
+                  {{ prettyBytes(item.download) }}
+                </span>
+              </div>
+              <div class="info-card__speed" v-if="isLive(item)">
+                <span class="speed-item speed-item--up">↑ {{ prettyBytes(item.uploadSpeed) }}/s</span>
+                <span class="speed-item speed-item--down">↓ {{ prettyBytes(item.downloadSpeed) }}/s</span>
+              </div>
+              <div class="info-card__time" v-else>{{ fDate(item.start) }}</div>
+            </div>
             <div class="info-card__actions">
               <span class="icon-btn" role="button" tabindex="0"
                     :title="$t('connections.view-log')"
@@ -378,30 +440,6 @@ function closeAll() {
                     @keydown.space.prevent="copyLog(item)">
                 <icon-mdi-content-copy/>
               </span>
-            </div>
-            <div class="info-card__main">
-              <div class="info-card__host">{{ fHost(item.metadata) }}</div>
-              <div class="info-card__tags">
-                <el-tag type="success" size="small">{{ item.metadata.type }}</el-tag>
-                <el-tag v-if="item.metadata.process" type="primary" size="small">{{ item.metadata.process }}</el-tag>
-                <el-tag type="danger" size="small">{{ fDate(item.start) }}</el-tag>
-              </div>
-            </div>
-            <div class="info-card__meta">
-              <div class="info-card__traffic">
-                <span class="info-traffic-item" :title="$t('connections.upload')">
-                  <icon-mdi-arrow-up class="traffic-icon traffic-icon--up"/>
-                  {{ prettyBytes(item.upload) }}
-                </span>
-                <span class="info-traffic-item" :title="$t('connections.download')">
-                  <icon-mdi-arrow-down class="traffic-icon traffic-icon--down"/>
-                  {{ prettyBytes(item.download) }}
-                </span>
-              </div>
-              <div class="info-card__routing">
-                <template v-if="item.rule">{{ [item.rule, item.rulePayload].filter(Boolean).join(' / ') }}<template v-if="item.chains?.length"> · </template></template>
-                <template v-if="item.chains?.length">{{ formatChains(item.chains) }}</template>
-              </div>
             </div>
           </div>
         </el-col>
@@ -468,22 +506,17 @@ function closeAll() {
       <div class="info-list">
         <el-row class="info" v-for="(item, i) in selectedProcessConnections" :key="i">
           <el-col :span="24">
-            <div class="info-card">
-              <div class="info-card__actions">
-                <span class="icon-btn" role="button" tabindex="0" :title="$t('connections.view-log')"
-                      @click.stop="openLogDialog(item)" @keydown.enter.prevent="openLogDialog(item)" @keydown.space.prevent="openLogDialog(item)">
-                  <icon-mdi-information-outline/>
-                </span>
-                <span class="icon-btn" role="button" tabindex="0" :title="$t('connections.copy-log')"
-                      @click.stop="copyLog(item)" @keydown.enter.prevent="copyLog(item)" @keydown.space.prevent="copyLog(item)">
-                  <icon-mdi-content-copy/>
-                </span>
-              </div>
+            <div class="info-card" :class="{ 'info-card--live': isLive(item) }">
               <div class="info-card__main">
                 <div class="info-card__host">{{ fHost(item.metadata) }}</div>
-                <div class="info-card__tags">
-                  <el-tag type="success" size="small">{{ item.metadata.type }}</el-tag>
-                  <el-tag type="danger" size="small">{{ fDate(item.start) }}</el-tag>
+                <div class="info-card__sub">
+                  <span class="sub-type">{{ formatConnType(item.metadata) }}</span>
+                  <template v-if="item.rule || item.chains?.length">
+                    <span class="sub-dot">·</span>
+                    <span class="sub-route" :title="[[item.rule, item.rulePayload].filter(Boolean).join(' / '), item.chains?.length ? formatChains(item.chains) : ''].filter(Boolean).join('  ·  ')">
+                      <template v-if="item.rule">{{ [item.rule, item.rulePayload].filter(Boolean).join(' / ') }}<template v-if="item.chains?.length"> · </template></template><template v-if="item.chains?.length">{{ formatChains(item.chains) }}</template>
+                    </span>
+                  </template>
                 </div>
               </div>
               <div class="info-card__meta">
@@ -497,10 +530,21 @@ function closeAll() {
                     {{ prettyBytes(item.download) }}
                   </span>
                 </div>
-                <div class="info-card__routing">
-                  <template v-if="item.rule">{{ [item.rule, item.rulePayload].filter(Boolean).join(' / ') }}<template v-if="item.chains?.length"> · </template></template>
-                  <template v-if="item.chains?.length">{{ formatChains(item.chains) }}</template>
+                <div class="info-card__speed" v-if="isLive(item)">
+                  <span class="speed-item speed-item--up">↑ {{ prettyBytes(item.uploadSpeed) }}/s</span>
+                  <span class="speed-item speed-item--down">↓ {{ prettyBytes(item.downloadSpeed) }}/s</span>
                 </div>
+                <div class="info-card__time" v-else>{{ fDate(item.start) }}</div>
+              </div>
+              <div class="info-card__actions">
+                <span class="icon-btn" role="button" tabindex="0" :title="$t('connections.view-log')"
+                      @click.stop="openLogDialog(item)" @keydown.enter.prevent="openLogDialog(item)" @keydown.space.prevent="openLogDialog(item)">
+                  <icon-mdi-information-outline/>
+                </span>
+                <span class="icon-btn" role="button" tabindex="0" :title="$t('connections.copy-log')"
+                      @click.stop="copyLog(item)" @keydown.enter.prevent="copyLog(item)" @keydown.space.prevent="copyLog(item)">
+                  <icon-mdi-content-copy/>
+                </span>
               </div>
             </div>
           </el-col>
@@ -662,26 +706,32 @@ function closeAll() {
 .info {
   border-bottom: 1px solid var(--sub-card-border);
   padding: 0;
-  background-color: var(--left-bg-color);
-  border-radius: 12px;
+  background-color: var(--sub-card-bg);
+  transition: background-color 0.15s ease;
+}
+
+.info:hover {
+  background-color: var(--left-item-selected-bg);
+}
+
+.info:last-child {
+  border-bottom: none;
 }
 
 .info-card {
   display: grid;
-  grid-template-columns: 40px 1fr minmax(140px, auto);
-  column-gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 10px;
   align-items: center;
-  padding: 8px 12px 8px 8px;
+  padding: 8px 10px;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.45;
 }
 
-.info-card__actions {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
+/* Active (live) connection: left accent stripe, no blur — matches the
+   profile-card visual language while flagging connections moving traffic. */
+.info-card--live {
+  box-shadow: inset 3px 0 0 var(--el-color-primary);
 }
 
 .info-card__main {
@@ -694,25 +744,48 @@ function closeAll() {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
-.info-card__tags {
+.info-card__sub {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-color);
+  min-width: 0;
+  white-space: nowrap;
 }
 
-.info-card__tags :deep(.el-tag) {
-  border-radius: 999px;
+.sub-type {
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.sub-dot {
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.sub-proc {
+  flex-shrink: 0;
+  max-width: 32%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sub-route {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .info-card__meta {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -743,14 +816,37 @@ function closeAll() {
   color: #10b981;
 }
 
-.info-card__routing {
-  font-size: 12px;
+.info-card__speed {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.speed-item--up {
+  color: #f59e0b;
+}
+
+.speed-item--down {
+  color: #10b981;
+}
+
+.info-card__time {
+  font-size: 11px;
   color: var(--el-text-color-secondary);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  text-align: right;
+}
+
+.info-card__actions {
+  /* Sit at the left edge of the card (before host/meta) while keeping the DOM
+     order; the card grid is actions | main | meta. */
+  order: -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .icon-btn {
