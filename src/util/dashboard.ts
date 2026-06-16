@@ -31,12 +31,7 @@ export const defaultDashboards: DashboardTemplate[] = [
     {
         key: "zashboard",
         name: "Zashboard",
-        url: "https://board.zash.run.place/#/setup?http=true&hostname=%host&port=%port&secret=%secret&disableTunMode=1&disableUpgradeCore=1",
-    },
-    {
-        key: "zashboard-local",
-        name: "Zashboard (local)",
-        url: "http://%host:%port/ui/#/setup?http=true&hostname=%host&port=%port&secret=%secret&disableTunMode=1&disableUpgradeCore=1",
+        url: "https://board.zash.run.place/#/setup?http=true&hostname=%host&port=%port&secret=%secret",
     },
 ];
 

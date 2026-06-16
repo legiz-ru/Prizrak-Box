@@ -51,11 +51,6 @@ func StartCore(server string) (port int, secret string) {
 		_ = cache.Put(constant.SecretKey, secret)
 	}
 
-	// Serve the bundled zashboard panel (unpacked by internal.Init into
-	// <home>/ui/zashboard) at http://127.0.0.1:<port>/ui/. Must be set before
-	// StartByPandoraBox — the router reads uiPath when it is built.
-	route.SetUIPath(internal.ZashboardUIPath)
-
 	cors := route.Cors{AllowOrigins: []string{"*"}, AllowPrivateNetwork: true}
 	route.StartByPandoraBox(host, port, secret, cors)
 	log.Infoln("Routing startup completed")
