@@ -32,28 +32,18 @@ npm install --no-audit --no-fund
 npx vite build --outDir src-wails/frontend/dist --emptyOutDir
 
 echo "==> [2/3] Ensuring px backend (src-go/$PX_EXE) and px-service"
-# Rebuild a Go binary when it is missing OR any source/asset under $2 is newer
-# than it. Without this, edits to the core (e.g. a new embedded asset or route)
-# would be silently ignored because a stale binary already exists.
-go_stale() {
-  local bin="$1" dir="$2"
-  [ -x "$bin" ] || return 0
-  [ -n "$(find "$dir" -type f \( -name '*.go' -o -name '*.zip' -o -name '*.7z' \
-      -o -name '*.dat' -o -name '*.mmdb' -o -name '*.metadb' -o -name '*.bin' \
-      -o -name '*.yaml' -o -name '*.json' \) -newer "$bin" -print -quit 2>/dev/null)" ]
-}
-if go_stale "src-go/$PX_EXE" "src-go"; then
-  echo "    building px (geo/model/zashboard assets are vendored in src-go/internal/em)..."
+if [ ! -x "src-go/$PX_EXE" ]; then
+  echo "    building px (geo/model files are already vendored in src-go/internal/em)..."
   ( cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags "-X github.com/legiz-ru/prizrak-box/api.Version=v-test" -o "$PX_EXE" . )
 else
-  echo "    found up-to-date src-go/$PX_EXE"
+  echo "    found existing src-go/$PX_EXE"
 fi
 SERVICE_EXE="px-service"; [ "$PX_EXE" = "px.exe" ] && SERVICE_EXE="px-service.exe"
-if go_stale "src-service/$SERVICE_EXE" "src-service"; then
+if [ ! -x "src-service/$SERVICE_EXE" ]; then
   echo "    building px-service (TUN helper)..."
   ( cd src-service && CGO_ENABLED=0 go build -ldflags="-s -w" -o "$SERVICE_EXE" . )
 else
-  echo "    found up-to-date src-service/$SERVICE_EXE"
+  echo "    found existing src-service/$SERVICE_EXE"
 fi
 
 echo "==> [3/3] Building & running the Wails shell"
