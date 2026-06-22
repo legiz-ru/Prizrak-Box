@@ -1,10 +1,136 @@
 ---
 title: Smart Proxy Group
-description: Smart proxy group configuration in Prizrak-Box.
+description: Smart proxy group configuration in Prizrak-Box — intelligent node selection with ML-based weight prediction.
 ---
 
 import { Aside } from '@astrojs/starlight/components';
 
-<Aside type="note" title="Coming soon">
-Full documentation for Smart Proxy Group is coming soon.
+The **Smart** proxy group type uses adaptive weight-based node selection. Instead of simple round-robin or manual ordering, it continuously tracks each node's real-world performance — latency, connection success rate, traffic volume — and automatically routes connections to the best available node.
+
+---
+
+## Configuration
+
+```yaml
+# Optional: global LightGBM settings (top-level in config)
+lgbm-auto-update: true
+lgbm-update-interval: 72
+lgbm-url: "https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin"
+
+proxy-groups:
+  - name: Smart Group
+    type: smart
+    proxies:
+      - Proxy A
+      - Proxy B
+      - Proxy C
+    policy-priority: "Premium:0.9;SG:1.3"
+    uselightgbm: false
+    collectdata: false
+    sample-rate: 1
+    prefer-asn: true
+```
+
+---
+
+## Parameters
+
+### Group-level parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `type` | `string` | — | Must be `smart` |
+| `policy-priority` | `string` | `""` | Regex-based priority adjustments for node names |
+| `uselightgbm` | `bool` | `false` | Enable ML-based weight prediction via LightGBM |
+| `collectdata` | `bool` | `false` | Collect training data to CSV for custom model training |
+| `sample-rate` | `float` | `1` | Data collection rate, range `0`–`1` (1 = 100%) |
+| `prefer-asn` | `bool` | `false` | Prioritise ASN lookup during node selection |
+| `smart-collector-size` | `int` | `100` | Max size of the data collection file in MB |
+
+### Global LightGBM parameters (top-level)
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `lgbm-auto-update` | `bool` | `false` | Automatically refresh the LightGBM model |
+| `lgbm-update-interval` | `int` | `72` | Model refresh interval in hours |
+| `lgbm-url` | `string` | — | URL to download the `Model.bin` file from |
+
+---
+
+## `policy-priority`
+
+Adjusts the selection weight of nodes whose names match a regex pattern. Values below `1` lower priority; values above `1` raise it.
+
+```yaml
+policy-priority: "Premium:0.9;SG:1.3"
+```
+
+In this example, nodes matching `Premium` have their weight multiplied by `0.9` (lower priority), while nodes matching `SG` get a `1.3` multiplier (higher priority). Multiple rules are separated by `;`.
+
+---
+
+## How it works
+
+### Weight calculation
+
+The group continuously scores each node using five factors:
+
+- **Connection success rate** — successful vs. failed attempts; recent failures carry more weight.
+- **Connection performance** — connection establishment time and round-trip latency.
+- **Usage statistics** — upload/download volume and session duration.
+- **Time decay** — weights decay for nodes that haven't been used recently.
+- **Connection type** — separate scoring tracks for UDP and TCP connections.
+
+All metrics are normalised into a base weight, then adjusted by `policy-priority` rules and ASN-specific tables. Weights are updated using weighted averaging. If a node's quality degrades by more than 30%, its cache entry is flushed.
+
+### Node selection
+
+Selection follows this priority order:
+
+1. **Domain-based history** — if the destination domain has been seen before, the node with the best historical performance for that domain is preferred.
+2. **ASN-based history** — if no domain history exists, the node's past performance for the destination's Autonomous System is used.
+3. **Pre-calculated cache** — hot domains are pre-scored in memory (LRU) and on disk for fast lookup.
+4. **Round-robin fallback** — used when historical data is insufficient; random exploration prevents local optima.
+
+Historical data is retained for **14 days**. Expired entries are pruned automatically.
+
+### Failure handling
+
+When a node exceeds its failure threshold, its weight is penalised. Recovery is gradual — weights are partially restored at **5, 10, 15, and 30-minute** intervals, preventing a temporary outage from permanently blacklisting a node.
+
+---
+
+## Machine Learning (LightGBM)
+
+<Aside type="note" title="Optional feature">
+LightGBM integration is disabled by default. The weight-based algorithm works without it.
 </Aside>
+
+When `uselightgbm: true`, the group uses a pre-trained LightGBM model to predict node weights instead of the rule-based system.
+
+**Model file location:**
+- `~/.config/mihomo/Model.bin`
+- `/etc/openclash/Model.bin` (OpenClash installs)
+
+### Collecting training data
+
+Enable `collectdata: true` to write connection metrics to `smart_weight_data.csv`:
+- `~/smart_weight_data.csv` (home directory)
+- `/etc/openclash/smart_weight_data.csv` (OpenClash installs)
+
+Use `sample-rate` to reduce collection overhead — e.g. `sample-rate: 0.1` records 10% of connections.
+
+The collected CSV can be used to train a custom model with **LightGBM 3.3.5**.
+
+---
+
+## API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/group/{name}/weights` | Query current node weights for a group |
+| `GET` | `/group/weights` | Query weights for all smart groups |
+| `POST` | `/cache/smart/flush` | Flush all smart group caches |
+| `POST` | `/cache/smart/flush/{config}` | Flush cache for a specific config |
+| `DELETE` | `/connections/smart/{id}` | Block a connection and force re-selection |
+| `POST` | `/upgrade/lgbm` | Download and apply the latest LightGBM model |
