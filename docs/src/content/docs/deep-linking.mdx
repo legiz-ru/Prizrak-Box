@@ -13,50 +13,16 @@ This is useful for sharing subscription URLs with users without requiring manual
 ## URL Format
 
 ```
-prizrak-box://install-config?url=<encoded-subscription-url>
-```
-
-The `url` parameter must be **URL-encoded**.
-
-### Example
-
-To add the subscription `https://example.com/sub/username`:
-
-```
-prizrak-box://install-config?url=https%3A%2F%2Fexample.com%2Fsub%2Fusername
+prizrak-box://install-config?url=https://example.com/sub/username
 ```
 
 ## How to Use
 
 <Steps>
-1. Construct your deep link by URL-encoding your subscription URL.
-2. Share the `prizrak-box://install-config?url=...` link with your users (in Telegram, on a web page, in a QR code, etc.).
-3. When a user taps/clicks the link on a device with Prizrak-Box installed:
+1. Share the `prizrak-box://install-config?url=...` link with your users (in Telegram, on a web page, in a QR code, etc.).
+2. When a user taps/clicks the link on a device with Prizrak-Box installed:
    - On **Android** — the system will offer to open the link in Prizrak-Box.
    - On **Windows/macOS/Linux** — the Prizrak-Box protocol handler opens the app directly.
-4. The app opens an **Add Subscription** dialog with the URL pre-filled.
-5. The user confirms and the subscription is added.
+3. The app opens an **Add Subscription** dialog with the URL pre-filled.
+4. The user confirms and the subscription is added.
 </Steps>
-
-## Generating a Deep Link
-
-Use any URL encoder. In JavaScript:
-
-```js
-const subscriptionUrl = 'https://example.com/sub/username';
-const deepLink = `prizrak-box://install-config?url=${encodeURIComponent(subscriptionUrl)}`;
-console.log(deepLink);
-// prizrak-box://install-config?url=https%3A%2F%2Fexample.com%2Fsub%2Fusername
-```
-
-## Using Deep Links in HTML
-
-```html
-<a href="prizrak-box://install-config?url=https%3A%2F%2Fexample.com%2Fsub%2Fusername">
-  Add subscription in Prizrak-Box
-</a>
-```
-
-## QR Code
-
-You can encode a `prizrak-box://` deep link in a QR code for easy sharing — users scan the QR code with their Android device and the system offers to open it in Prizrak-Box.
