@@ -1320,10 +1320,10 @@ jobs:
                     <tr>
                         <td>Windows</td>
                         <td>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64-wails.msi"><img src="https://img.shields.io/badge/Setup-x64-2d7d9a.svg?logo=windows"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64-wails.msi"><img src="https://img.shields.io/badge/Setup-arm-2d7d9a.svg?logo=windows"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64-wails.zip"><img src="https://img.shields.io/badge/Portable-x64-67b7d1.svg?logo=windows"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64-wails.zip"><img src="https://img.shields.io/badge/Portable-arm-67b7d1.svg?logo=windows"></a>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64-wails.msi"><img src="https://img.shields.io/badge/Setup-x64-2d7d9a.svg?logo=wattpad"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64-wails.msi"><img src="https://img.shields.io/badge/Setup-arm-2d7d9a.svg?logo=wattpad"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64-wails.zip"><img src="https://img.shields.io/badge/Portable-x64-67b7d1.svg?logo=wattpad"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64-wails.zip"><img src="https://img.shields.io/badge/Portable-arm-67b7d1.svg?logo=wattpad"></a>
                         </td>
                     </tr>
                     <tr>
@@ -1354,10 +1354,10 @@ jobs:
                     <tr>
                         <td>Windows</td>
                         <td>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.msi"><img src="https://img.shields.io/badge/Setup-x64-2d7d9a.svg?logo=windows"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.msi"><img src="https://img.shields.io/badge/Setup-arm-2d7d9a.svg?logo=windows"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.zip"><img src="https://img.shields.io/badge/Portable-x64-67b7d1.svg?logo=windows"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.zip"><img src="https://img.shields.io/badge/Portable-arm-67b7d1.svg?logo=windows"></a>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.msi"><img src="https://img.shields.io/badge/Setup-x64-2d7d9a.svg?logo=wattpad"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.msi"><img src="https://img.shields.io/badge/Setup-arm-2d7d9a.svg?logo=wattpad"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.zip"><img src="https://img.shields.io/badge/Portable-x64-67b7d1.svg?logo=wattpad"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.zip"><img src="https://img.shields.io/badge/Portable-arm-67b7d1.svg?logo=wattpad"></a>
                         </td>
                     </tr>
                     <tr>
