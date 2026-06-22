@@ -423,3 +423,91 @@ X-Hwid-Limit: true
 The HWID header format follows the [RemnaWave HWID Device Limit specification](https://docs.rw/features/hwid-device-limit#hwid-headers-sent-by-remnawave).
 Subscription servers implementing the RemnaWave format are fully compatible with Prizrak Box.
 </Aside>
+
+---
+
+## Android UI Controls <Badge text="Android only" variant="note" />
+
+The following headers are supported exclusively by the **Android** version of Prizrak Box (ClashMetaForAndroid prizrak branch).
+They allow subscription providers to control certain UI elements and behaviour of the Android client.
+
+All values are applied once on subscription fetch and persist in the profile until the next update.
+
+### `pxa-latency-dots`
+
+Controls how proxy latency is displayed in the proxy list.
+
+| Property | Value |
+|----------|-------|
+| Type | `integer` |
+| Values | `0` = latency numbers, `1` = latency dots |
+
+**Example:**
+```http
+pxa-latency-dots: 1
+```
+
+---
+
+### `pxa-simple-mode`
+
+Activates a simplified interface mode that hides advanced controls, showing only the essentials.
+
+| Property | Value |
+|----------|-------|
+| Type | `integer` |
+| Values | `1` to enable |
+
+**Example:**
+```http
+pxa-simple-mode: 1
+```
+
+---
+
+### `pxa-global-mode-mp`
+
+Shows the **Global Mode** menu item in the Android app navigation.
+When not set (or `0`), the item may be hidden.
+
+| Property | Value |
+|----------|-------|
+| Type | `integer` |
+| Values | `1` to show |
+
+**Example:**
+```http
+pxa-global-mode-mp: 1
+```
+
+---
+
+### `pxa-conns-view-mp`
+
+Shows the **Connections** view menu item in the Android app navigation.
+
+| Property | Value |
+|----------|-------|
+| Type | `integer` |
+| Values | `1` to show |
+
+**Example:**
+```http
+pxa-conns-view-mp: 1
+```
+
+---
+
+### `pxa-rp-mp`
+
+Shows the **Rules Provider** (RP) menu item in the Android app navigation.
+
+| Property | Value |
+|----------|-------|
+| Type | `integer` |
+| Values | `1` to show |
+
+**Example:**
+```http
+pxa-rp-mp: 1
+```
