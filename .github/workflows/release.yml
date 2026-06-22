@@ -1374,7 +1374,7 @@ jobs:
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/linux-amd64.rpm"><img src="https://img.shields.io/badge/RpmPackage-x64-F1B42F.svg?logo=redhat"></a><br>
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/linux-arm64.deb"><img src="https://img.shields.io/badge/DebPackage-arm64-FF9966.svg?logo=debian"></a><br>
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/linux-arm64.rpm"><img src="https://img.shields.io/badge/RpmPackage-arm64-F1B42F.svg?logo=redhat"></a><br>
-                            <a href="https://aur.archlinux.org/packages/prizrak-box-bin"><img src="https://img.shields.io/aur/version/prizrak-box-bin"></a>
+                            <a href="https://aur.archlinux.org/packages/prizrak-box-bin"><img src="https://img.shields.io/aur/version/prizrak-box-bin?logo=archlinux"></a>
                         </td>
                     </tr>
                 </tbody>
