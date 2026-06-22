@@ -55,6 +55,11 @@ export default defineConfig({
               translations: { ru: 'Интеграция с Remnawave' },
               link: '/for-devs/remnawave-integration/',
             },
+            {
+              label: 'Smart Proxy Group',
+              translations: { ru: 'Прокси группа Smart' },
+              link: '/for-devs/smart-proxy-group/',
+            },
           ],
         },
         {
