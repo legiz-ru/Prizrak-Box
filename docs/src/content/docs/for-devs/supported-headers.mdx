@@ -60,7 +60,7 @@ URL of an image to use as the subscription logo in the app.
 | Property | Value |
 |----------|-------|
 | Type | `string` (URL) |
-| Supported formats | PNG, JPEG, WebP, SVG, GIF |
+| Supported formats | PNG, SVG |
 | Max file size | 2 MB |
 | Allowed schemes | `http`, `https` |
 
@@ -387,12 +387,12 @@ Prizrak-Box supports the RemnaWave HWID Device Limit header format. When a subsc
 
 When a profile has HWID active, Prizrak-Box automatically attaches the following headers to every subscription fetch:
 
-| Header | Required | Description |
-|--------|----------|-------------|
-| `X-Hwid` | Required | Hardware fingerprint — the unique identifier for this device |
-| `X-Device-OS` | Optional | Operating system name (e.g. `Windows`, `Android`, `macOS`) |
-| `X-Ver-OS` | Optional | OS version string (e.g. `14`, `11`, `14.5`) |
-| `X-Device-Model` | Optional | Device model name (e.g. `Pixel 8`, `iPhone 14 Pro Max`) |
+| Header | Description |
+|--------|-------------|
+| `X-Hwid` | Hardware fingerprint — the unique identifier for this device |
+| `X-Device-OS` | Operating system name (e.g. `Windows`, `Android`, `macOS`) |
+| `X-Ver-OS` | OS version string (e.g. `14`, `11`, `14.5`) |
+| `X-Device-Model` | Device model name (e.g. `Pixel 8`, `iPhone 14 Pro Max`) |
 
 ### Headers Returned by Server (Response Headers)
 
