@@ -334,44 +334,106 @@ fallback-domain: backup.example.com
 
 ---
 
-## Шаблоны (PXD) <Badge text="Устарело" variant="caution" />
+## Управление интерфейсом Android <Badge text="Только Android" variant="note" />
 
-<Aside type="caution" title="Устарело — будет удалено">
-Механизм заголовков `Pxd-Template` / `Pxd-Template-Scheme` **устарел** и будет удалён из Prizrak-Box в одном из следующих релизов.
+Следующие заголовки поддерживаются исключительно **Android-версией** Prizrak-Box.
+Они позволяют провайдерам подписок управлять отдельными элементами пользовательского интерфейса Android-клиента.
 
-Для современных настроек с шаблонами используйте подход на основе xhttp, описанный здесь:
-[How to use xhttp from Remnawave in Prizrak-Box](https://github.com/legiz-ru/my-remnawave#how-to-use-xhttp-from-remnawave-in-prizrak-box)
-</Aside>
+Все значения применяются при получении подписки и сохраняются в профиле до следующего обновления.
 
 <details>
-<summary>**`Pxd-Template`**</summary>
+<summary>**`pxa-latency-dots`**</summary>
 
-URL удалённого шаблонного файла для расширенной обработки подписки.
+Управляет отображением задержки прокси в списке.
 
-![Пример заголовка Pxd-Template](../../../../assets/headers-pxd-template.webp)
+| Свойство | Значение |
+|----------|----------|
+| Тип | `integer` |
+| Значения | `0` = числа задержки, `1` = точки задержки |
 
 **Пример:**
 
 ```http
-Pxd-Template: https://example.com/templates/prizrak-default.yaml
+pxa-latency-dots: 1
+```
+
+<Aside type="note" title="Совместимость с Happ">
+Для совместимости с провайдерами, которые ранее использовали приложение Happ, также поддерживаются следующие псевдонимы:
+
+- `ping-result: time` → эквивалент `pxa-latency-dots: 0`
+- `ping-result: icon` → эквивалент `pxa-latency-dots: 1`
+</Aside>
+
+</details>
+
+<details>
+<summary>**`pxa-simple-mode`**</summary>
+
+Включает упрощённый режим интерфейса — скрывает продвинутые элементы управления, оставляя только основные.
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `integer` |
+| Значения | `1` для включения |
+
+**Пример:**
+
+```http
+pxa-simple-mode: 1
 ```
 
 </details>
 
 <details>
-<summary>**`Pxd-Template-Scheme`**</summary>
+<summary>**`pxa-global-mode-mp`**</summary>
 
-Управляет тем, как применяется шаблон PXD.
+Показывает пункт меню **Глобальный режим** в навигации Android-приложения.
 
-| Значение | Поведение |
-|----------|-----------|
-| `proxy-providers` | Подписка встраивается как proxy-provider в шаблон |
-| `payload` | Подписка заменяет раздел `payload` шаблона |
+| Свойство | Значение |
+|----------|----------|
+| Тип | `integer` |
+| Значения | `1` для отображения |
 
 **Пример:**
 
 ```http
-Pxd-Template-Scheme: proxy-providers
+pxa-global-mode-mp: 1
+```
+
+</details>
+
+<details>
+<summary>**`pxa-conns-view-mp`**</summary>
+
+Показывает пункт меню **Подключения** в навигации Android-приложения.
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `integer` |
+| Значения | `1` для отображения |
+
+**Пример:**
+
+```http
+pxa-conns-view-mp: 1
+```
+
+</details>
+
+<details>
+<summary>**`pxa-rp-mp`**</summary>
+
+Показывает пункт меню **Rules Provider (RP)** в навигации Android-приложения.
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `integer` |
+| Значения | `1` для отображения |
+
+**Пример:**
+
+```http
+pxa-rp-mp: 1
 ```
 
 </details>
@@ -473,99 +535,10 @@ X-Hwid-Limit: true
 
 ---
 
-## Управление интерфейсом Android <Badge text="Только Android" variant="note" />
+## Шаблоны (PXD) <Badge text="Устарело" variant="caution" />
 
-Следующие заголовки поддерживаются исключительно **Android-версией** Prizrak-Box.
-Они позволяют провайдерам подписок управлять отдельными элементами пользовательского интерфейса Android-клиента.
+<Aside type="caution" title="Устарело — будет удалено">
+Механизм заголовков `Pxd-Template` / `Pxd-Template-Scheme` **устарел** и будет удалён из Prizrak-Box в одном из следующих релизов.
 
-Все значения применяются при получении подписки и сохраняются в профиле до следующего обновления.
-
-<details>
-<summary>**`pxa-latency-dots`**</summary>
-
-Управляет отображением задержки прокси в списке.
-
-| Свойство | Значение |
-|----------|----------|
-| Тип | `integer` |
-| Значения | `0` = числа задержки, `1` = точки задержки |
-
-**Пример:**
-
-```http
-pxa-latency-dots: 1
-```
-
-</details>
-
-<details>
-<summary>**`pxa-simple-mode`**</summary>
-
-Включает упрощённый режим интерфейса — скрывает продвинутые элементы управления, оставляя только основные.
-
-| Свойство | Значение |
-|----------|----------|
-| Тип | `integer` |
-| Значения | `1` для включения |
-
-**Пример:**
-
-```http
-pxa-simple-mode: 1
-```
-
-</details>
-
-<details>
-<summary>**`pxa-global-mode-mp`**</summary>
-
-Показывает пункт меню **Глобальный режим** в навигации Android-приложения.
-
-| Свойство | Значение |
-|----------|----------|
-| Тип | `integer` |
-| Значения | `1` для отображения |
-
-**Пример:**
-
-```http
-pxa-global-mode-mp: 1
-```
-
-</details>
-
-<details>
-<summary>**`pxa-conns-view-mp`**</summary>
-
-Показывает пункт меню **Подключения** в навигации Android-приложения.
-
-| Свойство | Значение |
-|----------|----------|
-| Тип | `integer` |
-| Значения | `1` для отображения |
-
-**Пример:**
-
-```http
-pxa-conns-view-mp: 1
-```
-
-</details>
-
-<details>
-<summary>**`pxa-rp-mp`**</summary>
-
-Показывает пункт меню **Rules Provider (RP)** в навигации Android-приложения.
-
-| Свойство | Значение |
-|----------|----------|
-| Тип | `integer` |
-| Значения | `1` для отображения |
-
-**Пример:**
-
-```http
-pxa-rp-mp: 1
-```
-
-</details>
+Как работал устаревший метод можно ознакомиться здесь: [How to use xhttp from Remnawave in Prizrak-Box](https://github.com/legiz-ru/my-remnawave#how-to-use-xhttp-from-remnawave-in-prizrak-box)
+</Aside>

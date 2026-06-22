@@ -335,44 +335,107 @@ The first response with a 2xx status code is used.
 
 ---
 
-## Advanced Templates (PXD) <Badge text="Deprecated" variant="caution" />
+## Android UI Controls <Badge text="Android only" variant="note" />
 
-<Aside type="caution" title="Deprecated — will be removed">
-The `Pxd-Template` / `Pxd-Template-Scheme` header mechanism is **deprecated** and will be removed from Prizrak-Box in a future release.
+The following headers are supported exclusively by the **Android** version of Prizrak-Box.
+They allow subscription providers to control certain UI elements and behaviour of the Android client.
 
-For modern template-based setups use the xhttp approach described in:
-[How to use xhttp from Remnawave in Prizrak-Box](https://github.com/legiz-ru/my-remnawave#how-to-use-xhttp-from-remnawave-in-prizrak-box)
-</Aside>
+All values are applied once on subscription fetch and persist in the profile until the next update.
 
 <details>
-<summary>**`Pxd-Template`**</summary>
+<summary>**`pxa-latency-dots`**</summary>
 
-URL of a remote template file for advanced subscription processing.
+Controls how proxy latency is displayed in the proxy list.
 
-![Pxd-Template header example](../../../assets/headers-pxd-template.webp)
+| Property | Value |
+|----------|-------|
+| Type | `integer` |
+| Values | `0` = latency numbers, `1` = latency dots |
 
 **Example:**
 
 ```http
-Pxd-Template: https://example.com/templates/prizrak-default.yaml
+pxa-latency-dots: 1
+```
+
+<Aside type="note" title="Happ compatibility">
+For compatibility with providers that previously used the Happ app, the following aliases are also supported:
+
+- `ping-result: time` → equivalent to `pxa-latency-dots: 0`
+- `ping-result: icon` → equivalent to `pxa-latency-dots: 1`
+</Aside>
+
+</details>
+
+<details>
+<summary>**`pxa-simple-mode`**</summary>
+
+Activates a simplified interface mode that hides advanced controls, showing only the essentials.
+
+| Property | Value |
+|----------|-------|
+| Type | `integer` |
+| Values | `1` to enable |
+
+**Example:**
+
+```http
+pxa-simple-mode: 1
 ```
 
 </details>
 
 <details>
-<summary>**`Pxd-Template-Scheme`**</summary>
+<summary>**`pxa-global-mode-mp`**</summary>
 
-Controls how the PXD template is applied.
+Shows the **Global Mode** menu item in the Android app navigation.
+When not set (or `0`), the item may be hidden.
 
-| Value | Behavior |
-|-------|----------|
-| `proxy-providers` | The subscription is injected as a proxy-provider into the template |
-| `payload` | The subscription replaces the `payload` section of the template |
+| Property | Value |
+|----------|-------|
+| Type | `integer` |
+| Values | `1` to show |
 
 **Example:**
 
 ```http
-Pxd-Template-Scheme: proxy-providers
+pxa-global-mode-mp: 1
+```
+
+</details>
+
+<details>
+<summary>**`pxa-conns-view-mp`**</summary>
+
+Shows the **Connections** view menu item in the Android app navigation.
+
+| Property | Value |
+|----------|-------|
+| Type | `integer` |
+| Values | `1` to show |
+
+**Example:**
+
+```http
+pxa-conns-view-mp: 1
+```
+
+</details>
+
+<details>
+<summary>**`pxa-rp-mp`**</summary>
+
+Shows the **Rules Provider** (RP) menu item in the Android app navigation.
+
+| Property | Value |
+|----------|-------|
+| Type | `integer` |
+| Values | `1` to show |
+
+**Example:**
+
+```http
+pxa-rp-mp: 1
 ```
 
 </details>
@@ -474,100 +537,10 @@ Subscription servers implementing the RemnaWave format are fully compatible with
 
 ---
 
-## Android UI Controls <Badge text="Android only" variant="note" />
+## Advanced Templates (PXD) <Badge text="Deprecated" variant="caution" />
 
-The following headers are supported exclusively by the **Android** version of Prizrak-Box.
-They allow subscription providers to control certain UI elements and behaviour of the Android client.
+<Aside type="caution" title="Deprecated — will be removed">
+The `Pxd-Template` / `Pxd-Template-Scheme` header mechanism is **deprecated** and will be removed from Prizrak-Box in a future release.
 
-All values are applied once on subscription fetch and persist in the profile until the next update.
-
-<details>
-<summary>**`pxa-latency-dots`**</summary>
-
-Controls how proxy latency is displayed in the proxy list.
-
-| Property | Value |
-|----------|-------|
-| Type | `integer` |
-| Values | `0` = latency numbers, `1` = latency dots |
-
-**Example:**
-
-```http
-pxa-latency-dots: 1
-```
-
-</details>
-
-<details>
-<summary>**`pxa-simple-mode`**</summary>
-
-Activates a simplified interface mode that hides advanced controls, showing only the essentials.
-
-| Property | Value |
-|----------|-------|
-| Type | `integer` |
-| Values | `1` to enable |
-
-**Example:**
-
-```http
-pxa-simple-mode: 1
-```
-
-</details>
-
-<details>
-<summary>**`pxa-global-mode-mp`**</summary>
-
-Shows the **Global Mode** menu item in the Android app navigation.
-When not set (or `0`), the item may be hidden.
-
-| Property | Value |
-|----------|-------|
-| Type | `integer` |
-| Values | `1` to show |
-
-**Example:**
-
-```http
-pxa-global-mode-mp: 1
-```
-
-</details>
-
-<details>
-<summary>**`pxa-conns-view-mp`**</summary>
-
-Shows the **Connections** view menu item in the Android app navigation.
-
-| Property | Value |
-|----------|-------|
-| Type | `integer` |
-| Values | `1` to show |
-
-**Example:**
-
-```http
-pxa-conns-view-mp: 1
-```
-
-</details>
-
-<details>
-<summary>**`pxa-rp-mp`**</summary>
-
-Shows the **Rules Provider** (RP) menu item in the Android app navigation.
-
-| Property | Value |
-|----------|-------|
-| Type | `integer` |
-| Values | `1` to show |
-
-**Example:**
-
-```http
-pxa-rp-mp: 1
-```
-
-</details>
+How the legacy method worked: [How to use xhttp from Remnawave in Prizrak-Box](https://github.com/legiz-ru/my-remnawave#how-to-use-xhttp-from-remnawave-in-prizrak-box)
+</Aside>
