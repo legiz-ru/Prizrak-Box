@@ -8,24 +8,6 @@ import { Tabs, TabItem, Steps } from '@astrojs/starlight/components';
 All releases are available on the [GitHub Releases page](https://github.com/legiz-ru/Prizrak-Box/releases/latest).
 
 <Tabs>
-  <TabItem label="Windows">
-
-## Windows
-
-<Steps>
-1. Go to the [latest release](https://github.com/legiz-ru/Prizrak-Box/releases/latest).
-2. Download the `.exe` installer (e.g. `Prizrak-Box-Setup-x64.exe`).
-3. Run the installer and follow the on-screen prompts.
-4. Launch **Prizrak-Box** from the Start menu or desktop shortcut.
-</Steps>
-
-![Install on Windows](../../assets/install-windows.webp)
-
-:::note
-Windows may show a SmartScreen warning for unsigned builds. Click **More info → Run anyway** to proceed.
-:::
-
-  </TabItem>
   <TabItem label="Android">
 
 ## Android
@@ -53,7 +35,29 @@ Windows may show a SmartScreen warning for unsigned builds. Click **More info �
 4. Open the downloaded APK to install.
 </Steps>
 
+:::note
+The APK includes a built-in update checker — it will notify you when a new release is available directly from GitHub.
+:::
+
 ![Install on Android](../../assets/install-android.webp)
+
+  </TabItem>
+  <TabItem label="Windows">
+
+## Windows
+
+<Steps>
+1. Go to the [latest release](https://github.com/legiz-ru/Prizrak-Box/releases/latest).
+2. Download the `.exe` installer (e.g. `Prizrak-Box-Setup-x64.exe`).
+3. Run the installer and follow the on-screen prompts.
+4. Launch **Prizrak-Box** from the Start menu or desktop shortcut.
+</Steps>
+
+![Install on Windows](../../assets/install-windows.webp)
+
+:::note
+Windows may show a SmartScreen warning for unsigned builds. Click **More info → Run anyway** to proceed.
+:::
 
   </TabItem>
   <TabItem label="macOS">
@@ -100,6 +104,13 @@ Arch Linux users can install from the AUR:
 yay -S prizrak-box-bin
 ```
 :::
+
+  </TabItem>
+  <TabItem label="iOS">
+
+## iOS
+
+Active development is underway. We hope to share a TestFlight link soon — with an App Store release to follow.
 
   </TabItem>
 </Tabs>

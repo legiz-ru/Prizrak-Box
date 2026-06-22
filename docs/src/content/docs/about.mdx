@@ -17,23 +17,19 @@ It provides a user-friendly graphical interface for managing proxy subscriptions
 <CardGrid>
   <Card title="Remote Subscriptions" icon="open-book">
     Add and manage remote proxy subscriptions with automatic periodic updates.
-    Supports Clash YAML format.
+    Supports Clash YAML format and direct proxy keys (vless://, hy2://, and others) — built-in configurable templates are available for profiles without a Mihomo configuration.
+  </Card>
+  <Card title="AGE Encryption" icon="approve-check-circle">
+    Supports age-encrypted subscription files. Decrypt with your private key stored securely in the profile.
   </Card>
   <Card title="Traffic Monitoring" icon="bars">
     Real-time display of upload/download usage and remaining traffic quota from `Subscription-Userinfo` headers.
   </Card>
   <Card title="Routing Rules" icon="list-format">
-    Built-in rule sets (geo-IP, domain lists) with DIRECT, PROXY, and REJECT routing.
-    Bundled `.mrs` rule-set archive for offline use.
+    Built-in templates with routing rules for Russia and China — DIRECT, PROXY, and REJECT routing based on geo-IP and domain lists.
   </Card>
   <Card title="TUN Mode" icon="laptop">
     System-level traffic capture via TUN interface — routes all device traffic through the proxy without per-app configuration.
-  </Card>
-  <Card title="Templates (PXD)" icon="puzzle">
-    Advanced subscription templates via `Pxd-Template` / `Pxd-Template-Scheme` headers for custom proxy-provider configurations.
-  </Card>
-  <Card title="Age Encryption" icon="approve-check-circle">
-    Supports age-encrypted subscription files. Decrypt with your private key stored securely in the profile.
   </Card>
 </CardGrid>
 

@@ -26,7 +26,7 @@ export default defineConfig({
       },
       social: [
         { icon: 'github', label: 'GitHub', href: 'https://github.com/legiz-ru/Prizrak-Box' },
-        { icon: 'telegram', label: 'Telegram', href: 'https://t.me/prizrak_box' },
+        { icon: 'telegram', label: 'Telegram', href: 'https://t.me/legiz_trashbag' },
       ],
       sidebar: [
         { label: 'Welcome', translations: { ru: 'Добро пожаловать' }, link: '/' },
@@ -63,7 +63,8 @@ export default defineConfig({
           ],
         },
         {
-          label: 'FAQ Video by CrazyOpS',
+          label: 'PC FAQ Video by CrazyOpS',
+          translations: { ru: 'ПК FAQ Video by CrazyOpS' },
           link: 'https://t.me/crazy_day_admin/168',
           attrs: { target: '_blank', rel: 'noopener noreferrer' },
         },
