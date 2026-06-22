@@ -102,35 +102,19 @@ When a node exceeds its failure threshold, its weight is penalised. Recovery is 
 
 ## Machine Learning (LightGBM)
 
-<Aside type="note" title="Optional feature">
-LightGBM integration is disabled by default. The weight-based algorithm works without it.
+<Aside type="note" title="Enabled by default in Prizrak-Box">
+The built-in templates included in the app use `uselightgbm: true` by default.
 </Aside>
 
 When `uselightgbm: true`, the group uses a pre-trained LightGBM model to predict node weights instead of the rule-based system.
 
 **Model file location:**
 - `~/.config/mihomo/Model.bin`
-- `/etc/openclash/Model.bin` (OpenClash installs)
 
 ### Collecting training data
 
-Enable `collectdata: true` to write connection metrics to `smart_weight_data.csv`:
-- `~/smart_weight_data.csv` (home directory)
-- `/etc/openclash/smart_weight_data.csv` (OpenClash installs)
+Enable `collectdata: true` to write connection metrics to `~/smart_weight_data.csv`.
 
 Use `sample-rate` to reduce collection overhead — e.g. `sample-rate: 0.1` records 10% of connections.
 
 The collected CSV can be used to train a custom model with **LightGBM 3.3.5**.
-
----
-
-## API Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/group/{name}/weights` | Query current node weights for a group |
-| `GET` | `/group/weights` | Query weights for all smart groups |
-| `POST` | `/cache/smart/flush` | Flush all smart group caches |
-| `POST` | `/cache/smart/flush/{config}` | Flush cache for a specific config |
-| `DELETE` | `/connections/smart/{id}` | Block a connection and force re-selection |
-| `POST` | `/upgrade/lgbm` | Download and apply the latest LightGBM model |

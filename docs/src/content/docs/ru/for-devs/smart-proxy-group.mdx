@@ -102,35 +102,19 @@ policy-priority: "Premium:0.9;SG:1.3"
 
 ## Машинное обучение (LightGBM)
 
-<Aside type="note" title="Опциональная функция">
-Интеграция LightGBM отключена по умолчанию. Весовой алгоритм работает и без неё.
+<Aside type="note" title="Включено по умолчанию в Prizrak-Box">
+Во встроенных шаблонах приложения по умолчанию используется `uselightgbm: true`.
 </Aside>
 
 При `uselightgbm: true` группа использует предобученную модель LightGBM для предсказания весов узлов вместо правилового алгоритма.
 
 **Расположение файла модели:**
 - `~/.config/mihomo/Model.bin`
-- `/etc/openclash/Model.bin` (для OpenClash)
 
 ### Сбор обучающих данных
 
-Включите `collectdata: true`, чтобы записывать метрики подключений в `smart_weight_data.csv`:
-- `~/smart_weight_data.csv` (домашняя директория)
-- `/etc/openclash/smart_weight_data.csv` (для OpenClash)
+Включите `collectdata: true`, чтобы записывать метрики подключений в `~/smart_weight_data.csv`.
 
 Используйте `sample-rate` для снижения нагрузки — например, `sample-rate: 0.1` записывает 10% подключений.
 
 Собранный CSV можно использовать для обучения кастомной модели с помощью **LightGBM 3.3.5**.
-
----
-
-## API-эндпоинты
-
-| Метод | Путь | Описание |
-|-------|------|----------|
-| `GET` | `/group/{name}/weights` | Получить текущие веса узлов группы |
-| `GET` | `/group/weights` | Получить веса всех smart-групп |
-| `POST` | `/cache/smart/flush` | Сбросить все кеши smart-групп |
-| `POST` | `/cache/smart/flush/{config}` | Сбросить кеш для конкретного конфига |
-| `DELETE` | `/connections/smart/{id}` | Заблокировать соединение и принудить к повторному выбору |
-| `POST` | `/upgrade/lgbm` | Загрузить и применить последнюю модель LightGBM |
