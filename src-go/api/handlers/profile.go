@@ -11,7 +11,6 @@ import (
 	"github.com/legiz-ru/prizrak-box/internal"
 	"github.com/legiz-ru/prizrak-box/pkg/cache"
 	"github.com/legiz-ru/prizrak-box/pkg/constant"
-	"github.com/legiz-ru/prizrak-box/pkg/proxy"
 	"github.com/legiz-ru/prizrak-box/pkg/utils"
 	"github.com/metacubex/chi"
 	"github.com/metacubex/chi/render"
@@ -385,8 +384,13 @@ func addFromWeb(w http.ResponseWriter, r *http.Request) {
 	subs := internal.ScanSubs(profile.Content)
 	ok := false
 	for _, sub := range subs {
-		headers := map[string]string{}
-		res, err := utils.FastGet(sub, headers, proxy.GetProxyUrl())
+		subProfile := &models.Profile{
+			Content:      sub,
+			AgeSecretKey: profile.AgeSecretKey,
+		}
+
+		// Fetch with fallback + migration; no persist callback needed for new profiles
+		res, err := internal.UpdateSubscriptionSource(subProfile, nil)
 		if err != nil {
 			tempErr = err
 			log.Errorln("[addFromWeb] URL = %s, Request Error:%v", sub, err)
@@ -399,9 +403,9 @@ func addFromWeb(w http.ResponseWriter, r *http.Request) {
 		if notSupported || maxDevicesReached {
 			supportUrl := strings.TrimSpace(mergedSubHeaders.Get("Support-Url"))
 			resp := hwidErrorResponse{
-				HwidNotSupported:     notSupported,
+				HwidNotSupported:      notSupported,
 				HwidMaxDevicesReached: maxDevicesReached,
-				SupportUrl:           supportUrl,
+				SupportUrl:            supportUrl,
 			}
 			if notSupported {
 				resp.Message = "HWID not supported by client"
@@ -415,20 +419,16 @@ func addFromWeb(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// 解析存盘
-		subProfile := &models.Profile{
-			Content:      sub,
-			AgeSecretKey: profile.AgeSecretKey,
-		}
 		err = internal.Resolve(res.Body, subProfile, false)
 		if err == nil {
-			// 进行请求头解析
-			internal.ParseHeaders(mergedSubHeaders, sub, subProfile)
+			// 进行请求头解析 — subProfile.Content may have been migrated
+			internal.ParseHeaders(mergedSubHeaders, subProfile.Content, subProfile)
 			job.UpdateDb(subProfile, 1)
 			ps = append(ps, subProfile)
 			ok = true
 		} else {
 			tempErr = err
-			log.Errorln("[addFromWeb] URL = %s, Resolve Error:%v", sub, err)
+			log.Errorln("[addFromWeb] URL = %s, Resolve Error:%v", subProfile.Content, err)
 		}
 	}
 	if !ok {
@@ -448,13 +448,13 @@ func refreshProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	title := profile.Title
 
-	// 发送请求
-	sub := profile.Content
-	headers := map[string]string{}
-	res, err := utils.FastGet(sub, headers, proxy.GetProxyUrl())
+	// Fetch with fallback + migration (spec §4–5)
+	res, err := internal.UpdateSubscriptionSource(profile, func(p *models.Profile) {
+		_ = cache.Put(p.Id, *p) // persist new source URL immediately on migration
+	})
 	if err != nil {
 		ErrorResponse(w, r, err)
-		log.Errorln("[refreshProfile] URL = %s, Request Error:%v", sub, err)
+		log.Errorln("[refreshProfile] URL = %s, Request Error:%v", profile.Content, err)
 		return
 	}
 
@@ -463,7 +463,7 @@ func refreshProfile(w http.ResponseWriter, r *http.Request) {
 	err = internal.Resolve(res.Body, profile, true)
 	if err == nil {
 		// 进行请求头解析
-		internal.ParseHeaders(mergedHeaders, sub, profile)
+		internal.ParseHeaders(mergedHeaders, profile.Content, profile)
 		if title != "" {
 			profile.Title = title
 		}
@@ -475,7 +475,7 @@ func refreshProfile(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		ErrorResponse(w, r, err)
-		log.Errorln("[refreshProfile] URL = %s, Resolve Error:%v", sub, err)
+		log.Errorln("[refreshProfile] URL = %s, Resolve Error:%v", profile.Content, err)
 		return
 	}
 
@@ -483,8 +483,8 @@ func refreshProfile(w http.ResponseWriter, r *http.Request) {
 	// Проверяем как HTTP-заголовки, так и инлайн-заголовки из тела ответа
 	notSupported, maxDevicesReached := checkHwidHeaders(http.Header(map[string][]string(mergedHeaders)))
 	resp := profileRefreshResponse{
-		Profile:              profile,
-		HwidNotSupported:     notSupported,
+		Profile:               profile,
+		HwidNotSupported:      notSupported,
 		HwidMaxDevicesReached: maxDevicesReached,
 	}
 	render.JSON(w, r, resp)

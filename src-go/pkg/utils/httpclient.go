@@ -290,8 +290,9 @@ func SendGetBytes(requestURL string, headers map[string]string, proxyURL string)
 }
 
 type ResponseResult struct {
-	Body    string
-	Headers http.Header
+	Body       string
+	Headers    http.Header
+	StatusCode int
 }
 
 // FastGet 并发 GET 请求，代理和直连同时发，谁先成功返回
@@ -325,7 +326,7 @@ func FastGet(requestURL string, headers map[string]string, proxyURL string) (*Re
 		}
 
 		select {
-		case results <- &ResponseResult{Body: html.UnescapeString(string(bodyBytes)), Headers: resp.Header}:
+		case results <- &ResponseResult{Body: html.UnescapeString(string(bodyBytes)), Headers: resp.Header, StatusCode: resp.StatusCode}:
 		case <-ctx.Done():
 		}
 	}
@@ -358,6 +359,79 @@ func FastGet(requestURL string, headers map[string]string, proxyURL string) (*Re
 	}
 
 	return nil, fmt.Errorf("请求失败，未知原因")
+}
+
+// SubscriptionTimeout is the per-candidate timeout for fallback subscription fetching.
+const SubscriptionTimeout = 9 * time.Second
+
+// FetchSubscriptionCandidate fetches rawURL, treating HTTP 300-599 as failure.
+// Runs direct and proxy connections concurrently; first 2xx response wins.
+// Returns (nil, err) on timeout, network error, or non-2xx status from all attempts.
+func FetchSubscriptionCandidate(rawURL, proxyURL string) (*ResponseResult, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), SubscriptionTimeout)
+	defer cancel()
+
+	results := make(chan *ResponseResult, 2)
+	errs := make(chan error, 2)
+
+	send := func(useProxy bool) {
+		pURL := ""
+		if useProxy {
+			pURL = proxyURL
+		}
+		resp, err := sendRequest("GET", rawURL, map[string]string{}, pURL, SubscriptionTimeout)
+		if err != nil {
+			errs <- err
+			return
+		}
+		defer closeResponseBody(resp.Body)
+
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			errs <- fmt.Errorf("HTTP %d", resp.StatusCode)
+			return
+		}
+
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil || len(bodyBytes) == 0 {
+			if err == nil {
+				err = fmt.Errorf("empty response body")
+			}
+			errs <- err
+			return
+		}
+
+		select {
+		case results <- &ResponseResult{
+			Body:       html.UnescapeString(string(bodyBytes)),
+			Headers:    resp.Header,
+			StatusCode: resp.StatusCode,
+		}:
+		case <-ctx.Done():
+		}
+	}
+
+	go send(true)
+	go send(false)
+
+	var errList []string
+	for i := 0; i < 2; i++ {
+		select {
+		case result := <-results:
+			return result, nil
+		case err := <-errs:
+			errList = append(errList, err.Error())
+			if len(errList) == 2 {
+				return nil, fmt.Errorf("%s", strings.Join(errList, " | "))
+			}
+		case <-ctx.Done():
+			if len(errList) == 0 {
+				return nil, fmt.Errorf("timed out after 9s")
+			}
+			return nil, fmt.Errorf("timed out: %s", strings.Join(errList, " | "))
+		}
+	}
+
+	return nil, fmt.Errorf("request failed")
 }
 
 // SendHead 根据 URL 内容判断用 HEAD 还是 GET 请求，返回状态码

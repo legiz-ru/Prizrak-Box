@@ -25,6 +25,8 @@ export class Profile {
     pxdTemplateScheme?: string;
     hwidActive?: boolean;
     ageSecretKey?: string;
+    fallbackUrl?: string;
+    fallbackDomain?: string;
 }
 
 export interface ProfileSelectionPayload {

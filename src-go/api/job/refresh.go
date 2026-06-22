@@ -7,7 +7,6 @@ import (
 	"github.com/legiz-ru/prizrak-box/pkg/cache"
 	"github.com/legiz-ru/prizrak-box/pkg/constant"
 	"github.com/legiz-ru/prizrak-box/pkg/cron"
-	"github.com/legiz-ru/prizrak-box/pkg/proxy"
 	"github.com/legiz-ru/prizrak-box/pkg/utils"
 	"strconv"
 	"strings"
@@ -68,24 +67,23 @@ func DoRefresh() {
 
 		log.Infoln("[Refresh] job profile %v fresh start", profile.Title)
 
-		// 进行更新
 		title := profile.Title
 
-		// 发送请求
-		sub := profile.Content
-		headers := map[string]string{}
-		res, err := utils.FastGet(sub, headers, proxy.GetProxyUrl())
+		// Fetch with fallback + migration (spec §4–5)
+		res, err := internal.UpdateSubscriptionSource(profile, func(p *models.Profile) {
+			_ = cache.Put(p.Id, *p) // persist new source URL immediately on migration
+		})
 		if err != nil {
-			log.Errorln("[Refresh] Sub=%s, URL = %s, Request Error:%v", title, sub, err)
+			log.Errorln("[Refresh] Sub=%s, Request Error:%v", title, err)
 			continue
 		}
 
 		// 解析存盘
+		mergedHeaders := internal.MergeHeaders(res.Headers, internal.ParseInlineHeaders(res.Body))
 		err = internal.Resolve(res.Body, profile, true)
 		if err == nil {
-			// 进行请求头解析
-			mergedHeaders := internal.MergeHeaders(res.Headers, internal.ParseInlineHeaders(res.Body))
-			internal.ParseHeaders(mergedHeaders, sub, profile)
+			// 进行请求头解析 — profile.Content may have been migrated
+			internal.ParseHeaders(mergedHeaders, profile.Content, profile)
 			if title != "" {
 				profile.Title = title
 			}
@@ -93,7 +91,7 @@ func DoRefresh() {
 
 			log.Infoln("[Refresh] job profile %v fresh success", profile.Title)
 		} else {
-			log.Errorln("[Refresh] Sub=%s, URL = %s, Resolve Error:%v", title, sub, err)
+			log.Errorln("[Refresh] Sub=%s, Resolve Error:%v", title, err)
 		}
 	}
 }

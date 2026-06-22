@@ -34,6 +34,8 @@ type Profile struct {
 	PxdTemplateScheme   string `json:"pxdTemplateScheme,omitempty"`
 	HwidActive          bool   `json:"hwidActive,omitempty"`
 	AgeSecretKey        string `json:"ageSecretKey,omitempty"`
+	FallbackUrl         string `json:"fallbackUrl,omitempty"`
+	FallbackDomain      string `json:"fallbackDomain,omitempty"`
 }
 
 func (p *Profile) GetUpdateTime() time.Time {
