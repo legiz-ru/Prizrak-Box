@@ -1269,6 +1269,21 @@ jobs:
             const path = require('path');
             const dedent = s => s.replace(/\n {12}/g, '\n').replace(/^ {12}/m, '');
 
+            const obtainiumUrl = 'https://apps.obtainium.imranr.dev/redirect.html?r=' + encodeURIComponent(JSON.stringify({
+              id: 'legiz.ru.prizrakbox',
+              url: `https://github.com/${owner}/${repo}/releases`,
+              author: owner,
+              name: 'Prizrak-Box',
+              preferredApkIndex: 0,
+              additionalSettings: JSON.stringify({
+                includePrereleases: true,
+                fallbackToOlderReleases: true,
+                autoApkFilterByArch: true,
+                trackOnly: false,
+                versionDetection: true,
+              }),
+            }));
+
             let release;
             try {
               const { data } = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
@@ -1326,6 +1341,7 @@ jobs:
                     <tr>
                         <td>Android</td>
                         <td>
+                            <a href="${obtainiumUrl}"><img src="https://github.com/ImranR98/Obtainium/blob/main/assets/graphics/badge_obtainium.png?raw=true" height="27" alt="Get it on Obtainium"></a><br>
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/prizrak-box-android-universal.apk"><img src="https://img.shields.io/badge/APK-universal-96ed89.svg?logo=android"></a><br>
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/prizrak-box-android-arm64-v8a.apk"><img src="https://img.shields.io/badge/APK-ARMv8-168039.svg?logo=android"></a><br>
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/prizrak-box-android-armeabi-v7a.apk"><img src="https://img.shields.io/badge/APK-ARMv7-45bf55.svg?logo=android"></a><br>
