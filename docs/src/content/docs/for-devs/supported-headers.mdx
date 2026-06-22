@@ -1,0 +1,371 @@
+---
+title: Supported Headers
+description: Full reference of HTTP response headers supported by Prizrak Box subscription fetching.
+---
+
+import { Aside, Badge } from '@astrojs/starlight/components';
+
+When Prizrak Box fetches a remote subscription, it reads specific HTTP response headers from the server.
+These headers let subscription providers control profile metadata, traffic display, automatic updates, logo, announcements, and more.
+
+Headers are **case-insensitive**. Unknown headers are silently ignored.
+
+<Aside type="tip" title="Inline headers">
+If your server cannot set HTTP response headers (e.g. a static file host), you can embed headers as comments
+at the top of your subscription content:
+
+```yaml
+#profile-title: My VPN
+#subscription-userinfo: upload=1073741824; download=5368709120; total=107374182400; expire=1893456000
+```
+
+Inline comment headers use the same names as HTTP headers, prefixed with `#`.
+They act as fallback values — HTTP response headers always take priority over inline headers.
+</Aside>
+
+---
+
+## Profile Metadata
+
+### `Profile-Title`
+
+The display name for the subscription in Prizrak Box.
+
+![Profile-Title header example](../../../assets/headers-profile-title.webp)
+
+| Property | Value |
+|----------|-------|
+| Type | `string` |
+| Encoding | Plain UTF-8 or Base64 (`base64:` prefix) |
+
+**Example:**
+```http
+Profile-Title: My VPN Subscription
+Profile-Title: base64:TXkgVlBOIFN1YnNjcmlwdGlvbg==
+```
+
+If `Profile-Title` is absent, the app falls back to the filename from the `Content-Disposition` header, then to a generated name like `Sub-2024-01-01`.
+
+---
+
+### `Profile-Logo`
+
+URL of an image to use as the subscription logo in the app.
+
+![Profile-Logo header example](../../../assets/headers-profile-logo.webp)
+
+| Property | Value |
+|----------|-------|
+| Type | `string` (URL) |
+| Supported formats | PNG, JPEG, WebP, SVG, GIF |
+| Max file size | 2 MB |
+| Allowed schemes | `http`, `https` |
+
+**Example:**
+```http
+Profile-Logo: https://example.com/logo.png
+```
+
+The logo is downloaded at fetch time and cached locally. An empty or invalid URL clears the cached logo.
+
+---
+
+### `Content-Disposition`
+
+Used as a fallback source for the profile title when `Profile-Title` is absent.
+
+| Property | Value |
+|----------|-------|
+| Type | `string` |
+| Parsed field | `filename` parameter |
+
+**Example:**
+```http
+Content-Disposition: attachment; filename="my-vpn.yaml"
+```
+
+The `filename` value (without extension) becomes the profile title if `Profile-Title` is not set.
+
+---
+
+## Traffic Information
+
+### `Subscription-Userinfo`
+
+Reports traffic usage statistics displayed in the profile card.
+
+![Subscription-Userinfo header example](../../../assets/headers-subscription-userinfo.webp)
+
+| Property | Value |
+|----------|-------|
+| Type | `string` (semicolon-separated key=value pairs) |
+| Fields | `upload`, `download`, `total`, `expire` |
+| Units | Bytes (for traffic fields), Unix timestamp (for `expire`) |
+
+**Example:**
+```http
+Subscription-Userinfo: upload=1073741824; download=5368709120; total=107374182400; expire=1893456000
+```
+
+| Field | Description |
+|-------|-------------|
+| `upload` | Bytes uploaded |
+| `download` | Bytes downloaded |
+| `total` | Total traffic quota in bytes |
+| `expire` | Expiry time as Unix timestamp |
+
+---
+
+## Update Settings
+
+### `Profile-Update-Interval`
+
+Sets the automatic refresh interval for this subscription.
+
+| Property | Value |
+|----------|-------|
+| Type | `integer` |
+| Unit | Hours |
+
+**Example:**
+```http
+Profile-Update-Interval: 24
+```
+
+When this header is present, Prizrak Box automatically re-fetches the subscription at the specified interval in hours.
+
+---
+
+## Links
+
+### `Profile-Web-Page-Url`
+
+A URL for the subscription provider's home page or portal.
+
+| Property | Value |
+|----------|-------|
+| Type | `string` (URL) |
+
+**Example:**
+```http
+Profile-Web-Page-Url: https://myvpn.example.com
+```
+
+Displayed in the profile detail view as a tappable link.
+
+---
+
+### `Support-Url`
+
+A support or contact URL (e.g. Telegram channel, help desk).
+
+| Property | Value |
+|----------|-------|
+| Type | `string` (URL) |
+
+**Example:**
+```http
+Support-Url: https://t.me/myvpn_support
+```
+
+Displayed alongside the profile for users to reach support.
+
+---
+
+## Announcements
+
+### `Announce`
+
+A text announcement displayed in the app as a banner on the profile card.
+
+![Announce header example](../../../assets/headers-announce.webp)
+
+| Property | Value |
+|----------|-------|
+| Type | `string` |
+| Max length | 200 visible characters (color codes excluded) |
+| Encoding | Plain UTF-8 or Base64 (`base64:` prefix) |
+| Color codes | `#RRGGBB` inline color markup |
+
+**Examples:**
+```http
+Announce: Maintenance scheduled for Saturday 02:00–04:00 UTC
+Announce: base64:TWFpbnRlbmFuY2Ugc2NoZWR1bGVk
+Announce: #FF0000Server is under load — please switch to a different node
+```
+
+Color codes in `#RRGGBB` format apply color to the following text until the next color code or end of string.
+
+---
+
+### `Announce-Url`
+
+A URL linked from the announcement banner.
+
+| Property | Value |
+|----------|-------|
+| Type | `string` (URL) |
+
+**Example:**
+```http
+Announce-Url: https://status.myvpn.example.com
+```
+
+Tapping the announcement banner in the app opens this URL.
+
+---
+
+## URL Migration & Fallback
+
+These headers implement subscription URL migration — allowing providers to move subscriptions to a new address without users manually updating their URL.
+
+### `new-url`
+
+Instructs the client to replace the entire subscription URL with a new one.
+
+![new-url migration example](../../../assets/headers-new-url.webp)
+
+| Property | Value |
+|----------|-------|
+| Type | `string` (full URL) |
+| Priority | Highest — takes precedence over `new-domain` |
+| Hops | Max 3 consecutive migrations |
+
+**Example:**
+```http
+new-url: https://new.example.com/subscription/abc123
+```
+
+After receiving this header, Prizrak Box immediately saves the new URL and re-fetches from it. The original URL is replaced permanently in the profile.
+
+---
+
+### `new-domain`
+
+Instructs the client to replace only the **hostname** of the subscription URL, preserving the path and query string.
+
+| Property | Value |
+|----------|-------|
+| Type | `string` (bare host, no scheme, no path) |
+| Example value | `new.example.com` or `new.example.com:8443` |
+
+**Example:**
+```http
+new-domain: cdn.example.com
+```
+
+If the current subscription URL is `https://old.example.com/sub/abc`, this produces `https://cdn.example.com/sub/abc`.
+
+---
+
+### `fallback-url`
+
+An alternative full URL to try if the primary subscription URL fails (non-2xx or connection error).
+
+![Fallback headers example](../../../assets/headers-fallback.webp)
+
+| Property | Value |
+|----------|-------|
+| Type | `string` (full URL) |
+| Persisted | Yes — saved to the profile for future fetches |
+
+**Example:**
+```http
+fallback-url: https://backup.example.com/subscription/abc123
+```
+
+Prizrak Box tries the primary URL first. If it fails, it falls back to `fallback-url`. The fallback value is updated (or cleared) on every successful fetch.
+
+---
+
+### `fallback-domain`
+
+An alternative domain to substitute into the primary URL if it fails.
+
+| Property | Value |
+|----------|-------|
+| Type | `string` (bare host) |
+| Persisted | Yes — saved to the profile |
+
+**Example:**
+```http
+fallback-domain: backup.example.com
+```
+
+If the primary URL is `https://main.example.com/sub`, this fallback tries `https://backup.example.com/sub`.
+
+<Aside type="note" title="Fallback priority">
+The fetch order is: **primary URL → `fallback-url` → primary URL with `fallback-domain`**.
+The first response with a 2xx status code is used.
+</Aside>
+
+---
+
+## Advanced Templates (PXD)
+
+### `Pxd-Template`
+
+URL of a remote template file for advanced subscription processing.
+
+![Pxd-Template header example](../../../assets/headers-pxd-template.webp)
+
+| Property | Value |
+|----------|-------|
+| Type | `string` (URL) |
+
+**Example:**
+```http
+Pxd-Template: https://example.com/templates/prizrak-default.yaml
+```
+
+The template is fetched and merged with the subscription content to produce the final Clash configuration. Supports placeholder substitution (e.g. `$profile-update-interval$`, `$x-hwid$`).
+
+---
+
+### `Pxd-Template-Scheme`
+
+Controls how the PXD template is applied.
+
+| Property | Value |
+|----------|-------|
+| Type | `string` (enum) |
+| Values | `proxy-providers` \| `payload` |
+
+**Example:**
+```http
+Pxd-Template-Scheme: proxy-providers
+```
+
+| Value | Behavior |
+|-------|----------|
+| `proxy-providers` | The subscription is injected as a proxy-provider into the template |
+| `payload` | The subscription replaces the `payload` section of the template |
+
+---
+
+## HWID Authentication
+
+### `X-Hwid-Active`
+
+Signals that this subscription uses Hardware ID (HWID) device-based authentication.
+
+![X-Hwid-Active header example](../../../assets/headers-hwid.webp)
+
+| Property | Value |
+|----------|-------|
+| Type | `string` (boolean) |
+| Values | `true` \| `false` |
+
+**Example:**
+```http
+X-Hwid-Active: true
+```
+
+When `true`, the app marks this profile as HWID-protected in the UI. The hardware fingerprint is sent with subsequent subscription requests via the following request headers:
+
+| Request Header | Description |
+|---------------|-------------|
+| `X-Hwid` | Device hardware fingerprint |
+| `X-Device-OS` | Operating system name |
+| `X-Ver-OS` | OS version string |
+| `X-Device-Model` | Device model identifier |

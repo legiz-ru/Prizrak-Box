@@ -1,0 +1,47 @@
+---
+title: Important Note
+description: Important notes, disclaimers, and usage guidelines for Prizrak Box.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+![Important note](../../assets/important-note.webp)
+
+<Aside type="caution" title="Read before use">
+Prizrak Box is a **proxy client** — it connects to proxy servers configured in your subscription.
+The app itself does not provide any proxy servers or bypass services.
+</Aside>
+
+## Intended Use
+
+Prizrak Box is intended for:
+
+- **Privacy** — routing your traffic through a trusted proxy to protect your data on public networks.
+- **Development & Testing** — inspecting and routing traffic during development.
+- **Access** — reaching resources that are restricted in your network.
+
+## Legal Disclaimer
+
+- Users are solely responsible for how they use Prizrak Box and the proxy servers they connect to.
+- Ensure that your use of proxy services complies with the laws and regulations in your jurisdiction.
+- The developers of Prizrak Box are not responsible for any misuse or consequences arising from use of the application.
+
+## Security Notes
+
+<Aside type="tip" title="Subscription security">
+Only add subscriptions from sources you trust. A malicious subscription server could return harmful routing rules.
+</Aside>
+
+- Subscription URLs may include credentials — keep them private and do not share them publicly.
+- When using **HWID authentication** (`X-Hwid-Active`), your hardware ID is sent to the subscription server. Be aware of this if privacy is a concern.
+- **Age-encrypted** subscriptions protect your configuration content in transit; the secret key is stored locally in the app's profile storage.
+
+## Data Storage
+
+All profile data (subscription URLs, credentials, settings) is stored locally in the application's data directory using [BoltDB](https://github.com/etcd-io/bbolt). No data is sent to any third-party service by the application itself.
+
+## Updates
+
+<Aside type="note">
+Prizrak Box does not auto-update itself. Check the [GitHub Releases page](https://github.com/legiz-ru/Prizrak-Box/releases) periodically for new versions, or use [Obtainium](https://github.com/ImranR98/Obtainium) on Android for automatic updates.
+</Aside>

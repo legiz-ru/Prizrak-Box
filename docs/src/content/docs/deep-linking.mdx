@@ -1,0 +1,62 @@
+---
+title: Deep Linking
+description: Add subscriptions to Prizrak Box using prizrak:// deep links.
+---
+
+import { Steps, Code } from '@astrojs/starlight/components';
+
+Deep links let you open Prizrak Box and pre-fill a subscription URL with a single click or tap.
+This is useful for sharing subscription URLs with users without requiring manual copy-paste.
+
+![Deep linking example](../../assets/deep-linking-example.webp)
+
+## URL Format
+
+```
+prizrak://add-sub?url=<encoded-subscription-url>
+```
+
+The `url` parameter must be **URL-encoded**.
+
+### Example
+
+To add the subscription `https://example.com/my-subscription`:
+
+```
+prizrak://add-sub?url=https%3A%2F%2Fexample.com%2Fmy-subscription
+```
+
+## How to Use
+
+<Steps>
+1. Construct your deep link by URL-encoding your subscription URL.
+2. Share the `prizrak://add-sub?url=...` link with your users (in Telegram, on a web page, in a QR code, etc.).
+3. When a user taps/clicks the link on a device with Prizrak Box installed:
+   - On **Android** — the system will offer to open the link in Prizrak Box.
+   - On **Windows/macOS/Linux** — the Prizrak Box protocol handler opens the app directly.
+4. The app opens an **Add Subscription** dialog with the URL pre-filled.
+5. The user confirms and the subscription is added.
+</Steps>
+
+## Generating a Deep Link
+
+Use any URL encoder. In JavaScript:
+
+```js
+const subscriptionUrl = 'https://example.com/my-subscription';
+const deepLink = `prizrak://add-sub?url=${encodeURIComponent(subscriptionUrl)}`;
+console.log(deepLink);
+// prizrak://add-sub?url=https%3A%2F%2Fexample.com%2Fmy-subscription
+```
+
+## Using Deep Links in HTML
+
+```html
+<a href="prizrak://add-sub?url=https%3A%2F%2Fexample.com%2Fmy-subscription">
+  Add subscription in Prizrak Box
+</a>
+```
+
+## QR Code
+
+You can encode a `prizrak://` deep link in a QR code for easy sharing — users scan the QR code with their Android device and the system offers to open it in Prizrak Box.

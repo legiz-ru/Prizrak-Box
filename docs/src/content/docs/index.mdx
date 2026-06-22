@@ -1,0 +1,46 @@
+---
+title: Welcome
+description: Welcome to Prizrak Box — a cross-platform proxy client powered by Mihomo.
+template: splash
+hero:
+  title: Prizrak Box
+  tagline: A cross-platform proxy client built on Mihomo (Clash.Meta), available for Windows, macOS, Linux, and Android.
+  image:
+    file: ../../assets/welcome-hero.webp
+    alt: Prizrak Box main screen
+  actions:
+    - text: Install App
+      link: /install/
+      icon: right-arrow
+      variant: primary
+    - text: GitHub
+      link: https://github.com/legiz-ru/Prizrak-Box
+      icon: external
+      variant: secondary
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## What is Prizrak Box?
+
+Prizrak Box is a graphical proxy client that uses the [Mihomo](https://github.com/MetaCubeX/mihomo) (Clash.Meta) core.
+It supports remote subscriptions, automatic updates, traffic monitoring, and advanced routing rules.
+
+<CardGrid>
+  <Card title="Install App" icon="down-caret">
+    Get Prizrak Box for Windows, macOS, Linux, or Android.
+    [Install →](/install/)
+  </Card>
+  <Card title="About App" icon="information">
+    Learn about features, subscription management, and how the app works.
+    [About →](/about/)
+  </Card>
+  <Card title="Deep Linking" icon="external">
+    Add subscriptions using `prizrak://` deep links.
+    [Deep Linking →](/deep-linking/)
+  </Card>
+  <Card title="Supported Headers" icon="document">
+    Documentation for subscription server HTTP response headers.
+    [Headers →](/for-devs/supported-headers/)
+  </Card>
+</CardGrid>
