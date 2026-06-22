@@ -27,7 +27,8 @@ They act as fallback values — HTTP response headers always take priority over 
 
 ## Profile Metadata
 
-### `Profile-Title`
+<details>
+<summary>**`Profile-Title`**</summary>
 
 The display name for the subscription in Prizrak-Box.
 
@@ -39,6 +40,7 @@ The display name for the subscription in Prizrak-Box.
 | Encoding | Plain UTF-8 or Base64 (`base64:` prefix) |
 
 **Example:**
+
 ```http
 Profile-Title: My VPN Subscription
 Profile-Title: base64:TXkgVlBOIFN1YnNjcmlwdGlvbg==
@@ -46,9 +48,10 @@ Profile-Title: base64:TXkgVlBOIFN1YnNjcmlwdGlvbg==
 
 If `Profile-Title` is absent, the app falls back to the filename from the `Content-Disposition` header, then to a generated name like `Sub-2024-01-01`.
 
----
+</details>
 
-### `Profile-Logo`
+<details>
+<summary>**`Profile-Logo`**</summary>
 
 URL of an image to use as the subscription logo in the app.
 
@@ -62,15 +65,17 @@ URL of an image to use as the subscription logo in the app.
 | Allowed schemes | `http`, `https` |
 
 **Example:**
+
 ```http
 Profile-Logo: https://example.com/logo.png
 ```
 
 The logo is downloaded at fetch time and cached locally. An empty or invalid URL clears the cached logo.
 
----
+</details>
 
-### `Content-Disposition`
+<details>
+<summary>**`Content-Disposition`**</summary>
 
 Used as a fallback source for the profile title when `Profile-Title` is absent.
 
@@ -80,17 +85,21 @@ Used as a fallback source for the profile title when `Profile-Title` is absent.
 | Parsed field | `filename` parameter |
 
 **Example:**
+
 ```http
 Content-Disposition: attachment; filename="my-vpn.yaml"
 ```
 
 The `filename` value (without extension) becomes the profile title if `Profile-Title` is not set.
 
+</details>
+
 ---
 
 ## Traffic Information
 
-### `Subscription-Userinfo`
+<details>
+<summary>**`Subscription-Userinfo`**</summary>
 
 Reports traffic usage statistics displayed in the profile card.
 
@@ -103,6 +112,7 @@ Reports traffic usage statistics displayed in the profile card.
 | Units | Bytes (for traffic fields), Unix timestamp (for `expire`) |
 
 **Example:**
+
 ```http
 Subscription-Userinfo: upload=1073741824; download=5368709120; total=107374182400; expire=1893456000
 ```
@@ -114,11 +124,14 @@ Subscription-Userinfo: upload=1073741824; download=5368709120; total=10737418240
 | `total` | Total traffic quota in bytes |
 | `expire` | Expiry time as Unix timestamp |
 
+</details>
+
 ---
 
 ## Update Settings
 
-### `Profile-Update-Interval`
+<details>
+<summary>**`Profile-Update-Interval`**</summary>
 
 Sets the automatic refresh interval for this subscription.
 
@@ -128,17 +141,21 @@ Sets the automatic refresh interval for this subscription.
 | Unit | Hours |
 
 **Example:**
+
 ```http
 Profile-Update-Interval: 24
 ```
 
 When this header is present, Prizrak-Box automatically re-fetches the subscription at the specified interval in hours.
 
+</details>
+
 ---
 
 ## Links
 
-### `Profile-Web-Page-Url`
+<details>
+<summary>**`Profile-Web-Page-Url`**</summary>
 
 A URL for the subscription provider's home page or portal.
 
@@ -147,15 +164,17 @@ A URL for the subscription provider's home page or portal.
 | Type | `string` (URL) |
 
 **Example:**
+
 ```http
 Profile-Web-Page-Url: https://myvpn.example.com
 ```
 
 Displayed in the profile detail view as a tappable link.
 
----
+</details>
 
-### `Support-Url`
+<details>
+<summary>**`Support-Url`**</summary>
 
 A support or contact URL (e.g. Telegram channel, help desk).
 
@@ -164,17 +183,21 @@ A support or contact URL (e.g. Telegram channel, help desk).
 | Type | `string` (URL) |
 
 **Example:**
+
 ```http
 Support-Url: https://t.me/myvpn_support
 ```
 
 Displayed alongside the profile for users to reach support.
 
+</details>
+
 ---
 
 ## Announcements
 
-### `Announce`
+<details>
+<summary>**`Announce`**</summary>
 
 A text announcement displayed in the app as a banner on the profile card.
 
@@ -187,14 +210,16 @@ A text announcement displayed in the app as a banner on the profile card.
 | Encoding | Plain UTF-8 or Base64 (`base64:` prefix) |
 
 **Examples:**
+
 ```http
 Announce: Maintenance scheduled for Saturday 02:00–04:00 UTC
 Announce: base64:TWFpbnRlbmFuY2Ugc2NoZWR1bGVk
 ```
 
----
+</details>
 
-### `Announce-Url`
+<details>
+<summary>**`Announce-Url`**</summary>
 
 A URL linked from the announcement banner.
 
@@ -203,11 +228,14 @@ A URL linked from the announcement banner.
 | Type | `string` (URL) |
 
 **Example:**
+
 ```http
 Announce-Url: https://status.myvpn.example.com
 ```
 
 Tapping the announcement banner in the app opens this URL.
+
+</details>
 
 ---
 
@@ -215,7 +243,8 @@ Tapping the announcement banner in the app opens this URL.
 
 These headers implement subscription URL migration — allowing providers to move subscriptions to a new address without users manually updating their URL.
 
-### `new-url`
+<details>
+<summary>**`new-url`**</summary>
 
 Instructs the client to replace the entire subscription URL with a new one.
 
@@ -228,15 +257,17 @@ Instructs the client to replace the entire subscription URL with a new one.
 | Hops | Max 3 consecutive migrations |
 
 **Example:**
+
 ```http
 new-url: https://new.example.com/subscription/abc123
 ```
 
 After receiving this header, Prizrak-Box immediately saves the new URL and re-fetches from it. The original URL is replaced permanently in the profile.
 
----
+</details>
 
-### `new-domain`
+<details>
+<summary>**`new-domain`**</summary>
 
 Instructs the client to replace only the **hostname** of the subscription URL, preserving the path and query string.
 
@@ -246,15 +277,17 @@ Instructs the client to replace only the **hostname** of the subscription URL, p
 | Example value | `new.example.com` or `new.example.com:8443` |
 
 **Example:**
+
 ```http
 new-domain: cdn.example.com
 ```
 
 If the current subscription URL is `https://old.example.com/sub/abc`, this produces `https://cdn.example.com/sub/abc`.
 
----
+</details>
 
-### `fallback-url`
+<details>
+<summary>**`fallback-url`**</summary>
 
 An alternative full URL to try if the primary subscription URL fails (non-2xx or connection error).
 
@@ -266,15 +299,17 @@ An alternative full URL to try if the primary subscription URL fails (non-2xx or
 | Persisted | Yes — saved to the profile for future fetches |
 
 **Example:**
+
 ```http
 fallback-url: https://backup.example.com/subscription/abc123
 ```
 
 Prizrak-Box tries the primary URL first. If it fails, it falls back to `fallback-url`. The fallback value is updated (or cleared) on every successful fetch.
 
----
+</details>
 
-### `fallback-domain`
+<details>
+<summary>**`fallback-domain`**</summary>
 
 An alternative domain to substitute into the primary URL if it fails.
 
@@ -284,6 +319,7 @@ An alternative domain to substitute into the primary URL if it fails.
 | Persisted | Yes — saved to the profile |
 
 **Example:**
+
 ```http
 fallback-domain: backup.example.com
 ```
@@ -294,6 +330,8 @@ If the primary URL is `https://main.example.com/sub`, this fallback tries `https
 The fetch order is: **primary URL → `fallback-url` → primary URL with `fallback-domain`**.
 The first response with a 2xx status code is used.
 </Aside>
+
+</details>
 
 ---
 
@@ -306,18 +344,23 @@ For modern template-based setups use the xhttp approach described in:
 [How to use xhttp from Remnawave in Prizrak-Box](https://github.com/legiz-ru/my-remnawave#how-to-use-xhttp-from-remnawave-in-prizrak-box)
 </Aside>
 
-### `Pxd-Template`
+<details>
+<summary>**`Pxd-Template`**</summary>
 
 URL of a remote template file for advanced subscription processing.
 
 ![Pxd-Template header example](../../../assets/headers-pxd-template.webp)
 
 **Example:**
+
 ```http
 Pxd-Template: https://example.com/templates/prizrak-default.yaml
 ```
 
-### `Pxd-Template-Scheme`
+</details>
+
+<details>
+<summary>**`Pxd-Template-Scheme`**</summary>
 
 Controls how the PXD template is applied.
 
@@ -327,9 +370,12 @@ Controls how the PXD template is applied.
 | `payload` | The subscription replaces the `payload` section of the template |
 
 **Example:**
+
 ```http
 Pxd-Template-Scheme: proxy-providers
 ```
+
+</details>
 
 ---
 
@@ -354,7 +400,8 @@ When a profile has HWID active, Prizrak-Box automatically attaches the following
 
 The server returns the following headers to communicate HWID status. Prizrak-Box reads and acts on each of them.
 
-#### `X-Hwid-Active`
+<details>
+<summary>**`X-Hwid-Active`**</summary>
 
 Always `true` when the HWID Device Limit is enabled on the server side. Prizrak-Box uses this to mark the profile as HWID-protected in the UI.
 
@@ -367,9 +414,10 @@ Always `true` when the HWID Device Limit is enabled on the server side. Prizrak-
 X-Hwid-Active: true
 ```
 
----
+</details>
 
-#### `X-Hwid-Not-Supported`
+<details>
+<summary>**`X-Hwid-Not-Supported`**</summary>
 
 `true` if HWID Device Limit is enabled on the server, but the client did **not** send an `X-Hwid` header.
 This signals to the app that the device was not identified and the subscription may be restricted.
@@ -383,9 +431,10 @@ This signals to the app that the device was not identified and the subscription 
 X-Hwid-Not-Supported: true
 ```
 
----
+</details>
 
-#### `X-Hwid-Max-Devices-Reached`
+<details>
+<summary>**`X-Hwid-Max-Devices-Reached`**</summary>
 
 `true` if HWID Device Limit is enabled and the user has reached their maximum number of allowed devices.
 The app can display a warning to the user that no new devices can be added.
@@ -399,9 +448,10 @@ The app can display a warning to the user that no new devices can be added.
 X-Hwid-Max-Devices-Reached: true
 ```
 
----
+</details>
 
-#### `X-Hwid-Limit`
+<details>
+<summary>**`X-Hwid-Limit`**</summary>
 
 `true` when the device limit has been reached. Sent for backwards compatibility with **v2RayTun**.
 Prizrak-Box recognises this header alongside `X-Hwid-Max-Devices-Reached`.
@@ -414,6 +464,8 @@ Prizrak-Box recognises this header alongside `X-Hwid-Max-Devices-Reached`.
 ```http
 X-Hwid-Limit: true
 ```
+
+</details>
 
 <Aside type="note" title="RemnaWave compatibility">
 The HWID header format follows the [RemnaWave HWID Device Limit specification](https://docs.rw/features/hwid-device-limit#hwid-headers-sent-by-remnawave).
@@ -429,7 +481,8 @@ They allow subscription providers to control certain UI elements and behaviour o
 
 All values are applied once on subscription fetch and persist in the profile until the next update.
 
-### `pxa-latency-dots`
+<details>
+<summary>**`pxa-latency-dots`**</summary>
 
 Controls how proxy latency is displayed in the proxy list.
 
@@ -439,13 +492,15 @@ Controls how proxy latency is displayed in the proxy list.
 | Values | `0` = latency numbers, `1` = latency dots |
 
 **Example:**
+
 ```http
 pxa-latency-dots: 1
 ```
 
----
+</details>
 
-### `pxa-simple-mode`
+<details>
+<summary>**`pxa-simple-mode`**</summary>
 
 Activates a simplified interface mode that hides advanced controls, showing only the essentials.
 
@@ -455,13 +510,15 @@ Activates a simplified interface mode that hides advanced controls, showing only
 | Values | `1` to enable |
 
 **Example:**
+
 ```http
 pxa-simple-mode: 1
 ```
 
----
+</details>
 
-### `pxa-global-mode-mp`
+<details>
+<summary>**`pxa-global-mode-mp`**</summary>
 
 Shows the **Global Mode** menu item in the Android app navigation.
 When not set (or `0`), the item may be hidden.
@@ -472,13 +529,15 @@ When not set (or `0`), the item may be hidden.
 | Values | `1` to show |
 
 **Example:**
+
 ```http
 pxa-global-mode-mp: 1
 ```
 
----
+</details>
 
-### `pxa-conns-view-mp`
+<details>
+<summary>**`pxa-conns-view-mp`**</summary>
 
 Shows the **Connections** view menu item in the Android app navigation.
 
@@ -488,13 +547,15 @@ Shows the **Connections** view menu item in the Android app navigation.
 | Values | `1` to show |
 
 **Example:**
+
 ```http
 pxa-conns-view-mp: 1
 ```
 
----
+</details>
 
-### `pxa-rp-mp`
+<details>
+<summary>**`pxa-rp-mp`**</summary>
 
 Shows the **Rules Provider** (RP) menu item in the Android app navigation.
 
@@ -504,6 +565,9 @@ Shows the **Rules Provider** (RP) menu item in the Android app navigation.
 | Values | `1` to show |
 
 **Example:**
+
 ```http
 pxa-rp-mp: 1
 ```
+
+</details>
