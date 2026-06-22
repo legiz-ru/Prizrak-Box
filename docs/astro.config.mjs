@@ -32,7 +32,6 @@ export default defineConfig({
         { label: 'About App', translations: { ru: 'О приложении' }, link: '/about/' },
         { label: 'Android TV', link: '/android-tv/' },
         { label: 'Deep Linking', translations: { ru: 'Диплинки' }, link: '/deep-linking/' },
-        { label: 'AGE Encryption', translations: { ru: 'Шифрование AGE' }, link: '/age-encryption/' },
         { label: 'Links', translations: { ru: 'Ссылки' }, link: '/links/' },
         { label: 'Important Note', translations: { ru: 'Важно' }, link: '/important-note/' },
         {
@@ -43,6 +42,11 @@ export default defineConfig({
               label: 'Supported Headers',
               translations: { ru: 'Поддерживаемые заголовки' },
               link: '/for-devs/supported-headers/',
+            },
+            {
+              label: 'AGE Encryption',
+              translations: { ru: 'Шифрование AGE' },
+              link: '/for-devs/age-encryption/',
             },
           ],
         },
