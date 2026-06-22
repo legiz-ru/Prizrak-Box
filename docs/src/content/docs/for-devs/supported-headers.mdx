@@ -183,18 +183,14 @@ A text announcement displayed in the app as a banner on the profile card.
 | Property | Value |
 |----------|-------|
 | Type | `string` |
-| Max length | 200 visible characters (color codes excluded) |
+| Max length | 200 characters |
 | Encoding | Plain UTF-8 or Base64 (`base64:` prefix) |
-| Color codes | `#RRGGBB` inline color markup |
 
 **Examples:**
 ```http
 Announce: Maintenance scheduled for Saturday 02:00–04:00 UTC
 Announce: base64:TWFpbnRlbmFuY2Ugc2NoZWR1bGVk
-Announce: #FF0000Server is under load — please switch to a different node
 ```
-
-Color codes in `#RRGGBB` format apply color to the following text until the next color code or end of string.
 
 ---
 
