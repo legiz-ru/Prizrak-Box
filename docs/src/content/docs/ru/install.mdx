@@ -1,0 +1,105 @@
+---
+title: Установка
+description: Как установить Prizrak Box на Windows, macOS, Linux и Android.
+---
+
+import { Tabs, TabItem, Steps } from '@astrojs/starlight/components';
+
+Все релизы доступны на [странице Releases на GitHub](https://github.com/legiz-ru/Prizrak-Box/releases/latest).
+
+<Tabs>
+  <TabItem label="Windows">
+
+## Windows
+
+<Steps>
+1. Перейдите на страницу [последнего релиза](https://github.com/legiz-ru/Prizrak-Box/releases/latest).
+2. Скачайте установщик `.exe` (например, `Prizrak-Box-Setup-x64.exe`).
+3. Запустите установщик и следуйте инструкциям.
+4. Откройте **Prizrak Box** из меню «Пуск» или с рабочего стола.
+</Steps>
+
+![Установка на Windows](../../../assets/install-windows.webp)
+
+:::note
+Windows может показать предупреждение SmartScreen для неподписанных сборок. Нажмите **Подробнее → Выполнить** для продолжения.
+:::
+
+  </TabItem>
+  <TabItem label="Android">
+
+## Android
+
+### Через Obtainium (рекомендуется)
+
+[Obtainium](https://github.com/ImranR98/Obtainium) позволяет устанавливать и автоматически обновлять Prizrak Box прямо из GitHub Releases.
+
+<Steps>
+1. Установите [Obtainium](https://github.com/ImranR98/Obtainium/releases/latest).
+2. Откройте ссылку Obtainium для Prizrak Box — все настройки заполнятся автоматически.
+3. Нажмите **Добавить**, затем **Установить**.
+</Steps>
+
+### Ручная установка APK
+
+<Steps>
+1. Перейдите на страницу [последнего релиза](https://github.com/legiz-ru/Prizrak-Box/releases/latest).
+2. Скачайте APK для вашей архитектуры:
+   - `universal` — подходит для всех устройств
+   - `arm64-v8a` — 64-битный ARM (большинство современных телефонов)
+   - `armeabi-v7a` — 32-битный ARM (старые устройства)
+   - `x86_64` — 64-битный x86 (эмуляторы)
+3. В настройках устройства разрешите установку из неизвестных источников.
+4. Откройте скачанный APK для установки.
+</Steps>
+
+![Установка на Android](../../../assets/install-android.webp)
+
+  </TabItem>
+  <TabItem label="macOS">
+
+## macOS
+
+<Steps>
+1. Перейдите на страницу [последнего релиза](https://github.com/legiz-ru/Prizrak-Box/releases/latest).
+2. Скачайте `.dmg` для вашего Mac:
+   - `arm64` — Apple Silicon (M1/M2/M3)
+   - `x64` — Intel
+3. Откройте `.dmg` и перетащите **Prizrak Box** в папку «Программы».
+4. При первом запуске нажмите правой кнопкой мыши на приложение → **Открыть**, чтобы обойти Gatekeeper.
+</Steps>
+
+![Установка на macOS](../../../assets/install-mac.webp)
+
+:::caution
+macOS требует разрешения **Network Extension** для работы TUN-режима. Следуйте системному запросу при первом запуске.
+:::
+
+  </TabItem>
+  <TabItem label="Linux">
+
+## Linux
+
+<Steps>
+1. Перейдите на страницу [последнего релиза](https://github.com/legiz-ru/Prizrak-Box/releases/latest).
+2. Скачайте AppImage или пакет `.deb`.
+3. Для AppImage:
+   ```bash
+   chmod +x Prizrak-Box.AppImage
+   ./Prizrak-Box.AppImage
+   ```
+4. Для `.deb`:
+   ```bash
+   sudo dpkg -i prizrak-box.deb
+   ```
+</Steps>
+
+:::note[AUR]
+Пользователи Arch Linux могут установить из AUR:
+```bash
+yay -S prizrak-box-bin
+```
+:::
+
+  </TabItem>
+</Tabs>

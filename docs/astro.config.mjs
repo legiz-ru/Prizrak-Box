@@ -7,6 +7,17 @@ export default defineConfig({
     starlight({
       plugins: [starlightThemeNord()],
       title: 'Prizrak Box',
+      defaultLocale: 'root',
+      locales: {
+        root: {
+          label: 'English',
+          lang: 'en',
+        },
+        ru: {
+          label: 'Русский',
+          lang: 'ru',
+        },
+      },
       logo: {
         src: './src/assets/logo.svg',
         replacesTitle: false,
@@ -16,16 +27,23 @@ export default defineConfig({
         { icon: 'telegram', label: 'Telegram', href: 'https://t.me/prizrak_box' },
       ],
       sidebar: [
-        { label: 'Welcome', link: '/' },
-        { label: 'Install App', link: '/install/' },
-        { label: 'About App', link: '/about/' },
-        { label: 'Deep Linking', link: '/deep-linking/' },
-        { label: 'Links', link: '/links/' },
-        { label: 'Important Note', link: '/important-note/' },
+        { label: 'Welcome', translations: { ru: 'Добро пожаловать' }, link: '/' },
+        { label: 'Install App', translations: { ru: 'Установка' }, link: '/install/' },
+        { label: 'About App', translations: { ru: 'О приложении' }, link: '/about/' },
+        { label: 'Android TV', link: '/android-tv/' },
+        { label: 'Deep Linking', translations: { ru: 'Диплинки' }, link: '/deep-linking/' },
+        { label: 'AGE Encryption', translations: { ru: 'Шифрование AGE' }, link: '/age-encryption/' },
+        { label: 'Links', translations: { ru: 'Ссылки' }, link: '/links/' },
+        { label: 'Important Note', translations: { ru: 'Важно' }, link: '/important-note/' },
         {
           label: 'For Devs',
+          translations: { ru: 'Для разработчиков' },
           items: [
-            { label: 'Supported Headers', link: '/for-devs/supported-headers/' },
+            {
+              label: 'Supported Headers',
+              translations: { ru: 'Поддерживаемые заголовки' },
+              link: '/for-devs/supported-headers/',
+            },
           ],
         },
         {

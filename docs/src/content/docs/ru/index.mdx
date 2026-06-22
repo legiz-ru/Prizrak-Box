@@ -1,0 +1,46 @@
+---
+title: Добро пожаловать
+description: Добро пожаловать в Prizrak Box — кроссплатформенный прокси-клиент на базе Mihomo.
+template: splash
+hero:
+  title: Prizrak Box
+  tagline: Кроссплатформенный прокси-клиент на базе Mihomo (Clash.Meta) для Windows, macOS, Linux и Android.
+  image:
+    file: ../../../assets/welcome-hero.webp
+    alt: Главный экран Prizrak Box
+  actions:
+    - text: Установка
+      link: /ru/install/
+      icon: right-arrow
+      variant: primary
+    - text: GitHub
+      link: https://github.com/legiz-ru/Prizrak-Box
+      icon: external
+      variant: secondary
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Что такое Prizrak Box?
+
+Prizrak Box — это графический прокси-клиент на базе [Mihomo](https://github.com/MetaCubeX/mihomo) (Clash.Meta).
+Приложение поддерживает удалённые подписки, автоматическое обновление, мониторинг трафика и гибкие правила маршрутизации.
+
+<CardGrid>
+  <Card title="Установка" icon="down-caret">
+    Установите Prizrak Box на Windows, macOS, Linux или Android.
+    [Установить →](/ru/install/)
+  </Card>
+  <Card title="О приложении" icon="information">
+    Возможности, управление подписками и принцип работы.
+    [Подробнее →](/ru/about/)
+  </Card>
+  <Card title="Диплинки" icon="external">
+    Добавляйте подписки через `prizrak-box://` диплинки.
+    [Диплинки →](/ru/deep-linking/)
+  </Card>
+  <Card title="Заголовки подписок" icon="document">
+    Справочник HTTP-заголовков для серверов подписок.
+    [Заголовки →](/ru/for-devs/supported-headers/)
+  </Card>
+</CardGrid>

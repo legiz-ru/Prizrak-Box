@@ -301,7 +301,14 @@ The first response with a 2xx status code is used.
 
 ---
 
-## Advanced Templates (PXD)
+## Advanced Templates (PXD) <Badge text="Deprecated" variant="caution" />
+
+<Aside type="caution" title="Deprecated — will be removed">
+The `Pxd-Template` / `Pxd-Template-Scheme` header mechanism is **deprecated** and will be removed from Prizrak Box in a future release.
+
+For modern template-based setups use the xhttp approach described in:
+[How to use xhttp from Remnawave in Prizrak Box](https://github.com/legiz-ru/my-remnawave#how-to-use-xhttp-from-remnawave-in-prizrak-box)
+</Aside>
 
 ### `Pxd-Template`
 
@@ -309,63 +316,110 @@ URL of a remote template file for advanced subscription processing.
 
 ![Pxd-Template header example](../../../assets/headers-pxd-template.webp)
 
-| Property | Value |
-|----------|-------|
-| Type | `string` (URL) |
-
 **Example:**
 ```http
 Pxd-Template: https://example.com/templates/prizrak-default.yaml
 ```
 
-The template is fetched and merged with the subscription content to produce the final Clash configuration. Supports placeholder substitution (e.g. `$profile-update-interval$`, `$x-hwid$`).
-
----
-
 ### `Pxd-Template-Scheme`
 
 Controls how the PXD template is applied.
-
-| Property | Value |
-|----------|-------|
-| Type | `string` (enum) |
-| Values | `proxy-providers` \| `payload` |
-
-**Example:**
-```http
-Pxd-Template-Scheme: proxy-providers
-```
 
 | Value | Behavior |
 |-------|----------|
 | `proxy-providers` | The subscription is injected as a proxy-provider into the template |
 | `payload` | The subscription replaces the `payload` section of the template |
 
+**Example:**
+```http
+Pxd-Template-Scheme: proxy-providers
+```
+
 ---
 
 ## HWID Authentication
 
-### `X-Hwid-Active`
+Prizrak Box supports the RemnaWave HWID Device Limit header format. When a subscription uses hardware-based device authentication, two groups of headers are involved: headers **sent by the client** with every request, and headers **returned by the server** in the response.
 
-Signals that this subscription uses Hardware ID (HWID) device-based authentication.
+### Headers Sent by Prizrak Box (Request Headers)
 
-![X-Hwid-Active header example](../../../assets/headers-hwid.webp)
+When a profile has HWID active, Prizrak Box automatically attaches the following headers to every subscription fetch:
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `X-Hwid` | Required | Hardware fingerprint — the unique identifier for this device |
+| `X-Device-OS` | Optional | Operating system name (e.g. `Windows`, `Android`, `macOS`) |
+| `X-Ver-OS` | Optional | OS version string (e.g. `14`, `11`, `14.5`) |
+| `X-Device-Model` | Optional | Device model name (e.g. `Pixel 8`, `iPhone 14 Pro Max`) |
+
+### Headers Returned by Server (Response Headers)
+
+![X-Hwid headers example](../../../assets/headers-hwid.webp)
+
+The server returns the following headers to communicate HWID status. Prizrak Box reads and acts on each of them.
+
+#### `X-Hwid-Active`
+
+Always `true` when the HWID Device Limit is enabled on the server side. Prizrak Box uses this to mark the profile as HWID-protected in the UI.
 
 | Property | Value |
 |----------|-------|
 | Type | `string` (boolean) |
-| Values | `true` \| `false` |
+| Values | `true` |
 
-**Example:**
 ```http
 X-Hwid-Active: true
 ```
 
-When `true`, the app marks this profile as HWID-protected in the UI. The hardware fingerprint is sent with subsequent subscription requests via the following request headers:
+---
 
-| Request Header | Description |
-|---------------|-------------|
-| `X-Hwid` | Device hardware fingerprint |
-| `X-Device-OS` | Operating system name |
-| `X-Ver-OS` | OS version string |
-| `X-Device-Model` | Device model identifier |
+#### `X-Hwid-Not-Supported`
+
+`true` if HWID Device Limit is enabled on the server, but the client did **not** send an `X-Hwid` header.
+This signals to the app that the device was not identified and the subscription may be restricted.
+
+| Property | Value |
+|----------|-------|
+| Type | `string` (boolean) |
+| Values | `true` |
+
+```http
+X-Hwid-Not-Supported: true
+```
+
+---
+
+#### `X-Hwid-Max-Devices-Reached`
+
+`true` if HWID Device Limit is enabled and the user has reached their maximum number of allowed devices.
+The app can display a warning to the user that no new devices can be added.
+
+| Property | Value |
+|----------|-------|
+| Type | `string` (boolean) |
+| Values | `true` |
+
+```http
+X-Hwid-Max-Devices-Reached: true
+```
+
+---
+
+#### `X-Hwid-Limit`
+
+`true` when the device limit has been reached. Sent for backwards compatibility with **v2RayTun**.
+Prizrak Box recognises this header alongside `X-Hwid-Max-Devices-Reached`.
+
+| Property | Value |
+|----------|-------|
+| Type | `string` (boolean) |
+| Values | `true` |
+
+```http
+X-Hwid-Limit: true
+```
+
+<Aside type="note" title="RemnaWave compatibility">
+The HWID header format follows the [RemnaWave HWID Device Limit specification](https://docs.rw/features/hwid-device-limit#hwid-headers-sent-by-remnawave).
+Subscription servers implementing the RemnaWave format are fully compatible with Prizrak Box.
+</Aside>
