@@ -6,7 +6,7 @@ export default defineConfig({
   integrations: [
     starlight({
       plugins: [starlightThemeNord()],
-      title: 'Prizrak Box',
+      title: 'Prizrak-Box',
       defaultLocale: 'root',
       locales: {
         root: {
@@ -21,7 +21,7 @@ export default defineConfig({
       logo: {
         light: './src/assets/logo-light.svg',
         dark: './src/assets/logo-dark.svg',
-        alt: 'Prizrak Box',
+        alt: 'Prizrak-Box',
         replacesTitle: false,
       },
       social: [

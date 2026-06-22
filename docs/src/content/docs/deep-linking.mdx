@@ -1,11 +1,11 @@
 ---
 title: Deep Linking
-description: Add subscriptions to Prizrak Box using prizrak-box:// deep links.
+description: Add subscriptions to Prizrak-Box using prizrak-box:// deep links.
 ---
 
 import { Steps } from '@astrojs/starlight/components';
 
-Deep links let you open Prizrak Box and pre-fill a subscription URL with a single click or tap.
+Deep links let you open Prizrak-Box and pre-fill a subscription URL with a single click or tap.
 This is useful for sharing subscription URLs with users without requiring manual copy-paste.
 
 ![Deep linking example](../../assets/deep-linking-example.webp)
@@ -31,9 +31,9 @@ prizrak-box://install-config?url=https%3A%2F%2Fexample.com%2Fsub%2Fusername
 <Steps>
 1. Construct your deep link by URL-encoding your subscription URL.
 2. Share the `prizrak-box://install-config?url=...` link with your users (in Telegram, on a web page, in a QR code, etc.).
-3. When a user taps/clicks the link on a device with Prizrak Box installed:
-   - On **Android** — the system will offer to open the link in Prizrak Box.
-   - On **Windows/macOS/Linux** — the Prizrak Box protocol handler opens the app directly.
+3. When a user taps/clicks the link on a device with Prizrak-Box installed:
+   - On **Android** — the system will offer to open the link in Prizrak-Box.
+   - On **Windows/macOS/Linux** — the Prizrak-Box protocol handler opens the app directly.
 4. The app opens an **Add Subscription** dialog with the URL pre-filled.
 5. The user confirms and the subscription is added.
 </Steps>
@@ -53,10 +53,10 @@ console.log(deepLink);
 
 ```html
 <a href="prizrak-box://install-config?url=https%3A%2F%2Fexample.com%2Fsub%2Fusername">
-  Add subscription in Prizrak Box
+  Add subscription in Prizrak-Box
 </a>
 ```
 
 ## QR Code
 
-You can encode a `prizrak-box://` deep link in a QR code for easy sharing — users scan the QR code with their Android device and the system offers to open it in Prizrak Box.
+You can encode a `prizrak-box://` deep link in a QR code for easy sharing — users scan the QR code with their Android device and the system offers to open it in Prizrak-Box.

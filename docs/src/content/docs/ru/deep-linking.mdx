@@ -1,11 +1,11 @@
 ---
 title: Диплинки
-description: Добавление подписок в Prizrak Box через призрак-box:// диплинки.
+description: Добавление подписок в Prizrak-Box через призрак-box:// диплинки.
 ---
 
 import { Steps } from '@astrojs/starlight/components';
 
-Диплинки позволяют открыть Prizrak Box и автоматически заполнить URL подписки одним нажатием.
+Диплинки позволяют открыть Prizrak-Box и автоматически заполнить URL подписки одним нажатием.
 Это удобно для передачи ссылок пользователям без ручного ввода.
 
 ![Пример диплинка](../../../assets/deep-linking-example.webp)
@@ -31,8 +31,8 @@ prizrak-box://install-config?url=https%3A%2F%2Fexample.com%2Fsub%2Fusername
 <Steps>
 1. Сформируйте диплинк, URL-закодировав адрес подписки.
 2. Поделитесь ссылкой `prizrak-box://install-config?url=...` с пользователями (в Telegram, на сайте, через QR-код и т.д.).
-3. При нажатии на ссылку на устройстве с установленным Prizrak Box:
-   - **Android** — система предложит открыть ссылку в Prizrak Box.
+3. При нажатии на ссылку на устройстве с установленным Prizrak-Box:
+   - **Android** — система предложит открыть ссылку в Prizrak-Box.
    - **Windows/macOS/Linux** — обработчик протокола откроет приложение автоматически.
 4. Откроется диалог **Добавить подписку** с предзаполненным URL.
 5. Пользователь подтверждает — подписка добавлена.
@@ -53,10 +53,10 @@ console.log(deepLink);
 
 ```html
 <a href="prizrak-box://install-config?url=https%3A%2F%2Fexample.com%2Fsub%2Fusername">
-  Добавить подписку в Prizrak Box
+  Добавить подписку в Prizrak-Box
 </a>
 ```
 
 ## QR-код
 
-Диплинк `prizrak-box://` можно закодировать в QR-код — пользователь сканирует его на Android, и система предлагает открыть в Prizrak Box.
+Диплинк `prizrak-box://` можно закодировать в QR-код — пользователь сканирует его на Android, и система предлагает открыть в Prizrak-Box.

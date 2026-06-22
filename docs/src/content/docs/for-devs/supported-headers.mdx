@@ -1,11 +1,11 @@
 ---
 title: Supported Headers
-description: Full reference of HTTP response headers supported by Prizrak Box subscription fetching.
+description: Full reference of HTTP response headers supported by Prizrak-Box subscription fetching.
 ---
 
 import { Aside, Badge } from '@astrojs/starlight/components';
 
-When Prizrak Box fetches a remote subscription, it reads specific HTTP response headers from the server.
+When Prizrak-Box fetches a remote subscription, it reads specific HTTP response headers from the server.
 These headers let subscription providers control profile metadata, traffic display, automatic updates, logo, announcements, and more.
 
 Headers are **case-insensitive**. Unknown headers are silently ignored.
@@ -29,7 +29,7 @@ They act as fallback values — HTTP response headers always take priority over 
 
 ### `Profile-Title`
 
-The display name for the subscription in Prizrak Box.
+The display name for the subscription in Prizrak-Box.
 
 ![Profile-Title header example](../../../assets/headers-profile-title.webp)
 
@@ -132,7 +132,7 @@ Sets the automatic refresh interval for this subscription.
 Profile-Update-Interval: 24
 ```
 
-When this header is present, Prizrak Box automatically re-fetches the subscription at the specified interval in hours.
+When this header is present, Prizrak-Box automatically re-fetches the subscription at the specified interval in hours.
 
 ---
 
@@ -232,7 +232,7 @@ Instructs the client to replace the entire subscription URL with a new one.
 new-url: https://new.example.com/subscription/abc123
 ```
 
-After receiving this header, Prizrak Box immediately saves the new URL and re-fetches from it. The original URL is replaced permanently in the profile.
+After receiving this header, Prizrak-Box immediately saves the new URL and re-fetches from it. The original URL is replaced permanently in the profile.
 
 ---
 
@@ -270,7 +270,7 @@ An alternative full URL to try if the primary subscription URL fails (non-2xx or
 fallback-url: https://backup.example.com/subscription/abc123
 ```
 
-Prizrak Box tries the primary URL first. If it fails, it falls back to `fallback-url`. The fallback value is updated (or cleared) on every successful fetch.
+Prizrak-Box tries the primary URL first. If it fails, it falls back to `fallback-url`. The fallback value is updated (or cleared) on every successful fetch.
 
 ---
 
@@ -300,10 +300,10 @@ The first response with a 2xx status code is used.
 ## Advanced Templates (PXD) <Badge text="Deprecated" variant="caution" />
 
 <Aside type="caution" title="Deprecated — will be removed">
-The `Pxd-Template` / `Pxd-Template-Scheme` header mechanism is **deprecated** and will be removed from Prizrak Box in a future release.
+The `Pxd-Template` / `Pxd-Template-Scheme` header mechanism is **deprecated** and will be removed from Prizrak-Box in a future release.
 
 For modern template-based setups use the xhttp approach described in:
-[How to use xhttp from Remnawave in Prizrak Box](https://github.com/legiz-ru/my-remnawave#how-to-use-xhttp-from-remnawave-in-prizrak-box)
+[How to use xhttp from Remnawave in Prizrak-Box](https://github.com/legiz-ru/my-remnawave#how-to-use-xhttp-from-remnawave-in-prizrak-box)
 </Aside>
 
 ### `Pxd-Template`
@@ -335,11 +335,11 @@ Pxd-Template-Scheme: proxy-providers
 
 ## HWID Authentication
 
-Prizrak Box supports the RemnaWave HWID Device Limit header format. When a subscription uses hardware-based device authentication, two groups of headers are involved: headers **sent by the client** with every request, and headers **returned by the server** in the response.
+Prizrak-Box supports the RemnaWave HWID Device Limit header format. When a subscription uses hardware-based device authentication, two groups of headers are involved: headers **sent by the client** with every request, and headers **returned by the server** in the response.
 
-### Headers Sent by Prizrak Box (Request Headers)
+### Headers Sent by Prizrak-Box (Request Headers)
 
-When a profile has HWID active, Prizrak Box automatically attaches the following headers to every subscription fetch:
+When a profile has HWID active, Prizrak-Box automatically attaches the following headers to every subscription fetch:
 
 | Header | Required | Description |
 |--------|----------|-------------|
@@ -352,11 +352,11 @@ When a profile has HWID active, Prizrak Box automatically attaches the following
 
 ![X-Hwid headers example](../../../assets/headers-hwid.webp)
 
-The server returns the following headers to communicate HWID status. Prizrak Box reads and acts on each of them.
+The server returns the following headers to communicate HWID status. Prizrak-Box reads and acts on each of them.
 
 #### `X-Hwid-Active`
 
-Always `true` when the HWID Device Limit is enabled on the server side. Prizrak Box uses this to mark the profile as HWID-protected in the UI.
+Always `true` when the HWID Device Limit is enabled on the server side. Prizrak-Box uses this to mark the profile as HWID-protected in the UI.
 
 | Property | Value |
 |----------|-------|
@@ -404,7 +404,7 @@ X-Hwid-Max-Devices-Reached: true
 #### `X-Hwid-Limit`
 
 `true` when the device limit has been reached. Sent for backwards compatibility with **v2RayTun**.
-Prizrak Box recognises this header alongside `X-Hwid-Max-Devices-Reached`.
+Prizrak-Box recognises this header alongside `X-Hwid-Max-Devices-Reached`.
 
 | Property | Value |
 |----------|-------|
@@ -417,14 +417,14 @@ X-Hwid-Limit: true
 
 <Aside type="note" title="RemnaWave compatibility">
 The HWID header format follows the [RemnaWave HWID Device Limit specification](https://docs.rw/features/hwid-device-limit#hwid-headers-sent-by-remnawave).
-Subscription servers implementing the RemnaWave format are fully compatible with Prizrak Box.
+Subscription servers implementing the RemnaWave format are fully compatible with Prizrak-Box.
 </Aside>
 
 ---
 
 ## Android UI Controls <Badge text="Android only" variant="note" />
 
-The following headers are supported exclusively by the **Android** version of Prizrak Box (ClashMetaForAndroid prizrak branch).
+The following headers are supported exclusively by the **Android** version of Prizrak-Box (ClashMetaForAndroid prizrak branch).
 They allow subscription providers to control certain UI elements and behaviour of the Android client.
 
 All values are applied once on subscription fetch and persist in the profile until the next update.
