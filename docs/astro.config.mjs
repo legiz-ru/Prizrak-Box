@@ -50,6 +50,11 @@ export default defineConfig({
               translations: { ru: 'Шифрование AGE' },
               link: '/for-devs/age-encryption/',
             },
+            {
+              label: 'Remnawave Integration',
+              translations: { ru: 'Интеграция с Remnawave' },
+              link: '/for-devs/remnawave-integration/',
+            },
           ],
         },
         {
