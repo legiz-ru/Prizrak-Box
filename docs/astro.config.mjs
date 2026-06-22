@@ -19,7 +19,9 @@ export default defineConfig({
         },
       },
       logo: {
-        src: './src/assets/logo.svg',
+        light: './src/assets/logo-light.svg',
+        dark: './src/assets/logo-dark.svg',
+        alt: 'Prizrak Box',
         replacesTitle: false,
       },
       social: [
