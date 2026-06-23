@@ -1,0 +1,29 @@
+---
+title: Для разработчиков
+description: Материалы для разработчиков — HTTP-заголовки, шифрование AGE, интеграция с Remnawave и прокси группа Smart.
+---
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <LinkCard
+    title="Поддерживаемые заголовки"
+    description="Полный справочник HTTP-заголовков, которые серверы подписок могут передавать для управления поведением Prizrak-Box."
+    href="/ru/for-devs/supported-headers/"
+  />
+  <LinkCard
+    title="Шифрование AGE"
+    description="Как раздавать зашифрованные age-подписки, которые Prizrak-Box расшифровывает с помощью приватного ключа из профиля."
+    href="/ru/for-devs/age-encryption/"
+  />
+  <LinkCard
+    title="Интеграция с Remnawave"
+    description="Пошаговое руководство по интеграции Prizrak-Box с панелью подписок Remnawave."
+    href="/ru/for-devs/remnawave-integration/"
+  />
+  <LinkCard
+    title="Прокси группа Smart"
+    description="Справочник по конфигурации прокси группы типа Smart — интеллектуальный выбор узлов с ML-предсказанием весов."
+    href="/ru/for-devs/smart-proxy-group/"
+  />
+</CardGrid>

@@ -39,6 +39,7 @@ export default defineConfig({
         {
           label: 'For Devs',
           translations: { ru: 'Для разработчиков' },
+          link: '/for-devs/',
           items: [
             {
               label: 'Supported Headers',

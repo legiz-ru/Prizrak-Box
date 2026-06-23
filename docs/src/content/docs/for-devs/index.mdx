@@ -1,0 +1,29 @@
+---
+title: For Devs
+description: Developer resources for Prizrak-Box — HTTP headers, AGE encryption, Remnawave integration, and Smart proxy group.
+---
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <LinkCard
+    title="Supported Headers"
+    description="Full reference of HTTP response headers that subscription servers can send to control Prizrak-Box client behavior."
+    href="/for-devs/supported-headers/"
+  />
+  <LinkCard
+    title="AGE Encryption"
+    description="How to serve age-encrypted subscription files that Prizrak-Box can decrypt using a private key stored in the profile."
+    href="/for-devs/age-encryption/"
+  />
+  <LinkCard
+    title="Remnawave Integration"
+    description="Step-by-step guide for integrating Prizrak-Box with the Remnawave subscription panel."
+    href="/for-devs/remnawave-integration/"
+  />
+  <LinkCard
+    title="Smart Proxy Group"
+    description="Configuration reference for the Smart proxy group type — intelligent node selection with ML-based weight prediction."
+    href="/for-devs/smart-proxy-group/"
+  />
+</CardGrid>
