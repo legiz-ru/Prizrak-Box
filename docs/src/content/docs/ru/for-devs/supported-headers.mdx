@@ -469,7 +469,7 @@ Prizrak-Box поддерживает формат заголовков HWID Devi
 Сервер возвращает следующие заголовки для передачи статуса HWID. Prizrak-Box читает и обрабатывает каждый из них.
 
 <details>
-<summary>**`X-Hwid-Active`**</summary>
+<summary>**`X-Hwid-Active`** <img src="/remnawave-icon.svg" style="width:18px;height:18px;vertical-align:middle;border-radius:4px;display:inline;" alt="Remnawave" /></summary>
 
 Всегда `true`, когда HWID Device Limit включён на стороне сервера. Prizrak-Box использует этот заголовок для пометки профиля как HWID-защищённого в интерфейсе.
 
@@ -485,7 +485,7 @@ X-Hwid-Active: true
 </details>
 
 <details>
-<summary>**`X-Hwid-Not-Supported`**</summary>
+<summary>**`X-Hwid-Not-Supported`** <img src="/remnawave-icon.svg" style="width:18px;height:18px;vertical-align:middle;border-radius:4px;display:inline;" alt="Remnawave" /></summary>
 
 `true`, если HWID Device Limit включён на сервере, но клиент **не отправил** заголовок `X-Hwid`.
 Сигнализирует приложению, что устройство не идентифицировано и подписка может быть ограничена.
@@ -502,7 +502,7 @@ X-Hwid-Not-Supported: true
 </details>
 
 <details>
-<summary>**`X-Hwid-Max-Devices-Reached`**</summary>
+<summary>**`X-Hwid-Max-Devices-Reached`** <img src="/remnawave-icon.svg" style="width:18px;height:18px;vertical-align:middle;border-radius:4px;display:inline;" alt="Remnawave" /></summary>
 
 `true`, если HWID Device Limit включён и пользователь достиг максимального числа разрешённых устройств.
 Приложение может показать предупреждение о том, что добавить новые устройства невозможно.
@@ -514,23 +514,6 @@ X-Hwid-Not-Supported: true
 
 ```http
 X-Hwid-Max-Devices-Reached: true
-```
-
-</details>
-
-<details>
-<summary>**`X-Hwid-Limit`**</summary>
-
-`true`, когда лимит устройств достигнут. Отправляется для обратной совместимости с **v2RayTun**.
-Prizrak-Box распознаёт этот заголовок наряду с `X-Hwid-Max-Devices-Reached`.
-
-| Свойство | Значение |
-|----------|----------|
-| Тип | `string` (булево) |
-| Значения | `true` |
-
-```http
-X-Hwid-Limit: true
 ```
 
 </details>

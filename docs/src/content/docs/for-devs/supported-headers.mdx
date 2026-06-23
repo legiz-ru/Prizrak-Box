@@ -471,7 +471,7 @@ When a profile has HWID active, Prizrak-Box automatically attaches the following
 The server returns the following headers to communicate HWID status. Prizrak-Box reads and acts on each of them.
 
 <details>
-<summary>**`X-Hwid-Active`**</summary>
+<summary>**`X-Hwid-Active`** <img src="/remnawave-icon.svg" style="width:18px;height:18px;vertical-align:middle;border-radius:4px;display:inline;" alt="Remnawave" /></summary>
 
 Always `true` when the HWID Device Limit is enabled on the server side. Prizrak-Box uses this to mark the profile as HWID-protected in the UI.
 
@@ -487,7 +487,7 @@ X-Hwid-Active: true
 </details>
 
 <details>
-<summary>**`X-Hwid-Not-Supported`**</summary>
+<summary>**`X-Hwid-Not-Supported`** <img src="/remnawave-icon.svg" style="width:18px;height:18px;vertical-align:middle;border-radius:4px;display:inline;" alt="Remnawave" /></summary>
 
 `true` if HWID Device Limit is enabled on the server, but the client did **not** send an `X-Hwid` header.
 This signals to the app that the device was not identified and the subscription may be restricted.
@@ -504,7 +504,7 @@ X-Hwid-Not-Supported: true
 </details>
 
 <details>
-<summary>**`X-Hwid-Max-Devices-Reached`**</summary>
+<summary>**`X-Hwid-Max-Devices-Reached`** <img src="/remnawave-icon.svg" style="width:18px;height:18px;vertical-align:middle;border-radius:4px;display:inline;" alt="Remnawave" /></summary>
 
 `true` if HWID Device Limit is enabled and the user has reached their maximum number of allowed devices.
 The app can display a warning to the user that no new devices can be added.
@@ -516,23 +516,6 @@ The app can display a warning to the user that no new devices can be added.
 
 ```http
 X-Hwid-Max-Devices-Reached: true
-```
-
-</details>
-
-<details>
-<summary>**`X-Hwid-Limit`**</summary>
-
-`true` when the device limit has been reached. Sent for backwards compatibility with **v2RayTun**.
-Prizrak-Box recognises this header alongside `X-Hwid-Max-Devices-Reached`.
-
-| Property | Value |
-|----------|-------|
-| Type | `string` (boolean) |
-| Values | `true` |
-
-```http
-X-Hwid-Limit: true
 ```
 
 </details>
