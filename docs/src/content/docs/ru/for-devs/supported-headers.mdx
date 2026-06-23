@@ -22,12 +22,17 @@ import { Aside, Badge } from '@astrojs/starlight/components';
 Они работают как запасной вариант — HTTP-заголовки ответа всегда имеют приоритет над встроенными.
 </Aside>
 
+<Aside type="note">
+Заголовки с плашкой <Badge text="Remnawave" style="background-color: #f472b6; border-color: #f472b6; color: #000;" /> управляются самой панелью Remnawave автоматически.
+Добавлять их вручную через Правила ответов или настройки заголовков подписки не нужно — Remnawave отправляет их сам.
+</Aside>
+
 ---
 
 ## Метаданные профиля
 
 <details>
-<summary>**`Profile-Title`**</summary>
+<summary>**`Profile-Title`** <Badge text="Remnawave" style="background-color: #f472b6; border-color: #f472b6; color: #000;" /></summary>
 
 Отображаемое имя подписки в Prizrak-Box.
 
@@ -74,7 +79,7 @@ Profile-Logo: https://example.com/logo.png
 </details>
 
 <details>
-<summary>**`Content-Disposition`**</summary>
+<summary>**`Content-Disposition`** <Badge text="Remnawave" style="background-color: #f472b6; border-color: #f472b6; color: #000;" /></summary>
 
 Используется как запасной источник названия профиля, если `Profile-Title` отсутствует.
 
@@ -98,7 +103,7 @@ Content-Disposition: attachment; filename="my-vpn.yaml"
 ## Информация о трафике
 
 <details>
-<summary>**`Subscription-Userinfo`**</summary>
+<summary>**`Subscription-Userinfo`** <Badge text="Remnawave" style="background-color: #f472b6; border-color: #f472b6; color: #000;" /></summary>
 
 Статистика использования трафика, отображаемая в карточке профиля.
 
@@ -130,7 +135,7 @@ Subscription-Userinfo: upload=1073741824; download=5368709120; total=10737418240
 ## Настройки обновления
 
 <details>
-<summary>**`Profile-Update-Interval`**</summary>
+<summary>**`Profile-Update-Interval`** <Badge text="Remnawave" style="background-color: #f472b6; border-color: #f472b6; color: #000;" /></summary>
 
 Задаёт интервал автоматического обновления подписки.
 
@@ -154,7 +159,7 @@ Profile-Update-Interval: 24
 ## Ссылки
 
 <details>
-<summary>**`Profile-Web-Page-Url`**</summary>
+<summary>**`Profile-Web-Page-Url`** <Badge text="Remnawave" style="background-color: #f472b6; border-color: #f472b6; color: #000;" /></summary>
 
 URL главной страницы или портала провайдера подписки.
 
@@ -173,7 +178,7 @@ Profile-Web-Page-Url: https://myvpn.example.com
 </details>
 
 <details>
-<summary>**`Support-Url`**</summary>
+<summary>**`Support-Url`** <Badge text="Remnawave" style="background-color: #f472b6; border-color: #f472b6; color: #000;" /></summary>
 
 URL службы поддержки или контактов (например, Telegram-канал, служба помощи).
 
@@ -196,7 +201,7 @@ Support-Url: https://t.me/myvpn_support
 ## Объявления
 
 <details>
-<summary>**`Announce`**</summary>
+<summary>**`Announce`** <Badge text="Remnawave" style="background-color: #f472b6; border-color: #f472b6; color: #000;" /></summary>
 
 Текстовое объявление, отображаемое в приложении как баннер на карточке профиля.
 

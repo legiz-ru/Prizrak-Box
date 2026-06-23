@@ -23,12 +23,17 @@ Inline comment headers use the same names as HTTP headers, prefixed with `#`.
 They act as fallback values — HTTP response headers always take priority over inline headers.
 </Aside>
 
+<Aside type="note">
+Headers marked with a <Badge text="Remnawave" style="background-color: #f472b6; border-color: #f472b6; color: #000;" /> badge are managed automatically by the Remnawave panel.
+You do not need to add them manually via Response Rules or the subscription header settings — Remnawave sends them on its own.
+</Aside>
+
 ---
 
 ## Profile Metadata
 
 <details>
-<summary>**`Profile-Title`**</summary>
+<summary>**`Profile-Title`** <Badge text="Remnawave" style="background-color: #f472b6; border-color: #f472b6; color: #000;" /></summary>
 
 The display name for the subscription in Prizrak-Box.
 
@@ -75,7 +80,7 @@ The logo is downloaded at fetch time and cached locally. An empty or invalid URL
 </details>
 
 <details>
-<summary>**`Content-Disposition`**</summary>
+<summary>**`Content-Disposition`** <Badge text="Remnawave" style="background-color: #f472b6; border-color: #f472b6; color: #000;" /></summary>
 
 Used as a fallback source for the profile title when `Profile-Title` is absent.
 
@@ -99,7 +104,7 @@ The `filename` value (without extension) becomes the profile title if `Profile-T
 ## Traffic Information
 
 <details>
-<summary>**`Subscription-Userinfo`**</summary>
+<summary>**`Subscription-Userinfo`** <Badge text="Remnawave" style="background-color: #f472b6; border-color: #f472b6; color: #000;" /></summary>
 
 Reports traffic usage statistics displayed in the profile card.
 
@@ -131,7 +136,7 @@ Subscription-Userinfo: upload=1073741824; download=5368709120; total=10737418240
 ## Update Settings
 
 <details>
-<summary>**`Profile-Update-Interval`**</summary>
+<summary>**`Profile-Update-Interval`** <Badge text="Remnawave" style="background-color: #f472b6; border-color: #f472b6; color: #000;" /></summary>
 
 Sets the automatic refresh interval for this subscription.
 
@@ -155,7 +160,7 @@ When this header is present, Prizrak-Box automatically re-fetches the subscripti
 ## Links
 
 <details>
-<summary>**`Profile-Web-Page-Url`**</summary>
+<summary>**`Profile-Web-Page-Url`** <Badge text="Remnawave" style="background-color: #f472b6; border-color: #f472b6; color: #000;" /></summary>
 
 A URL for the subscription provider's home page or portal.
 
@@ -174,7 +179,7 @@ Displayed in the profile detail view as a tappable link.
 </details>
 
 <details>
-<summary>**`Support-Url`**</summary>
+<summary>**`Support-Url`** <Badge text="Remnawave" style="background-color: #f472b6; border-color: #f472b6; color: #000;" /></summary>
 
 A support or contact URL (e.g. Telegram channel, help desk).
 
@@ -197,7 +202,7 @@ Displayed alongside the profile for users to reach support.
 ## Announcements
 
 <details>
-<summary>**`Announce`**</summary>
+<summary>**`Announce`** <Badge text="Remnawave" style="background-color: #f472b6; border-color: #f472b6; color: #000;" /></summary>
 
 A text announcement displayed in the app as a banner on the profile card.
 
