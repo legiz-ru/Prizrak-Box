@@ -33,7 +33,6 @@ export default defineConfig({
         { label: 'Install App', translations: { ru: 'Установка' }, link: '/install/' },
         { label: 'About App', translations: { ru: 'О приложении' }, link: '/about/' },
         { label: 'Android TV', link: '/android-tv/' },
-        { label: 'Deep Linking', translations: { ru: 'Диплинки' }, link: '/deep-linking/' },
         { label: 'Links', translations: { ru: 'Ссылки' }, link: '/links/' },
         { label: 'Important Note', translations: { ru: 'Важно' }, link: '/important-note/' },
         {
@@ -44,6 +43,11 @@ export default defineConfig({
               label: 'Integration Overview',
               translations: { ru: 'Обзор интеграции' },
               link: '/for-devs/',
+            },
+            {
+              label: 'Deep Linking',
+              translations: { ru: 'Диплинки' },
+              link: '/for-devs/deep-linking/',
             },
             {
               label: 'Supported Headers',
