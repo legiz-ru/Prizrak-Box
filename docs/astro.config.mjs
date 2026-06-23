@@ -50,6 +50,10 @@ export default defineConfig({
               link: '/for-devs/deep-linking/',
             },
             {
+              label: 'Android TV',
+              link: '/for-devs/android-tv/',
+            },
+            {
               label: 'Supported Headers',
               translations: { ru: 'Поддерживаемые заголовки' },
               link: '/for-devs/supported-headers/',
