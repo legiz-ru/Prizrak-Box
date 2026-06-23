@@ -37,12 +37,12 @@ export default defineConfig({
         { label: 'Links', translations: { ru: 'Ссылки' }, link: '/links/' },
         { label: 'Important Note', translations: { ru: 'Важно' }, link: '/important-note/' },
         {
-          label: 'For Devs',
-          translations: { ru: 'Для разработчиков' },
+          label: 'Integration',
+          translations: { ru: 'Интеграция' },
           items: [
             {
-              label: 'Overview',
-              translations: { ru: 'Обзор' },
+              label: 'Integration Overview',
+              translations: { ru: 'Обзор интеграции' },
               link: '/for-devs/',
             },
             {
