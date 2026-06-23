@@ -3,8 +3,151 @@ title: Remnawave Integration
 description: Integrating Prizrak-Box with Remnawave subscription panel.
 ---
 
-import { Aside } from '@astrojs/starlight/components';
+import { Aside, Steps } from '@astrojs/starlight/components';
 
-<Aside type="note" title="Coming soon">
-Full documentation for Remnawave Integration is coming soon.
+## 1. Applying HTTP Response Headers
+
+Remnawave supports two ways to apply HTTP response headers to subscription profiles.
+
+### Method 1 — Global (for all users)
+
+In the Remnawave admin panel, open **Subscription → Settings → Response Headers**.
+Add any headers there — they will be returned to all clients on every subscription fetch.
+
+For **External Squads**, headers are configured per squad: **Users → External Squads → Headers**.
+
+### Method 2 — Per-App via Response Rules (Prizrak-Box specific)
+
+Response Rules let you apply headers only when the request comes from a specific client,
+identified by the `User-Agent` header. This way you can send Prizrak-Box–specific settings
+without affecting other apps.
+
+Go to **Subscription → Response Rules** and create a new rule.
+**Place it at the top of the list** to ensure priority.
+
+<Aside type="note">
+Full Remnawave Response Rules documentation: [docs.rw/learn-en/routing-rules](https://docs.rw/learn-en/routing-rules)
 </Aside>
+
+Use the following JSON as a template — it covers all headers supported by Prizrak-Box:
+
+```json
+{
+  "name": "Prizrak-Box",
+  "description": "Headers for Prizrak-Box clients",
+  "enabled": true,
+  "operator": "AND",
+  "conditions": [
+    {
+      "headerName": "user-agent",
+      "operator": "CONTAINS",
+      "value": "Clash-Meta/Prizrak-Box (",
+      "caseSensitive": false
+    }
+  ],
+  "responseType": "MIHOMO",
+  "responseModifications": {
+    "headers": [
+      {
+        "key": "profile-logo",
+        "value": "https://example.com/logo.png"
+      },
+      {
+        "key": "announce-url",
+        "value": "https://t.me/your_channel"
+      },
+      {
+        "key": "fallback-domain",
+        "value": "backup.example.com"
+      },
+      {
+        "key": "pxa-template",
+        "value": "https://github.com/legiz-ru/mihomo-rule-sets/blob/main/examples/px/payload/ultimate-mihomo-ru-payload-smart.yaml"
+      },
+      {
+        "key": "pxa-template-scheme",
+        "value": "payload"
+      },
+      {
+        "key": "pxd-template",
+        "value": "https://github.com/legiz-ru/mihomo-rule-sets/raw/main/examples/px/proxy-providers/ultimate-mihomo-ru-proxy-providers-smart.yaml"
+      },
+      {
+        "key": "pxd-template-scheme",
+        "value": "proxy-providers"
+      },
+      {
+        "key": "pxa-latency-dots",
+        "value": "1"
+      },
+      {
+        "key": "pxa-simple-mode",
+        "value": "1"
+      },
+      {
+        "key": "pxa-global-mode-mp",
+        "value": "1"
+      },
+      {
+        "key": "pxa-conns-view-mp",
+        "value": "1"
+      },
+      {
+        "key": "pxa-rp-mp",
+        "value": "1"
+      }
+    ]
+  }
+}
+```
+
+Remove the headers you don't need. For a full description of each header see
+[Supported Headers](/for-devs/supported-headers/).
+
+---
+
+## 2. Custom Mihomo Template
+
+To deliver a fully custom Mihomo config to Prizrak-Box clients — for example,
+one with the **Smart** proxy group — specify a `subscriptionTemplate` in the Response Rule:
+
+```json
+{
+  "name": "Prizrak-Box Smart Template",
+  "description": "Custom Mihomo template with Smart proxy group for Prizrak-Box",
+  "enabled": true,
+  "operator": "AND",
+  "conditions": [
+    {
+      "headerName": "user-agent",
+      "operator": "CONTAINS",
+      "value": "Clash-Meta/Prizrak-Box (",
+      "caseSensitive": false
+    }
+  ],
+  "responseType": "MIHOMO",
+  "responseModifications": {
+    "subscriptionTemplate": "SmartPrizrak"
+  }
+}
+```
+
+<Aside type="note">
+Full Remnawave Response Rules documentation: [docs.rw/learn-en/routing-rules](https://docs.rw/learn-en/routing-rules)
+</Aside>
+
+The `subscriptionTemplate` value (`SmartPrizrak` in the example) must match the name of a template
+configured in your Remnawave panel.
+
+For details on the Smart proxy group type and its configuration parameters,
+see [Smart Proxy Group](/for-devs/smart-proxy-group/).
+
+---
+
+## 3. AGE Encryption
+
+Remnawave can encrypt the Mihomo config with age before delivering it to Prizrak-Box.
+Only the client that holds the matching secret key can decrypt and apply the config.
+
+For a complete setup guide — key generation, Remnawave response rule configuration,
+and Prizrak-Box client setup — see [AGE Encryption](/for-devs/age-encryption/).
