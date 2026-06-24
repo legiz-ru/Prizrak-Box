@@ -61,6 +61,9 @@ When a remote subscription is fetched, the server can return HTTP response heade
 
 The app is structured as:
 
-- **Electron shell** (Windows/macOS/Linux) or **Android activity** — renders the Vue 3 UI
-- **Go backend** — handles HTTP API, subscription management, BoltDB persistence
-- **Mihomo core** — proxy routing engine embedded in the Go binary
+- **Wails v3** (Windows, macOS) — native desktop shell rendering the Vue 3 UI
+- **Electron** (Linux) — desktop shell rendering the Vue 3 UI
+- **Android** — native activity rendering the Vue 3 UI
+- **Go backend** (`px`) — HTTP API, subscription management, BoltDB persistence
+- **TUN service** (`px-service`) — elevated system service for TUN mode (Windows, Linux)
+- **Mihomo core** — proxy routing engine (custom fork) embedded in the Go binary
