@@ -25,10 +25,10 @@ It provides a user-friendly graphical interface for managing proxy subscriptions
     Supports age-encrypted subscription files. Decrypt with your private key stored securely in the profile.
   </Card>
   <Card title="Traffic Monitoring" icon="bars">
-    Real-time display of upload/download usage and remaining traffic quota from `Subscription-Userinfo` headers.
+    View and manage active proxy connections in real-time via the Connections section in app settings.
   </Card>
   <Card title="Routing Rules" icon="list-format">
-    Built-in templates with routing rules for Russia and China — DIRECT, PROXY, and REJECT routing based on geo-IP and domain lists.
+    Built-in templates with routing rules for Russia and China — routing based on geo-IP and domain lists.
   </Card>
   <Card title="TUN Mode" icon="laptop">
     System-level traffic capture via TUN interface — routes all device traffic through the proxy without per-app configuration.
@@ -39,9 +39,9 @@ It provides a user-friendly graphical interface for managing proxy subscriptions
 
 | Platform | Status |
 |----------|--------|
-| Windows (x64) | ✅ Supported |
+| Windows (arm64, x64) | ✅ Supported |
 | macOS (arm64, x64) | ✅ Supported |
-| Linux (x64) | ✅ Supported |
+| Linux (arm64, x64) | ✅ Supported |
 | Android (arm64, armv7, x86_64) | ✅ Supported |
 
 ## Subscription Management
@@ -53,6 +53,7 @@ Prizrak-Box supports three types of profiles:
 1. **Remote Subscription** — fetched from a URL with optional auto-update interval
 2. **Local Configuration** — a local Clash YAML file
 3. **Crawl & Merge** — aggregated from multiple sources
+4. **Proxy Keys** — direct connection keys (`vless://`, `hy2://`, and others) with built-in configurable templates
 
 When a remote subscription is fetched, the server can return HTTP response headers to control the client behavior — see [Supported Headers](/for-devs/supported-headers/) for the full reference.
 
