@@ -30,6 +30,19 @@ The app merges (union) the config lists and GUI selections, but Android does not
 </details>
 
 <details>
+<summary>**What is the difference between Proxy mode and TUN mode?**</summary>
+
+**Proxy mode** works at the application level — only traffic from apps that support system proxy settings (HTTP/SOCKS) is intercepted. By default, Prizrak-Box automatically sets a system-wide proxy. If you don't need this and want to configure the proxy manually in specific apps — disable it in **App Settings**.
+
+**TUN mode** creates a virtual network interface and captures all device traffic at the packet level — regardless of whether an app supports proxy settings. Requires administrator privileges. A background service is installed alongside the app — once it's running, you no longer need to launch the app as administrator: the required privileges are provided by the service.
+
+**When to use which:**
+- Proxy — for everyday use in browsers and standard applications
+- TUN — when you need to route everything through the proxy, including games, system services, voice chat apps (e.g. Discord), and applications without proxy support
+
+</details>
+
+<details>
 <summary>**How to see numeric latency values instead of availability dots? (Android)**</summary>
 
 1. In app settings → **General** → **App** → toggle off **Latency Display (Color Dots)**.
