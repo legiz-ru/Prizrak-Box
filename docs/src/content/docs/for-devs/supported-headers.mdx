@@ -253,7 +253,6 @@ These headers implement subscription URL migration — allowing providers to mov
 
 Instructs the client to replace the entire subscription URL with a new one.
 
-![new-url migration example](../../../assets/headers-new-url.webp)
 
 | Property | Value |
 |----------|-------|
@@ -296,7 +295,6 @@ If the current subscription URL is `https://old.example.com/sub/abc`, this produ
 
 An alternative full URL to try if the primary subscription URL fails (non-2xx or connection error).
 
-![Fallback headers example](../../../assets/headers-fallback.webp)
 
 | Property | Value |
 |----------|-------|
@@ -466,7 +464,6 @@ When a profile has HWID active, Prizrak-Box automatically attaches the following
 
 ### Headers Returned by Server (Response Headers)
 
-![X-Hwid headers example](../../../assets/headers-hwid.webp)
 
 The server returns the following headers to communicate HWID status. Prizrak-Box reads and acts on each of them.
 
