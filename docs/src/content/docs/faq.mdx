@@ -28,3 +28,12 @@ The app merges (union) the config lists and GUI selections, but Android does not
 **Rule:** matching directions supplement each other; mixed directions — include always overrides exclude. This is an Android VpnService limitation, not an app bug.
 
 </details>
+
+<details>
+<summary>**How to see numeric latency values instead of availability dots? (Android)**</summary>
+
+1. In app settings → **General** → **App** → toggle off **Latency Display (Color Dots)**.
+
+2. If you are a server owner — you can distribute numeric latency display to all your users centrally via the [`pxa-latency-dots`](/for-devs/supported-headers/#android-ui-controls) HTTP header.
+
+</details>
