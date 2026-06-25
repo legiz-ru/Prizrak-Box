@@ -1269,7 +1269,7 @@ jobs:
             const path = require('path');
             const dedent = s => s.replace(/\n {12}/g, '\n').replace(/^ {12}/m, '');
 
-            const obtainiumUrl = 'https://apps.obtainium.imranr.dev/redirect.html?r=' + encodeURIComponent(JSON.stringify({
+            const obtainiumUrl = 'https://obtainium.imranr.dev/redirect?r=obtainium://app/' + encodeURIComponent(JSON.stringify({
               id: 'legiz.ru.prizrakbox',
               url: `https://github.com/${owner}/${repo}/releases`,
               author: owner,
