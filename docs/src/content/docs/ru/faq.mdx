@@ -19,11 +19,11 @@ description: Частые вопросы о Prizrak-Box.
 
 | Конфиг | GUI | Результат |
 |--------|-----|-----------|
-| `exclude-package` | DenySelected (исключить выбранные) | ✅ Union — GUI дополняет конфиг |
-| `include-package` | AcceptSelected (разрешить только выбранные) | ✅ Union — GUI дополняет конфиг |
-| `exclude-package` | AcceptSelected (разрешить только выбранные) | ⚠️ Include побеждает, `exclude-package` из конфига игнорируется |
-| `include-package` | DenySelected (исключить выбранные) | ⚠️ Include побеждает, `exclude-package` из GUI игнорируется |
-| любой | AcceptAll (принимать все) | Управляет только конфиг |
+| `exclude-package` | исключить выбранные | ✅ Union — GUI дополняет конфиг |
+| `include-package` | разрешить только выбранные | ✅ Union — GUI дополняет конфиг |
+| `exclude-package` | разрешить только выбранные | ⚠️ Include побеждает, `exclude-package` из конфига игнорируется |
+| `include-package` | исключить выбранные | ⚠️ Include побеждает, `exclude-package` из GUI игнорируется |
+| любой | принимать все | Управляет только конфиг |
 
 **Правило:** одинаковые направления — дополняют друг друга; разные направления — include всегда перекрывает exclude. Это ограничение Android VpnService, не баг приложения.
 
