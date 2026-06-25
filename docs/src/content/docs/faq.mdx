@@ -13,8 +13,18 @@ This group uses adaptive node selection based on weights. You can learn more abo
 </details>
 
 <details>
-<summary>**Question 2**</summary>
+<summary>**How do GUI per-app access control settings interact with `tun.include/exclude-package` from the configuration? (Android)**</summary>
 
-Answer 2
+The app merges (union) the config lists and GUI selections, but Android does not support include and exclude modes simultaneously — if the resulting include list is non-empty, exclude is ignored entirely.
+
+| Config | GUI | Result |
+|--------|-----|--------|
+| `exclude-package` | DenySelected (exclude selected) | ✅ Union — GUI supplements config |
+| `include-package` | AcceptSelected (allow only selected) | ✅ Union — GUI supplements config |
+| `exclude-package` | AcceptSelected (allow only selected) | ⚠️ Include wins, `exclude-package` from config is ignored |
+| `include-package` | DenySelected (exclude selected) | ⚠️ Include wins, `exclude-package` from GUI is ignored |
+| any | AcceptAll | Config has full control |
+
+**Rule:** matching directions supplement each other; mixed directions — include always overrides exclude. This is an Android VpnService limitation, not an app bug.
 
 </details>

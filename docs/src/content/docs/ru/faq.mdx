@@ -13,8 +13,18 @@ description: Частые вопросы о Prizrak-Box.
 </details>
 
 <details>
-<summary>**Вопрос 2**</summary>
+<summary>**Как GUI-настройки контроля доступа приложений взаимодействуют с `tun.include/exclude-package` из конфигурации? (Android)**</summary>
 
-Ответ 2
+Приложение объединяет (union) списки из конфига и GUI, но Android не поддерживает одновременно режимы include и exclude — если итоговый include непустой, exclude целиком игнорируется.
+
+| Конфиг | GUI | Результат |
+|--------|-----|-----------|
+| `exclude-package` | DenySelected (исключить выбранные) | ✅ Union — GUI дополняет конфиг |
+| `include-package` | AcceptSelected (разрешить только выбранные) | ✅ Union — GUI дополняет конфиг |
+| `exclude-package` | AcceptSelected (разрешить только выбранные) | ⚠️ Include побеждает, `exclude-package` из конфига игнорируется |
+| `include-package` | DenySelected (исключить выбранные) | ⚠️ Include побеждает, `exclude-package` из GUI игнорируется |
+| любой | AcceptAll (принимать все) | Управляет только конфиг |
+
+**Правило:** одинаковые направления — дополняют друг друга; разные направления — include всегда перекрывает exclude. Это ограничение Android VpnService, не баг приложения.
 
 </details>
