@@ -35,7 +35,7 @@ export default defineConfig({
         { label: 'Android TV', link: '/android-tv/' },
         { label: 'Links', translations: { ru: 'Ссылки' }, link: '/links/' },
         { label: 'Important Note', translations: { ru: 'Важно' }, link: '/important-note/' },
-        { label: 'FAQ', translations: { ru: 'FAQ' }, link: '/faq/' },
+        { label: 'FAQ', translations: { ru: 'FAQ (Частые вопросы)' }, link: '/faq/' },
         {
           label: 'Integration',
           translations: { ru: 'Интеграция' },
