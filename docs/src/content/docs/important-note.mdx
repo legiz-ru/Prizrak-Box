@@ -24,7 +24,7 @@ By default, the app sends certain device information in HTTP headers when reques
 
 This information is used as a custom user identifier to support subscription functionality and connection management. Users can disable HWID transmission in the app settings. If disabled, the HWID will no longer be sent with requests to the server.
 
-All profile data (subscription URLs, keys, settings) is stored locally on the device using [BoltDB](https://github.com/etcd-io/bbolt). No data is sent to any third-party service by the application itself.
+All profile data is stored locally on the device. No data is sent to any third-party service by the application itself.
 
 **ADVERTISING NETWORKS**\
 Prizrak-Box does not use monetization and has no plans for it in the future.
