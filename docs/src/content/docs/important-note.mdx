@@ -3,39 +3,37 @@ title: Privacy Policy
 description: Privacy policy for Prizrak-Box.
 ---
 
-## Data Collection
+Services provided by **Prizrak-Box** are intended for use as is. This page is used to inform visitors regarding our policies with the collection, use, and disclosure of Personal Information if anyone decided to use our Service. If you choose to use our Service, then you agree to the collection and use of information in relation to this policy. The Personal Information that we collect is used for providing and improving the Service. We will not use or share your information with anyone except as described in this Privacy Policy.
 
-Prizrak-Box **does not collect or store** any data about your traffic or proxy connections.
+**VPN DATA**\
+We **DO NOT** collect or store any VPN data.\
+We **DO NOT** modify the contents of your VPN data.\
+We **DO NOT** share any sensitive or user-specific data with third parties.
 
-The app connects to proxy servers that users configure themselves via subscriptions. Responsibility for data security on the proxy server side rests with the server owner.
+Prizrak-Box is a non-centralized VPN client where users connect to their own custom configured servers. This means you as a user connecting to your own server have complete control and liability over your VPN data. The app itself will not in any way modify any VPN data as it leaves the device to your configured VPN server.
 
-## Data Sent to the Subscription Server
+**DATA COLLECTION**\
+Prizrak-Box does not collect crash reports or analytical data.
 
-When fetching a subscription, Prizrak-Box may automatically send the following HTTP headers to the server:
+By default, the app sends certain device information in HTTP headers when requesting subscription data (e.g., to fetch the list of servers):
 
-- `X-Hwid` — hardware device identifier (if the server uses HWID Device Limit)
+- `X-Hwid` — a unique hardware device identifier (used if the server applies HWID Device Limit)
 - `X-Device-OS` — operating system name
 - `X-Ver-OS` — OS version
 - `X-Device-Model` — device model
 
-Transmission of the HWID identifier can be disabled in the app settings.
-
-## Local Data Storage
+This information is used as a custom user identifier to support subscription functionality and connection management. Users can disable HWID transmission in the app settings. If disabled, the HWID will no longer be sent with requests to the server.
 
 All profile data (subscription URLs, keys, settings) is stored locally on the device using [BoltDB](https://github.com/etcd-io/bbolt). No data is sent to any third-party service by the application itself.
 
-## Monetization and Advertising
+**ADVERTISING NETWORKS**\
+Prizrak-Box does not use monetization and has no plans for it in the future.
 
-Prizrak-Box does not use monetization or advertising and has no plans to introduce them.
+**CHILDREN'S PRIVACY**\
+Prizrak-Box does not collect any personally identifiable information from anyone, whether child or adult. This means no personally identifiable information is collected from children under 13.
 
-## Children
+**LINKS TO OTHER SITES**\
+This Service may contain links to other sites. If you click on a third-party link, you will be directed to that site. Note that these external sites are not operated by us. Therefore, we strongly advise you to review the Privacy Policy of these websites. We have no control over and assume no responsibility for the content, privacy policies, or practices of any third-party sites or services.
 
-The app does not collect any personally identifiable information from anyone, including children under the age of 13.
-
-## Third-Party Links
-
-The documentation and the app may contain links to third-party resources. Prizrak-Box is not responsible for the content or privacy practices of third-party sites.
-
-## Policy Updates
-
-Changes take effect upon publication. We recommend reviewing this page periodically.
+**CHANGES TO THIS PRIVACY POLICY**\
+We may update our Privacy Policy from time to time. Thus, you are advised to review this page periodically for any changes. These changes are effective immediately after they are posted on this page.
