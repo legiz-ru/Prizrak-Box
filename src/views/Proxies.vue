@@ -947,15 +947,17 @@ watch(groupList, (list) => {
               </div>
             </div>
             <div class="full-view-header-actions">
-              <el-tooltip :content="$t('proxies.test-group')" placement="top">
-                <el-icon
-                    class="full-view-test-btn"
-                    :class="{ 'full-view-test-btn--testing': groupLatencyTesting[group] }"
-                    @click.stop="testGroupDelay(group)"
-                >
-                  <icon-mdi-speedometer/>
-                </el-icon>
-              </el-tooltip>
+              <span @click.stop>
+                <el-tooltip :content="$t('proxies.test-group')" placement="top">
+                  <el-icon
+                      class="full-view-test-btn"
+                      :class="{ 'full-view-test-btn--testing': groupLatencyTesting[group] }"
+                      @click="testGroupDelay(group)"
+                  >
+                    <icon-mdi-speedometer/>
+                  </el-icon>
+                </el-tooltip>
+              </span>
               <el-icon class="full-view-toggle">
                 <icon-ep-arrow-up v-if="expandedGroups[group]"/>
                 <icon-ep-arrow-down v-else/>
