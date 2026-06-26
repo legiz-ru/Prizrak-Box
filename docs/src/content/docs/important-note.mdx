@@ -1,45 +1,41 @@
 ---
-title: Important Note
-description: Important notes, disclaimers, and usage guidelines for Prizrak-Box.
+title: Privacy Policy
+description: Privacy policy for Prizrak-Box.
 ---
 
-import { Aside } from '@astrojs/starlight/components';
+## Data Collection
 
-<Aside type="caution" title="Read before use">
-Prizrak-Box is a **proxy client** — it connects to proxy servers configured in your subscription.
-The app itself does not provide any proxy servers or bypass services.
-</Aside>
+Prizrak-Box **does not collect or store** any data about your traffic or proxy connections.
 
-## Intended Use
+The app connects to proxy servers that users configure themselves via subscriptions. Responsibility for data security on the proxy server side rests with the server owner.
 
-Prizrak-Box is intended for:
+## Data Sent to the Subscription Server
 
-- **Privacy** — routing your traffic through a trusted proxy to protect your data on public networks.
-- **Development & Testing** — inspecting and routing traffic during development.
-- **Access** — reaching resources that are restricted in your network.
+When fetching a subscription, Prizrak-Box may automatically send the following HTTP headers to the server:
 
-## Legal Disclaimer
+- `X-Hwid` — hardware device identifier (if the server uses HWID Device Limit)
+- `X-Device-OS` — operating system name
+- `X-Ver-OS` — OS version
+- `X-Device-Model` — device model
 
-- Users are solely responsible for how they use Prizrak-Box and the proxy servers they connect to.
-- Ensure that your use of proxy services complies with the laws and regulations in your jurisdiction.
-- The developers of Prizrak-Box are not responsible for any misuse or consequences arising from use of the application.
+Transmission of the HWID identifier can be disabled in the app settings.
 
-## Security Notes
+## Local Data Storage
 
-<Aside type="tip" title="Subscription security">
-Only add subscriptions from sources you trust. A malicious subscription server could return harmful routing rules.
-</Aside>
+All profile data (subscription URLs, keys, settings) is stored locally on the device using [BoltDB](https://github.com/etcd-io/bbolt). No data is sent to any third-party service by the application itself.
 
-- Subscription URLs may include credentials — keep them private and do not share them publicly.
-- When using **HWID authentication** (`X-Hwid-Active`), your hardware ID is sent to the subscription server. Be aware of this if privacy is a concern.
-- **Age-encrypted** subscriptions protect your configuration content in transit; the secret key is stored locally in the app's profile storage.
+## Monetization and Advertising
 
-## Data Storage
+Prizrak-Box does not use monetization or advertising and has no plans to introduce them.
 
-All profile data (subscription URLs, credentials, settings) is stored locally in the application's data directory using [BoltDB](https://github.com/etcd-io/bbolt). No data is sent to any third-party service by the application itself.
+## Children
 
-## Updates
+The app does not collect any personally identifiable information from anyone, including children under the age of 13.
 
-<Aside type="note">
-Prizrak-Box does not auto-update itself. Check the [GitHub Releases page](https://github.com/legiz-ru/Prizrak-Box/releases) periodically for new versions, or use [Obtainium](https://github.com/ImranR98/Obtainium) on Android for automatic updates.
-</Aside>
+## Third-Party Links
+
+The documentation and the app may contain links to third-party resources. Prizrak-Box is not responsible for the content or privacy practices of third-party sites.
+
+## Policy Updates
+
+Changes take effect upon publication. We recommend reviewing this page periodically.
