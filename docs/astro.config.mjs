@@ -3,8 +3,7 @@ import { defineConfig } from 'astro/config';
 import starlightThemeNord from 'starlight-theme-nord';
 
 export default defineConfig({
-  site: 'https://legiz-ru.github.io/Prizrak-Box',
-  base: '/Prizrak-Box',
+  site: 'https://docs.prizrak.app',
   integrations: [
     starlight({
       plugins: [starlightThemeNord()],
