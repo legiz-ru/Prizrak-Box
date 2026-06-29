@@ -953,7 +953,8 @@ watch(groupList, (list) => {
                     :class="{ 'full-view-test-btn--testing': groupLatencyTesting[group] }"
                     @click.stop="testGroupDelay(group)"
                 >
-                  <icon-mdi-speedometer/>
+                  <icon-ep-loading v-if="groupLatencyTesting[group]"/>
+                  <icon-mdi-speedometer v-else/>
                 </el-icon>
               </el-tooltip>
               <el-icon class="full-view-toggle">

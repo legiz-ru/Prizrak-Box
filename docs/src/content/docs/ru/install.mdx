@@ -1,0 +1,124 @@
+---
+title: Установка
+description: Как установить Prizrak-Box на Windows, macOS, Linux и Android.
+---
+
+import { Tabs, TabItem, Steps } from '@astrojs/starlight/components';
+
+export const obtainiumUrl = "obtainium://app/%7B%22id%22:%22legiz.ru.prizrakbox%22,%22url%22:%22https://github.com/legiz-ru/Prizrak-Box/releases%22,%22author%22:%22legiz-ru%22,%22name%22:%22Prizrak-Box%22,%22preferredApkIndex%22:0,%22additionalSettings%22:%22%7B%5C%22includePrereleases%5C%22:true,%5C%22fallbackToOlderReleases%5C%22:true,%5C%22autoApkFilterByArch%5C%22:true,%5C%22trackOnly%5C%22:false,%5C%22versionDetection%5C%22:true%7D%22%7D";
+
+Все релизы доступны на GitHub: [последний стабильный](https://github.com/legiz-ru/Prizrak-Box/releases/latest) · [все релизы включая пре-релизы](https://github.com/legiz-ru/Prizrak-Box/releases).
+
+<Tabs>
+  <TabItem label="Android">
+
+## Android
+
+### Через Obtainium (рекомендуется)
+
+[Obtainium](https://github.com/ImranR98/Obtainium) позволяет устанавливать и автоматически обновлять Prizrak-Box прямо из GitHub Releases.
+
+<Steps>
+1. Установите [Obtainium](https://github.com/ImranR98/Obtainium/releases/latest).
+2. Откройте <a href={obtainiumUrl}>ссылку Obtainium для Prizrak-Box</a> — все настройки заполнятся автоматически.
+3. Нажмите **Добавить**, затем **Установить**.
+</Steps>
+
+### Ручная установка APK
+
+<Steps>
+1. Перейдите на страницу [последнего стабильного релиза](https://github.com/legiz-ru/Prizrak-Box/releases/latest) или [всех релизов (включая пре-релизы)](https://github.com/legiz-ru/Prizrak-Box/releases).
+2. Скачайте APK для вашей архитектуры:
+   - `universal` — подходит для всех устройств
+   - `arm64-v8a` — 64-битный ARM (большинство современных телефонов)
+   - `armeabi-v7a` — 32-битный ARM (старые устройства)
+   - `x86_64` — 64-битный x86 (эмуляторы)
+3. В настройках устройства разрешите установку из неизвестных источников.
+4. Откройте скачанный APK для установки.
+</Steps>
+
+:::note
+APK содержит встроенную проверку обновлений — приложение уведомит вас о выходе новой версии напрямую с GitHub.
+:::
+
+![Установка на Android](../../../assets/install-android.webp)
+
+  </TabItem>
+  <TabItem label="Windows">
+
+## Windows
+
+<Steps>
+1. Перейдите на страницу [последнего стабильного релиза](https://github.com/legiz-ru/Prizrak-Box/releases/latest) или [всех релизов (включая пре-релизы)](https://github.com/legiz-ru/Prizrak-Box/releases).
+2. Скачайте установщик `.msi` (например, `windows-amd64-wails.msi` — она же кнопка загрузки **Setup x64**).
+3. Запустите установщик — потребуется подтверждение прав администратора.
+4. Откройте **Prizrak-Box** из меню «Пуск» или с рабочего стола.
+5. Добавление конфигурации провайдера: нажмите «Добавить» в меню профилей и укажите URL-ссылку на вашу подписку. Также поддерживается автоматическая конфигурация в один клик со страницы личного кабинета у вашего провайдера.
+</Steps>
+
+![Установка на Windows](../../../assets/install-windows.webp)
+
+:::note
+Windows Defender может показать предупреждение SmartScreen при первом запуске. Нажмите **Подробнее** → **Выполнить в любом случае**.
+:::
+
+  </TabItem>
+  <TabItem label="macOS">
+
+## macOS
+
+<Steps>
+1. Перейдите на страницу [последнего стабильного релиза](https://github.com/legiz-ru/Prizrak-Box/releases/latest) или [всех релизов (включая пре-релизы)](https://github.com/legiz-ru/Prizrak-Box/releases).
+2. Скачайте `.dmg` для вашего Mac:
+   - `macos-arm64-wails.dmg` — Apple Silicon
+   - `macos-amd64-wails.dmg` — Intel
+3. Откройте `.dmg` и перетащите **Prizrak-Box** в папку «Программы».
+4. При первом запуске macOS попросит подтвердить открытие — нажмите **Открыть**.
+5. Добавление конфигурации провайдера: нажмите «Добавить» в меню профилей и укажите URL-ссылку на вашу подписку. Также поддерживается автоматическая конфигурация в один клик со страницы личного кабинета у вашего провайдера.
+</Steps>
+
+![Установка на macOS](../../../assets/install-mac.webp)
+
+:::caution
+macOS требует разрешения **Network Extension** для работы TUN-режима. Следуйте системному запросу при первом запуске.
+:::
+
+  </TabItem>
+  <TabItem label="Linux">
+
+## Linux
+
+<Steps>
+1. Перейдите на страницу [последнего стабильного релиза](https://github.com/legiz-ru/Prizrak-Box/releases/latest) или [всех релизов (включая пре-релизы)](https://github.com/legiz-ru/Prizrak-Box/releases).
+2. Скачайте пакет для вашей архитектуры и дистрибутива:
+   - amd64 (x86_64): `linux-amd64.deb` или `linux-amd64.rpm`
+   - arm64: `linux-arm64.deb` или `linux-arm64.rpm`
+3. Установите скачанный пакет:
+   - Для `.deb` (Debian/Ubuntu и производные):
+     ```bash
+     sudo dpkg -i linux-amd64.deb
+     ```
+   - Для `.rpm` (Fedora/openSUSE и производные):
+     ```bash
+     sudo rpm -i linux-amd64.rpm
+     ```
+4. Откройте **Prizrak-Box** из списка приложений.
+5. Добавление конфигурации провайдера: нажмите «Добавить» в меню профилей и укажите URL-ссылку на вашу подписку. Также поддерживается автоматическая конфигурация в один клик со страницы личного кабинета у вашего провайдера.
+</Steps>
+
+:::note[AUR]
+Пользователи Arch Linux могут установить из AUR:
+```bash
+yay -S prizrak-box-bin
+```
+:::
+
+  </TabItem>
+  <TabItem label="iOS">
+
+## iOS
+
+Ведётся активная разработка. Надеемся скоро поделиться ссылкой на TestFlight — а в дальнейшем появится и в App Store.
+
+  </TabItem>
+</Tabs>
