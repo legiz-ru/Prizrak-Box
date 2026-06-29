@@ -33,7 +33,6 @@ export default defineConfig({
         { label: 'Welcome', translations: { ru: 'Добро пожаловать' }, link: '/' },
         { label: 'Install App', translations: { ru: 'Установка' }, link: '/install/' },
         { label: 'About App', translations: { ru: 'О приложении' }, link: '/about/' },
-        { label: 'Android TV', link: '/android-tv/' },
         { label: 'Links', translations: { ru: 'Ссылки' }, link: '/links/' },
         { label: 'Privacy Policy', translations: { ru: 'Политика конфиденциальности' }, link: '/important-note/' },
         { label: 'Terms of Use', translations: { ru: 'Условия использования' }, link: '/terms/' },
