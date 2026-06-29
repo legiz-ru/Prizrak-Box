@@ -1,0 +1,531 @@
+---
+title: Поддерживаемые заголовки
+description: Полный справочник HTTP-заголовков ответа, поддерживаемых Prizrak-Box при получении подписок.
+---
+
+import { Aside, Badge } from '@astrojs/starlight/components';
+
+При загрузке удалённой подписки Prizrak-Box считывает определённые HTTP-заголовки ответа от сервера.
+Эти заголовки позволяют провайдерам подписок управлять метаданными профиля, отображением трафика, автоматическим обновлением, логотипом, объявлениями и другим.
+
+Заголовки **нечувствительны к регистру**. Неизвестные заголовки игнорируются без ошибок.
+
+<Aside type="tip" title="Встроенные заголовки">
+Если сервер не может устанавливать HTTP-заголовки ответа (например, статический хостинг), можно встроить заголовки в виде комментариев в начале содержимого подписки:
+
+```yaml
+#profile-title: Моя VPN
+#subscription-userinfo: upload=1073741824; download=5368709120; total=107374182400; expire=1893456000
+```
+
+Встроенные комментарии используют те же имена, что и HTTP-заголовки, с префиксом `#`.
+Они работают как запасной вариант — HTTP-заголовки ответа всегда имеют приоритет над встроенными.
+</Aside>
+
+<Aside type="note">
+Заголовки с иконкой <img src="/remnawave-icon.svg" style="width:18px;height:18px;vertical-align:middle;border-radius:4px;display:inline;" alt="Remnawave" /> управляются самой панелью Remnawave автоматически.
+Добавлять их вручную через Правила ответов или настройки заголовков подписки не нужно — Remnawave отправляет их сам.
+</Aside>
+
+---
+
+## Метаданные профиля
+
+<details>
+<summary>**`Profile-Title`** <img src="/remnawave-icon.svg" style="width:18px;height:18px;vertical-align:middle;border-radius:4px;display:inline;" alt="Remnawave" /></summary>
+
+Отображаемое имя подписки в Prizrak-Box.
+
+![Пример заголовка Profile-Title](../../../../assets/headers-profile-title.webp)
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `string` |
+| Кодировка | UTF-8 или Base64 (префикс `base64:`) |
+
+**Пример:**
+
+```http
+Profile-Title: Моя VPN подписка
+Profile-Title: base64:TW9yIFZQTiDQv9C+0LTQv9C40YHQutCw
+```
+
+Если `Profile-Title` отсутствует, приложение использует имя файла из заголовка `Content-Disposition`, затем генерирует имя вида `Sub-2024-01-01`.
+
+</details>
+
+<details>
+<summary>**`Profile-Logo`**</summary>
+
+URL изображения для логотипа подписки в приложении.
+
+![Пример заголовка Profile-Logo](../../../../assets/headers-profile-logo.webp)
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `string` (URL) |
+| Поддерживаемые форматы | PNG, SVG |
+| Максимальный размер | 2 МБ |
+| Разрешённые схемы | `http`, `https` |
+
+**Пример:**
+
+```http
+Profile-Logo: https://example.com/logo.png
+```
+
+Логотип загружается при получении подписки и кешируется локально. Пустой или недействительный URL удаляет кешированный логотип.
+
+</details>
+
+<details>
+<summary>**`Content-Disposition`** <img src="/remnawave-icon.svg" style="width:18px;height:18px;vertical-align:middle;border-radius:4px;display:inline;" alt="Remnawave" /></summary>
+
+Используется как запасной источник названия профиля, если `Profile-Title` отсутствует.
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `string` |
+| Разбираемое поле | параметр `filename` |
+
+**Пример:**
+
+```http
+Content-Disposition: attachment; filename="my-vpn.yaml"
+```
+
+Значение `filename` (без расширения) становится названием профиля, если `Profile-Title` не задан.
+
+</details>
+
+---
+
+## Информация о трафике
+
+<details>
+<summary>**`Subscription-Userinfo`** <img src="/remnawave-icon.svg" style="width:18px;height:18px;vertical-align:middle;border-radius:4px;display:inline;" alt="Remnawave" /></summary>
+
+Статистика использования трафика, отображаемая в карточке профиля.
+
+![Пример заголовка Subscription-Userinfo](../../../../assets/headers-subscription-userinfo.webp)
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `string` (пары ключ=значение через точку с запятой) |
+| Поля | `upload`, `download`, `total`, `expire` |
+| Единицы | Байты (для трафика), Unix timestamp (для `expire`) |
+
+**Пример:**
+
+```http
+Subscription-Userinfo: upload=1073741824; download=5368709120; total=107374182400; expire=1893456000
+```
+
+| Поле | Описание |
+|------|----------|
+| `upload` | Байт выгружено |
+| `download` | Байт загружено |
+| `total` | Общая квота трафика в байтах |
+| `expire` | Время истечения как Unix timestamp |
+
+</details>
+
+---
+
+## Настройки обновления
+
+<details>
+<summary>**`Profile-Update-Interval`** <img src="/remnawave-icon.svg" style="width:18px;height:18px;vertical-align:middle;border-radius:4px;display:inline;" alt="Remnawave" /></summary>
+
+Задаёт интервал автоматического обновления подписки.
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `integer` |
+| Единица | Часы |
+
+**Пример:**
+
+```http
+Profile-Update-Interval: 24
+```
+
+При наличии этого заголовка Prizrak-Box автоматически обновляет подписку с заданным интервалом в часах.
+
+</details>
+
+---
+
+## Ссылки
+
+<details>
+<summary>**`Profile-Web-Page-Url`** <img src="/remnawave-icon.svg" style="width:18px;height:18px;vertical-align:middle;border-radius:4px;display:inline;" alt="Remnawave" /></summary>
+
+URL главной страницы или портала провайдера подписки.
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `string` (URL) |
+
+**Пример:**
+
+```http
+Profile-Web-Page-Url: https://myvpn.example.com
+```
+
+Отображается в деталях профиля как кликабельная ссылка.
+
+</details>
+
+<details>
+<summary>**`Support-Url`** <img src="/remnawave-icon.svg" style="width:18px;height:18px;vertical-align:middle;border-radius:4px;display:inline;" alt="Remnawave" /></summary>
+
+URL службы поддержки или контактов (например, Telegram-канал, служба помощи).
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `string` (URL) |
+
+**Пример:**
+
+```http
+Support-Url: https://t.me/myvpn_support
+```
+
+Отображается рядом с профилем для обращения в поддержку.
+
+</details>
+
+---
+
+## Объявления
+
+<details>
+<summary>**`Announce`** <img src="/remnawave-icon.svg" style="width:18px;height:18px;vertical-align:middle;border-radius:4px;display:inline;" alt="Remnawave" /></summary>
+
+Текстовое объявление, отображаемое в приложении как баннер на карточке профиля.
+
+![Пример заголовка Announce](../../../../assets/headers-announce.webp)
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `string` |
+| Максимальная длина | 200 символов |
+| Кодировка | UTF-8 или Base64 (префикс `base64:`) |
+
+**Примеры:**
+
+```http
+Announce: Техническое обслуживание в субботу 02:00–04:00 UTC
+Announce: base64:0KLQtdGF0L3QuNGH0LXRgdC60L7QtSDQvtCx0YHQu9GD0LbQuNCy0LDQvdC40LU=
+```
+
+</details>
+
+<details>
+<summary>**`Announce-Url`**</summary>
+
+URL, на который ссылается баннер объявления.
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `string` (URL) |
+
+**Пример:**
+
+```http
+Announce-Url: https://status.myvpn.example.com
+```
+
+Нажатие на баннер объявления в приложении открывает этот URL.
+
+</details>
+
+---
+
+## Миграция URL и резервные адреса
+
+Эти заголовки реализуют миграцию URL подписки — провайдеры могут перенести подписку на новый адрес без ручного обновления URL пользователями.
+
+<details>
+<summary>**`new-url`**</summary>
+
+Указывает клиенту заменить весь URL подписки на новый.
+
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `string` (полный URL) |
+| Приоритет | Наивысший — имеет приоритет над `new-domain` |
+| Переходы | Максимум 3 последовательные миграции |
+
+**Пример:**
+
+```http
+new-url: https://new.example.com/subscription/abc123
+```
+
+После получения этого заголовка Prizrak-Box немедленно сохраняет новый URL и выполняет повторную загрузку с него. Исходный URL навсегда заменяется в профиле.
+
+</details>
+
+<details>
+<summary>**`new-domain`**</summary>
+
+Указывает клиенту заменить только **хост** URL подписки, сохраняя путь и строку запроса.
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `string` (только хост, без схемы и пути) |
+| Пример значения | `new.example.com` или `new.example.com:8443` |
+
+**Пример:**
+
+```http
+new-domain: cdn.example.com
+```
+
+Если текущий URL подписки — `https://old.example.com/sub/abc`, результат будет `https://cdn.example.com/sub/abc`.
+
+</details>
+
+<details>
+<summary>**`fallback-url`**</summary>
+
+Альтернативный полный URL для использования, если основной URL подписки недоступен (не-2xx или ошибка соединения).
+
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `string` (полный URL) |
+| Сохранение | Да — записывается в профиль для будущих запросов |
+
+**Пример:**
+
+```http
+fallback-url: https://backup.example.com/subscription/abc123
+```
+
+Prizrak-Box сначала пробует основной URL. При неудаче переключается на `fallback-url`. Значение резервного адреса обновляется (или очищается) при каждом успешном запросе.
+
+</details>
+
+<details>
+<summary>**`fallback-domain`**</summary>
+
+Альтернативный домен для подстановки в основной URL при его недоступности.
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `string` (только хост) |
+| Сохранение | Да — записывается в профиль |
+
+**Пример:**
+
+```http
+fallback-domain: backup.example.com
+```
+
+Если основной URL — `https://main.example.com/sub`, этот резерв пробует `https://backup.example.com/sub`.
+
+<Aside type="note" title="Порядок приоритетов резервирования">
+Порядок перебора: **основной URL → `fallback-url` → основной URL с `fallback-domain`**.
+Используется первый ответ со статусом 2xx.
+</Aside>
+
+</details>
+
+---
+
+## Управление интерфейсом Android <Badge text="Только Android" variant="note" />
+
+Следующие заголовки поддерживаются исключительно **Android-версией** Prizrak-Box.
+Они позволяют провайдерам подписок управлять отдельными элементами пользовательского интерфейса Android-клиента.
+
+Все значения применяются при получении подписки и сохраняются в профиле до следующего обновления.
+
+<details>
+<summary>**`pxa-latency-dots`**</summary>
+
+Управляет отображением задержки прокси в списке.
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `integer` |
+| Значения | `0` = числа задержки, `1` = точки задержки |
+
+**Пример:**
+
+```http
+pxa-latency-dots: 1
+```
+
+<Aside type="note" title="Совместимость с Happ">
+Для совместимости с провайдерами, которые ранее использовали приложение Happ, также поддерживаются следующие псевдонимы:
+
+- `ping-result: time` → эквивалент `pxa-latency-dots: 0`
+- `ping-result: icon` → эквивалент `pxa-latency-dots: 1`
+
+Если присутствуют оба заголовка, `pxa-latency-dots` имеет приоритет над `ping-result`.
+</Aside>
+
+</details>
+
+<details>
+<summary>**`pxa-simple-mode`**</summary>
+
+Включает упрощённый режим интерфейса — на главном экране приложения только первую select прокси группу вашей конфигурации mihomo.
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `integer` |
+| Значения | `1` для включения |
+
+**Пример:**
+
+```http
+pxa-simple-mode: 1
+```
+
+</details>
+
+<details>
+<summary>**`pxa-global-mode-mp`**</summary>
+
+Показывает пункт меню **Глобальный режим** в левом нижнем углу карточки текущего профиля при запущенном подключении VPN.
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `integer` |
+| Значения | `1` для отображения |
+
+**Пример:**
+
+```http
+pxa-global-mode-mp: 1
+```
+
+</details>
+
+<details>
+<summary>**`pxa-conns-view-mp`**</summary>
+
+Показывает пункт меню **Подключения** в левом нижнем углу карточки текущего профиля при запущенном подключении VPN.
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `integer` |
+| Значения | `1` для отображения |
+
+**Пример:**
+
+```http
+pxa-conns-view-mp: 1
+```
+
+</details>
+
+<details>
+<summary>**`pxa-rp-mp`**</summary>
+
+Показывает пункт меню **Rules Provider (RP)** в левом нижнем углу карточки текущего профиля при запущенном подключении VPN.
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `integer` |
+| Значения | `1` для отображения |
+
+**Пример:**
+
+```http
+pxa-rp-mp: 1
+```
+
+</details>
+
+---
+
+## HWID-аутентификация
+
+Prizrak-Box поддерживает формат заголовков HWID Device Limit от RemnaWave. При использовании аппаратной аутентификации устройств задействованы две группы заголовков: заголовки, **отправляемые клиентом** с каждым запросом, и заголовки, **возвращаемые сервером** в ответе.
+
+### Заголовки запроса (отправляет Prizrak-Box)
+
+Когда в профиле активен HWID, Prizrak-Box автоматически добавляет следующие заголовки к каждому запросу подписки:
+
+| Заголовок | Описание |
+|-----------|----------|
+| `X-Hwid` | Аппаратный отпечаток — уникальный идентификатор устройства |
+| `X-Device-OS` | Название операционной системы (например, `Windows`, `Android`, `macOS`) |
+| `X-Ver-OS` | Версия ОС (например, `14`, `11`, `14.5`) |
+| `X-Device-Model` | Модель устройства (например, `Pixel 8`, `iPhone 14 Pro Max`) |
+
+### Заголовки ответа (возвращает сервер)
+
+
+Сервер возвращает следующие заголовки для передачи статуса HWID. Prizrak-Box читает и обрабатывает каждый из них.
+
+<details>
+<summary>**`X-Hwid-Active`** <img src="/remnawave-icon.svg" style="width:18px;height:18px;vertical-align:middle;border-radius:4px;display:inline;" alt="Remnawave" /></summary>
+
+Всегда `true`, когда HWID Device Limit включён на стороне сервера. Prizrak-Box использует этот заголовок для пометки профиля как HWID-защищённого в интерфейсе.
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `string` (булево) |
+| Значения | `true` |
+
+```http
+X-Hwid-Active: true
+```
+
+</details>
+
+<details>
+<summary>**`X-Hwid-Not-Supported`** <img src="/remnawave-icon.svg" style="width:18px;height:18px;vertical-align:middle;border-radius:4px;display:inline;" alt="Remnawave" /></summary>
+
+`true`, если HWID Device Limit включён на сервере, но клиент **не отправил** заголовок `X-Hwid`.
+Сигнализирует приложению, что устройство не идентифицировано и подписка может быть ограничена.
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `string` (булево) |
+| Значения | `true` |
+
+```http
+X-Hwid-Not-Supported: true
+```
+
+</details>
+
+<details>
+<summary>**`X-Hwid-Max-Devices-Reached`** <img src="/remnawave-icon.svg" style="width:18px;height:18px;vertical-align:middle;border-radius:4px;display:inline;" alt="Remnawave" /></summary>
+
+`true`, если HWID Device Limit включён и пользователь достиг максимального числа разрешённых устройств.
+Приложение может показать предупреждение о том, что добавить новые устройства невозможно.
+
+| Свойство | Значение |
+|----------|----------|
+| Тип | `string` (булево) |
+| Значения | `true` |
+
+```http
+X-Hwid-Max-Devices-Reached: true
+```
+
+</details>
+
+<Aside type="note" title="Совместимость с RemnaWave">
+Формат HWID-заголовков соответствует [спецификации HWID Device Limit RemnaWave](https://docs.rw/features/hwid-device-limit#hwid-headers-sent-by-remnawave).
+Серверы подписок, реализующие формат RemnaWave, полностью совместимы с Prizrak-Box.
+</Aside>
+
+---
+
+## Шаблоны (PXD) <Badge text="Устарело" variant="caution" />
+
+<Aside type="caution" title="Устарело — будет удалено">
+Механизм заголовков `Pxd-Template` / `Pxd-Template-Scheme` **устарел** и будет удалён из Prizrak-Box в одном из следующих релизов.
+
+Как работал устаревший метод можно ознакомиться здесь: [How to use xhttp from Remnawave in Prizrak-Box](https://github.com/legiz-ru/my-remnawave#how-to-use-xhttp-from-remnawave-in-prizrak-box)
+</Aside>

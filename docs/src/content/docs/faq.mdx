@@ -1,0 +1,52 @@
+---
+title: FAQ
+description: Frequently asked questions about Prizrak-Box.
+---
+
+## Frequently Asked Questions
+
+<details>
+<summary>**What is the Smart proxy group?**</summary>
+
+This group uses adaptive node selection based on weights. You can learn more about the group's functionality and how to integrate it into your configuration in [this section](/for-devs/smart-proxy-group/).
+
+</details>
+
+<details>
+<summary>**How do GUI per-app access control settings interact with `tun.include/exclude-package` from the configuration? (Android)**</summary>
+
+The app merges (union) the config lists and GUI selections, but Android does not support include and exclude modes simultaneously — if the resulting include list is non-empty, exclude is ignored entirely.
+
+| Config | GUI | Result |
+|--------|-----|--------|
+| `exclude-package` | DenySelected (exclude selected) | ✅ Union — GUI supplements config |
+| `include-package` | AcceptSelected (allow only selected) | ✅ Union — GUI supplements config |
+| `exclude-package` | AcceptSelected (allow only selected) | ⚠️ Include wins, `exclude-package` from config is ignored |
+| `include-package` | DenySelected (exclude selected) | ⚠️ Include wins, `exclude-package` from GUI is ignored |
+| any | AcceptAll | Config has full control |
+
+**Rule:** matching directions supplement each other; mixed directions — include always overrides exclude. This is an Android VpnService limitation, not an app bug.
+
+</details>
+
+<details>
+<summary>**What is the difference between Proxy mode and TUN mode?**</summary>
+
+**Proxy mode** works at the application level — only traffic from apps that support system proxy settings (HTTP/SOCKS) is intercepted. By default, Prizrak-Box automatically sets a system-wide proxy. If you don't need this and want to configure the proxy manually in specific apps — disable it in **App Settings**.
+
+**TUN mode** creates a virtual network interface and captures all device traffic at the packet level — regardless of whether an app supports proxy settings. Requires administrator privileges. A background service is installed alongside the app — once it's running, you no longer need to launch the app as administrator: the required privileges are provided by the service.
+
+**When to use which:**
+- Proxy — for everyday use in browsers and standard applications
+- TUN — when you need to route everything through the proxy, including games, system services, voice chat apps (e.g. Discord), and applications without proxy support
+
+</details>
+
+<details>
+<summary>**How to see numeric latency values instead of availability dots? (Android)**</summary>
+
+1. In app settings → **General** → **App** → toggle off **Latency Display (Color Dots)**.
+
+2. If you are a server owner — you can distribute numeric latency display to all your users centrally via the [`pxa-latency-dots`](/for-devs/supported-headers/#android-ui-controls) HTTP header.
+
+</details>

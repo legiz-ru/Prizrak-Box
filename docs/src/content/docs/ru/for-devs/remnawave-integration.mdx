@@ -1,0 +1,147 @@
+---
+title: Интеграция с Remnawave
+description: Интеграция Prizrak-Box с панелью подписок Remnawave.
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+## 1. Применение HTTP-заголовков
+
+Remnawave поддерживает два способа применения HTTP-заголовков к профилям подписки.
+
+### Способ 1 — Глобально (для всех приложений)
+
+В панели администратора Remnawave откройте **Подписка → Настройки → Заголовки ответа**.
+Добавьте нужные заголовки — они будут возвращаться всем клиентам при каждом запросе подписки.
+
+Для **Внешних сквадов** заголовки настраиваются отдельно для каждого сквада: **Пользователи → Внешние сквады → Заголовки**.
+
+### Способ 2 — Точечно для Prizrak-Box через Правила ответов
+
+Правила ответов позволяют применять заголовки только тогда, когда запрос поступает от конкретного клиента,
+определяемого по заголовку `User-Agent`. Это позволяет отправлять настройки именно для Prizrak-Box,
+не затрагивая другие приложения.
+
+Откройте **Подписка → Правила ответов** и создайте новое правило.
+**Добавьте его в начало списка** для обеспечения приоритета.
+
+<Aside type="note">
+Полная документация по Правилам ответов Remnawave: [docs.rw/learn-en/routing-rules](https://docs.rw/learn-en/routing-rules)
+</Aside>
+
+Используйте следующий JSON как шаблон — он охватывает все заголовки, поддерживаемые Prizrak-Box:
+
+```json
+{
+  "name": "Prizrak-Box",
+  "description": "Заголовки для клиентов Prizrak-Box",
+  "enabled": true,
+  "operator": "AND",
+  "conditions": [
+    {
+      "headerName": "user-agent",
+      "operator": "CONTAINS",
+      "value": "Clash-Meta/Prizrak-Box (",
+      "caseSensitive": false
+    }
+  ],
+  "responseType": "MIHOMO",
+  "responseModifications": {
+    "headers": [
+      {
+        "key": "profile-logo",
+        "value": "https://example.com/logo.png"
+      },
+      {
+        "key": "announce-url",
+        "value": "https://t.me/your_channel"
+      },
+      {
+        "key": "fallback-domain",
+        "value": "backup.example.com"
+      },
+      {
+        "key": "pxa-latency-dots",
+        "value": "1"
+      },
+      {
+        "key": "pxa-simple-mode",
+        "value": "1"
+      },
+      {
+        "key": "pxa-global-mode-mp",
+        "value": "1"
+      },
+      {
+        "key": "pxa-conns-view-mp",
+        "value": "1"
+      },
+      {
+        "key": "pxa-rp-mp",
+        "value": "1"
+      }
+    ]
+  }
+}
+```
+
+Удалите ненужные заголовки. Описание каждого заголовка — в разделе
+[Поддерживаемые заголовки](/ru/for-devs/supported-headers/).
+
+---
+
+## 2. Кастомный шаблон Mihomo
+
+Чтобы отдавать Prizrak-Box полностью кастомный Mihomo-конфиг — например,
+с прокси группой **Smart** — укажите `subscriptionTemplate` в Правиле ответа:
+
+```json
+{
+  "name": "Prizrak-Box Smart Template",
+  "description": "Кастомный шаблон Mihomo с прокси группой Smart для Prizrak-Box",
+  "enabled": true,
+  "operator": "AND",
+  "conditions": [
+    {
+      "headerName": "user-agent",
+      "operator": "CONTAINS",
+      "value": "Clash-Meta/Prizrak-Box (",
+      "caseSensitive": false
+    }
+  ],
+  "responseType": "MIHOMO",
+  "responseModifications": {
+    "subscriptionTemplate": "SmartPrizrak"
+  }
+}
+```
+
+<Aside type="note">
+Полная документация по Правилам ответов Remnawave: [docs.rw/learn-en/routing-rules](https://docs.rw/learn-en/routing-rules)
+</Aside>
+
+Значение `subscriptionTemplate` (`SmartPrizrak` в примере) должно совпадать с именем шаблона,
+настроенного в панели Remnawave.
+
+Подробнее о типе прокси группы Smart и параметрах её конфигурации — в разделе
+[Прокси группа Smart](/ru/for-devs/smart-proxy-group/).
+
+---
+
+## 3. Шифрование конфигов методом AGE
+
+Remnawave может зашифровать Mihomo-конфиг с помощью age перед отправкой клиенту Prizrak-Box.
+Расшифровать и применить конфиг сможет только клиент, у которого есть соответствующий секретный ключ.
+
+Полное руководство по настройке — генерация ключей, конфигурация правила ответа в Remnawave
+и настройка клиента Prizrak-Box — в разделе [Шифрование AGE](/ru/for-devs/age-encryption/).
+
+---
+
+## 4. Специфичные ключи Remnawave для шаблонов подписки
+
+Remnawave поддерживает специальные ключи, расширяющих стандартную конфигурацию Mihomo
+и доступных внутри шаблонов подписки.
+Эти ключи позволяют гибко управлять прокси группами и провайдерами напрямую из шаблона.
+
+Полная документация: [docs.rw/guides/templates/mihomo](https://docs.rw/guides/templates/mihomo)

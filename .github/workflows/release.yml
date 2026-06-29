@@ -1269,6 +1269,21 @@ jobs:
             const path = require('path');
             const dedent = s => s.replace(/\n {12}/g, '\n').replace(/^ {12}/m, '');
 
+            const obtainiumUrl = 'https://obtainium.imranr.dev/redirect?r=obtainium://app/' + encodeURIComponent(JSON.stringify({
+              id: 'legiz.ru.prizrakbox',
+              url: `https://github.com/${owner}/${repo}/releases`,
+              author: owner,
+              name: 'Prizrak-Box',
+              preferredApkIndex: 0,
+              additionalSettings: JSON.stringify({
+                includePrereleases: true,
+                fallbackToOlderReleases: true,
+                autoApkFilterByArch: true,
+                trackOnly: false,
+                versionDetection: true,
+              }),
+            }));
+
             let release;
             try {
               const { data } = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
@@ -1305,10 +1320,10 @@ jobs:
                     <tr>
                         <td>Windows</td>
                         <td>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64-wails.msi"><img src="https://img.shields.io/badge/Setup-x64-2d7d9a.svg?logo=windows"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64-wails.msi"><img src="https://img.shields.io/badge/Setup-arm-2d7d9a.svg?logo=windows"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64-wails.zip"><img src="https://img.shields.io/badge/Portable-x64-67b7d1.svg?logo=windows"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64-wails.zip"><img src="https://img.shields.io/badge/Portable-arm-67b7d1.svg?logo=windows"></a>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64-wails.msi"><img src="https://img.shields.io/badge/Setup-x64-2d7d9a.svg?logo=wattpad"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64-wails.msi"><img src="https://img.shields.io/badge/Setup-arm-2d7d9a.svg?logo=wattpad"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64-wails.zip"><img src="https://img.shields.io/badge/Portable-x64-67b7d1.svg?logo=wattpad"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64-wails.zip"><img src="https://img.shields.io/badge/Portable-arm-67b7d1.svg?logo=wattpad"></a>
                         </td>
                     </tr>
                     <tr>
@@ -1326,6 +1341,7 @@ jobs:
                     <tr>
                         <td>Android</td>
                         <td>
+                            <a href="${obtainiumUrl}"><img src="https://img.shields.io/badge/Get%20it%20on-Obtainium-EF7100.svg?logo=android&logoColor=white" alt="Get it on Obtainium"></a><br>
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/prizrak-box-android-universal.apk"><img src="https://img.shields.io/badge/APK-universal-96ed89.svg?logo=android"></a><br>
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/prizrak-box-android-arm64-v8a.apk"><img src="https://img.shields.io/badge/APK-ARMv8-168039.svg?logo=android"></a><br>
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/prizrak-box-android-armeabi-v7a.apk"><img src="https://img.shields.io/badge/APK-ARMv7-45bf55.svg?logo=android"></a><br>
@@ -1338,10 +1354,10 @@ jobs:
                     <tr>
                         <td>Windows</td>
                         <td>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.msi"><img src="https://img.shields.io/badge/Setup-x64-2d7d9a.svg?logo=windows"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.msi"><img src="https://img.shields.io/badge/Setup-arm-2d7d9a.svg?logo=windows"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.zip"><img src="https://img.shields.io/badge/Portable-x64-67b7d1.svg?logo=windows"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.zip"><img src="https://img.shields.io/badge/Portable-arm-67b7d1.svg?logo=windows"></a>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.msi"><img src="https://img.shields.io/badge/Setup-x64-2d7d9a.svg?logo=wattpad"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.msi"><img src="https://img.shields.io/badge/Setup-arm-2d7d9a.svg?logo=wattpad"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.zip"><img src="https://img.shields.io/badge/Portable-x64-67b7d1.svg?logo=wattpad"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.zip"><img src="https://img.shields.io/badge/Portable-arm-67b7d1.svg?logo=wattpad"></a>
                         </td>
                     </tr>
                     <tr>
@@ -1358,7 +1374,7 @@ jobs:
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/linux-amd64.rpm"><img src="https://img.shields.io/badge/RpmPackage-x64-F1B42F.svg?logo=redhat"></a><br>
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/linux-arm64.deb"><img src="https://img.shields.io/badge/DebPackage-arm64-FF9966.svg?logo=debian"></a><br>
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/linux-arm64.rpm"><img src="https://img.shields.io/badge/RpmPackage-arm64-F1B42F.svg?logo=redhat"></a><br>
-                            <a href="https://aur.archlinux.org/packages/prizrak-box-bin"><img src="https://img.shields.io/aur/version/prizrak-box-bin"></a>
+                            <a href="https://aur.archlinux.org/packages/prizrak-box-bin"><img src="https://img.shields.io/aur/version/prizrak-box-bin?logo=archlinux"></a>
                         </td>
                     </tr>
                 </tbody>
