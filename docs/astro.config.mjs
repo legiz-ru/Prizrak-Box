@@ -41,6 +41,7 @@ export default defineConfig({
         {
           label: 'Integration',
           translations: { ru: 'Интеграция' },
+          collapsed: true,
           items: [
             {
               label: 'Integration Overview',
@@ -89,6 +90,9 @@ export default defineConfig({
         baseUrl: 'https://github.com/legiz-ru/Prizrak-Box/edit/main/docs/',
       },
       lastUpdated: true,
+      components: {
+        Sidebar: './src/components/CustomSidebar.astro',
+      },
     }),
   ],
 });
