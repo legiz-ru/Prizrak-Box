@@ -447,6 +447,39 @@ pxa-rp-mp: 1
 
 ---
 
+## Desktop UI Controls <Badge text="Desktop only" variant="note" />
+
+The following headers are supported only by the **desktop** versions of Prizrak-Box (**Windows**, **macOS**, **Linux**).
+They let subscription providers control certain UI elements of the desktop client.
+
+The value is applied on subscription fetch and persists in the profile until the next update.
+
+<details>
+<summary>**`global-mode`**</summary>
+
+Controls whether the **Global** option is available in the mode switcher (Rule / Global / Direct) in the left sidebar.
+
+| Property | Value |
+|----------|-------|
+| Type | `string` |
+| Values | `false` to hide Global; any other value (or absent) keeps it |
+
+**Example:**
+
+```http
+global-mode: false
+```
+
+If the value is strictly `false` (case-insensitive — compared via `.toLowerCase()`), the **Global** mode is hidden/disabled for this profile, leaving only **Rule** (and **Direct**). Any other value, or the absence of the header, keeps **Global** available.
+
+<Aside type="note">
+If the profile is currently in **Global** mode when this header disables it, the app automatically switches the active profile to **Rule** mode.
+</Aside>
+
+</details>
+
+---
+
 ## HWID Authentication
 
 Prizrak-Box supports the RemnaWave HWID Device Limit header format. When a subscription uses hardware-based device authentication, two groups of headers are involved: headers **sent by the client** with every request, and headers **returned by the server** in the response.
