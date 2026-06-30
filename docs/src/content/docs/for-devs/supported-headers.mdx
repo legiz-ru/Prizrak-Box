@@ -457,23 +457,24 @@ The value is applied on subscription fetch and persists in the profile until the
 <details>
 <summary>**`global-mode`**</summary>
 
-Controls whether the **Global** option is available in the mode switcher (Rule / Global / Direct) in the left sidebar.
+Controls whether the mode switcher (Rule / Global / Direct) is shown in the left sidebar.
 
 | Property | Value |
 |----------|-------|
 | Type | `string` |
-| Values | `false` to hide Global; any other value (or absent) keeps it |
+| Values | `false` or `0` to hide the switcher; any other value (or absent) shows it |
 
-**Example:**
+**Examples:**
 
 ```http
 global-mode: false
+global-mode: 0
 ```
 
-If the value is strictly `false` (case-insensitive — compared via `.toLowerCase()`), the **Global** mode is hidden/disabled for this profile, leaving only **Rule** (and **Direct**). Any other value, or the absence of the header, keeps **Global** available.
+If the value is `false` (case-insensitive — compared via `.toLowerCase()`) or `0`, the **whole mode switcher** (Rule / Global / Direct) is hidden from the left sidebar for this profile. Any other value, or the absence of the header, keeps the switcher visible.
 
 <Aside type="note">
-If the profile is currently in **Global** mode when this header disables it, the app automatically switches the active profile to **Rule** mode.
+If the profile is currently in **Global** mode when this header hides the switcher, the app automatically switches the active profile back to **Rule** mode.
 </Aside>
 
 </details>
