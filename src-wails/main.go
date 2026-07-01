@@ -194,6 +194,36 @@ func main() {
 		}
 	})
 
+	// Windows WebView2 blank-frame-on-first-reveal workaround.
+	//
+	// On Windows the WebView2 control often paints a blank frame the first time
+	// the window is shown (a black or white rectangle depending on the OS theme);
+	// the content only appears once a WM_SIZE arrives, which is why manually
+	// resizing or snapping the window (Win+Up) "fixes" it. Our launch flow makes
+	// this reproducible: the window is created Hidden and only revealed after the
+	// backend is up, via SetURL + Show, so no resize happens between the webview's
+	// first paint and the reveal.
+	//
+	// WebViewNavigationCompleted fires once the page has finished loading (content
+	// is ready). If the window is visible at that point, nudge its size by one
+	// pixel and back to synthesise a WM_SIZE, forcing WebView2 to lay out and
+	// repaint — the same thing the user's manual resize does. The nudge cancels
+	// out (h+1 then h) so the final size is unchanged. No-op on macOS/Linux, and
+	// skipped while hidden (e.g. the initial "/" load before the window is shown).
+	if runtime.GOOS == "windows" {
+		win.OnWindowEvent(events.Windows.WebViewNavigationCompleted, func(_ *application.WindowEvent) {
+			// Skip while hidden (nothing to repaint) or while maximised/fullscreen
+			// (SetSize would restore the window out of that state). A normal-state
+			// WM_SIZE is all the blank frame needs.
+			if !win.IsVisible() || win.IsMaximised() || win.IsFullscreen() {
+				return
+			}
+			w, h := win.Size()
+			win.SetSize(w, h+1)
+			win.SetSize(w, h)
+		})
+	}
+
 	// Window controls emitted by the Vue frontend (MyTitleBar.vue / Off.vue)
 	// via window.pxTray.emit -> Wails events. This replaces the Electron
 	// ipcMain handlers in src-electron/tray.ts.
