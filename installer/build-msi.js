@@ -76,12 +76,20 @@ async function buildMSI() {
     Language: '1033', // Primary language: English
     Culture: 'en-us',
     UpgradeCode: UPGRADE_CODE,
-    // Build flavour + the Electron UpgradeCode to supersede, consumed by the
-    // wails-only <Upgrade>/cleanup logic in Product.wxs (no-op for electron).
-    BuildType: IS_WAILS ? 'wails' : 'electron',
+    // Electron UpgradeCode to supersede, consumed by the wails-only
+    // <Upgrade>/cleanup logic in Product.wxs (harmless/unused for electron).
     ElectronUpgradeCode: ELECTRON_UPGRADE_CODE,
     ...COMPONENT_GUIDS,
   };
+
+  // Gate the Electron-supersede + cleanup logic on a plain "is this the Wails
+  // build?" flag. Defined ONLY for the Wails build so Product.wxs can use
+  // <?ifdef Wails ?> — a bare existence check that avoids the WiX v3
+  // preprocessor's quoted-string comparison pitfall (`$(var.X) = "wails"` does
+  // not match, which previously dropped all the wails-only authoring).
+  if (IS_WAILS) {
+    wixVars.Wails = '1';
+  }
 
   const wixDefines = Object.entries(wixVars)
     .map(([key, value]) => `-d${key}="${value}"`)

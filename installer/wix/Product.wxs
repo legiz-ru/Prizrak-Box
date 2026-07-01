@@ -32,7 +32,7 @@
                   Schedule="afterInstallInitialize"
                   AllowSameVersionUpgrades="yes" />
 
-    <?if $(var.BuildType) = "wails" ?>
+    <?ifdef Wails ?>
     <!-- Supersede any previously installed Electron build. Every Electron
          package (electron-forge MakerWix from v1.0.20, installed to
          "Program Files (x86)\Prizrak-Box" with an app-<ver> subfolder, AND the
@@ -174,7 +174,7 @@
                   Impersonate="no"
                   Return="ignore" />
 
-    <?if $(var.BuildType) = "wails" ?>
+    <?ifdef Wails ?>
     <!-- Best-effort removal of an old per-user Squirrel install (the v1.0.20
          windows-*-Setup.exe, installed to %LOCALAPPDATA%\Prizrak-Box). Runs
          impersonated so %LOCALAPPDATA% resolves to the installing user; a
@@ -210,7 +210,7 @@
         NOT REMOVE
       </Custom>
 
-      <?if $(var.BuildType) = "wails" ?>
+      <?ifdef Wails ?>
       <!-- After RemoveExistingProducts (removes the Electron MSI) and before the
            new files are installed, mop up a per-user Squirrel install and any
            orphaned Electron directory. -->
