@@ -32,6 +32,23 @@
                   Schedule="afterInstallInitialize"
                   AllowSameVersionUpgrades="yes" />
 
+    <?if $(var.BuildType) = "wails" ?>
+    <!-- Supersede any previously installed Electron build. Every Electron
+         package (electron-forge MakerWix from v1.0.20, installed to
+         "Program Files (x86)\Prizrak-Box" with an app-<ver> subfolder, AND the
+         later custom WiX MSI in "Program Files\Prizrak-Box") shares this
+         UpgradeCode, so RemoveExistingProducts (scheduled by MajorUpgrade above)
+         uninstalls whichever is present via its own cached MSI — cleaning its
+         files, shortcuts and Add/Remove Programs entry regardless of x86/x64
+         install path — before the Wails files are laid down. -->
+    <Upgrade Id="$(var.ElectronUpgradeCode)">
+      <UpgradeVersion Minimum="0.0.0" IncludeMinimum="yes"
+                      Maximum="255.255.255" IncludeMaximum="yes"
+                      OnlyDetect="no" MigrateFeatures="no" RemoveFeatures="ALL"
+                      Property="LEGACYELECTRONFOUND" />
+    </Upgrade>
+    <?endif?>
+
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
 
     <!-- Icon for Add/Remove Programs - use dedicated .ico file instead of extracting from .exe -->
@@ -63,7 +80,7 @@
 
     <!-- Protocol Handler and App Registration -->
     <DirectoryRef Id="INSTALLDIR">
-      <Component Id="AppRegistration" Guid="12345678-1234-1234-1234-123456789abc" Win64="$(var.Win64)">
+      <Component Id="AppRegistration" Guid="$(var.AppRegistrationGuid)" Win64="$(var.Win64)">
         <!-- Registry for Protocol Handler prizrak-box:// -->
         <RegistryKey Root="HKCR" Key="prizrak-box">
           <RegistryValue Type="string" Value="URL:Prizrak-Box Protocol" />
@@ -95,7 +112,7 @@
 
     <!-- Desktop Shortcut -->
     <DirectoryRef Id="DesktopFolder">
-      <Component Id="DesktopShortcut" Guid="23456789-1234-1234-1234-123456789abc">
+      <Component Id="DesktopShortcut" Guid="$(var.DesktopShortcutGuid)">
         <Shortcut Id="DesktopShortcut"
                   Name="$(var.ProductName)"
                   Description="!(loc.PB_ProductDescription)"
@@ -114,7 +131,7 @@
 
     <!-- Start Menu Shortcut -->
     <DirectoryRef Id="ApplicationProgramsFolder">
-      <Component Id="StartMenuShortcut" Guid="34567890-1234-1234-1234-123456789abc">
+      <Component Id="StartMenuShortcut" Guid="$(var.StartMenuShortcutGuid)">
         <Shortcut Id="StartMenuShortcut"
                   Name="$(var.ProductName)"
                   Description="!(loc.PB_ProductDescription)"
@@ -157,12 +174,53 @@
                   Impersonate="no"
                   Return="ignore" />
 
+    <?if $(var.BuildType) = "wails" ?>
+    <!-- Best-effort removal of an old per-user Squirrel install (the v1.0.20
+         windows-*-Setup.exe, installed to %LOCALAPPDATA%\Prizrak-Box). Runs
+         impersonated so %LOCALAPPDATA% resolves to the installing user; a
+         per-machine MSI cannot reliably reach another account's profile, so
+         failures are ignored (best-effort, as agreed). -->
+    <CustomAction Id="UninstallSquirrel"
+                  Directory="TARGETDIR"
+                  ExeCommand='powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = &apos;SilentlyContinue&apos;; $root = Join-Path $env:LOCALAPPDATA &apos;Prizrak-Box&apos;; $upd = Join-Path $root &apos;Update.exe&apos;; if (Test-Path $upd) { Start-Process -FilePath $upd -ArgumentList &apos;--uninstall&apos;,&apos;-s&apos; -Wait; Remove-Item -LiteralPath $root -Recurse -Force }"'
+                  Execute="deferred"
+                  Impersonate="yes"
+                  Return="ignore" />
+
+    <!-- Safety net for the leftover Electron install directory. RemoveExisting-
+         Products normally clears it, but the electron-forge build lives in
+         "Program Files (x86)\Prizrak-Box" (x86) while the Wails MSI installs to
+         "Program Files\Prizrak-Box" (x64); this scrubs any orphaned Electron
+         folder in either location. It only deletes a folder that carries the
+         electron-forge signature (.installInfo.json or an app-* subdir) — the
+         Wails layout has neither, and user data lives in %APPDATA%, so nothing
+         of value is touched. -->
+    <CustomAction Id="CleanupLegacyElectron"
+                  Directory="TARGETDIR"
+                  ExeCommand='powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = &apos;SilentlyContinue&apos;; foreach ($base in @(${env:ProgramFiles(x86)}, $env:ProgramFiles)) { if (-not $base) { continue }; $d = Join-Path $base &apos;Prizrak-Box&apos;; if (Test-Path $d) { $isElectron = (Test-Path (Join-Path $d &apos;.installInfo.json&apos;)) -or (Get-ChildItem -LiteralPath $d -Directory -Filter &apos;app-*&apos; -ErrorAction SilentlyContinue); if ($isElectron) { Remove-Item -LiteralPath $d -Recurse -Force } } }"'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+    <?endif?>
+
     <!-- Installation Sequence -->
     <InstallExecuteSequence>
       <!-- Stop processes/services before installing files -->
       <Custom Action="StopProcessesBeforeInstall" Before="InstallFiles">
         NOT REMOVE
       </Custom>
+
+      <?if $(var.BuildType) = "wails" ?>
+      <!-- After RemoveExistingProducts (removes the Electron MSI) and before the
+           new files are installed, mop up a per-user Squirrel install and any
+           orphaned Electron directory. -->
+      <Custom Action="UninstallSquirrel" After="RemoveExistingProducts">
+        NOT REMOVE
+      </Custom>
+      <Custom Action="CleanupLegacyElectron" After="UninstallSquirrel">
+        NOT REMOVE
+      </Custom>
+      <?endif?>
 
       <!-- Install TUN Service after files (if feature selected) -->
       <Custom Action="InstallTunService" After="InstallFiles">

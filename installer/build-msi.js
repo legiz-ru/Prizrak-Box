@@ -10,9 +10,28 @@ const IS_WAILS = (process.env.BUILD_TYPE || 'electron') === 'wails';
 // Electron and Wails MSIs share the same install directory but must NOT
 // share an UpgradeCode — otherwise Windows Installer treats them as the same
 // product chain and silently rolls back whichever was installed first.
+const ELECTRON_UPGRADE_CODE = 'c1d377b2-2c61-4c5e-8773-8e3c703b8b41'; // Electron build (also used by electron-forge MakerWix)
 const UPGRADE_CODE = IS_WAILS
   ? 'd5f799e1-4b83-4a7f-b662-1a3c924d5e0f'   // Wails build — separate upgrade chain
-  : 'c1d377b2-2c61-4c5e-8773-8e3c703b8b41';  // Electron build (original)
+  : ELECTRON_UPGRADE_CODE;
+
+// Fixed component GUIDs. Electron and Wails are separate products, so their
+// shared-path components (registration + shortcuts) MUST use different GUIDs —
+// reusing one GUID across products violates the MSI component rules and caused
+// the "dead desktop shortcut / Prizrak-Box.exe missing from the install folder"
+// bug when both were installed. Electron keeps its original GUIDs so its own
+// upgrade chain is undisturbed.
+const COMPONENT_GUIDS = IS_WAILS
+  ? {
+      AppRegistrationGuid: 'b7e6d1a0-9c34-4f21-8a5e-1f2a3b4c5d60',
+      DesktopShortcutGuid: 'b7e6d1a0-9c34-4f21-8a5e-1f2a3b4c5d61',
+      StartMenuShortcutGuid: 'b7e6d1a0-9c34-4f21-8a5e-1f2a3b4c5d62',
+    }
+  : {
+      AppRegistrationGuid: '12345678-1234-1234-1234-123456789abc',
+      DesktopShortcutGuid: '23456789-1234-1234-1234-123456789abc',
+      StartMenuShortcutGuid: '34567890-1234-1234-1234-123456789abc',
+    };
 
 const PATHS = {
   root: path.resolve(__dirname, '..'),
@@ -57,6 +76,11 @@ async function buildMSI() {
     Language: '1033', // Primary language: English
     Culture: 'en-us',
     UpgradeCode: UPGRADE_CODE,
+    // Build flavour + the Electron UpgradeCode to supersede, consumed by the
+    // wails-only <Upgrade>/cleanup logic in Product.wxs (no-op for electron).
+    BuildType: IS_WAILS ? 'wails' : 'electron',
+    ElectronUpgradeCode: ELECTRON_UPGRADE_CODE,
+    ...COMPONENT_GUIDS,
   };
 
   const wixDefines = Object.entries(wixVars)

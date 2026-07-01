@@ -303,7 +303,7 @@ jobs:
           $portableDir = Get-ChildItem -Path "out" -Directory | Where-Object { $_.Name -like "Prizrak-Box-win32-*" } | Select-Object -First 1
           if ($portableDir) {
               Write-Host "Creating portable ZIP from: $($portableDir.FullName)"
-              Compress-Archive -Path "$($portableDir.FullName)\*" -DestinationPath "windows-${arch}.zip" -Force
+              Compress-Archive -Path "$($portableDir.FullName)\*" -DestinationPath "windows-${arch}-electron.zip" -Force
           } else {
               Write-Error "Portable directory not found"
               Get-ChildItem -Path "out" -Recurse -Directory | ForEach-Object { Write-Host "  Dir: $($_.FullName)" }
@@ -314,7 +314,7 @@ jobs:
           $msiSourcePath = "out\msi\$electronArch\$msiSourceName"
           if (Test-Path $msiSourcePath) {
               Write-Host "Found MSI: $msiSourcePath"
-              Copy-Item -Path $msiSourcePath -Destination "windows-${arch}.msi" -Force
+              Copy-Item -Path $msiSourcePath -Destination "windows-${arch}-electron.msi" -Force
           } else {
               $msiFallback = Get-ChildItem -Path "out" -Recurse -Filter "*.msi" | Where-Object {
                   $_.FullName -match "(\\|/)($electronArch|$arch)(\\|/)" -or $_.Name -match "[-_]($electronArch|$arch)\.msi$"
@@ -326,7 +326,7 @@ jobs:
 
               if ($msiFallback) {
                   Write-Host "Using fallback MSI: $($msiFallback.FullName)"
-                  Copy-Item -Path $msiFallback.FullName -Destination "windows-${arch}.msi" -Force
+                  Copy-Item -Path $msiFallback.FullName -Destination "windows-${arch}-electron.msi" -Force
               } else {
                   Write-Error "MSI file not found. Expected: $msiSourcePath"
                   Get-ChildItem -Path "out" -Recurse -Directory | ForEach-Object { Write-Host "  Dir: $($_.FullName)" }
@@ -339,8 +339,8 @@ jobs:
         run: |
           $arch = "${{ matrix.arch }}"
           $expected = @(
-            "windows-${arch}.zip",
-            "windows-${arch}.msi"
+            "windows-${arch}-electron.zip",
+            "windows-${arch}-electron.msi"
           )
 
           $missing = @()
@@ -364,8 +364,8 @@ jobs:
         with:
           name: windows-${{ matrix.arch }}
           path: |
-            windows-${{ matrix.arch }}.zip
-            windows-${{ matrix.arch }}.msi
+            windows-${{ matrix.arch }}-electron.zip
+            windows-${{ matrix.arch }}-electron.msi
 
       - name: Cancel workflow on failure
         if: ${{ failure() }}
@@ -733,12 +733,12 @@ jobs:
           fi
 
           if [ -z "$zip_source" ]; then
-            echo "No suitable directory found to create macos-${arch}.zip" >&2
+            echo "No suitable directory found to create macos-${arch}-electron.zip" >&2
             find out -maxdepth 4 -print
             exit 1
           fi
 
-          zip -r "macos-${arch}.zip" "$zip_source"
+          zip -r "macos-${arch}-electron.zip" "$zip_source"
 
       - name: Extract DMG from ZIP
         run: |
@@ -749,12 +749,12 @@ jobs:
           if [ -z "$dmg" ]; then
             rm -rf zip-extract
             mkdir zip-extract
-            unzip -q "macos-${arch}.zip" -d zip-extract
+            unzip -q "macos-${arch}-electron.zip" -d zip-extract
             dmg=$(find zip-extract -type f -name "*.dmg" | head -1)
           fi
 
           if [ -z "$dmg" ]; then
-            echo "No DMG found in out/ or macos-${arch}.zip" >&2
+            echo "No DMG found in out/ or macos-${arch}-electron.zip" >&2
             if [ -d out ]; then
               find out -maxdepth 4 -print
             fi
@@ -763,7 +763,7 @@ jobs:
             fi
             exit 1
           fi
-          mv "$dmg" "macos-${arch}.dmg"
+          mv "$dmg" "macos-${arch}-electron.dmg"
           rm -rf zip-extract
 
       - name: Validate Release Assets
@@ -771,7 +771,7 @@ jobs:
           set -e
           arch="${{ matrix.arch }}"
           missing=0
-          for file in "macos-${arch}.zip" "macos-${arch}.dmg"; do
+          for file in "macos-${arch}-electron.zip" "macos-${arch}-electron.dmg"; do
             if [ ! -f "$file" ]; then
               echo "Missing macOS artifact: $file" >&2
               missing=1
@@ -793,8 +793,8 @@ jobs:
         with:
           name: macos-${{ matrix.arch }}
           path: |
-            macos-${{ matrix.arch }}.zip
-            macos-${{ matrix.arch }}.dmg
+            macos-${{ matrix.arch }}-electron.zip
+            macos-${{ matrix.arch }}-electron.dmg
 
       - name: Cancel workflow on failure
         if: ${{ failure() }}
@@ -1005,7 +1005,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
 
-  # ── Wails (experimental) macOS — same packaging as Electron, files suffixed -wails ──
+  # ── Wails macOS — same packaging as Electron; canonical macos-<arch>.{zip,dmg} names ──
   build_macos_wails:
     needs: [setup]
     if: github.event_name == 'release' || inputs.build_macos == true
@@ -1120,25 +1120,25 @@ jobs:
       - name: Package .zip + .dmg
         run: |
           set -euo pipefail
-          zip -qr "macos-${{ matrix.arch }}-wails.zip" "Prizrak-Box.app"
-          node src-wails/build/darwin/create-macos-dmg.mjs ${{ matrix.arch }} macos-${{ matrix.arch }}-wails.dmg
+          zip -qr "macos-${{ matrix.arch }}.zip" "Prizrak-Box.app"
+          node src-wails/build/darwin/create-macos-dmg.mjs ${{ matrix.arch }} macos-${{ matrix.arch }}.dmg
           if [ -n "${MACOS_CERTIFICATE:-}" ]; then
             IDENTITY=$(security find-identity -v -p codesigning "$HOME/Library/Keychains/ci-signing.keychain-db" | head -n 1 | sed -E 's/^.*"(.+)"$/\1/')
-            codesign --force --timestamp --sign "$IDENTITY" "macos-${{ matrix.arch }}-wails.dmg" || true
+            codesign --force --timestamp --sign "$IDENTITY" "macos-${{ matrix.arch }}.dmg" || true
           fi
       - uses: actions/upload-artifact@v4
         with:
           name: wails-macos-${{ matrix.arch }}
           path: |
-            macos-${{ matrix.arch }}-wails.zip
-            macos-${{ matrix.arch }}-wails.dmg
+            macos-${{ matrix.arch }}.zip
+            macos-${{ matrix.arch }}.dmg
       - name: Cancel workflow on failure
         if: ${{ failure() }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
 
-  # ── Wails (experimental) Windows — same WiX MSI + portable zip, files suffixed -wails ──
+  # ── Wails Windows — same WiX MSI + portable zip; canonical windows-<arch>.{msi,zip} names ──
   build_windows_wails:
     needs: [setup]
     if: github.event_name == 'release' || inputs.build_windows == true
@@ -1215,16 +1215,16 @@ jobs:
         run: |
           $env:PATH = "C:\wix;$env:PATH"
           node installer/build-msi.js
-          Copy-Item "out/msi/${{ matrix.msiarch }}/windows-${{ matrix.msiarch }}.msi" "windows-${{ matrix.arch }}-wails.msi"
+          Copy-Item "out/msi/${{ matrix.msiarch }}/windows-${{ matrix.msiarch }}.msi" "windows-${{ matrix.arch }}.msi"
       - name: Stage portable zip
         shell: pwsh
-        run: Compress-Archive -Path "out/Prizrak-Box-win32-${{ matrix.msiarch }}/*" -DestinationPath "windows-${{ matrix.arch }}-wails.zip" -Force
+        run: Compress-Archive -Path "out/Prizrak-Box-win32-${{ matrix.msiarch }}/*" -DestinationPath "windows-${{ matrix.arch }}.zip" -Force
       - uses: actions/upload-artifact@v4
         with:
           name: wails-windows-${{ matrix.arch }}
           path: |
-            windows-${{ matrix.arch }}-wails.msi
-            windows-${{ matrix.arch }}-wails.zip
+            windows-${{ matrix.arch }}.msi
+            windows-${{ matrix.arch }}.zip
       - name: Cancel workflow on failure
         if: ${{ failure() }}
         env:
@@ -1315,24 +1315,24 @@ jobs:
                 </thead>
                 <tbody align=left>
                     <tr>
-                        <td colspan="2" align="center"><strong>Wails Experiment Builds</strong></td>
+                        <td colspan="2" align="center"><strong>Wails Builds</strong></td>
                     </tr>
                     <tr>
                         <td>Windows</td>
                         <td>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64-wails.msi"><img src="https://img.shields.io/badge/Setup-x64-2d7d9a.svg?logo=wattpad"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64-wails.msi"><img src="https://img.shields.io/badge/Setup-arm-2d7d9a.svg?logo=wattpad"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64-wails.zip"><img src="https://img.shields.io/badge/Portable-x64-67b7d1.svg?logo=wattpad"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64-wails.zip"><img src="https://img.shields.io/badge/Portable-arm-67b7d1.svg?logo=wattpad"></a>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.msi"><img src="https://img.shields.io/badge/Setup-x64-2d7d9a.svg?logo=wattpad"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.msi"><img src="https://img.shields.io/badge/Setup-arm-2d7d9a.svg?logo=wattpad"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.zip"><img src="https://img.shields.io/badge/Portable-x64-67b7d1.svg?logo=wattpad"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.zip"><img src="https://img.shields.io/badge/Portable-arm-67b7d1.svg?logo=wattpad"></a>
                         </td>
                     </tr>
                     <tr>
                         <td>macOS</td>
                         <td>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/macos-arm64-wails.dmg"><img src="https://img.shields.io/badge/DMG-Apple%20Silicon-%23000000.svg?logo=apple"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/macos-amd64-wails.dmg"><img src="https://img.shields.io/badge/DMG-Intel%20X64-%2300A9E0.svg?logo=apple"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/macos-arm64-wails.zip"><img src="https://img.shields.io/badge/ZIP-Apple%20Silicon-%23000000.svg?logo=apple"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/macos-amd64-wails.zip"><img src="https://img.shields.io/badge/ZIP-Intel%20X64-%2300A9E0.svg?logo=apple"></a>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/macos-arm64.dmg"><img src="https://img.shields.io/badge/DMG-Apple%20Silicon-%23000000.svg?logo=apple"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/macos-amd64.dmg"><img src="https://img.shields.io/badge/DMG-Intel%20X64-%2300A9E0.svg?logo=apple"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/macos-arm64.zip"><img src="https://img.shields.io/badge/ZIP-Apple%20Silicon-%23000000.svg?logo=apple"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/macos-amd64.zip"><img src="https://img.shields.io/badge/ZIP-Intel%20X64-%2300A9E0.svg?logo=apple"></a>
                         </td>
                     </tr>
                     <tr>
@@ -1349,23 +1349,7 @@ jobs:
                         </td>
                     </tr>
                     <tr>
-                        <td colspan="2" align="center"><strong>Electron Builds</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Windows</td>
-                        <td>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.msi"><img src="https://img.shields.io/badge/Setup-x64-2d7d9a.svg?logo=wattpad"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.msi"><img src="https://img.shields.io/badge/Setup-arm-2d7d9a.svg?logo=wattpad"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.zip"><img src="https://img.shields.io/badge/Portable-x64-67b7d1.svg?logo=wattpad"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.zip"><img src="https://img.shields.io/badge/Portable-arm-67b7d1.svg?logo=wattpad"></a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>macOS</td>
-                        <td>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/macos-arm64.dmg"><img src="https://img.shields.io/badge/DMG-Apple%20Silicon-%23000000.svg?logo=apple"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/macos-amd64.dmg"><img src="https://img.shields.io/badge/DMG-Intel%20X64-%2300A9E0.svg?logo=apple"></a>
-                        </td>
+                        <td colspan="2" align="center"><strong>Linux</strong></td>
                     </tr>
                     <tr>
                         <td>Linux</td>
