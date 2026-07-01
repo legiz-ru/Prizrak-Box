@@ -29,7 +29,7 @@
       </div>
       <MyEvent/>
       <MyNav/>
-      <MyRule/>
+      <MyRule :active-profile="activeProfile"/>
       <MyProxy/>
       <MyBottom/>
     </div>

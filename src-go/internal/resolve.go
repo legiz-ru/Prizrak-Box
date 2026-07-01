@@ -694,4 +694,11 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 
 	// HWID active flag — сохраняется в профиле чтобы edit-диалог мог показать индикатор
 	profile.HwidActive = strings.EqualFold(strings.TrimSpace(header.Get("X-Hwid-Active")), "true")
+
+	// global-mode: значение "false" (без учёта регистра) или "0" полностью
+	// скрывает переключатель режимов (Rule/Global/Direct) в левом боковом меню.
+	// Любое другое значение или отсутствие заголовка оставляет его видимым.
+	// Применяется только к десктопным версиям.
+	globalMode := strings.ToLower(strings.TrimSpace(header.Get("global-mode")))
+	profile.GlobalModeDisabled = globalMode == "false" || globalMode == "0"
 }

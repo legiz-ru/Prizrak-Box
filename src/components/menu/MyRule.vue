@@ -1,7 +1,7 @@
 <template>
-  <div class="rule-pill">
+  <div v-if="!hideModeSwitch" class="rule-pill">
     <button
-        v-for="opt in getOptions()"
+        v-for="opt in options"
         :key="opt.value"
         type="button"
         :class="['rule-pill__btn', { 'is-active': menuStore.rule === opt.value }]"
@@ -30,7 +30,16 @@ const api = createApi(proxy);
 
 // 国际化
 const {t} = useI18n();
-const getOptions = function (): any[] {
+
+// Активный профиль приходит из App.vue (primary > selected > первый в списке).
+const props = defineProps<{ activeProfile?: any }>();
+
+// HTTP-заголовок профиля `global-mode: false` (без учёта регистра) или `0`
+// полностью скрывает переключатель режимов в левом боковом меню. Любое другое
+// значение или отсутствие заголовка оставляет его видимым. Только для десктопа.
+const hideModeSwitch = computed(() => props.activeProfile?.globalModeDisabled === true);
+
+const options = computed((): any[] => {
   const modes = [
     {
       label: t("rules.rule"),
@@ -50,7 +59,19 @@ const getOptions = function (): any[] {
   }
 
   return modes
-};
+});
+
+// Когда переключатель скрыт, а активным остаётся Global — возвращаемся в Rule
+// (watch ниже сам применит режим в Mihomo), чтобы профиль не залип в Global.
+watch(
+    hideModeSwitch,
+    (hidden) => {
+      if (hidden && menuStore.rule === "global") {
+        menuStore.rule = "rule";
+      }
+    },
+    {immediate: true}
+);
 
 // 监听 store.rule 的变化
 watch(

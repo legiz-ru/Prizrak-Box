@@ -23,6 +23,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -161,10 +162,72 @@ func main() {
 	}
 	win = app.Window.NewWithOptions(winOpts)
 
+	// quitting distinguishes a genuine shutdown (set just before app.Quit) from
+	// an ordinary window close, so the WindowClosing hook below knows whether to
+	// hide the window or let it be destroyed.
+	var quitting atomic.Bool
+	quit := func() {
+		quitting.Store(true)
+		app.Quit()
+	}
+
+	// Closing the window must hide it to the tray, not destroy it. On macOS
+	// Cmd+W (the system "Close Window" menu item) and the native red traffic
+	// light fire WindowClosing; Wails' default listener then destroys the window.
+	// A destroyed window leaves the tray's "Show"/"Quit" items pointing at a dead
+	// window and webview — "Show" becomes a no-op and "Quit" never round-trips
+	// through the frontend — so the app can only be force-quit. RegisterHook runs
+	// before that default listener, and cancelling the event prevents the
+	// destroy. We then hide (macOS) or minimise (Windows/Linux), mirroring the
+	// Electron shell's close→hide/minimise behaviour (src-electron/tray.ts). A
+	// genuine quit goes through app.Quit (native terminate, no WindowClosing), but
+	// the framework's own cleanup also calls window.Close(), so honour `quitting`.
+	win.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		if quitting.Load() {
+			return
+		}
+		e.Cancel()
+		if runtime.GOOS == "darwin" {
+			win.Hide()
+		} else {
+			win.Minimise()
+		}
+	})
+
+	// Windows WebView2 blank-frame-on-first-reveal workaround.
+	//
+	// On Windows the WebView2 control often paints a blank frame the first time
+	// the window is shown (a black or white rectangle depending on the OS theme);
+	// the content only appears once a WM_SIZE arrives, which is why manually
+	// resizing or snapping the window (Win+Up) "fixes" it. Our launch flow makes
+	// this reproducible: the window is created Hidden and only revealed after the
+	// backend is up, via SetURL + Show, so no resize happens between the webview's
+	// first paint and the reveal.
+	//
+	// WebViewNavigationCompleted fires once the page has finished loading (content
+	// is ready). If the window is visible at that point, nudge its size by one
+	// pixel and back to synthesise a WM_SIZE, forcing WebView2 to lay out and
+	// repaint — the same thing the user's manual resize does. The nudge cancels
+	// out (h+1 then h) so the final size is unchanged. No-op on macOS/Linux, and
+	// skipped while hidden (e.g. the initial "/" load before the window is shown).
+	if runtime.GOOS == "windows" {
+		win.OnWindowEvent(events.Windows.WebViewNavigationCompleted, func(_ *application.WindowEvent) {
+			// Skip while hidden (nothing to repaint) or while maximised/fullscreen
+			// (SetSize would restore the window out of that state). A normal-state
+			// WM_SIZE is all the blank frame needs.
+			if !win.IsVisible() || win.IsMaximised() || win.IsFullscreen() {
+				return
+			}
+			w, h := win.Size()
+			win.SetSize(w, h+1)
+			win.SetSize(w, h)
+		})
+	}
+
 	// Window controls emitted by the Vue frontend (MyTitleBar.vue / Off.vue)
 	// via window.pxTray.emit -> Wails events. This replaces the Electron
 	// ipcMain handlers in src-electron/tray.ts.
-	app.Event.On("px:fe:close", func(_ *application.CustomEvent) { app.Quit() }) // custom titlebar X quits (matches Electron)
+	app.Event.On("px:fe:close", func(_ *application.CustomEvent) { quit() }) // custom titlebar X quits (matches Electron)
 	app.Event.On("px:fe:hide", func(_ *application.CustomEvent) { win.Hide() })
 	app.Event.On("px:fe:min", func(_ *application.CustomEvent) { win.Minimise() })
 	app.Event.On("px:fe:max", func(_ *application.CustomEvent) { win.ToggleMaximise() })
@@ -192,7 +255,7 @@ func main() {
 		// The Exit button (Off.vue) fires this after asking px to shut down.
 		// It may carry data:false when px exits before confirming over HTTP,
 		// but the user's intent is always to quit, so quit unconditionally.
-		app.Quit()
+		quit()
 	})
 
 	// Dynamic system tray (modes / profiles / proxy groups / dashboards /

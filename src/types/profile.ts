@@ -27,6 +27,7 @@ export class Profile {
     ageSecretKey?: string;
     fallbackUrl?: string;
     fallbackDomain?: string;
+    globalModeDisabled?: boolean;
 }
 
 export interface ProfileSelectionPayload {
