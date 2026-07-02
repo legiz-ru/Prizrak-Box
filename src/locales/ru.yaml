@@ -203,6 +203,7 @@ proxies:
     no-data: "Информация о стабильности подключения ещё не получена"
   test-group: Тест задержки группы
   auto-group-no-manual-select: "Данная группа является автоматической, в ней запрещён ручной выбор."
+  test-result: "{name}: доступно {succeeded}/{total} узлов"
 
 profiles:
   title: Профили

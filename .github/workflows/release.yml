@@ -1277,21 +1277,6 @@ jobs:
             const path = require('path');
             const dedent = s => s.replace(/\n {12}/g, '\n').replace(/^ {12}/m, '');
 
-            const obtainiumUrl = 'obtainium://app/' + encodeURIComponent(JSON.stringify({
-              id: 'legiz.ru.prizrakbox',
-              url: `https://github.com/${owner}/${repo}/releases`,
-              author: owner,
-              name: 'Prizrak-Box',
-              preferredApkIndex: 0,
-              additionalSettings: JSON.stringify({
-                includePrereleases: true,
-                fallbackToOlderReleases: true,
-                autoApkFilterByArch: true,
-                trackOnly: false,
-                versionDetection: true,
-              }),
-            }));
-
             let release;
             try {
               const { data } = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
@@ -1349,7 +1334,7 @@ jobs:
                     <tr>
                         <td>Android</td>
                         <td>
-                            <a href="${obtainiumUrl}"><img src="https://img.shields.io/badge/Get%20it%20on-Obtainium-EF7100.svg?logo=android&logoColor=white" alt="Get it on Obtainium"></a><br>
+                            <a href="https://legiz-ru.github.io/Orion/redirect-page/?redirect_to=obtainium://app/%7B%22id%22:%22ru.legiz.prizrakbox.meta%22,%22url%22:%22https://github.com/legiz-ru/Prizrak-Box/releases%22,%22author%22:%22legiz-ru%22,%22name%22:%22Prizrak-Box%22,%22preferredApkIndex%22:0,%22additionalSettings%22:%22%7B%5C%22includePrereleases%5C%22:true,%5C%22fallbackToOlderReleases%5C%22:true,%5C%22autoApkFilterByArch%5C%22:true,%5C%22trackOnly%5C%22:false,%5C%22versionDetection%5C%22:true%7D%22%7D"><img src="https://img.shields.io/badge/Get%20it%20on-Obtainium-EF7100.svg?logo=android&logoColor=white" alt="Get it on Obtainium"></a><br>
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/prizrak-box-android-universal.apk"><img src="https://img.shields.io/badge/APK-universal-96ed89.svg?logo=android"></a><br>
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/prizrak-box-android-arm64-v8a.apk"><img src="https://img.shields.io/badge/APK-ARMv8-168039.svg?logo=android"></a><br>
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/prizrak-box-android-armeabi-v7a.apk"><img src="https://img.shields.io/badge/APK-ARMv7-45bf55.svg?logo=android"></a><br>

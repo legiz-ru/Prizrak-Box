@@ -38,6 +38,12 @@ type trayController struct {
 	profiles   []any
 	groups     []any
 	dashboards []any
+
+	// globalModeDisabled mirrors the active profile's `global-mode: false`
+	// HTTP header (App.vue pickSelectedProfile: primary > selected > first),
+	// hiding the Rule/Global/Direct checkboxes from the tray menu the same
+	// way MyRule.vue hides them from the left sidebar.
+	globalModeDisabled bool
 }
 
 func setupTray(app *application.App, win *application.WebviewWindow) *trayController {
@@ -78,7 +84,13 @@ func setupTray(app *application.App, win *application.WebviewWindow) *trayContro
 		c.set(func() { c.tun = asBool(e.Data) })
 		c.applyWinTrayIcon()
 	})
-	app.Event.On("px:fe:profiles", func(e *application.CustomEvent) { c.set(func() { c.profiles = asArr(e.Data) }) })
+	app.Event.On("px:fe:profiles", func(e *application.CustomEvent) {
+		c.set(func() {
+			c.profiles = asArr(e.Data)
+			active := pickActiveProfile(c.profiles)
+			c.globalModeDisabled = active != nil && asBool(active["globalModeDisabled"])
+		})
+	})
 	app.Event.On("px:fe:proxyGroups", func(e *application.CustomEvent) { c.set(func() { c.groups = asArr(e.Data) }) })
 	app.Event.On("px:fe:dashboards", func(e *application.CustomEvent) { c.set(func() { c.dashboards = asArr(e.Data) }) })
 
@@ -143,10 +155,12 @@ func (c *trayController) buildMenu() {
 	})
 	menu.AddSeparator()
 
-	c.addMode(menu, "tray.rule", "Rule", "rule")
-	c.addMode(menu, "tray.global", "Global", "global")
-	c.addMode(menu, "tray.direct", "Direct", "direct")
-	menu.AddSeparator()
+	if !c.globalModeDisabled {
+		c.addMode(menu, "tray.rule", "Rule", "rule")
+		c.addMode(menu, "tray.global", "Global", "global")
+		c.addMode(menu, "tray.direct", "Direct", "direct")
+		menu.AddSeparator()
+	}
 
 	// Profile selection from the tray is intentionally disabled.
 
@@ -209,6 +223,31 @@ func (c *trayController) buildMenu() {
 	})
 
 	c.tray.SetMenu(menu)
+}
+
+// pickActiveProfile mirrors App.vue's pickSelectedProfile: primary > selected
+// > first in the list. Returns nil if list is empty.
+func pickActiveProfile(list []any) map[string]any {
+	var selected map[string]any
+	for _, p := range list {
+		pm := asMap(p)
+		if pm == nil {
+			continue
+		}
+		if asBool(pm["primary"]) {
+			return pm
+		}
+		if selected == nil && asBool(pm["selected"]) {
+			selected = pm
+		}
+	}
+	if selected != nil {
+		return selected
+	}
+	if len(list) > 0 {
+		return asMap(list[0])
+	}
+	return nil
 }
 
 func (c *trayController) addMode(menu *application.Menu, id, fallback, mode string) {

@@ -4,9 +4,16 @@ import {useProxiesStore, type ProxyViewMode} from "@/store/proxiesStore";
 import {useMenuStore} from "@/store/menuStore";
 import {useSettingStore} from "@/store/settingStore";
 import {useI18n} from "vue-i18n";
-import {pError, pLoad, pWarning} from "@/util/pLoad";
+import {pError, pSuccess, pWarning} from "@/util/pLoad";
 import {useWebStore} from "@/store/webStore";
 import {changeProxyAndCloseConnections} from "@/util/proxy";
+import {proxyNodeDelayLimiter} from "@/util/pLimit";
+
+// Delay-test timeouts (ms). Kept distinct: a single node's dial should fail
+// fast, while a group-level /group/:name/delay call needs enough budget for
+// Mihomo to test every member server-side in that one request.
+const NODE_TEST_TIMEOUT = 2000;
+const GROUP_TEST_TIMEOUT = 5000;
 
 const {t} = useI18n();
 
@@ -389,45 +396,56 @@ async function setProxy(now: any, name: string, groupName?: string) {
   }
 }
 
-// 测试延迟
+// Тест задержки для всей страницы (кнопка у заголовка "Прокси").
+// Не блокирует интерфейс — крутится только иконка кнопки, можно продолжать
+// пользоваться приложением (включая переход на другие вкладки) пока тест идёт.
+const bulkTestRunning = ref(false);
+
 function testDelay() {
+  if (bulkTestRunning.value) return;
+  bulkTestRunning.value = true;
+
   if (proxiesStore.viewMode === 'full') {
     // Full view: test ALL groups concurrently (max 3 at a time), like Zashboard's allProxiesLatencyTest
-    pLoad(t("proxies.loading"), async () => {
-      const groups = [...groupList.value];
-      if (groups.length === 0) return;
-      // Simple p-limit(3): run at most 3 concurrent group tests
-      const CONCURRENCY = 3;
-      let active = 0;
-      let idx = 0;
-      await new Promise<void>((resolve) => {
-        const next = () => {
-          while (active < CONCURRENCY && idx < groups.length) {
-            const g = groups[idx++];
-            active++;
-            testGroupDelay(g).finally(() => {
-              active--;
-              if (idx < groups.length) {
-                next();
-              } else if (active === 0) {
-                resolve();
-              }
-            });
-          }
-          if (idx >= groups.length && active === 0) resolve();
-        };
-        next();
-      });
-    });
+    (async () => {
+      try {
+        const groups = [...groupList.value];
+        if (groups.length === 0) return;
+        // Simple p-limit(3): run at most 3 concurrent group tests
+        const CONCURRENCY = 3;
+        let active = 0;
+        let idx = 0;
+        await new Promise<void>((resolve) => {
+          const next = () => {
+            while (active < CONCURRENCY && idx < groups.length) {
+              const g = groups[idx++];
+              active++;
+              testGroupDelay(g).finally(() => {
+                active--;
+                if (idx < groups.length) {
+                  next();
+                } else if (active === 0) {
+                  resolve();
+                }
+              });
+            }
+            if (idx >= groups.length && active === 0) resolve();
+          };
+          next();
+        });
+      } finally {
+        bulkTestRunning.value = false;
+      }
+    })();
     return;
   }
   // Horizontal / dropdown: test only the active group
-  pLoad(t("proxies.loading"), async () => {
+  (async () => {
     try {
       if (settingStore.independentDelayTest) {
         await testGroupDelay(proxiesStore.active);
       } else {
-        await api.getDelay(proxiesStore.active, settingStore.testUrl, 3000);
+        await api.getDelay(proxiesStore.active, settingStore.testUrl, GROUP_TEST_TIMEOUT);
         await nodes();
         fetchSmartWeights();
       }
@@ -435,8 +453,10 @@ function testDelay() {
       if (e['message']) {
         pError(e['message'])
       }
+    } finally {
+      bulkTestRunning.value = false;
     }
-  });
+  })();
 }
 
 // Тихий тест задержек без индикатора загрузки (для автозапуска после смены профиля)
@@ -446,12 +466,24 @@ async function runDelayTestSilent() {
     if (settingStore.independentDelayTest) {
       await testGroupDelay(proxiesStore.active);
     } else {
-      await api.getDelay(proxiesStore.active, settingStore.testUrl, 3000);
+      await api.getDelay(proxiesStore.active, settingStore.testUrl, GROUP_TEST_TIMEOUT);
       await nodes();
       fetchSmartWeights();
     }
   } catch (_) {
     // silently ignore
+  }
+}
+
+// Показывает итог теста группы: сколько узлов ответили, сколько по таймауту
+function reportGroupTestResult(groupName: string, total: number, failed: number) {
+  if (total === 0) return;
+  const succeeded = total - failed;
+  const message = t('proxies.test-result', {name: groupName, succeeded, total});
+  if (failed === 0) {
+    pSuccess(message);
+  } else {
+    pWarning(message);
   }
 }
 
@@ -488,9 +520,22 @@ async function testGroupDelay(groupName: string) {
     if (settingStore.independentDelayTest && perNodeTypes.includes(groupType)) {
       const groupNodes = await api.getProxies(groupName, false, false, false, null);
       const nodeNames = groupNodes.map((n: any) => n.name);
-      await Promise.all(nodeNames.map((nodeName: string) => api.testProxyLatency(nodeName, url, 3000)));
+      // Route every per-node request through the shared proxyNodeDelayLimiter
+      // (max 5 in flight app-wide) instead of firing them all at once. When
+      // several groups are tested together (testDelay's outer p-limit(3)),
+      // an unbounded Promise.all here would stack into hundreds of
+      // simultaneous dials through the local backend, starving the
+      // connection pool until requests queue past the shared axios timeout
+      // and fail with a generic Network Error.
+      const results = await Promise.allSettled(
+          nodeNames.map((nodeName: string) =>
+              proxyNodeDelayLimiter(() => api.testProxyLatency(nodeName, url, NODE_TEST_TIMEOUT))
+          )
+      );
+      const failed = results.filter((r) => r.status !== 'fulfilled' || r.value === false).length;
+      reportGroupTestResult(groupName, nodeNames.length, failed);
     } else {
-      await api.getDelay(groupName, url, 3000);
+      await api.getDelay(groupName, url, GROUP_TEST_TIMEOUT);
     }
 
     await nodes(groupName);
@@ -702,8 +747,13 @@ watch(groupList, (list) => {
         </div>
         <div class="proxy-option">
           <el-tooltip :content="$t('proxies.test')" placement="top">
-            <el-icon @click="testDelay" class="proxy-option-btn">
-              <icon-mdi-speedometer/>
+            <el-icon
+                @click="testDelay"
+                class="proxy-option-btn"
+                :class="{ 'proxy-option-btn--testing': bulkTestRunning }"
+            >
+              <icon-ep-loading v-if="bulkTestRunning"/>
+              <icon-mdi-speedometer v-else/>
             </el-icon>
           </el-tooltip>
 
@@ -1070,6 +1120,12 @@ watch(groupList, (list) => {
 .proxy-option-btn:hover {
   cursor: pointer;
   color: var(--hr-color);
+}
+
+.proxy-option-btn--testing {
+  animation: spin 1s linear infinite;
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 .button-container {

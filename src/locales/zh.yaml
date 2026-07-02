@@ -203,6 +203,7 @@ proxies:
     no-data: "尚未获取连接稳定性信息"
   test-group: 测试分组延迟
   auto-group-no-manual-select: "该组为自动组，不允许手动选择代理。"
+  test-result: "{name}：{succeeded}/{total} 个节点可用"
 
 profiles:
   title: 订阅

@@ -65,6 +65,19 @@ let currentMenu: any
 // 当前窗口
 let mainWindow: BrowserWindow
 
+// `global-mode: false` HTTP-заголовок активного профиля (primary > selected >
+// первый в списке, как в App.vue pickSelectedProfile) — полностью скрывает
+// переключатель режимов Rule/Global/Direct из трея, зеркаля поведение
+// левого бокового меню (MyRule.vue hideModeSwitch).
+let globalModeDisabled = false;
+
+function pickActiveProfile(list: any[]): any | null {
+    if (!Array.isArray(list) || list.length === 0) return null;
+    const primary = list.find((item) => item?.primary);
+    const selected = primary ?? list.find((item) => item?.selected);
+    return selected ?? list[0];
+}
+
 // 退出app
 let isQuiting = false;
 export const doQuit = () => {
@@ -237,22 +250,31 @@ trayMap.set('tray.tun', {
 });
 trayMap.set('tray.quit', {id: 'tray.quit', label: '退出', type: 'normal', click: readyToQuit});
 
-const createTrayMenu = () => [
-    trayMap.get('tray.show'),
-    {type: 'separator'},
-    trayMap.get('tray.rule'),
-    trayMap.get('tray.global'),
-    trayMap.get('tray.direct'),
-    {type: 'separator'},
-    // Profile selection from the tray is intentionally disabled.
-    trayMap.get('tray.proxyGroups'),
-    trayMap.get('tray.dashboard'),
-    {type: 'separator'},
-    trayMap.get('tray.proxy'),
-    trayMap.get('tray.tun'),
-    {type: 'separator'},
-    trayMap.get('tray.quit'),
-]
+const createTrayMenu = () => {
+    const items: any[] = [
+        trayMap.get('tray.show'),
+        {type: 'separator'},
+    ];
+    if (!globalModeDisabled) {
+        items.push(
+            trayMap.get('tray.rule'),
+            trayMap.get('tray.global'),
+            trayMap.get('tray.direct'),
+            {type: 'separator'},
+        );
+    }
+    items.push(
+        // Profile selection from the tray is intentionally disabled.
+        trayMap.get('tray.proxyGroups'),
+        trayMap.get('tray.dashboard'),
+        {type: 'separator'},
+        trayMap.get('tray.proxy'),
+        trayMap.get('tray.tun'),
+        {type: 'separator'},
+        trayMap.get('tray.quit'),
+    );
+    return items;
+}
 
 // 初始化托盘菜单
 currentMenu = Menu.buildFromTemplate(createTrayMenu());
@@ -349,14 +371,16 @@ onWindow("translate", function (trayOptions) {
     tray.setContextMenu(currentMenu);
 })
 onWindow("mode", function (value) {
-    currentMenu.getMenuItemById('tray.rule').checked = false;
-    currentMenu.getMenuItemById('tray.global').checked = false;
-    currentMenu.getMenuItemById('tray.direct').checked = false;
-    trayMap.get('tray.rule').checked = false;
-    trayMap.get('tray.global').checked = false;
-    trayMap.get('tray.direct').checked = false;
+    // Rule/Global/Direct items may be absent from the currently built menu
+    // (globalModeDisabled) — getMenuItemById then returns null.
+    ['tray.rule', 'tray.global', 'tray.direct'].forEach((id) => {
+        const item = currentMenu.getMenuItemById(id);
+        if (item) item.checked = false;
+        trayMap.get(id).checked = false;
+    });
     const key = 'tray.' + value
-    currentMenu.getMenuItemById(key).checked = true;
+    const activeItem = currentMenu.getMenuItemById(key);
+    if (activeItem) activeItem.checked = true;
     trayMap.get(key).checked = true
 })
 onWindow("proxy", function (value) {
@@ -381,6 +405,10 @@ onWindow("profiles", function (profiles) {
         })
     }
     trayMap.get(key).submenu = pList
+
+    const activeProfile = pickActiveProfile(profiles);
+    globalModeDisabled = activeProfile?.globalModeDisabled === true;
+
     currentMenu = Menu.buildFromTemplate(createTrayMenu());
     tray.setContextMenu(currentMenu);
 })
