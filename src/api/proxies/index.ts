@@ -184,11 +184,13 @@ export default function createProxiesApi(proxy: any) {
         },
         // 测试单个代理节点延迟 (for independent test: Selector/LoadBalance/Smart groups)
         // Results are stored by Mihomo in proxy.extra[url].history
-        async testProxyLatency(proxyName: string, url: string, timeout: number): Promise<void> {
+        async testProxyLatency(proxyName: string, url: string, timeout: number): Promise<boolean> {
             try {
                 await proxy.$http.get('/proxies/' + encodeURIComponent(proxyName) + '/delay?timeout=' + timeout + '&url=' + encodeURIComponent(url));
+                return true;
             } catch {
-                // unreachable node — not an error
+                // unreachable node — not an error, just reported to the caller
+                return false;
             }
         },
         // 获取 Smart 分组的权重信息

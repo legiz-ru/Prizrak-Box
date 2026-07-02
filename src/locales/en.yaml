@@ -203,6 +203,7 @@ proxies:
     no-data: "Stability information not yet available"
   test-group: Test Group Latency
   auto-group-no-manual-select: "This group is automatic — manual proxy selection is not allowed."
+  test-result: "{name}: {succeeded}/{total} nodes reachable"
 
 profiles:
   title: Profiles

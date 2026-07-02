@@ -49,6 +49,7 @@ declare module 'vue' {
     IconEpArrowDown: typeof import('~icons/ep/arrow-down')['default']
     IconEpArrowUp: typeof import('~icons/ep/arrow-up')['default']
     IconEpCloseBold: typeof import('~icons/ep/close-bold')['default']
+    IconEpLoading: typeof import('~icons/ep/loading')['default']
     IconEpSelect: typeof import('~icons/ep/select')['default']
     IconMdiAccessPointNetwork: typeof import('~icons/mdi/access-point-network')['default']
     IconMdiAccessPointNetworkOff: typeof import('~icons/mdi/access-point-network-off')['default']

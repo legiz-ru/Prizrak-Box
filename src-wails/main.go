@@ -101,7 +101,12 @@ func main() {
 		// shutdown are suppressed.
 		LogLevel: slog.LevelError,
 		Assets: application.AssetOptions{
-			Handler:        application.BundledAssetFileServer(distFS),
+			Handler: application.BundledAssetFileServer(distFS),
+			// Serves the theme picker's custom-background upload endpoints
+			// (POST /api/custom-background, GET /user-images/*) that Skin.vue
+			// depends on; ported from src-electron/server.ts, which only runs
+			// in the Electron shell. See services/background.go.
+			Middleware:     services.CustomBackgroundMiddleware,
 			DisableLogging: true,
 		},
 		// Mirror Electron's `webSecurity:false` on Windows WebView2. Theme
