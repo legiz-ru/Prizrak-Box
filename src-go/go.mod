@@ -8,8 +8,8 @@ require (
 	github.com/gobwas/ws v1.4.0
 	github.com/gofrs/flock v0.13.0
 	github.com/google/uuid v1.6.0
-	github.com/metacubex/bbolt v0.0.0-20250725135710-010dbbbb7a5b
-	github.com/metacubex/chi v0.1.0
+	github.com/metacubex/bbolt v0.0.0-20260706163408-d4ec34ad7c48
+	github.com/metacubex/chi v0.1.1
 	github.com/metacubex/http v0.1.6
 	github.com/metacubex/mihomo v1.19.23
 	github.com/panjf2000/ants/v2 v2.12.0
@@ -35,7 +35,7 @@ require (
 	github.com/coreos/go-iptables v0.8.0 // indirect
 	github.com/dlclark/regexp2 v1.12.0 // indirect
 	github.com/dunglas/httpsfv v1.1.0 // indirect
-	github.com/enfein/mieru/v3 v3.33.0 // indirect
+	github.com/enfein/mieru/v3 v3.34.0 // indirect
 	github.com/ericlagergren/aegis v0.0.0-20250325060835-cd0defd64358 // indirect
 	github.com/ericlagergren/polyval v0.0.0-20230805202542-18692a1b76f9 // indirect
 	github.com/ericlagergren/siv v0.0.0-20220507050439-0b757b3aa5f1 // indirect
@@ -63,7 +63,7 @@ require (
 	github.com/mdlayher/netlink v1.11.1 // indirect
 	github.com/mdlayher/socket v0.6.0 // indirect
 	github.com/metacubex/age v0.0.0-20260603010618-28d156b4ea78
-	github.com/metacubex/amneziawg-go v0.0.0-20251104174305-5a0e9f7e361d // indirect
+	github.com/metacubex/amneziawg-go v0.0.0-20260612143004-19b4f1cdd5ec // indirect
 	github.com/metacubex/ascon v0.1.0 // indirect
 	github.com/metacubex/bart v0.26.0 // indirect
 	github.com/metacubex/blake3 v0.1.0 // indirect
@@ -84,24 +84,24 @@ require (
 	github.com/metacubex/qpack v0.6.0 // indirect
 	github.com/metacubex/quic-go v0.59.1-0.20260606115121-0662b57ad5bf // indirect
 	github.com/metacubex/randv2 v0.2.0 // indirect
-	github.com/metacubex/restls-client-go v0.1.7 // indirect
+	github.com/metacubex/restls-client-go v0.1.8 // indirect
 	github.com/metacubex/sevenzip v1.6.4 // indirect
 	github.com/metacubex/sing v0.5.7 // indirect
-	github.com/metacubex/sing-mux v0.3.9 // indirect
+	github.com/metacubex/sing-mux v0.3.10 // indirect
 	github.com/metacubex/sing-quic v0.0.0-20260527143057-68e10a6afdc3 // indirect
 	github.com/metacubex/sing-shadowsocks v0.2.12 // indirect
 	github.com/metacubex/sing-shadowsocks2 v0.2.7 // indirect
 	github.com/metacubex/sing-shadowtls v0.0.0-20260517015314-c11c36474edc // indirect
-	github.com/metacubex/sing-tun v0.4.20 // indirect
+	github.com/metacubex/sing-tun v0.4.21 // indirect
 	github.com/metacubex/sing-vmess v0.2.5 // indirect
 	github.com/metacubex/sing-wireguard v0.0.0-20260520151737-7e7c7c1b854c // indirect
 	github.com/metacubex/smux v0.0.0-20260105030934-d0c8756d3141 // indirect
 	github.com/metacubex/ssh v0.1.0 // indirect
-	github.com/metacubex/tailscale v0.0.0-20260520011538-f23132fac4b7 // indirect
-	github.com/metacubex/tailscale-wireguard-go v0.0.0-20260521124654-e1bf77ef79af // indirect
-	github.com/metacubex/tfo-go v0.0.0-20251204144243-738de9e3cd15 // indirect
-	github.com/metacubex/tls v0.1.6 // indirect
-	github.com/metacubex/utls v1.8.4 // indirect
+	github.com/metacubex/tailscale v0.0.0-20260623094802-1ab893d4162c // indirect
+	github.com/metacubex/tailscale-wireguard-go v0.0.0-20260623093519-06ea214022e4 // indirect
+	github.com/metacubex/tfo-go v0.0.0-20260623020846-376a77860b8c // indirect
+	github.com/metacubex/tls v0.1.7 // indirect
+	github.com/metacubex/utls v1.8.7 // indirect
 	github.com/metacubex/wireguard-go v0.0.0-20250820062549-a6cecdd7f57f // indirect
 	github.com/metacubex/yamux v0.0.0-20250918083631-dd5f17c0be49 // indirect
 	github.com/miekg/dns v1.1.72 // indirect
@@ -127,7 +127,7 @@ require (
 	github.com/tailscale/peercred v0.0.0-20250107143737-35a0c7bd7edc // indirect
 	github.com/u-root/uio v0.0.0-20240224005618-d2acac8f3701 // indirect
 	github.com/ulikunitz/xz v0.5.15 // indirect
-	github.com/vernesong/leaves v0.0.0-20251129203830-02de011aefeb // indirect
+	github.com/vernesong/leaves v0.0.0-20260629081247-2a1c022f37d0 // indirect
 	github.com/vishvananda/netns v0.0.5 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
@@ -151,4 +151,4 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 )
 
-replace github.com/metacubex/mihomo => github.com/legiz-ru/moshen v1.19.27-smart-moshen
+replace github.com/metacubex/mihomo => github.com/legiz-ru/moshen v1.19.28-smart-moshen
