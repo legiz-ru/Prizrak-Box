@@ -33,11 +33,16 @@ Phase 1:
   running instance via `ApplicationLaunchedWithUrl` (macOS) and second-instance
   argv (Windows/Linux), forwarded to the frontend as a Wails `deeplink` event.
   OS registration of the scheme happens at packaging time via `build/config.yml`.
-- **Launch at login** — `SystemService.AutostartEnabled / SetAutostart`, backed
-  by the built-in Wails v3 Autostart manager.
+- **Launch at login** — `SystemService.AutostartEnabled / SetAutostart`. On
+  macOS/Linux it is backed by the built-in Wails v3 Autostart manager; on
+  Windows it registers a Task Scheduler logon task with a 15-second delay
+  (`services/autostart_windows.go`) instead of the registry Run key, so the
+  tray icon doesn't race explorer.exe at logon. Enabling/disabling migrates
+  (removes) any legacy Run-key entry from older builds.
 - Generated Go bindings live in `frontend/bindings/` (regenerate with
-  `wails3 generate bindings -d frontend/bindings`); the shim imports them via
-  the `@wbind` Vite alias.
+  `wails3 task bindings`, i.e. `wails3 generate bindings -d frontend/bindings
+  -time-type Date` — `time.Time` values map to JS `Date`); the shim imports
+  them via the `@wbind` Vite alias.
 
 ## Not yet implemented (later phases)
 

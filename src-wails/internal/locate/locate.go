@@ -135,6 +135,33 @@ func SetStartMinimized(v bool) error {
 	return os.WriteFile(f, []byte(val), 0o644)
 }
 
+// DarkBackground reports whether the frontend last rendered a dark theme
+// (white-text mode). The window's pre-paint background colour is picked from
+// this at startup so the first frame matches the UI instead of flashing a
+// mismatched black/white rectangle. Defaults to dark, matching the frontend's
+// default dark gradient background. The frontend keeps it in sync
+// (px:fe:darkBg, emitted on every background/theme change).
+func DarkBackground() bool {
+	b, err := os.ReadFile(flagFile("dark-bg"))
+	if err != nil {
+		return true
+	}
+	return strings.TrimSpace(string(b)) != "0"
+}
+
+// SetDarkBackground persists the frontend's dark/light theme state.
+func SetDarkBackground(v bool) error {
+	f := flagFile("dark-bg")
+	if err := os.MkdirAll(filepath.Dir(f), 0o755); err != nil {
+		return err
+	}
+	val := "0"
+	if v {
+		val = "1"
+	}
+	return os.WriteFile(f, []byte(val), 0o644)
+}
+
 // TunDesired reports whether TUN mode was enabled in the last session. The
 // startup px launcher uses this to decide whether to wait for the privileged
 // service to come up after a reboot (the boot race) before falling back to a

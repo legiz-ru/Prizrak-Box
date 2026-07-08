@@ -66,6 +66,23 @@ export function ShowInstallDialog() {
 }
 
 /**
+ * StartBackend is the application startup entry point for launching px. When the
+ * privileged px-service is installed it routes px through the service so TUN can
+ * work without running the GUI as administrator — mirroring src-electron
+ * admin.ts. If TUN was enabled last session it waits briefly for the service to
+ * become reachable, covering the boot race where the autostarted (non-elevated)
+ * app launches px before the service has finished starting; previously px was
+ * always spawned directly, so TUN silently failed until a manual admin restart.
+ * If the service never comes up (or isn't installed) px is spawned directly.
+ * @returns {$CancellablePromise<$models.ConnInfo>}
+ */
+export function StartBackend() {
+    return $Call.ByID(1625403615).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType1($result);
+    }));
+}
+
+/**
  * Uninstall removes the px-service (requires elevation).
  * @returns {$CancellablePromise<boolean>}
  */

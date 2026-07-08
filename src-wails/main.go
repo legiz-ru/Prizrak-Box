@@ -156,6 +156,16 @@ func main() {
 		Hidden:    true, // shown once the backend is ready
 		URL:       "/",
 	}
+	// Match the window's own background to the frontend's last-known theme so
+	// any pre-paint frame (first reveal, resize exposure) shows the app's
+	// background colour instead of a jarring black/white rectangle. The
+	// frontend persists dark/light on every theme change (px:fe:darkBg below);
+	// dark is the default, matching the frontend's default dark gradient.
+	if locate.DarkBackground() {
+		winOpts.BackgroundColour = application.NewRGB(17, 17, 17)
+	} else {
+		winOpts.BackgroundColour = application.NewRGB(242, 242, 242)
+	}
 	if runtime.GOOS == "darwin" {
 		// macOS keeps the native hidden-inset title bar (traffic lights).
 		winOpts.Mac = application.MacWindow{TitleBar: application.MacTitleBarHiddenInset}
@@ -164,6 +174,21 @@ func main() {
 		// MyTitleBar provides min/max/close (handled via px:fe:* events) and
 		// the --wails-draggable regions in the frontend provide dragging.
 		winOpts.Frameless = true
+		winOpts.Windows = application.WindowsWindow{
+			// The window is frameless with a web titlebar; make sure no native
+			// menu bar can ever be created/toggled for it.
+			DisableMenu: true,
+			// Native non-client hit testing for the custom titlebar. With
+			// composition hosting the frontend can mark elements with
+			// --wails-non-client-region: caption/minimize/maximize/close so
+			// Windows treats them as real caption buttons — enabling the
+			// Windows 11 Snap Layouts flyout over the HTML maximize button
+			// (see MyTitleBar.vue). NonClientRegionSupport additionally lets
+			// WebView2's own app-region CSS participate when the installed
+			// runtime supports it. Both are no-ops on runtimes without support.
+			NonClientRegionSupport:     true,
+			WebView2CompositionHosting: true,
+		}
 	}
 	win = app.Window.NewWithOptions(winOpts)
 
@@ -199,33 +224,26 @@ func main() {
 		}
 	})
 
-	// Windows WebView2 blank-frame-on-first-reveal workaround.
-	//
-	// On Windows the WebView2 control often paints a blank frame the first time
-	// the window is shown (a black or white rectangle depending on the OS theme);
-	// the content only appears once a WM_SIZE arrives, which is why manually
-	// resizing or snapping the window (Win+Up) "fixes" it. Our launch flow makes
-	// this reproducible: the window is created Hidden and only revealed after the
-	// backend is up, via SetURL + Show, so no resize happens between the webview's
-	// first paint and the reveal.
-	//
-	// WebViewNavigationCompleted fires once the page has finished loading (content
-	// is ready). If the window is visible at that point, nudge its size by one
-	// pixel and back to synthesise a WM_SIZE, forcing WebView2 to lay out and
-	// repaint — the same thing the user's manual resize does. The nudge cancels
-	// out (h+1 then h) so the final size is unchanged. No-op on macOS/Linux, and
-	// skipped while hidden (e.g. the initial "/" load before the window is shown).
+	// NOTE: the Windows blank-frame-on-first-reveal SetSize workaround that
+	// lived here was removed with the Wails v3.0.0-alpha2.117 update. Since
+	// alpha2.114 the framework synchronizes the WebView2 controller's
+	// visibility with the window: hide()/minimise hide the controller and
+	// show()/restore re-assert it, so the first reveal of a window created
+	// Hidden gets a real visibility transition (the WebView2Feedback #1077
+	// nudge) at reveal time instead of a stale black frame.
+
+	// Push the real maximise state to the frontend titlebar. With native
+	// non-client regions enabled (see winOpts.Windows above) a click on the
+	// HTML maximize button is handled by Windows itself and never reaches the
+	// Vue click handler, so MyTitleBar.vue can't infer the state from its own
+	// clicks; these native events are authoritative either way (they also
+	// cover Win+Up / titlebar double-click).
 	if runtime.GOOS == "windows" {
-		win.OnWindowEvent(events.Windows.WebViewNavigationCompleted, func(_ *application.WindowEvent) {
-			// Skip while hidden (nothing to repaint) or while maximised/fullscreen
-			// (SetSize would restore the window out of that state). A normal-state
-			// WM_SIZE is all the blank frame needs.
-			if !win.IsVisible() || win.IsMaximised() || win.IsFullscreen() {
-				return
-			}
-			w, h := win.Size()
-			win.SetSize(w, h+1)
-			win.SetSize(w, h)
+		win.OnWindowEvent(events.Windows.WindowMaximise, func(_ *application.WindowEvent) {
+			win.EmitEvent("px:be:maximized", true)
+		})
+		win.OnWindowEvent(events.Windows.WindowUnMaximise, func(_ *application.WindowEvent) {
+			win.EmitEvent("px:be:maximized", false)
 		})
 	}
 
@@ -252,6 +270,12 @@ func main() {
 	// The frontend emits this on TUN toggle and once on mount to keep it in sync.
 	app.Event.On("px:fe:tunDesired", func(e *application.CustomEvent) {
 		_ = locate.SetTunDesired(asBool(e.Data))
+	})
+	// Persist the frontend's dark/light theme so the next launch paints the
+	// window background in the matching colour before the webview renders
+	// (see winOpts.BackgroundColour above). Emitted on every theme change.
+	app.Event.On("px:fe:darkBg", func(e *application.CustomEvent) {
+		_ = locate.SetDarkBackground(asBool(e.Data))
 	})
 
 	// Global "Show/Hide window" hotkey (Windows; no-op elsewhere).

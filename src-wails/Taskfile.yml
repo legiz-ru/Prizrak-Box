@@ -38,6 +38,13 @@ tasks:
     cmds:
       - CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -o px .
 
+  bindings:
+    desc: Regenerate the Go->JS service bindings (time.Time maps to JS Date)
+    cmds:
+      # -time-type Date makes any time.Time in a service API arrive in JS as a
+      # real Date object instead of the default RFC3339 string (alpha2.113+).
+      - wails3 generate bindings -d frontend/bindings -time-type Date
+
   build:
     desc: Build the full desktop app (frontend + Go shell) with wails3
     deps: [frontend]
