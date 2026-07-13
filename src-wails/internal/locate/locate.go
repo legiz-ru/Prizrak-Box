@@ -135,6 +135,25 @@ func SetStartMinimized(v bool) error {
 	return os.WriteFile(f, []byte(val), 0o644)
 }
 
+// WebviewDataDir returns the directory for the WebView2 user data (Windows).
+// It lives under the OS user-config dir (next to the flag files) rather than:
+//   - the default %APPDATA%\<binary-name>.exe, which silently "loses" the
+//     webview profile (cache, localStorage) whenever the executable is renamed
+//     and leaves orphaned directories behind, and
+//   - the px data dir (HomeDir), which the "Change config dir" action moves
+//     while the app is running — WebView2 holds locks on its profile, so the
+//     move would fail.
+func WebviewDataDir() string {
+	dir := flagFile("webview2")
+	_ = os.MkdirAll(dir, 0o755)
+	return dir
+}
+
+// ShellLogFile returns the path of the shell's crash/error log (see
+// PanicHandler / ErrorHandler in main.go). Lives next to the flag files so it
+// survives data-dir moves and is available even when HomeDir is broken.
+func ShellLogFile() string { return flagFile("shell.log") }
+
 // DarkBackground reports whether the frontend last rendered a dark theme
 // (white-text mode). The window's pre-paint background colour is picked from
 // this at startup so the first frame matches the UI instead of flashing a

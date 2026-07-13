@@ -39,16 +39,30 @@ Phase 1:
   (`services/autostart_windows.go`) instead of the registry Run key, so the
   tray icon doesn't race explorer.exe at logon. Enabling/disabling migrates
   (removes) any legacy Run-key entry from older builds.
+- **Persistent store** — the shim's `pxStore` is backed by the Wails kvstore
+  service writing the electron-store file (`<home>/px-electron.db/config.json`),
+  so settings are shared with the Electron shell; legacy localStorage entries
+  migrate forward on first read.
+- **Native notifications** — the Wails notifications service, exposed to the
+  frontend as `window.pxNotify(title, body)`; used for the "update available"
+  notification (WebView2 has no Web Notification API).
+- **Global hotkey** — `app.GlobalShortcut` (all platforms); registration
+  results are reported back to the frontend on `shortcut:result`.
 - Generated Go bindings live in `frontend/bindings/` (regenerate with
   `wails3 task bindings`, i.e. `wails3 generate bindings -d frontend/bindings
   -time-type Date` — `time.Time` values map to JS `Date`); the shim imports
   them via the `@wbind` Vite alias.
+- The Wails **JS runtime is not bundled from npm**: the production build maps
+  `@wailsio/runtime` to `/wails/runtime.js`, served by the Go binary itself
+  (see `vite.config.ts` build.rollupOptions), so the JS and Go sides of the
+  runtime can never drift apart. The npm dev-dependency exists for types and
+  `vite dev` only — dev mode resolves to node_modules, where features newer
+  than the published npm package (e.g. non-client regions) are unavailable.
 
 ## Not yet implemented (later phases)
 
 Full dynamic tray menu (modes/profiles/groups/dashboards mirroring the Electron
-tray), persistent store as a Go service (currently localStorage in the shim),
-and config-directory migration.
+tray) and config-directory migration.
 
 ## Known issues to verify
 
@@ -105,6 +119,14 @@ If you install the [Task](https://taskfile.dev) runner (`brew install go-task`
 on macOS) you can use the `Taskfile.yml` targets (`task frontend`, `task build`).
 A proper macOS `.app` bundle (needed for the `prizrak-box://` scheme to be
 registered with the OS) is produced by `wails3 build` / `wails3 package`.
+
+Install the `wails3` CLI pinned to the same version as `go.mod`'s `wails/v3`
+(the CLI generates bindings and build assets — a mismatch can produce
+incompatible output):
+
+```bash
+go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha2.117
+```
 
 ### Environment overrides (handy for dev)
 

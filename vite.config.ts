@@ -21,6 +21,24 @@ export default defineConfig({
             '@wbind': path.resolve(__dirname, 'src-wails/frontend/bindings'),
         },
     },
+    build: {
+        rollupOptions: {
+            // Resolve the Wails JS runtime at load time from the Go binary's
+            // asset server (/wails/runtime.js) instead of bundling the
+            // @wailsio/runtime npm package. The published npm package lags the
+            // Go module (e.g. 3.0.0-alpha.97 lacks the appregion module that
+            // native non-client regions need), while the served runtime is
+            // built from the exact source of the pinned wails Go module — the
+            // two sides can never drift apart. The npm dependency remains for
+            // types/dev. All imports of '@wailsio/runtime' are dynamic (see
+            // wails-shim.ts / generated bindings), so the Electron build never
+            // requests this URL.
+            external: ['@wailsio/runtime'],
+            output: {
+                paths: {'@wailsio/runtime': '/wails/runtime.js'},
+            },
+        },
+    },
     plugins: [vue(),
         AutoImport({
             imports: ["vue"],

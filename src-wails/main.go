@@ -20,6 +20,7 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -28,6 +29,8 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
+	"github.com/wailsapp/wails/v3/pkg/services/kvstore"
+	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 
 	"github.com/legiz-ru/prizrak-box-wails/internal/locate"
 	"github.com/legiz-ru/prizrak-box-wails/services"
@@ -76,6 +79,24 @@ func main() {
 	system := services.NewSystemService()
 	tun := services.NewTunService(core)
 
+	// Persistent key-value store for the frontend's pinia state (pxStore in
+	// wails-shim.ts), replacing the localStorage fallback that lived in the
+	// WebView2 profile (wiped by a webview cache clear, not shared with the
+	// Electron shell). The file is deliberately the electron-store location
+	// and format (<home>/px-electron.db/config.json, a flat JSON object), so
+	// settings carry over in both directions when switching shells.
+	storePath := filepath.Join(locate.HomeDir(), "px-electron.db", "config.json")
+	_ = os.MkdirAll(filepath.Dir(storePath), 0o755)
+	store := kvstore.NewWithConfig(&kvstore.Config{
+		Filename: storePath,
+		AutoSave: true,
+	})
+
+	// Native notifications (Windows toast / macOS UNUserNotification / Linux
+	// D-Bus). Exposed to the frontend as window.pxNotify (wails-shim.ts).
+	// On macOS delivery requires running from a signed .app bundle.
+	notifier := notifications.New()
+
 	var win *application.WebviewWindow
 
 	// On macOS the dock/Cmd+Tab icon comes from the .app bundle's appicon.icns
@@ -95,11 +116,18 @@ func main() {
 			application.NewService(core),
 			application.NewService(system),
 			application.NewService(tun),
+			application.NewService(store),
+			application.NewService(notifier),
 		},
 		// Keep Wails' own logging quiet (px already logs plenty); the noisy
 		// per-request asset logs and benign "Window #N not found" warnings on
 		// shutdown are suppressed.
 		LogLevel: slog.LevelError,
+		// The shell runs with no console: preserve panics and internal
+		// framework errors in a small log file (see shelllog.go) instead of
+		// letting them vanish.
+		PanicHandler: shellPanicHandler,
+		ErrorHandler: shellErrorHandler,
 		Assets: application.AssetOptions{
 			Handler: application.BundledAssetFileServer(distFS),
 			// Serves the theme picker's custom-background upload endpoints
@@ -118,6 +146,13 @@ func main() {
 		// available (e.g. macOS WKWebView), showing the image without recolor.
 		Windows: application.WindowsOptions{
 			AdditionalBrowserArgs: []string{"--disable-web-security"},
+			// Pin the WebView2 profile to a stable per-user location. The
+			// default (%APPDATA%\<binary-name>.exe) silently "loses" the
+			// webview cache/localStorage when the executable is renamed and
+			// litters APPDATA. Kept OUTSIDE the px data dir because "Change
+			// config dir" moves that dir while WebView2 holds locks on its
+			// profile (see locate.WebviewDataDir).
+			WebviewUserDataPath: locate.WebviewDataDir(),
 		},
 		SingleInstance: &application.SingleInstanceOptions{
 			UniqueID: "com.legiz-ru.prizrak-box",

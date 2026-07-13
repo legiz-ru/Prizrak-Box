@@ -3,7 +3,10 @@ version: "3"
 # Taskfile for the Wails v3 shell (Phase 0 PoC).
 #
 # Prerequisites:
-#   - wails3 CLI:  go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+#   - wails3 CLI, pinned to the SAME version as go.mod's wails/v3 (the CLI
+#     generates bindings and build assets; a version mismatch can produce
+#     incompatible output):
+#       go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha2.117
 #   - The px backend built at ../src-go/px  (see repo README "Build px backend")
 #   - Frontend deps installed at the repo root:  npm install
 #
