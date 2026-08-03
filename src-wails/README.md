@@ -125,7 +125,7 @@ Install the `wails3` CLI pinned to the same version as `go.mod`'s `wails/v3`
 incompatible output):
 
 ```bash
-go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha2.118
+go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.2
 ```
 
 ### Environment overrides (handy for dev)
