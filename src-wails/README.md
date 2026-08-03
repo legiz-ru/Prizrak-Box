@@ -113,6 +113,29 @@ cd src-wails
 go build -o bin/prizrak-box-wails . && ./bin/prizrak-box-wails
 ```
 
+### macOS release build (`.app` + `.dmg`)
+
+`build-macos-dmg.sh` reproduces the `macos` job of
+`.github/workflows/wails-build.yml` locally, minus the steps that need Apple
+secrets (Developer ID signing, notarization, stapling) — the bundle gets an
+ad-hoc signature instead:
+
+```bash
+./src-wails/build-macos-dmg.sh            # arm64 (default)
+./src-wails/build-macos-dmg.sh --arch amd64
+./src-wails/build-macos-dmg.sh --help     # all options
+```
+
+Both artifacts land in `src-wails/bin/` (git-ignored):
+`prizrak-box-wails-macos-<arch>.dmg` and `Prizrak-Box.app`.
+
+Because the build is not notarized, macOS quarantines anything installed from
+that DMG. The script prints the fix; it is:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Prizrak-Box.app
+```
+
 ### Optional: `task` and `wails3`
 
 If you install the [Task](https://taskfile.dev) runner (`brew install go-task`
