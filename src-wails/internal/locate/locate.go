@@ -135,6 +135,52 @@ func SetStartMinimized(v bool) error {
 	return os.WriteFile(f, []byte(val), 0o644)
 }
 
+// WebviewDataDir returns the directory for the WebView2 user data (Windows).
+// It lives under the OS user-config dir (next to the flag files) rather than:
+//   - the default %APPDATA%\<binary-name>.exe, which silently "loses" the
+//     webview profile (cache, localStorage) whenever the executable is renamed
+//     and leaves orphaned directories behind, and
+//   - the px data dir (HomeDir), which the "Change config dir" action moves
+//     while the app is running — WebView2 holds locks on its profile, so the
+//     move would fail.
+func WebviewDataDir() string {
+	dir := flagFile("webview2")
+	_ = os.MkdirAll(dir, 0o755)
+	return dir
+}
+
+// ShellLogFile returns the path of the shell's crash/error log (see
+// PanicHandler / ErrorHandler in main.go). Lives next to the flag files so it
+// survives data-dir moves and is available even when HomeDir is broken.
+func ShellLogFile() string { return flagFile("shell.log") }
+
+// DarkBackground reports whether the frontend last rendered a dark theme
+// (white-text mode). The window's pre-paint background colour is picked from
+// this at startup so the first frame matches the UI instead of flashing a
+// mismatched black/white rectangle. Defaults to dark, matching the frontend's
+// default dark gradient background. The frontend keeps it in sync
+// (px:fe:darkBg, emitted on every background/theme change).
+func DarkBackground() bool {
+	b, err := os.ReadFile(flagFile("dark-bg"))
+	if err != nil {
+		return true
+	}
+	return strings.TrimSpace(string(b)) != "0"
+}
+
+// SetDarkBackground persists the frontend's dark/light theme state.
+func SetDarkBackground(v bool) error {
+	f := flagFile("dark-bg")
+	if err := os.MkdirAll(filepath.Dir(f), 0o755); err != nil {
+		return err
+	}
+	val := "0"
+	if v {
+		val = "1"
+	}
+	return os.WriteFile(f, []byte(val), 0o644)
+}
+
 // TunDesired reports whether TUN mode was enabled in the last session. The
 // startup px launcher uses this to decide whether to wait for the privileged
 // service to come up after a reboot (the boot race) before falling back to a

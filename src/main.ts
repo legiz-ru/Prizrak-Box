@@ -435,6 +435,20 @@ function setupUpdateChecker() {
         const message = translate('updates.notification.message', {version: label});
 
         const notify = async () => {
+            // Native notification via the Wails shell when available — WebView2
+            // does not implement the Web Notification API, so under Wails the
+            // web path below would silently do nothing. (Click-to-open is not
+            // wired for the native path; the in-app banner remains clickable.)
+            const pxNotify = (window as any).pxNotify;
+            if (typeof pxNotify === 'function') {
+                try {
+                    pxNotify(title, message);
+                } finally {
+                    updateStore.markNotified();
+                }
+                return;
+            }
+
             const NotificationCtor = window.Notification;
 
             if (typeof NotificationCtor !== 'function') {

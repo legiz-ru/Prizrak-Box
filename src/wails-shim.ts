@@ -16,8 +16,9 @@
 //     and none of this code runs — the Electron build is unaffected.
 //
 // Phase 1 wires: TUN service (TunService), deep links (ApplicationLaunchedWithUrl
-// → "deeplink" event), clipboard / open-external. Persistent storage still
-// falls back to localStorage; the full StoreService + dynamic tray land later.
+// → "deeplink" event), clipboard / open-external. Persistent storage is backed
+// by the Go kvstore service (electron-store compatible file); native
+// notifications are exposed as window.pxNotify.
 
 type AnyWindow = Window & Record<string, any>;
 
@@ -156,16 +157,66 @@ export function installWailsShim(): void {
         showInstallDialog: async () => (await services()).TunService.ShowInstallDialog(),
     };
 
-    // --- Persistent storage: localStorage fallback (StoreService lands later) ---
+    // --- Persistent storage: Wails kvstore service ---
+    // Backed by the Go kvstore service writing the electron-store file
+    // (<home>/px-electron.db/config.json, a flat JSON object), so settings are
+    // shared with the Electron shell and survive a WebView2 cache clear.
+    // Reads fall back to the legacy localStorage entries (older Wails builds
+    // stored settings there) and migrate them forward on first access.
+    const KV_FQN = 'github.com/wailsapp/wails/v3/pkg/services/kvstore.KVStoreService';
+    const kvCall = async (method: string, ...args: any[]): Promise<any> => {
+        const { Call } = await runtime();
+        return Call.ByName(`${KV_FQN}.${method}`, ...args);
+    };
     w.pxStore = {
         get: async (key: string): Promise<any> => {
+            try {
+                const val = await kvCall('Get', key);
+                if (val !== null && val !== undefined) return val;
+            } catch { /* fall through to legacy storage */ }
             const raw = localStorage.getItem('px:' + key);
-            return raw ? JSON.parse(raw) : undefined;
+            if (!raw) return undefined;
+            const legacy = JSON.parse(raw);
+            // Migrate forward so the next read comes from the kvstore.
+            kvCall('Set', key, legacy)
+                .then(() => localStorage.removeItem('px:' + key))
+                .catch(() => { /* keep the legacy copy until it succeeds */ });
+            return legacy;
         },
         set: async (key: string, value: any): Promise<void> => {
-            localStorage.setItem('px:' + key, JSON.stringify(value));
+            try {
+                await kvCall('Set', key, value);
+            } catch {
+                // Last resort: keep at least a local copy.
+                localStorage.setItem('px:' + key, JSON.stringify(value));
+            }
         },
     };
+
+    // --- Native notifications (Windows toast / macOS / Linux D-Bus) ---
+    // window.pxNotify(title, body): fire-and-forget. Authorization is
+    // requested once before the first notification (relevant on macOS, where
+    // it also needs a signed .app bundle; a no-op on Windows/Linux).
+    const NOTIF_FQN = 'github.com/wailsapp/wails/v3/pkg/services/notifications.NotificationService';
+    let notifAuth: Promise<any> | null = null;
+    w.pxNotify = (title: string, body?: string): void => {
+        runtime()
+            .then(async ({ Call }) => {
+                notifAuth ||= Call.ByName(`${NOTIF_FQN}.RequestNotificationAuthorization`)
+                    .catch(() => false);
+                await notifAuth;
+                await Call.ByName(`${NOTIF_FQN}.SendNotification`, {
+                    id: 'px-' + Date.now().toString(36),
+                    title,
+                    body: body ?? '',
+                });
+            })
+            .catch(() => { /* notifications are best-effort */ });
+    };
+
+    // The background-image cache stays in localStorage on purpose: it holds a
+    // multi-hundred-KB data URL that would bloat the settings JSON (and get
+    // rewritten on every store save); losing it merely triggers a re-download.
     w.pxBgCache = {
         read: async (): Promise<any> => {
             const raw = localStorage.getItem('px:bgcache');

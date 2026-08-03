@@ -813,8 +813,13 @@ jobs:
       needs.build_linux.result == 'success'
     runs-on: ubuntu-latest
     environment: aur
+    # AUR is a secondary distribution channel served by a third party that is
+    # regularly taken down for maintenance (a failed `git clone` from
+    # aur.archlinux.org exits 128). Publishing there must never hold up the
+    # release of the Windows/macOS/Linux/Android binaries, so this job is
+    # non-fatal: it reports the failure and the release job ignores its result.
+    continue-on-error: true
     permissions:
-      actions: write
       contents: read
 
     steps:
@@ -999,11 +1004,21 @@ jobs:
           git diff --cached --quiet || git commit -m "Update to version ${{ needs.setup.outputs.version }}"
           git push --force origin master
 
-      - name: Cancel workflow on failure
+      # NOTE: deliberately no "Cancel workflow on failure" step here (unlike the
+      # build jobs). Cancelling the run over an AUR outage killed every other
+      # platform mid-build. Record the failure instead and let the release go out.
+      - name: Report skipped AUR publish
         if: ${{ failure() }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+        run: |
+          echo "::warning title=AUR publish skipped::Could not publish to the AUR (see the step log above; the AUR is frequently down for maintenance). The release itself is unaffected — re-run this job once aur.archlinux.org is reachable."
+          {
+            echo "### ⚠️ AUR publish skipped"
+            echo
+            echo "Publishing \`prizrak-box-bin\` to the AUR failed for version \`${{ needs.setup.outputs.version }}\`."
+            echo "This does **not** affect the release: all other artifacts are published as usual."
+            echo
+            echo "Re-run just this job once [aur.archlinux.org](https://status.archlinux.org) is reachable again."
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # ── Wails macOS — same packaging as Electron; canonical macos-<arch>.{zip,dmg} names ──
   build_macos_wails:
@@ -1242,7 +1257,9 @@ jobs:
   # ── Release: upload artifacts and update release body ──
   release:
     needs: [setup, build_android, build_windows, build_linux, build_macos, build_windows_wails, build_macos_wails, publish_aur]
-    # Run only if no build job failed; skipped jobs are tolerated (user may disable some platforms)
+    # Run only if no build job failed; skipped jobs are tolerated (user may disable some platforms).
+    # publish_aur is deliberately NOT checked: the AUR is a third-party service
+    # whose outages must not block publishing the release artifacts.
     if: |
       always() && !cancelled() &&
       needs.setup.result == 'success' &&
@@ -1251,8 +1268,7 @@ jobs:
       needs.build_linux.result != 'failure' &&
       needs.build_macos.result != 'failure' &&
       needs.build_windows_wails.result != 'failure' &&
-      needs.build_macos_wails.result != 'failure' &&
-      needs.publish_aur.result != 'failure'
+      needs.build_macos_wails.result != 'failure'
     runs-on: ubuntu-latest
     permissions:
       contents: write

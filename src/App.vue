@@ -155,6 +155,11 @@ const currentBackground = ref("linear-gradient(to bottom, #434343, #000000)");
 const changeBg = (bg: string, useWhite: boolean) => {
   currentBackground.value = bg;
   menuStore.setUseWhite(useWhite);
+  // Persist dark/light for the Wails shell: it paints the native window
+  // background in a matching colour before the webview renders, so the first
+  // frame doesn't flash a mismatched black/white rectangle. useWhite (white
+  // text) implies a dark background. No-op under Electron (no handler).
+  Events.Emit({name: 'darkBg', data: !!useWhite});
 }
 
 function isExternalBg(bg: string): boolean {

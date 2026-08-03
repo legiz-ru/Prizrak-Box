@@ -49,6 +49,37 @@ export function CbAddr() {
 }
 
 /**
+ * ChangeConfigDir moves the data directory into <dir>/Prizrak-Box-V3, persists
+ * the new location and relaunches the app — a faithful port of Electron's
+ * src-electron/change.ts doChange().
+ * @param {string} dir
+ * @returns {$CancellablePromise<void>}
+ */
+export function ChangeConfigDir(dir) {
+    return $Call.ByID(1633152846, dir);
+}
+
+/**
+ * ConfigDir returns the current px data directory (…/Prizrak-Box-V3).
+ * Mirrors Electron's `pre-config-dir`.
+ * @returns {$CancellablePromise<string>}
+ */
+export function ConfigDir() {
+    return $Call.ByID(195034246);
+}
+
+/**
+ * FileIcon returns the icon of the executable at path as a PNG data URL
+ * ("data:image/png;base64,…"), or "" if none could be resolved. Bound to the
+ * frontend (CoreService is registered with the Wails app).
+ * @param {string} path
+ * @returns {$CancellablePromise<string>}
+ */
+export function FileIcon(path) {
+    return $Call.ByID(4194184738, path);
+}
+
+/**
  * GetConnInfo is bound to the frontend; it blocks (up to a timeout) until px
  * has reported its port/secret at least once, then returns the latest values.
  * @returns {$CancellablePromise<$models.ConnInfo>}
@@ -70,6 +101,10 @@ export function Home() {
 /**
  * KillPx terminates the locally spawned px process (if any). px started via
  * the service is not killed here; the caller handles that through the service.
+ * 
+ * On Unix it first sends SIGINT so px can run its shutdown (which disables the
+ * system proxy), then force-kills after a short grace period. On Windows it
+ * kills directly.
  * @returns {$CancellablePromise<void>}
  */
 export function KillPx() {
@@ -82,6 +117,15 @@ export function KillPx() {
  */
 export function MarkStartedBySvc() {
     return $Call.ByID(1390647494);
+}
+
+/**
+ * OpenConfigDir opens the data directory in the OS file manager.
+ * Mirrors Electron's `pxConfigDir` (shell.openPath).
+ * @returns {$CancellablePromise<void>}
+ */
+export function OpenConfigDir() {
+    return $Call.ByID(4090019930);
 }
 
 /**
@@ -101,6 +145,23 @@ export function RestartDirect() {
     return $Call.ByID(4139875253).then(/** @type {($result: any) => any} */(($result) => {
         return $$createType0($result);
     }));
+}
+
+/**
+ * SelectDirectory shows a native folder picker and returns the chosen path, or
+ * "" if the user cancelled. Mirrors Electron's `select-directory`.
+ * @returns {$CancellablePromise<string>}
+ */
+export function SelectDirectory() {
+    return $Call.ByID(650242992);
+}
+
+/**
+ * @param {string} path
+ * @returns {$CancellablePromise<void>}
+ */
+export function ShowInFolder(path) {
+    return $Call.ByID(3482590167, path);
 }
 
 /**

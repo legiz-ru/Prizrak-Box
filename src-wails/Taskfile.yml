@@ -3,7 +3,10 @@ version: "3"
 # Taskfile for the Wails v3 shell (Phase 0 PoC).
 #
 # Prerequisites:
-#   - wails3 CLI:  go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+#   - wails3 CLI, pinned to the SAME version as go.mod's wails/v3 (the CLI
+#     generates bindings and build assets; a version mismatch can produce
+#     incompatible output):
+#       go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.2
 #   - The px backend built at ../src-go/px  (see repo README "Build px backend")
 #   - Frontend deps installed at the repo root:  npm install
 #
@@ -37,6 +40,13 @@ tasks:
     dir: "{{.REPO_ROOT}}/src-go"
     cmds:
       - CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -o px .
+
+  bindings:
+    desc: Regenerate the Go->JS service bindings (time.Time maps to JS Date)
+    cmds:
+      # -time-type Date makes any time.Time in a service API arrive in JS as a
+      # real Date object instead of the default RFC3339 string (alpha2.113+).
+      - wails3 generate bindings -d frontend/bindings -time-type Date
 
   build:
     desc: Build the full desktop app (frontend + Go shell) with wails3
