@@ -152,6 +152,14 @@ func (c *CoreService) MarkStartedBySvc() {
 	c.mu.Unlock()
 }
 
+// ClearStartedBySvc records that px is no longer owned by px-service (the
+// service was stopped or uninstalled).
+func (c *CoreService) ClearStartedBySvc() {
+	c.mu.Lock()
+	c.startedBySvc = false
+	c.mu.Unlock()
+}
+
 // KillPx terminates the locally spawned px process (if any). px started via
 // the service is not killed here; the caller handles that through the service.
 //

@@ -2,6 +2,12 @@
 import {useI18n} from "vue-i18n";
 import createApi from "@/api";
 import {pSuccess, pError, pWarning} from "@/util/pLoad";
+import {restartBackendAndSync, waitBackendReady} from "@/util/backendConn";
+import {
+  notifyServiceStatusChanged,
+  notifyTunForcedOff,
+  SERVICE_STATUS_UPDATED_EVENT,
+} from "@/util/serviceEvents";
 
 const {t} = useI18n();
 const {proxy} = getCurrentInstance()!;
@@ -37,41 +43,67 @@ async function fetchServiceStatus() {
 // Установка сервиса
 async function installService() {
   loading.value = true;
+  // Only a failure of install() itself means "install failed" — problems while
+  // relaunching px afterwards are reported as "restart required" instead.
+  let success = false;
   try {
     // @ts-ignore
-    const success = await window.pxService.install();
-    if (success) {
-      pSuccess(t('service.install-success'));
-      await restartBackendAfterInstall();
-      notifyServiceStatusChanged();
-      await fetchServiceStatus();
-    } else {
-      pError(t('service.install-failed'));
-    }
+    success = await window.pxService.install();
   } catch (e) {
+    success = false;
+  }
+  if (success) {
+    pSuccess(t('service.install-success'));
+    await restartBackendAfterInstall();
+  } else {
     pError(t('service.install-failed'));
   }
+  notifyServiceStatusChanged();
+  await fetchServiceStatus();
   loading.value = false;
 }
 
 // Удаление сервиса
 async function uninstallService() {
   loading.value = true;
+
+  // Stop px gracefully *before* removing the service: it is the service that
+  // owns the running (elevated) px, and once the service is gone there is no
+  // way left to ask it to shut down cleanly — it would keep the control port
+  // and the TUN device.
+  try {
+    await api.exit();
+  } catch (e) {
+    // ignore exit errors - процесс может быть уже остановлен
+  }
+
+  let success = false;
   try {
     // @ts-ignore
-    const success = await window.pxService.uninstall();
-    if (success) {
-      pSuccess(t('service.uninstall-success'));
-      // После удаления сервиса перезапускаем backend в обычном режиме
-      await restartBackendAfterUninstall();
-      notifyServiceStatusChanged();
-      await fetchServiceStatus();
-    } else {
-      pError(t('service.uninstall-failed'));
-    }
+    success = await window.pxService.uninstall();
   } catch (e) {
-    pError(t('service.uninstall-failed'));
+    success = false;
   }
+
+  if (success) {
+    pSuccess(t('service.uninstall-success'));
+    // TUN can no longer work: px is now an ordinary, unprivileged process.
+    notifyTunForcedOff();
+    // После удаления сервиса перезапускаем backend в обычном режиме
+    await restartBackendAfterUninstall();
+    // Even when px came back cleanly, the app is no longer running against the
+    // elevated service it was started with, so ask for a restart. This warning
+    // never appeared before (see restartBackendAfterUninstall).
+    pWarning(t('service.restart-required'));
+  } else {
+    // Uninstall refused/cancelled — px was stopped above, so bring it back
+    // (through the still-installed service) instead of leaving the app dead.
+    pError(t('service.uninstall-failed'));
+    await restartBackendAfterUninstall();
+  }
+
+  notifyServiceStatusChanged();
+  await fetchServiceStatus();
   loading.value = false;
 }
 
@@ -85,9 +117,10 @@ async function restartBackendAfterInstall() {
   await new Promise((resolve) => setTimeout(resolve, 800));
 
   try {
-    // @ts-ignore
-    const restarted = await window.pxService.restartBackend();
-    if (!restarted) {
+    // restartBackendAndSync() applies the new host/port/secret reported by the
+    // shell; without it the app keeps talking to the px it was launched with.
+    const restarted = await restartBackendAndSync();
+    if (!restarted || !(await waitBackendReady(api))) {
       pWarning(t('service.restart-required'));
     }
   } catch (e) {
@@ -95,28 +128,22 @@ async function restartBackendAfterInstall() {
   }
 }
 
-async function restartBackendAfterUninstall() {
+// Relaunches px after the service was removed. The shell falls back to a plain
+// (unprivileged) spawn once the service is unreachable; its fresh host/port/
+// secret are applied so the running app keeps working.
+//
+// NOTE: this used to wait via api.waitRunning(), which swallows every error by
+// design (see src/api/mihomo/index.ts). Its catch block could therefore never
+// run and the "restart the app" warning was never shown — the bug this fixes.
+async function restartBackendAfterUninstall(): Promise<boolean> {
   try {
-    // Останавливаем текущий backend (который работал через сервис)
-    await api.exit();
+    if (!(await restartBackendAndSync())) {
+      return false;
+    }
+    return await waitBackendReady(api);
   } catch (e) {
-    // ignore exit errors - процесс может быть уже остановлен
+    return false;
   }
-
-  // Ждём, пока Electron автоматически перезапустит backend в обычном режиме
-  await new Promise((resolve) => setTimeout(resolve, 1500));
-
-  try {
-    // Проверяем, что backend успешно запустился
-    await api.waitRunning();
-  } catch (e) {
-    // Backend не запустился автоматически, требуется ручной перезапуск приложения
-    pWarning(t('service.restart-required'));
-  }
-}
-
-function notifyServiceStatusChanged() {
-  window.dispatchEvent(new CustomEvent('service-status-updated'));
 }
 
 // Статус в читаемом виде
@@ -149,11 +176,11 @@ const statusType = computed(() => {
 // Проверяем статус при монтировании
 onMounted(() => {
   fetchServiceStatus();
-  window.addEventListener('service-status-updated', fetchServiceStatus);
+  window.addEventListener(SERVICE_STATUS_UPDATED_EVENT, fetchServiceStatus);
 });
 
 onUnmounted(() => {
-  window.removeEventListener('service-status-updated', fetchServiceStatus);
+  window.removeEventListener(SERVICE_STATUS_UPDATED_EVENT, fetchServiceStatus);
 });
 </script>
 

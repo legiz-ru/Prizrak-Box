@@ -17,6 +17,7 @@ import "./styles/basic.css";
 import {useMenuStore} from "@/store/menuStore";
 import {useWebStore} from "@/store/webStore";
 import {AxiosRequest} from "@/util/axiosRequest";
+import {registerHttpTarget} from "@/util/backendConn";
 import {useHomeStore} from "@/store/homeStore";
 import {useSettingStore} from "@/store/settingStore";
 import {memoryCache} from "@/types/persist"
@@ -159,6 +160,11 @@ async function bootstrap() {
         webStore.baseUrl,
         webStore.secret
     );
+
+    // Let applyBackendConn() rebuild $http when px is restarted while the app
+    // keeps running (TUN service install/uninstall) — px may come back on a
+    // different port, which used to leave every request pointing at a dead one.
+    registerHttpTarget(app.config.globalProperties);
 
     const api = createApi(app.config.globalProperties);
 

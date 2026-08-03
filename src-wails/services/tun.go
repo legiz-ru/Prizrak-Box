@@ -87,7 +87,7 @@ func (t *TunService) IsRunning() bool { return t.ping() }
 
 // GetStatus reports installed/running/admin state of the px-service.
 func (t *TunService) GetStatus() ServiceStatus {
-	installed := serviceBinaryExists()
+	installed := serviceInstalled()
 	status := ServiceStatus{Installed: installed}
 	if !installed {
 		return status
@@ -112,22 +112,44 @@ func (t *TunService) Install() bool {
 		application.Get().Logger.Error("service install failed", "error", err)
 		return false
 	}
-	for i := 0; i < 20; i++ {
-		if t.ping() {
-			return true
-		}
-		time.Sleep(300 * time.Millisecond)
+	// launchd/systemd/SCM return as soon as the job is registered; the daemon
+	// still has to start and bind its IPC socket.
+	if t.waitForService(15*time.Second, 300*time.Millisecond) {
+		return true
 	}
-	return t.ping()
+	application.Get().Logger.Error("service installed but its IPC endpoint never became reachable")
+	return false
 }
 
 // Uninstall removes the px-service (requires elevation).
+//
+// px is stopped through the service FIRST: while the service is installed it
+// owns the running px (spawned as root/LocalSystem, so the shell cannot signal
+// it). Removing the service without stopping px left an orphaned privileged
+// process holding the control port and the TUN device, and the freshly spawned
+// unprivileged px then had to fall back to a random port.
 func (t *TunService) Uninstall() bool {
+	if t.ping() {
+		if _, err := t.request("stop_px", nil, 5*time.Second); err != nil {
+			application.Get().Logger.Warn("stopping px through the service before uninstall failed", "error", err)
+		}
+	}
+
 	bin := locate.ServiceBinary()
 	if err := runElevated(bin, "", "-uninstall"); err != nil {
 		application.Get().Logger.Error("service uninstall failed", "error", err)
 		return false
 	}
+
+	// Wait for the daemon to actually go away so a RestartBackend right after
+	// this does not get routed through the service that is still shutting down.
+	for i := 0; i < 20; i++ {
+		if !t.ping() {
+			break
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	t.core.ClearStartedBySvc()
 	return true
 }
 
@@ -179,7 +201,7 @@ func (t *TunService) StartBackend() (ConnInfo, error) {
 	if err := t.core.ensureCallbackServer(); err != nil {
 		return ConnInfo{}, fmt.Errorf("callback server: %w", err)
 	}
-	if serviceBinaryExists() {
+	if serviceInstalled() {
 		reachable := t.ping()
 		if !reachable && locate.TunDesired() {
 			reachable = t.waitForService(15*time.Second, 500*time.Millisecond)
@@ -204,6 +226,7 @@ func (t *TunService) RestartBackend() (ConnInfo, error) {
 	if t.ping() {
 		return t.startViaService()
 	}
+	t.core.ClearStartedBySvc()
 	return t.core.RestartDirect()
 }
 
