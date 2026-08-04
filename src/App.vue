@@ -63,6 +63,7 @@ import {getRendererOrigin, normalizeCustomBackground} from "@/util/customBackgro
 import {WS} from "@/util/ws";
 import {formatDate} from "@/util/format";
 import {logLevel} from "@/composables/logLevel";
+import {BACKEND_CONN_UPDATED_EVENT} from "@/util/backendConn";
 
 const menuStore = useMenuStore();
 const updateStore = useUpdateStore();
@@ -364,18 +365,27 @@ watch(logLevel, (newVal, oldVal) => {
   }
 });
 
+// px can be restarted while the app keeps running (TUN service install /
+// uninstall) and comes back on a different port/secret, which leaves this
+// long-lived socket pointing at a process that no longer exists.
+function reconnectLogAfterBackendChange() {
+  connectLog(false);
+}
+
 onMounted(async () => {
   await loadProfiles();
   Events.On("profiles", (list: any[]) => {
     pickSelectedProfile(list);
   });
   window.addEventListener('vue-profiles-updated', handleVueProfilesUpdate as EventListener);
+  window.addEventListener(BACKEND_CONN_UPDATED_EVENT, reconnectLogAfterBackendChange);
 
   connectLog(false);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener('vue-profiles-updated', handleVueProfilesUpdate as EventListener);
+  window.removeEventListener(BACKEND_CONN_UPDATED_EVENT, reconnectLogAfterBackendChange);
 });
 
 </script>

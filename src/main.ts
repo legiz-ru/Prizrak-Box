@@ -17,6 +17,7 @@ import "./styles/basic.css";
 import {useMenuStore} from "@/store/menuStore";
 import {useWebStore} from "@/store/webStore";
 import {AxiosRequest} from "@/util/axiosRequest";
+import {applyBackendConn, registerHttpTarget} from "@/util/backendConn";
 import {useHomeStore} from "@/store/homeStore";
 import {useSettingStore} from "@/store/settingStore";
 import {memoryCache} from "@/types/persist"
@@ -152,16 +153,9 @@ async function bootstrap() {
     // The Electron shell passes everything in the URL and skips this entirely.
     if (!secret && typeof (window as any).pxConnInfo === "function") {
         try {
-            const info = await (window as any).pxConnInfo();
-            if (info?.host) {
-                webStore.setHost(info.host);
-            }
-            if (info?.port) {
-                webStore.setPort(String(info.port));
-            }
-            if (info?.secret) {
-                webStore.setSecret(info.secret);
-            }
+            // Same path a post-install/uninstall restart takes, so the initial
+            // and the refreshed connection info are applied identically.
+            applyBackendConn(await (window as any).pxConnInfo());
         } catch (error) {
             // Mount anyway: the app renders its normal "cannot reach the core"
             // state instead of leaving the user on the boot placeholder.
@@ -194,6 +188,11 @@ async function bootstrap() {
         webStore.baseUrl,
         webStore.secret
     );
+
+    // Let applyBackendConn() rebuild $http when px is restarted while the app
+    // keeps running (TUN service install/uninstall) — px may come back on a
+    // different port, which used to leave every request pointing at a dead one.
+    registerHttpTarget(app.config.globalProperties);
 
     const api = createApi(app.config.globalProperties);
 

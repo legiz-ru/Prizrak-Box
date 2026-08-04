@@ -146,22 +146,44 @@ func (t *TunService) Install() bool {
 		application.Get().Logger.Error("service install failed", "error", err)
 		return false
 	}
-	for i := 0; i < 20; i++ {
-		if t.ping() {
-			return true
-		}
-		time.Sleep(300 * time.Millisecond)
+	// launchd/systemd/SCM return as soon as the job is registered; the daemon
+	// still has to start and bind its IPC socket.
+	if t.waitForService(15*time.Second, 300*time.Millisecond) {
+		return true
 	}
-	return t.ping()
+	application.Get().Logger.Error("service installed but its IPC endpoint never became reachable")
+	return false
 }
 
 // Uninstall removes the px-service (requires elevation).
+//
+// px is stopped through the service FIRST: while the service is installed it
+// owns the running px (spawned as root/LocalSystem, so the shell cannot signal
+// it). Removing the service without stopping px left an orphaned privileged
+// process holding the control port and the TUN device, and the freshly spawned
+// unprivileged px then had to fall back to a random port.
 func (t *TunService) Uninstall() bool {
+	if t.ping() {
+		if _, err := t.request("stop_px", nil, 5*time.Second); err != nil {
+			application.Get().Logger.Warn("stopping px through the service before uninstall failed", "error", err)
+		}
+	}
+
 	bin := locate.ServiceBinary()
 	if err := runElevated(bin, "", "-uninstall"); err != nil {
 		application.Get().Logger.Error("service uninstall failed", "error", err)
 		return false
 	}
+
+	// Wait for the daemon to actually go away so a RestartBackend right after
+	// this does not get routed through the service that is still shutting down.
+	for i := 0; i < 20; i++ {
+		if !t.ping() {
+			break
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	t.core.ClearStartedBySvc()
 	return true
 }
 
@@ -186,11 +208,28 @@ func (t *TunService) startViaService() (ConnInfo, error) {
 }
 
 // waitForService polls the px-service until it answers ping or the budget runs
-// out. Used at startup to ride out the boot race where the autostarted app
-// outruns the still-starting service. It gives up early once the OS stops
-// reporting the service as on its way up, since the rest of the budget cannot
-// change the outcome then.
+// out. It deliberately does NOT consult the service manager: right after an
+// install the job can already be registered and starting while the manager
+// still reports nothing, so bailing out on its answer would fail a perfectly
+// good install.
 func (t *TunService) waitForService(total, step time.Duration) bool {
+	deadline := time.Now().Add(total)
+	for {
+		if t.ping() {
+			return true
+		}
+		if time.Now().After(deadline) {
+			return false
+		}
+		time.Sleep(step)
+	}
+}
+
+// waitForServiceStartup is the startup variant: it rides out the boot race
+// where the autostarted app outruns the still-starting service, but gives up as
+// soon as the OS stops reporting the service as on its way up, since the rest
+// of the budget cannot change the outcome then.
+func (t *TunService) waitForServiceStartup(total, step time.Duration) bool {
 	deadline := time.Now().Add(total)
 	nextStateCheck := time.Now().Add(serviceStateRecheck)
 	for {
@@ -233,7 +272,7 @@ func (t *TunService) StartBackend() (ConnInfo, error) {
 		// toggle on but no installed/running service burned the full budget on
 		// every single launch and then fell back to a direct spawn anyway.
 		if queryServiceState().mayComeUp() {
-			reachable = t.waitForService(serviceStartupBudget, serviceStartupPoll)
+			reachable = t.waitForServiceStartup(serviceStartupBudget, serviceStartupPoll)
 		}
 	}
 
@@ -256,6 +295,7 @@ func (t *TunService) RestartBackend() (ConnInfo, error) {
 	if t.ping() {
 		return t.startViaService()
 	}
+	t.core.ClearStartedBySvc()
 	return t.core.RestartDirect()
 }
 
