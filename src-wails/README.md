@@ -33,12 +33,8 @@ Phase 1:
   running instance via `ApplicationLaunchedWithUrl` (macOS) and second-instance
   argv (Windows/Linux), forwarded to the frontend as a Wails `deeplink` event.
   OS registration of the scheme happens at packaging time via `build/config.yml`.
-- **Launch at login** — `SystemService.AutostartEnabled / SetAutostart`. On
-  macOS/Linux it is backed by the built-in Wails v3 Autostart manager; on
-  Windows it registers a Task Scheduler logon task with a 15-second delay
-  (`services/autostart_windows.go`) instead of the registry Run key, so the
-  tray icon doesn't race explorer.exe at logon. Enabling/disabling migrates
-  (removes) any legacy Run-key entry from older builds.
+- **Launch at login** — `SystemService.AutostartEnabled / SetAutostart`, backed
+  by the built-in Wails v3 Autostart manager.
 - **Persistent store** — the shim's `pxStore` is backed by the Wails kvstore
   service writing the electron-store file (`<home>/px-electron.db/config.json`),
   so settings are shared with the Electron shell; legacy localStorage entries
@@ -125,7 +121,7 @@ Install the `wails3` CLI pinned to the same version as `go.mod`'s `wails/v3`
 incompatible output):
 
 ```bash
-go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.2
+go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.3
 ```
 
 ### Environment overrides (handy for dev)

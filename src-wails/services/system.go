@@ -4,6 +4,8 @@ import (
 	"os"
 	"os/user"
 	"runtime"
+
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 // SystemService exposes small OS helpers to the frontend. It is the Wails
@@ -53,17 +55,18 @@ func (s *SystemService) Username() string {
 }
 
 // AutostartEnabled reports whether launch-at-login is currently registered.
-//
-// On macOS/Linux this uses the built-in Wails v3 Autostart manager
-// (LaunchAgent / .desktop autostart). On Windows it uses a Task Scheduler
-// logon task with a 15-second delay instead of the registry Run key, so the
-// app starts after the logon rush (a Run-key start can race explorer.exe and
-// leave a blank tray icon). See autostart_windows.go / autostart_other.go.
+// Uses the built-in Wails v3 Autostart manager (LaunchAgent / registry Run /
+// .desktop autostart).
 func (s *SystemService) AutostartEnabled() bool {
-	return autostartEnabled()
+	enabled, err := application.Get().Autostart.IsEnabled()
+	return err == nil && enabled
 }
 
 // SetAutostart enables or disables launch-at-login.
 func (s *SystemService) SetAutostart(enabled bool) error {
-	return setAutostart(enabled)
+	am := application.Get().Autostart
+	if enabled {
+		return am.Enable()
+	}
+	return am.Disable()
 }
