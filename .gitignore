@@ -100,3 +100,12 @@ src-go/px.exe
 src-service/px-service
 src-service/px-service.exe
 src-service/px-service-*
+
+# macOS build artifacts (src-wails/build-macos-dmg.sh and the wails-build
+# workflow assemble the bundle at the repo root before packaging it).
+# The finished .app/.dmg land in src-wails/bin/, ignored via src-wails/.gitignore.
+/Prizrak-Box.app
+/dmg-stage
+*.dmg
+notarize.zip
+wails-macos-*.zip
