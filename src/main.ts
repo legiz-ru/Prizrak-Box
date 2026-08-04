@@ -61,6 +61,18 @@ function isCanceledError(error: any) {
 async function bootstrap() {
     initRendererIPC();
 
+    // Tell the native shell the webview is alive so it can reveal the window.
+    // Emitted BEFORE the awaits below on purpose: under the Wails shell the
+    // backend connection info only exists once px has started, which can take
+    // seconds (TUN adapter, px-service at boot), and the window must not stay
+    // hidden for that whole time. index.html paints a placeholder meanwhile.
+    // No-op under Electron / the web build.
+    try {
+        (window as any).pxTray?.emit?.("ready");
+    } catch {
+        /* ignore */
+    }
+
     // 加载缓存数据
     // @ts-ignore
     if (window["pxStore"]) {
@@ -132,6 +144,29 @@ async function bootstrap() {
     }
     if (secret) {
         webStore.setSecret(secret);
+    }
+
+    // Wails shell: the connection info is not in the URL. The window is shown
+    // before px is up, so ask the shell for it — the call resolves once px has
+    // reported its port/secret, or rejects if the backend failed to start.
+    // The Electron shell passes everything in the URL and skips this entirely.
+    if (!secret && typeof (window as any).pxConnInfo === "function") {
+        try {
+            const info = await (window as any).pxConnInfo();
+            if (info?.host) {
+                webStore.setHost(info.host);
+            }
+            if (info?.port) {
+                webStore.setPort(String(info.port));
+            }
+            if (info?.secret) {
+                webStore.setSecret(info.secret);
+            }
+        } catch (error) {
+            // Mount anyway: the app renders its normal "cannot reach the core"
+            // state instead of leaving the user on the boot placeholder.
+            console.error("Backend did not report connection info", error);
+        }
     }
 
     const emitDashboardLinks = () => {
@@ -600,14 +635,6 @@ function safeDecode(value?: string) {
 
 // 🚀 启动应用
 bootstrap().then(() => {
+    // Replaces index.html's boot placeholder.
     app.mount("#app");
-    // Tell the native shell the webview has embedded and Vue is mounted, so it
-    // can safely re-navigate with the backend connection params (host/port/
-    // secret). Navigating before this crashes WebView2 (nil ICoreWebView2 during
-    // Embed). No-op under Electron / the web build.
-    try {
-        (window as any).pxTray?.emit?.("ready");
-    } catch {
-        /* ignore */
-    }
 });

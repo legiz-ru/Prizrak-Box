@@ -160,6 +160,13 @@ const changeBg = (bg: string, useWhite: boolean) => {
   // frame doesn't flash a mismatched black/white rectangle. useWhite (white
   // text) implies a dark background. No-op under Electron (no handler).
   Events.Emit({name: 'darkBg', data: !!useWhite});
+  // Same value for index.html's boot placeholder, which runs before any
+  // module (and before the async pxStore) is available.
+  try {
+    localStorage.setItem('px:darkBg', useWhite ? '1' : '0');
+  } catch (e) {
+    /* ignore */
+  }
 }
 
 function isExternalBg(bg: string): boolean {

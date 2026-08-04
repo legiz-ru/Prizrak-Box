@@ -147,6 +147,25 @@ export function installWailsShim(): void {
         notifyReady: () => { /* no-op: Wails delivers via event */ },
     };
 
+    // --- Backend connection info (host/port/secret) ---
+    // The shell reveals the window before px is up, so the frontend asks for
+    // the connection info instead of receiving it in the URL. GetConnInfo
+    // blocks server-side until px calls back; px:be:backendError short-circuits
+    // that wait when the shell already knows the backend failed to start.
+    w.pxConnInfo = (): Promise<any> =>
+        new Promise((resolve, reject) => {
+            runtime()
+                .then(({ Events }) =>
+                    Events.On('px:be:backendError', (e: any) =>
+                        reject(new Error(String(e?.data ?? 'backend failed to start')))
+                    )
+                )
+                .catch(() => { /* ignore: the service call below still applies */ });
+            services()
+                .then((s: any) => s.CoreService.GetConnInfo())
+                .then(resolve, reject);
+        });
+
     // --- TUN service via generated TunService bindings ---
     w.pxService = {
         getStatus: async () => (await services()).TunService.GetStatus(),
