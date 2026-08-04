@@ -63,6 +63,7 @@ import {getRendererOrigin, normalizeCustomBackground} from "@/util/customBackgro
 import {WS} from "@/util/ws";
 import {formatDate} from "@/util/format";
 import {logLevel} from "@/composables/logLevel";
+import {BACKEND_CONN_UPDATED_EVENT} from "@/util/backendConn";
 
 const menuStore = useMenuStore();
 const updateStore = useUpdateStore();
@@ -160,6 +161,13 @@ const changeBg = (bg: string, useWhite: boolean) => {
   // frame doesn't flash a mismatched black/white rectangle. useWhite (white
   // text) implies a dark background. No-op under Electron (no handler).
   Events.Emit({name: 'darkBg', data: !!useWhite});
+  // Same value for index.html's boot placeholder, which runs before any
+  // module (and before the async pxStore) is available.
+  try {
+    localStorage.setItem('px:darkBg', useWhite ? '1' : '0');
+  } catch (e) {
+    /* ignore */
+  }
 }
 
 function isExternalBg(bg: string): boolean {
@@ -357,18 +365,27 @@ watch(logLevel, (newVal, oldVal) => {
   }
 });
 
+// px can be restarted while the app keeps running (TUN service install /
+// uninstall) and comes back on a different port/secret, which leaves this
+// long-lived socket pointing at a process that no longer exists.
+function reconnectLogAfterBackendChange() {
+  connectLog(false);
+}
+
 onMounted(async () => {
   await loadProfiles();
   Events.On("profiles", (list: any[]) => {
     pickSelectedProfile(list);
   });
   window.addEventListener('vue-profiles-updated', handleVueProfilesUpdate as EventListener);
+  window.addEventListener(BACKEND_CONN_UPDATED_EVENT, reconnectLogAfterBackendChange);
 
   connectLog(false);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener('vue-profiles-updated', handleVueProfilesUpdate as EventListener);
+  window.removeEventListener(BACKEND_CONN_UPDATED_EVENT, reconnectLogAfterBackendChange);
 });
 
 </script>

@@ -33,12 +33,8 @@ Phase 1:
   running instance via `ApplicationLaunchedWithUrl` (macOS) and second-instance
   argv (Windows/Linux), forwarded to the frontend as a Wails `deeplink` event.
   OS registration of the scheme happens at packaging time via `build/config.yml`.
-- **Launch at login** — `SystemService.AutostartEnabled / SetAutostart`. On
-  macOS/Linux it is backed by the built-in Wails v3 Autostart manager; on
-  Windows it registers a Task Scheduler logon task with a 15-second delay
-  (`services/autostart_windows.go`) instead of the registry Run key, so the
-  tray icon doesn't race explorer.exe at logon. Enabling/disabling migrates
-  (removes) any legacy Run-key entry from older builds.
+- **Launch at login** — `SystemService.AutostartEnabled / SetAutostart`, backed
+  by the built-in Wails v3 Autostart manager.
 - **Persistent store** — the shim's `pxStore` is backed by the Wails kvstore
   service writing the electron-store file (`<home>/px-electron.db/config.json`),
   so settings are shared with the Electron shell; legacy localStorage entries
@@ -113,6 +109,29 @@ cd src-wails
 go build -o bin/prizrak-box-wails . && ./bin/prizrak-box-wails
 ```
 
+### macOS release build (`.app` + `.dmg`)
+
+`build-macos-dmg.sh` reproduces the `macos` job of
+`.github/workflows/wails-build.yml` locally, minus the steps that need Apple
+secrets (Developer ID signing, notarization, stapling) — the bundle gets an
+ad-hoc signature instead:
+
+```bash
+./src-wails/build-macos-dmg.sh            # arm64 (default)
+./src-wails/build-macos-dmg.sh --arch amd64
+./src-wails/build-macos-dmg.sh --help     # all options
+```
+
+Both artifacts land in `src-wails/bin/` (git-ignored):
+`prizrak-box-wails-macos-<arch>.dmg` and `Prizrak-Box.app`.
+
+Because the build is not notarized, macOS quarantines anything installed from
+that DMG. The script prints the fix; it is:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Prizrak-Box.app
+```
+
 ### Optional: `task` and `wails3`
 
 If you install the [Task](https://taskfile.dev) runner (`brew install go-task`
@@ -125,7 +144,7 @@ Install the `wails3` CLI pinned to the same version as `go.mod`'s `wails/v3`
 incompatible output):
 
 ```bash
-go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.2
+go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.3
 ```
 
 ### Environment overrides (handy for dev)

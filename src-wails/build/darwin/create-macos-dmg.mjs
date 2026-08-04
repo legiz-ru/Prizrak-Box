@@ -30,7 +30,36 @@ execFileSync('cp', ['-R', appPath, path.join(stageDir, appName)])
 // /Applications symlink
 try { fs.symlinkSync('/Applications', path.join(stageDir, 'Applications')) } catch { /* ok */ }
 
-// README files — three languages (no Fix Quarantine: app is signed & notarized)
+// README files — three languages. Signed & notarized builds need no quarantine
+// hint; local unsigned builds (PB_UNSIGNED=1, see src-wails/build-macos-dmg.sh)
+// do, because Gatekeeper refuses to open them until the flag is cleared.
+const unsigned = process.env.PB_UNSIGNED === '1'
+
+const noteEn = unsigned
+  ? `This build is NOT signed with a Developer ID and NOT notarized, so macOS
+blocks it ("Prizrak-Box is damaged" / "developer cannot be verified").
+After copying the app to Applications, run this in Terminal:
+
+    xattr -dr com.apple.quarantine /Applications/Prizrak-Box.app`
+  : `The app is digitally signed. If a security dialog appears, click "Open".`
+
+const noteRu = unsigned
+  ? `Эта сборка НЕ подписана Developer ID и НЕ нотаризована, поэтому macOS
+блокирует её («Приложение повреждено» / «не удаётся проверить разработчика»).
+После копирования приложения в «Программы» выполните в Терминале:
+
+    xattr -dr com.apple.quarantine /Applications/Prizrak-Box.app`
+  : `Приложение подписано цифровой подписью. При появлении диалога
+безопасности нажмите «Открыть» (Open).`
+
+const noteZh = unsigned
+  ? `此版本未使用 Developer ID 签名，也未经过公证，因此 macOS 会拦截它
+（「应用已损坏」/「无法验证开发者」）。将应用拷贝到「应用程序」后，
+请在「终端」中执行：
+
+    xattr -dr com.apple.quarantine /Applications/Prizrak-Box.app`
+  : `该应用已经过数字签名。如果出现安全对话框，请点击「打开」(Open)。`
+
 fs.writeFileSync(path.join(stageDir, 'README.txt'), `Prizrak-Box — macOS Installation
 =================================
 
@@ -40,7 +69,7 @@ fs.writeFileSync(path.join(stageDir, 'README.txt'), `Prizrak-Box — macOS Insta
 If a dialog appears saying "Prizrak-Box already exists. Replace it?" —
 click "Replace".
 
-The app is digitally signed. If a security dialog appears, click "Open".
+${noteEn}
 
 Support & updates: https://github.com/legiz-ru/prizrak-box
 `, 'utf8')
@@ -54,8 +83,7 @@ fs.writeFileSync(path.join(stageDir, 'README.ru.txt'), `Prizrak-Box — Уста
 Если появится диалог «В этой папке уже есть объект «Prizrak-Box».
 Заменить его копируемым объектом?» — нажмите «Заменить».
 
-Приложение подписано цифровой подписью. При появлении диалога
-безопасности нажмите «Открыть» (Open).
+${noteRu}
 
 Поддержка и обновления: https://github.com/legiz-ru/prizrak-box
 `, 'utf8')
@@ -68,7 +96,7 @@ fs.writeFileSync(path.join(stageDir, 'README.zh.txt'), `Prizrak-Box — macOS �
 
 如果出现「"Prizrak-Box"已存在，是否替换？」对话框，请点击「替换」。
 
-该应用已经过数字签名。如果出现安全对话框，请点击「打开」(Open)。
+${noteZh}
 
 支持与更新：https://github.com/legiz-ru/prizrak-box
 `, 'utf8')

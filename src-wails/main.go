@@ -14,11 +14,9 @@ package main
 
 import (
 	"embed"
-	"fmt"
 	"io/fs"
 	"log"
 	"log/slog"
-	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -188,7 +186,7 @@ func main() {
 		Height:    760,
 		MinWidth:  960, // matches the Electron window minimums
 		MinHeight: 660,
-		Hidden:    true, // shown once the backend is ready
+		Hidden:    true, // shown once the webview has rendered (see below)
 		URL:       "/",
 	}
 	// Match the window's own background to the frontend's last-known theme so
@@ -348,22 +346,18 @@ func main() {
 		}
 	}
 
-	// Start the backend, then point the window at it and reveal the window.
-	// StartBackend routes px through the elevated service when available (so TUN
-	// works without elevating the GUI) and otherwise spawns px directly.
+	// Reveal the window as soon as the webview has rendered — deliberately NOT
+	// gated on the backend being up.
+	//
+	// px startup is not instant: bringing up the TUN adapter takes seconds, and
+	// at boot StartBackend may additionally wait for the still-starting
+	// px-service. Revealing the window only afterwards meant nothing at all was
+	// on screen for that whole time, which reads as a frozen app. The frontend
+	// now fetches the connection info itself (window.pxConnInfo ->
+	// CoreService.GetConnInfo, which blocks until px reports back) and shows a
+	// boot placeholder meanwhile, so no navigation is needed here either.
 	go func() {
-		info, err := tun.StartBackend()
-		// Don't navigate until the webview has finished its initial embed.
 		awaitWebview()
-		if err != nil {
-			log.Printf("core start failed: %v", err)
-			win.SetURL("/?error=backend")
-			win.Show()
-			return
-		}
-		win.SetURL(fmt.Sprintf("/?host=%s&port=%d&secret=%s",
-			info.Host, info.Port, url.QueryEscape(info.Secret)))
-
 		// "Start minimized to tray": stay hidden unless a deep link needs the
 		// import UI surfaced. The tray's "Show" item and the global hotkey both
 		// reveal the window. Mirrors src-electron/main.ts startMinimized.
@@ -373,6 +367,18 @@ func main() {
 		}
 		if hasDeep {
 			win.EmitEvent("deeplink", u)
+		}
+	}()
+
+	// Start the backend in the background. StartBackend routes px through the
+	// elevated service when available (so TUN works without elevating the GUI)
+	// and otherwise spawns px directly.
+	go func() {
+		if _, err := tun.StartBackend(); err != nil {
+			log.Printf("core start failed: %v", err)
+			// Unblock the frontend's pxConnInfo wait instead of leaving it to
+			// time out on the boot placeholder.
+			win.EmitEvent("px:be:backendError", err.Error())
 		}
 	}()
 

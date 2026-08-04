@@ -8,6 +8,8 @@ import {useSettingStore} from "@/store/settingStore";
 import {pUpdateMihomo} from "@/util/mihomo";
 import {useHomeStore} from "@/store/homeStore";
 import {updateSystemProxy} from "@/util/systemProxy";
+import {restartBackendAndSync, waitBackendReady} from "@/util/backendConn";
+import {notifyServiceStatusChanged, TUN_FORCE_OFF_EVENT} from "@/util/serviceEvents";
 
 // 使用store
 const menuStore = useMenuStore();
@@ -230,25 +232,39 @@ async function installServiceHandler() {
   showServiceDialog.value = false;
   showAdminChoiceDialog.value = false;
   pLoad(t('service.installing'), async () => {
+    // Step 1 — the install itself. Only a failure *here* means "install failed";
+    // errors from the restart/TUN steps below must not be reported as one (they
+    // used to be, which is why a successful install was immediately followed by
+    // "Не удалось установить сервис" while the service was in fact installed).
+    let installed = false;
     try {
       // @ts-ignore
-      const installed = await window.pxService.install();
-      if (installed) {
-        pSuccess(t('service.install-success'));
-        const restarted = await restartBackendAfterInstall();
-        await notifyServiceStatusChanged();
-        if (restarted) {
-          await api.waitRunning();
-          const select = await selected();
-          if (select) {
-            await enableTun();
-          }
-        }
-      } else {
-        pError(t('service.install-failed'));
+      installed = await window.pxService.install();
+    } catch (e) {
+      installed = false;
+    }
+    if (!installed) {
+      pError(t('service.install-failed'));
+      return;
+    }
+    pSuccess(t('service.install-success'));
+
+    // Step 2 — relaunch px through the freshly installed elevated service and
+    // pick up its new host/port/secret.
+    const restarted = await restartBackendAfterInstall();
+    notifyServiceStatusChanged();
+    if (!restarted) {
+      return;
+    }
+
+    // Step 3 — bring TUN up on the now-privileged backend.
+    try {
+      const select = await selected();
+      if (select) {
+        await enableTun();
       }
     } catch (e) {
-      pError(t('service.install-failed'));
+      pWarning(t('service.restart-required'));
     }
   });
 }
@@ -263,20 +279,19 @@ async function restartBackendAfterInstall(): Promise<boolean> {
   await new Promise((resolve) => setTimeout(resolve, 800));
 
   try {
-    // @ts-ignore
-    const restarted = await window.pxService.restartBackend();
-    if (!restarted) {
+    // restartBackendAndSync() applies the connection info the shell reports for
+    // the new px process. Without it the app kept using the port/secret it was
+    // launched with, so every request failed until the app was restarted.
+    const restarted = await restartBackendAndSync();
+    if (!restarted || !(await waitBackendReady(api))) {
       pWarning(t('service.restart-required'));
+      return false;
     }
-    return restarted;
+    return true;
   } catch (e) {
     pWarning(t('service.restart-required'));
     return false;
   }
-}
-
-async function notifyServiceStatusChanged() {
-  window.dispatchEvent(new CustomEvent('service-status-updated'));
 }
 
 async function runTunWithoutService() {
@@ -300,6 +315,22 @@ function closeAdminChoiceDialog() {
 
 Events.On("switchTun", async () => {
   await tunSwitch()
+});
+
+// Removing the privileged service (settings → "Удалить сервис") takes TUN down
+// with it: px is relaunched unprivileged, so the toggle must stop showing "on".
+function forceTunOff() {
+  menuStore.setTun(false);
+  tunOn.value = false;
+  Events.Emit({name: "tun", data: false});
+}
+
+onMounted(() => {
+  window.addEventListener(TUN_FORCE_OFF_EVENT, forceTunOff);
+});
+
+onUnmounted(() => {
+  window.removeEventListener(TUN_FORCE_OFF_EVENT, forceTunOff);
 });
 
 
@@ -330,10 +361,9 @@ onMounted(async () => {
       }
       if (installed) {
         try {
-          // @ts-ignore
-          const restarted = await window.pxService.restartBackend();
+          const restarted = await restartBackendAndSync();
           if (restarted) {
-            await api.waitRunning();
+            await waitBackendReady(api);
             privileged = await isPxPrivileged();
           }
         } catch (e) {
