@@ -260,10 +260,25 @@ watch(() => settingStore.startMinimized, (val) => {
   Events.Emit({name: 'startMinimized', data: !!val});
 });
 
+// "Launch at login": the shell registers/removes the OS entry. Watched here
+// rather than only in MyConfig.vue (the settings page, which is mounted only
+// while it is open) so the shell hears about every change, and re-published on
+// mount so the OS registration is re-applied on each launch.
+watch(() => settingStore.startup, (val) => {
+  Events.Emit({name: 'boot', data: !!val});
+});
+
 onMounted(async () => {
   // Publish the current settings the shell needs at startup (hotkey + start
   // minimized), so the persisted flags match the UI even without a change.
   Events.Emit({name: 'startMinimized', data: !!settingStore.startMinimized});
+  // Re-apply launch-at-login every start. The setting is persisted (and now
+  // shared with the Electron build), so without this the OS entry is only ever
+  // written in the session where the toggle is flipped: a settings file that
+  // already said "on" — carried over from Electron, or from before an update
+  // that changed the executable path / dropped the entry — left the toggle
+  // showing "on" while nothing was registered with the OS.
+  Events.Emit({name: 'boot', data: !!settingStore.startup});
   if (settingStore.sc_switch) {
     Events.Emit({name: 'shortcut:register', data: {name: 'showOrHide', key: settingStore.sc_switch_key}});
   }
