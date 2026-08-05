@@ -140,9 +140,13 @@ async function tunSwitch() {
     return;
   }
 
-  // Проверяем, есть ли права администратора или сервис в админ-режиме
-  const admin = await api.getAdmin();
-  const hasAdmin = !!admin.data;
+  // Проверяем, есть ли права администратора или сервис в админ-режиме.
+  // isPxPrivileged() swallows errors on purpose: this used to call
+  // api.getAdmin() directly, so a single unreachable request (px restarting
+  // after a service install, a stale secret, …) rejected here and aborted the
+  // whole handler — the click then did nothing at all, with no dialog and no
+  // message. An unreachable px simply means "not privileged".
+  const hasAdmin = await isPxPrivileged();
   let allowTun = hasAdmin;
 
   if (!allowTun) {
@@ -257,12 +261,20 @@ async function installServiceHandler() {
       return;
     }
 
-    // Step 3 — bring TUN up on the now-privileged backend.
+    // Step 3 — bring TUN up on the now-privileged backend. Verify the privilege
+    // rather than assuming it: if px did not actually come back through the
+    // service, enabling TUN would write the config and silently pass no traffic.
     try {
+      if (!(await isPxPrivileged())) {
+        pWarning(t('service.restart-required'));
+        return;
+      }
       const select = await selected();
       if (select) {
         await enableTun();
       }
+      // No profile selected: selected() already told the user. TUN stays off,
+      // and the toggle now works because px is privileged.
     } catch (e) {
       pWarning(t('service.restart-required'));
     }
@@ -270,22 +282,26 @@ async function installServiceHandler() {
 }
 
 async function restartBackendAfterInstall(): Promise<boolean> {
-  try {
-    await api.exit();
-  } catch (e) {
-    // ignore exit errors
-  }
-
-  await new Promise((resolve) => setTimeout(resolve, 800));
-
+  // NOTE: this deliberately does NOT call api.exit() first. The shell's
+  // restartBackend() already stops the running px (and asks the service to stop
+  // the one it owns) before spawning a fresh one; killing px from here as well
+  // only widened the window in which both sides raced over a half-dead process.
   try {
     // restartBackendAndSync() applies the connection info the shell reports for
     // the new px process. Without it the app kept using the port/secret it was
     // launched with, so every request failed until the app was restarted.
-    const restarted = await restartBackendAndSync();
-    if (!restarted || !(await waitBackendReady(api))) {
+    if (!(await restartBackendAndSync())) {
       pWarning(t('service.restart-required'));
       return false;
+    }
+    // The shell only reports connection info once px has called back, so px is
+    // already running here. Its control API can need a moment longer — and can
+    // stay unhappy for reasons that have nothing to do with the restart (no
+    // profile loaded yet, for instance) — so this wait is best effort and must
+    // not fail the install: doing so skipped step 3 and told the user to
+    // restart the app even though the service was installed and working.
+    if (!(await waitBackendReady(api, 20000))) {
+      console.warn('px restarted but its control API did not answer in time');
     }
     return true;
   } catch (e) {
