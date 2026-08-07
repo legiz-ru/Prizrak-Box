@@ -107,21 +107,21 @@ async function uninstallService() {
   loading.value = false;
 }
 
+// NOTE: this deliberately does NOT call api.exit() first — the shell's
+// restartBackend() already stops the running px before spawning a fresh one.
 async function restartBackendAfterInstall() {
-  try {
-    await api.exit();
-  } catch (e) {
-    // ignore exit errors
-  }
-
-  await new Promise((resolve) => setTimeout(resolve, 800));
-
   try {
     // restartBackendAndSync() applies the new host/port/secret reported by the
     // shell; without it the app keeps talking to the px it was launched with.
-    const restarted = await restartBackendAndSync();
-    if (!restarted || !(await waitBackendReady(api))) {
+    if (!(await restartBackendAndSync())) {
       pWarning(t('service.restart-required'));
+      return;
+    }
+    // px is already running once the shell reports its connection info; the
+    // control API may lag behind for unrelated reasons, so a slow answer here
+    // must not be reported as a failed restart.
+    if (!(await waitBackendReady(api, 20000))) {
+      console.warn('px restarted but its control API did not answer in time');
     }
   } catch (e) {
     pWarning(t('service.restart-required'));

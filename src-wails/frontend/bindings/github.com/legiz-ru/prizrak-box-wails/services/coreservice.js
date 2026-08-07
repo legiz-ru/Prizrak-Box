@@ -60,6 +60,15 @@ export function ChangeConfigDir(dir) {
 }
 
 /**
+ * ClearStartedBySvc records that px is no longer owned by px-service (the
+ * service was stopped or uninstalled).
+ * @returns {$CancellablePromise<void>}
+ */
+export function ClearStartedBySvc() {
+    return $Call.ByID(1929878584);
+}
+
+/**
  * ConfigDir returns the current px data directory (…/Prizrak-Box-V3).
  * Mirrors Electron's `pre-config-dir`.
  * @returns {$CancellablePromise<string>}

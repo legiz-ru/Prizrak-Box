@@ -305,9 +305,9 @@ watch(() => settingStore.ipv6, (newValue) => {
 });
 
 // 开机自启
-watch(() => settingStore.startup, (newValue) => {
-  // 更新配置
-  Events.Emit({name: "boot", data: newValue});
+// NOTE: the shell is notified from MyEvent.vue instead — that component is
+// always mounted, so it can also re-apply the registration on every launch.
+watch(() => settingStore.startup, () => {
   // 同步 mihomo 配置
   pUpdateMihomo(menuStore, settingStore, api)
 });

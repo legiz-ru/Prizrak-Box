@@ -15,6 +15,7 @@ package main
 import (
 	"embed"
 	"io/fs"
+        "fmt"
 	"log"
 	"log/slog"
 	"os"
@@ -287,9 +288,17 @@ func main() {
 	app.Event.On("px:fe:hide", func(_ *application.CustomEvent) { win.Hide() })
 	app.Event.On("px:fe:min", func(_ *application.CustomEvent) { win.Minimise() })
 	app.Event.On("px:fe:max", func(_ *application.CustomEvent) { win.ToggleMaximise() })
+	// Launch at login. The frontend emits this on change AND once on mount, so
+	// the registration is re-applied on every launch: the setting is persisted
+	// (and shared with the Electron build), and an app update can change the
+	// executable path or drop the entry, leaving the toggle on with nothing
+	// actually registered. Enable/Disable overwrite, so re-applying is safe.
 	app.Event.On("px:fe:boot", func(e *application.CustomEvent) {
-		if err := system.SetAutostart(asBool(e.Data)); err != nil {
-			app.Logger.Error("autostart toggle failed", "error", err)
+		enabled := asBool(e.Data)
+		if err := system.SetAutostart(enabled); err != nil {
+			// A GUI build has no console, so Logger alone would swallow this.
+			appendShellLog("ERROR", fmt.Sprintf("autostart set to %v failed: %v", enabled, err))
+			app.Logger.Error("autostart toggle failed", "enabled", enabled, "error", err)
 		}
 	})
 	// Persist the "start minimized to tray" preference so the next launch can

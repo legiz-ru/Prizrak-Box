@@ -18,13 +18,11 @@
 import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from "@wailsio/runtime";
 
 /**
- * AutostartEnabled reports whether launch-at-login is currently registered.
- * 
- * On macOS/Linux this uses the built-in Wails v3 Autostart manager
- * (LaunchAgent / .desktop autostart). On Windows it uses a Task Scheduler
- * logon task with a 15-second delay instead of the registry Run key, so the
- * app starts after the logon rush (a Run-key start can race explorer.exe and
- * leave a blank tray icon). See autostart_windows.go / autostart_other.go.
+ * AutostartEnabled reports whether launch-at-login is currently registered AND
+ * will actually run. Registration comes from the built-in Wails v3 Autostart
+ * manager (LaunchAgent / registry Run / .desktop autostart); on Windows the
+ * entry can additionally be switched off in Task Manager without being removed,
+ * which counts as disabled here (see autostart_approval_windows.go).
  * @returns {$CancellablePromise<boolean>}
  */
 export function AutostartEnabled() {
