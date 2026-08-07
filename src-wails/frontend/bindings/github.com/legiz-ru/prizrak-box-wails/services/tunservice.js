@@ -19,6 +19,12 @@ import * as $models from "./models.js";
 
 /**
  * GetStatus reports installed/running/admin state of the px-service.
+ * 
+ * "Installed" means registered with the OS service manager — NOT merely that
+ * the bundled px-service binary is present on disk, which it always is. The
+ * frontend uses this to decide whether to offer installing the service and
+ * whether a restart-through-the-service recovery is worth attempting
+ * (MyProxy.vue), so the file-presence answer made it skip both.
  * @returns {$CancellablePromise<$models.ServiceStatus>}
  */
 export function GetStatus() {
@@ -67,13 +73,13 @@ export function ShowInstallDialog() {
 
 /**
  * StartBackend is the application startup entry point for launching px. When the
- * privileged px-service is installed it routes px through the service so TUN can
+ * privileged px-service is reachable it routes px through the service so TUN can
  * work without running the GUI as administrator — mirroring src-electron
- * admin.ts. If TUN was enabled last session it waits briefly for the service to
- * become reachable, covering the boot race where the autostarted (non-elevated)
- * app launches px before the service has finished starting; previously px was
- * always spawned directly, so TUN silently failed until a manual admin restart.
- * If the service never comes up (or isn't installed) px is spawned directly.
+ * admin.ts. If TUN was enabled last session and the OS reports the service as
+ * starting, it waits briefly for it, covering the boot race where the
+ * autostarted (non-elevated) app launches px before the service has finished
+ * starting. If the service never comes up (or isn't installed) px is spawned
+ * directly.
  * @returns {$CancellablePromise<$models.ConnInfo>}
  */
 export function StartBackend() {
@@ -84,6 +90,12 @@ export function StartBackend() {
 
 /**
  * Uninstall removes the px-service (requires elevation).
+ * 
+ * px is stopped through the service FIRST: while the service is installed it
+ * owns the running px (spawned as root/LocalSystem, so the shell cannot signal
+ * it). Removing the service without stopping px left an orphaned privileged
+ * process holding the control port and the TUN device, and the freshly spawned
+ * unprivileged px then had to fall back to a random port.
  * @returns {$CancellablePromise<boolean>}
  */
 export function Uninstall() {
