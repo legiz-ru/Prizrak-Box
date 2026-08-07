@@ -1521,16 +1521,35 @@ watch(groupList, (list) => {
 }
 
 .full-view-nodes {
+  /* Grid rather than flex-wrap: 1fr distributes the exact remaining space, so a
+     row always ends flush with the right edge instead of leaving the gutter the
+     old `calc(33% - 41px)` + `max-width: 210px` combination always left behind. */
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px; /* = padding контента */
   width: 100%;
   margin-left: 0;
 }
 
+/* Past this width three columns would stretch every card beyond ~400px, so fit
+   as many ~260px columns as the panel allows instead.
+   auto-fill (never auto-fit) is deliberate: it keeps the empty tracks, so a
+   group with two nodes gets cards exactly as wide as a group with twenty — the
+   column width depends only on the panel, which is identical for every group. */
+@media (min-width: 1400px) {
+  .full-view-nodes {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+}
+
 .full-view-nodes .proxy-nodes-card {
-  width: calc(33% - 41px);
-  max-width: 210px;
+  /* The grid owns sizing now; the inherited width/max-width would re-introduce
+     the 210px cap and with it the empty space on the right. margin-top would
+     add an uneven 3px to every row on top of the row gap. */
+  width: auto;
+  max-width: none;
+  margin-top: 0;
   border-radius: 12px; /* concentric: group(20) - padding(8) = 12 */
-  margin-top: 3px;
   box-sizing: border-box;
 }
 </style>
