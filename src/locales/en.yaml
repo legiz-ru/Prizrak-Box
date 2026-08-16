@@ -462,14 +462,6 @@ service:
   mode-description: Allows TUN mode without administrator privileges
 
 onboarding:
-  service-setup:
-    title: Service Setup
-    description: Installing the service will allow you to use TUN mode without constant administrator privilege requests
-    install-btn: Install Service
-    skip-btn: Skip
-    installing: Installing service...
-    install-success: Service installed successfully
-    install-warning: Failed to install service. You can continue without installation.
   welcome:
     title: Welcome!
     subtitle: Add your first profile to get started

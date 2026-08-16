@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, toRaw } from 'vue';
-import { Events, Service } from '@/runtime';
+import { Events } from '@/runtime';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import createApi from '@/api';
-import ServiceSetup from '@/components/home/ServiceSetup.vue';
 import WelcomeScreen from '@/components/home/WelcomeScreen.vue';
 import ActiveProfile from '@/components/home/ActiveProfile.vue';
 import FirstProfileModal from '@/components/home/FirstProfileModal.vue';
@@ -16,29 +15,17 @@ const onboardingStore = useOnboardingStore();
 // Состояния
 const profiles = ref<any[]>([]);
 const showFirstProfileModal = ref(false);
-const isCheckingService = ref(false);
 
 // Текущее состояние интерфейса
 const currentState = computed(() => {
-  // Состояние 0: Экран установки сервиса
-  if (onboardingStore.shouldShowServiceSetup) {
-    return 'service-setup';
-  }
-
-  // Состояние 1: Экран приветствия (нет профилей)
+  // Состояние 0: Экран приветствия (нет профилей)
   if (!profiles.value || profiles.value.length === 0) {
     return 'welcome';
   }
 
-  // Состояние 2: Экран активного профиля
+  // Состояние 1: Экран активного профиля
   return 'active-profile';
 });
-
-// Обработчик завершения установки сервиса
-function handleServiceSetupComplete() {
-  // После установки/пропуска сервиса переходим к следующему состоянию
-  // Состояние автоматически обновится через computed
-}
 
 // Получение списка профилей
 async function getProfileList() {
@@ -137,22 +124,6 @@ function handleVueProfilesUpdate(event: Event) {
 
 // Жизненный цикл
 onMounted(async () => {
-  // Проверяем статус службы, если нужно показать экран установки
-  if (onboardingStore.shouldShowServiceSetup) {
-    isCheckingService.value = true;
-    try {
-      const isRunning = await Service.IsRunning();
-      if (isRunning) {
-        // Служба уже запущена, помечаем как установленную
-        onboardingStore.markServiceInstalled();
-      }
-    } catch (error) {
-      // Ошибка проверки - показываем экран установки
-    } finally {
-      isCheckingService.value = false;
-    }
-  }
-
   // Загружаем список профилей
   await getProfileList();
 
@@ -175,18 +146,12 @@ onBeforeUnmount(() => {
 <template>
   <MyLayout>
     <template #bottom>
-      <!-- Состояние 0: Экран установки сервиса -->
-      <ServiceSetup
-        v-if="currentState === 'service-setup'"
-        @complete="handleServiceSetupComplete"
-      />
-
-      <!-- Состояние 1: Экран приветствия -->
+      <!-- Состояние 0: Экран приветствия -->
       <WelcomeScreen
-        v-else-if="currentState === 'welcome'"
+        v-if="currentState === 'welcome'"
       />
 
-      <!-- Состояние 2: Экран активного профиля -->
+      <!-- Состояние 1: Экран активного профиля -->
       <ActiveProfile
         v-else-if="currentState === 'active-profile'"
         :profiles="profiles"
