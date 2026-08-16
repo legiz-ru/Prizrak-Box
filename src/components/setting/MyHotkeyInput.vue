@@ -26,6 +26,9 @@
       <span v-if="!isRecording">{{ pendingValue || $t('setting.shortcut.recording') }}</span>
       <span v-else class="recording-hint">{{ $t('setting.shortcut.recording') }}</span>
     </div>
+    <p v-if="showMacOptionWarning" class="mac-option-warning">
+      {{ $t('setting.shortcut.macOptionWarning') }}
+    </p>
 
     <template #footer>
       <div class="dialog-footer">
@@ -47,9 +50,28 @@ const isRecording = ref(false);
 const pendingValue = ref('');
 const recordingAreaRef = ref<HTMLElement | null>(null);
 
+// macOS Sequoia (15.0–15.1, and reportedly recurring after screen unlock on
+// later releases too — Apple bug FB15168205) silently drops Carbon global
+// hotkeys whose modifiers are Option/Option+Shift alone: RegisterEventHotKey
+// is called and appears to succeed, but the OS never delivers the keypress.
+// Cmd or Ctrl in the combo sidesteps the restriction entirely, so warn (not
+// block, since the combo does work on unaffected macOS versions) whenever
+// the recorded combo would fall into the broken set.
+const isMac = /Mac OS X|Macintosh/i.test(navigator.userAgent || '');
+const showMacOptionWarning = ref(false);
+
 function openDialog() {
   pendingValue.value = props.modelValue;
+  showMacOptionWarning.value = isMac && isOptionOnlyCombo(props.modelValue);
   dialogVisible.value = true;
+}
+
+// True when `combo` (e.g. "Alt+Shift+M") uses only Alt/Shift as modifiers —
+// the combination macOS silently swallows (see isMac comment above).
+function isOptionOnlyCombo(combo: string): boolean {
+  if (!combo) return false;
+  const mods = combo.split('+').slice(0, -1).map(m => m.toLowerCase());
+  return mods.includes('alt') && !mods.includes('ctrl') && !mods.includes('cmd');
 }
 
 function onDialogOpened() {
@@ -62,6 +84,7 @@ function onDialogOpened() {
 function onDialogClosed() {
   isRecording.value = false;
   pendingValue.value = '';
+  showMacOptionWarning.value = false;
 }
 
 function startRecording() {
@@ -95,6 +118,7 @@ function handleKey(e: KeyboardEvent) {
   if (parts.length > 1) {
     pendingValue.value = parts.join('+');
     isRecording.value = false;
+    showMacOptionWarning.value = isMac && isOptionOnlyCombo(pendingValue.value);
   }
 }
 
@@ -168,5 +192,12 @@ function cancel() {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.mac-option-warning {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--el-color-warning);
 }
 </style>

@@ -183,7 +183,6 @@ declare module 'vue' {
     ProfileToolbar: typeof import('./components/home/ProfileToolbar.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
-    ServiceSetup: typeof import('./components/home/ServiceSetup.vue')['default']
     Skin: typeof import('./components/menu/Skin.vue')['default']
     VDContainer: typeof import('./components/dnd/VDContainer/src/VDContainer.vue')['default']
     WelcomeScreen: typeof import('./components/home/WelcomeScreen.vue')['default']

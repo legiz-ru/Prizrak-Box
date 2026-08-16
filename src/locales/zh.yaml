@@ -145,6 +145,7 @@ setting:
     showHide: 显示/隐藏窗口
     recording: 请按下组合键...
     edit: 修改组合键
+    macOptionWarning: "在 macOS 上，仅使用 Option（⌥）而不含 ⌘ 或 ⌃ 的组合键可能不会触发——这是苹果的已知问题（Sequoia）。请添加 ⌘ 或 ⌃，例如 Cmd+Option+M。"
 
   dashboard:
     open: 打开面板
@@ -461,14 +462,6 @@ service:
   mode-description: 允许无需管理员权限使用 TUN 模式
 
 onboarding:
-  service-setup:
-    title: 服务设置
-    description: 安装服务后，您可以在无需持续请求管理员权限的情况下使用 TUN 模式
-    install-btn: 安装服务
-    skip-btn: 跳过
-    installing: 正在安装服务...
-    install-success: 服务安装成功
-    install-warning: 服务安装失败。您可以在不安装的情况下继续。
   welcome:
     title: 欢迎！
     subtitle: 添加您的第一个配置以开始使用
