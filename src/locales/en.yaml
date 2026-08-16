@@ -145,6 +145,7 @@ setting:
     showHide: Show/Hide Window
     recording: Press a key combination...
     edit: Edit key combination
+    macOptionWarning: "On macOS, combinations using only Option (⌥) without ⌘ or ⌃ may not trigger — this is a known Apple bug (Sequoia). Add ⌘ or ⌃, e.g. Cmd+Option+M."
 
   dashboard:
     open: Open dashboard

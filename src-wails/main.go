@@ -320,7 +320,11 @@ func main() {
 		_ = locate.SetDarkBackground(asBool(e.Data))
 	})
 
-	// Global "Show/Hide window" hotkey (Windows; no-op elsewhere).
+	// Global "Show/Hide window" hotkey, via the Wails GlobalShortcut manager
+	// (see hotkeys.go) — works on all three platforms. On macOS, combos using
+	// only Option/Option+Shift as modifiers are silently dropped by the OS on
+	// Sequoia (Apple bug FB15168205); MyHotkeyInput.vue warns the user about
+	// that case when recording the combo.
 	installHotkeys(app, win)
 	app.Event.On("px:fe:doQuit", func(_ *application.CustomEvent) {
 		// The Exit button (Off.vue) fires this after asking px to shut down.

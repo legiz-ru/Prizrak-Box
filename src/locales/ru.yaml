@@ -145,6 +145,7 @@ setting:
     showHide: Показать/Скрыть окно
     recording: Нажмите комбинацию клавиш...
     edit: Изменить комбинацию
+    macOptionWarning: "На macOS комбинации только с Option (⌥), без ⌘ или ⌃, могут не срабатывать — это известный баг Apple (Sequoia). Добавьте ⌘ или ⌃, например Cmd+Option+M."
 
   dashboard:
     open: Открыть панель

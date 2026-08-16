@@ -145,6 +145,7 @@ setting:
     showHide: 显示/隐藏窗口
     recording: 请按下组合键...
     edit: 修改组合键
+    macOptionWarning: "在 macOS 上，仅使用 Option（⌥）而不含 ⌘ 或 ⌃ 的组合键可能不会触发——这是苹果的已知问题（Sequoia）。请添加 ⌘ 或 ⌃，例如 Cmd+Option+M。"
 
   dashboard:
     open: 打开面板
