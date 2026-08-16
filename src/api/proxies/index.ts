@@ -42,6 +42,73 @@ export const resetProxyOriginCache = () => {
     proxyOriginFetchedAt = 0;
 }
 
+// Провайдеры, чьих участников не нужно домешивать в карту прокси: "default" —
+// служебный ReservedName-провайдер, дублирующий все узлы верхнего уровня, а
+// тип Compatible — то же самое (используется группой GLOBAL).
+const skippedProviderName: any = {
+    default: true,
+}
+const skippedProviderType: any = {
+    Compatible: true,
+}
+
+let providerProxiesCache: Record<string, any> | null = null;
+let providerProxiesFetchedAt = 0;
+let providerProxiesInFlight: Promise<Record<string, any>> | null = null;
+
+export const resetProviderProxiesCache = () => {
+    providerProxiesCache = null;
+    providerProxiesFetchedAt = 0;
+    providerProxiesInFlight = null;
+}
+
+// Прокси, добавленные в группу через use: [prov], не попадают в плоскую карту
+// /proxies — mihomo регистрирует их только внутри самого провайдера
+// (/providers/proxies). group.all при этом уже содержит их имена, так что без
+// подмешивания этих узлов сюда они просто не резолвятся и не отображаются.
+// Кэш на 2с + разделяемый in-flight промис — как у fetchProxyOrigins, чтобы
+// параллельное обновление сразу нескольких групп (full view) не били по
+// /providers/proxies N раз за один цикл.
+const fetchProviderProxies = async (proxy: any): Promise<Record<string, any>> => {
+    const now = Date.now();
+    if (providerProxiesCache && now - providerProxiesFetchedAt < 2000) {
+        return providerProxiesCache;
+    }
+    if (providerProxiesInFlight) {
+        return providerProxiesInFlight;
+    }
+
+    providerProxiesInFlight = (async () => {
+        const merged: Record<string, any> = {};
+        try {
+            const data = await proxy.$http.get('/providers/proxies');
+            const providers = data?.['providers'];
+            if (providers && typeof providers === 'object') {
+                for (const name in providers) {
+                    if (skippedProviderName[name]) continue;
+                    const provider = providers[name];
+                    if (skippedProviderType[provider?.['type']]) continue;
+                    const providerProxies = provider?.['proxies'];
+                    if (!Array.isArray(providerProxies)) continue;
+                    for (const p of providerProxies) {
+                        if (p && typeof p['name'] === 'string') {
+                            merged[p['name']] = p;
+                        }
+                    }
+                }
+            }
+        } catch {
+            // provider fetch is best-effort — fall back to whatever /proxies already has
+        }
+        providerProxiesCache = merged;
+        providerProxiesFetchedAt = Date.now();
+        providerProxiesInFlight = null;
+        return merged;
+    })();
+
+    return providerProxiesInFlight;
+}
+
 const fetchProxyOrigins = async (proxy: any) => {
     const now = Date.now();
     if (proxyOriginCache && now - proxyOriginFetchedAt < 2000) {
@@ -299,18 +366,24 @@ export default function createProxiesApi(proxy: any) {
             const originMap = await fetchProxyOrigins(proxy);
             const hasOriginMap = originMap && Object.keys(originMap).length > 0;
 
+            // Узлы, добавленные в группу только через use: [prov], не входят в
+            // data.proxies — домешиваем их из /providers/proxies, иначе они
+            // просто выпадут из списка ниже.
+            const providerProxies = await fetchProviderProxies(proxy);
+            const proxiesLookup: Record<string, any> = {...providerProxies, ...proxies};
+
             const proxiesNames: string[] = proxies[active]['all']
             const nowName = proxies[active]['now']
 
             // Build all nodes preserving the original order from proxies[active]['all']
             const allProxies = []
             for (const name of proxiesNames) {
-                const proxyNode = proxies[name]
+                const proxyNode = proxiesLookup[name]
                 if (!proxyNode) continue
                 const type = proxyNode['type'];
                 const displayType = getDisplayType(proxyNode, serverDescriptions[name]);
                 const icon = typeof proxyNode?.['icon'] === 'string' ? proxyNode['icon'] : undefined;
-                const delay = getProxyDelay(proxyNode, proxies, 0, groupTestUrl)
+                const delay = getProxyDelay(proxyNode, proxiesLookup, 0, groupTestUrl)
                 let origin = originMap ? originMap[name] : undefined;
                 if (!origin && hasOriginMap) {
                     origin = parseOriginFromName(name);
