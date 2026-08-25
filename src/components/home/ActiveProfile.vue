@@ -108,14 +108,10 @@ function hasValue(value: any) {
       <div v-if="activeProfile" class="profile-card">
         <ProfileToolbar
           :profile="activeProfile"
-          :embedded="true"
           @refresh="refreshProfile"
         />
 
-        <ProfileStats
-          :profile="activeProfile"
-          :embedded="true"
-        />
+        <ProfileStats :profile="activeProfile" />
 
         <!-- Announce -->
         <div

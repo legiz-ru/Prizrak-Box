@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, toRaw, withDefaults } from 'vue';
+import { ref, computed, toRaw } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { Browser, Clipboard, Events } from '@/runtime';
@@ -19,12 +19,9 @@ const hwidStatusStore = useHwidStatusStore();
 
 interface Props {
   profile: any;
-  embedded?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  embedded: false,
-});
+const props = defineProps<Props>();
 
 const emit = defineEmits<{
   (e: 'refresh'): void
@@ -203,7 +200,7 @@ function handleDropdownCommand(command: string) {
 </script>
 
 <template>
-  <div class="profile-toolbar" :class="{ 'profile-toolbar--embedded': embedded }">
+  <div class="profile-toolbar">
     <div class="toolbar-content">
       <div class="toolbar-section toolbar-left">
         <!-- Иконка домашней страницы -->
@@ -334,93 +331,34 @@ function handleDropdownCommand(command: string) {
 
 <style scoped>
 .profile-toolbar {
-  width: 95%;
-  margin: 0 auto;
-  padding: 12px 20px;
-  box-sizing: border-box;
-  border-radius: 20px;
-  background: var(--sub-card-bg);
-  box-shadow: var(--right-box-shadow);
-}
-
-.profile-toolbar--embedded {
   width: 100%;
-  margin: 0;
   padding: 0 30px;
   box-sizing: border-box;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.profile-toolbar--embedded .toolbar-content {
-  justify-content: center;
-  gap: 16px;
-}
-
-.profile-toolbar--embedded .toolbar-section {
-  justify-content: center;
-  gap: 4px;
-  flex: 0 1 auto;
-}
-
-.profile-toolbar--embedded .toolbar-left {
-  justify-content: center;
-}
-
-.profile-toolbar--embedded .toolbar-right {
-  justify-content: center;
-}
-
-.profile-toolbar--embedded .toolbar-center {
-  flex: 0 1 auto;
-  max-width: none;
-  min-width: 0;
-  text-align: center;
-}
-
-.profile-toolbar--embedded .toolbar-icon {
-  width: 28px;
-  height: 28px;
 }
 
 .toolbar-content {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
 }
 
 .toolbar-section {
   display: flex;
   align-items: center;
-  gap: 6px;
-}
-
-.toolbar-left {
-  flex: 0 0 auto;
-  justify-content: flex-start;
+  justify-content: center;
+  gap: 4px;
+  flex: 0 1 auto;
   min-width: 0;
 }
 
 .toolbar-center {
-  flex: 1 1 auto;
-  justify-content: center;
-  max-width: 60%;
-  min-width: 0;
+  text-align: center;
 }
-
-.toolbar-right {
-  flex: 0 0 auto;
-  justify-content: flex-end;
-  min-width: 0;
-}
-
-/* Убираем переопределение для embedded, оставляем базовый flex */
 
 .toolbar-icon {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -448,31 +386,20 @@ function handleDropdownCommand(command: string) {
 }
 
 .current-profile-label {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--text-color);
   opacity: 0.6;
-  margin-left: 8px;
-}
-
-.profile-toolbar--embedded .current-profile-label {
-  font-size: 12px;
   margin-left: 2px;
 }
 
 .profile-name {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-color);
-  max-width: 300px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
-}
-
-.profile-toolbar--embedded .profile-name {
-  font-size: 15px;
-  max-width: none;
   flex-shrink: 1;
 }
 </style>
