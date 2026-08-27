@@ -209,6 +209,9 @@ const showRenewButton = computed(() => shouldShowRenewButton(activeProfile.value
   color: var(--text-color);
   text-align: center;
   word-wrap: break-word;
+  /* Без border-box ширина 100% складывается с горизонтальными padding,
+     блок вылезает вправо и центрованный текст уезжает на 30px. */
+  box-sizing: border-box;
 }
 
 .announce-clickable {
