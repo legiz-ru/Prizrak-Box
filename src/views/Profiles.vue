@@ -596,6 +596,10 @@ function goSupport(data: any) {
   openExternalLink(data.support)
 }
 
+function goRenew(data: any) {
+  openExternalLink(data.renewUrl)
+}
+
 // TV send dialog
 const tvDialogVisible = ref(false)
 const tvDialogProfile = ref<any>(null)
@@ -670,6 +674,31 @@ const editHasAgeKey = ref(false)
 const editShowAgeKey = ref(false)
 let editForm = reactive<any>({})
 let editFormD = {}
+
+// Напоминания о подписке — колокольчик показывается только если продавец
+// прислал хотя бы один из notify-expire-days/notify-traffic-percent (см.
+// src-go/internal/resolve.go ParseHeaders)
+const subscriptionAlertInfoVisible = ref(false)
+
+function showSubscriptionAlertInfo() {
+  subscriptionAlertInfoVisible.value = true
+}
+
+const subscriptionAlertInfoLines = computed(() => {
+  const lines = [t('subscriptionAlert.infoBody')]
+  if (editForm.notifyExpireDays?.length) {
+    const days = [...editForm.notifyExpireDays].sort((a: number, b: number) => a - b).join(', ')
+    lines.push(t('subscriptionAlert.infoExpire', {days}))
+  }
+  if (editForm.notifyTrafficPercent?.length) {
+    const percent = [...editForm.notifyTrafficPercent].sort((a: number, b: number) => a - b).join(', ')
+    lines.push(t('subscriptionAlert.infoTraffic', {percent}))
+  }
+  if (!settingStore.notifySubscriptionAlerts) {
+    lines.push(t('subscriptionAlert.infoDisabledLocally'))
+  }
+  return lines
+})
 
 function updateProfile(data: any) {
   editFormD = data
@@ -1053,6 +1082,17 @@ watch(() => webStore.dProfile, async (pList) => {
                   </el-icon>
                 </el-tooltip>
                 <el-tooltip
+                    v-if="data.renewUrl"
+                    :content="$t('profiles.renew')"
+                    placement="top">
+                  <el-icon
+                      class="ops"
+                      @click.stop="goRenew(data)"
+                      size="20">
+                    <icon-mdi-credit-card-outline/>
+                  </el-icon>
+                </el-tooltip>
+                <el-tooltip
                     v-if="data.support"
                     :content="$t('profiles.support')"
                     placement="top">
@@ -1177,6 +1217,16 @@ watch(() => webStore.dProfile, async (pList) => {
         label-position="top"
     >
       <el-form-item
+          v-if="editForm.renewUrl"
+          :label="t('profiles.renew')"
+          label-width="120"
+          class="renew-subscription-field">
+        <el-button class="renew-subscription-btn" @click="goRenew(editForm)">
+          <el-icon><icon-mdi-credit-card-outline/></el-icon>
+          {{ t('profiles.renew') }}
+        </el-button>
+      </el-form-item>
+      <el-form-item
           :label="t('profiles.edit.title')"
           label-width="120">
         <el-input
@@ -1265,6 +1315,15 @@ watch(() => webStore.dProfile, async (pList) => {
             </el-icon>
           </el-tooltip>
           <el-tooltip
+              v-if="editForm.notifyExpireDays?.length || editForm.notifyTrafficPercent?.length"
+              :content="t('subscriptionAlert.bellTooltip')"
+              placement="top"
+          >
+            <el-icon class="subscription-alert-icon" @click="showSubscriptionAlertInfo">
+              <icon-mdi-bell-outline/>
+            </el-icon>
+          </el-tooltip>
+          <el-tooltip
               v-if="editForm.type == 1 || editHasAgeKey"
               :content="editHasAgeKey ? t('age.profile.replaceHint') : t('age.profile.toggleOff')"
               placement="top"
@@ -1290,6 +1349,24 @@ watch(() => webStore.dProfile, async (pList) => {
           </el-button>
         </div>
       </div>
+    </template>
+  </el-dialog>
+
+  <!-- Информация о настроенных продавцом напоминаниях (колокольчик в редакторе профиля) -->
+  <el-dialog
+      v-model="subscriptionAlertInfoVisible"
+      :title="t('subscriptionAlert.infoTitle')"
+      width="460"
+      draggable
+      center
+  >
+    <div class="subscription-alert-info">
+      <p v-for="line in subscriptionAlertInfoLines" :key="line">{{ line }}</p>
+    </div>
+    <template #footer>
+      <el-button type="primary" @click="subscriptionAlertInfoVisible = false">
+        {{ t('close') }}
+      </el-button>
     </template>
   </el-dialog>
 
@@ -1646,5 +1723,30 @@ watch(() => webStore.dProfile, async (pList) => {
 
 .age-key-field {
   margin-bottom: 0;
+}
+
+/* Нейтральный цвет, не акцентный — это индикатор "у профиля есть настроенные
+   продавцом напоминания", а не переключатель состояния. */
+.subscription-alert-icon {
+  font-size: 20px;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+}
+
+.subscription-alert-info p {
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.subscription-alert-info p:last-child {
+  margin-bottom: 0;
+}
+
+.renew-subscription-field {
+  margin-bottom: 12px;
+}
+
+.renew-subscription-btn {
+  width: 100%;
 }
 </style>

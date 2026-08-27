@@ -26,6 +26,11 @@ export const useSettingStore = defineStore('setting', {
         sc_switch_key: 'Ctrl+Shift+X',
         independentDelayTest: true,
         groupTestUrls: [] as Array<{name: string; url: string}>,
+        // Системные напоминания об истечении подписки/трафике (см.
+        // subscriptionAlerts.ts) — работают только если продавец подписки
+        // прислал notify-expire-days/notify-traffic-percent/notification-subs-expire;
+        // этот тумблер лишь разрешает их показ, а не задаёт пороги.
+        notifySubscriptionAlerts: true,
     }),
     actions: {
         setTestUrl(testUrl: any) {

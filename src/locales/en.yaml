@@ -147,6 +147,10 @@ setting:
     edit: Edit key combination
     macOptionWarning: "On macOS, combinations using only Option (⌥) without ⌘ or ⌃ may not trigger — this is a known Apple bug (Sequoia). Add ⌘ or ⌃, e.g. Cmd+Option+M."
 
+  subscriptionAlerts:
+    title: Subscription notifications
+    tooltip: Only works if the subscription provider sent HTTP headers configuring the reminders (expiry/traffic). Without them, no notifications will show even with this switch on.
+
   dashboard:
     open: Open dashboard
     manage: Manage dashboards
@@ -232,6 +236,7 @@ profiles:
   home: Visit the Subscription Home Page
   support: Visit the Support Page
   announce: Announcement
+  renew: Renew subscription
   announce-url: Go to Link
   del-tip: In use, cannot be deleted
   edit:
@@ -481,6 +486,18 @@ onboarding:
     title: Information
     message: You can now enable proxy mode or network adapter mode (TUN)
     ok: Ok
+
+subscriptionAlert:
+  bellTooltip: This profile has subscription reminders configured
+  infoTitle: Subscription reminders
+  infoBody: This profile has expiry/traffic reminders configured by the subscription provider.
+  infoExpire: "Expiry reminder: {days} days before the subscription expires."
+  infoTraffic: "Traffic reminder: at {percent}% of traffic used."
+  infoDisabledLocally: Showing these reminders is currently turned off in the app's settings.
+  expired: Subscription expired
+  expiresIn: "Subscription expires in {days} days"
+  trafficUsed: "{percent}% of traffic used"
+
 hwid:
   not-supported:
     title: HWID Not Supported

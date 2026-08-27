@@ -65,6 +65,13 @@ function hasValue(value: any) {
   return value !== undefined && value !== null && value !== '';
 }
 
+// Открыть страницу продления подписки
+function goRenew() {
+  if (hasValue(props.profile?.renewUrl)) {
+    Browser.OpenURL(props.profile.renewUrl);
+  }
+}
+
 // Открыть главную страницу профиля
 function goHome() {
   if (hasValue(props.profile?.home)) {
@@ -203,6 +210,17 @@ function handleDropdownCommand(command: string) {
   <div class="profile-toolbar">
     <div class="toolbar-content">
       <div class="toolbar-section toolbar-left">
+        <!-- Иконка продления подписки -->
+        <el-tooltip
+          v-if="hasValue(profile?.renewUrl)"
+          :content="t('profiles.renew')"
+          placement="top"
+        >
+          <el-icon class="toolbar-icon" @click="goRenew" size="20">
+            <icon-mdi-credit-card-outline />
+          </el-icon>
+        </el-tooltip>
+
         <!-- Иконка домашней страницы -->
         <el-tooltip
           v-if="hasValue(profile?.home)"

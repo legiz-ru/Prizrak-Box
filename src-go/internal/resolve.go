@@ -10,12 +10,14 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/legiz-ru/prizrak-box/api/models"
+	"github.com/legiz-ru/prizrak-box/internal/subscriptionalerts"
 	"github.com/legiz-ru/prizrak-box/pkg/constant"
 	"github.com/legiz-ru/prizrak-box/pkg/proxy"
 	"github.com/legiz-ru/prizrak-box/pkg/utils"
@@ -701,4 +703,76 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 	// Применяется только к десктопным версиям.
 	globalMode := strings.ToLower(strings.TrimSpace(header.Get("global-mode")))
 	profile.GlobalModeDisabled = globalMode == "false" || globalMode == "0"
+
+	// subscription-renew-url — прямая ссылка на продление подписки.
+	if val := strings.TrimSpace(header.Get("Subscription-Renew-Url")); val != "" {
+		profile.RenewUrl = val
+	} else {
+		profile.RenewUrl = ""
+	}
+
+	// Пороги напоминаний об истечении/трафике. notify-expire-days отсутствует
+	// (nil) + notification-subs-expire: true → зашитые по умолчанию 1/3/7 дней
+	// (subscriptionalerts.DefaultExpireDays) — единственный случай, где
+	// отсутствие явного списка порогов не означает "выключено". По трафику
+	// дефолта нет: без notify-traffic-percent напоминания о трафике не работают.
+	expireDays := parseThresholds(header.Get("Notify-Expire-Days"), 1, 365)
+	if expireDays == nil && strings.EqualFold(strings.TrimSpace(header.Get("Notification-Subs-Expire")), "true") {
+		expireDays = subscriptionalerts.DefaultExpireDays
+	}
+	profile.NotifyExpireDays = expireDays
+
+	profile.NotifyTrafficPercent = parseThresholds(header.Get("Notify-Traffic-Percent"), 1, 100)
+
+	// Date (стандартный HTTP-заголовок) — коррекция рассинхрона часов панели
+	// и устройства. Отсутствие заголовка НЕ означает "сбросить": прошлое
+	// измерение (если было) остаётся лучшим доступным, поэтому в этом случае
+	// поля просто не трогаем.
+	if servedAt, err := http.ParseTime(header.Get("Date")); err == nil {
+		nowSeconds := time.Now().Unix()
+		profile.ClockSkewSeconds = servedAt.Unix() - nowSeconds
+		profile.ClockSkewAtSeconds = nowSeconds
+	}
+}
+
+// maxThresholds caps a malformed or hostile panel listing many thresholds —
+// that would be that many notifications, not a courtesy.
+const maxThresholds = 10
+
+// parseThresholds parses a comma-separated list of reminder thresholds, e.g.
+// "7,3,1". Returns nil when the header was absent, blank, or entirely
+// unparseable — the caller may then apply its own defaults (see
+// Notification-Subs-Expire above). Returns a [lo, hi]-bounded, deduplicated,
+// sorted, size-capped slice otherwise — possibly empty, for an explicit
+// "off"/"false" value (the panel turning this reminder kind off on purpose,
+// which behaves the same as nil from here on: neither falls back to
+// subscriptionalerts.DefaultExpireDays).
+func parseThresholds(raw string, lo, hi int) []int {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return nil
+	}
+	if strings.EqualFold(trimmed, "off") || strings.EqualFold(trimmed, "false") {
+		return []int{}
+	}
+
+	seen := make(map[int]bool)
+	var values []int
+	for _, part := range strings.Split(trimmed, ",") {
+		n, err := strconv.Atoi(strings.TrimSpace(part))
+		if err != nil || n < lo || n > hi || seen[n] {
+			continue
+		}
+		seen[n] = true
+		values = append(values, n)
+	}
+	if len(values) == 0 {
+		return nil
+	}
+
+	sort.Ints(values)
+	if len(values) > maxThresholds {
+		values = values[:maxThresholds]
+	}
+	return values
 }

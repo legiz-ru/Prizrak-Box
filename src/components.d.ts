@@ -65,6 +65,7 @@ declare module 'vue' {
     IconMdiArrowExpandVertical: typeof import('~icons/mdi/arrow-expand-vertical')['default']
     IconMdiArrowLeft: typeof import('~icons/mdi/arrow-left')['default']
     IconMdiArrowUp: typeof import('~icons/mdi/arrow-up')['default']
+    IconMdiBellOutline: typeof import('~icons/mdi/bell-outline')['default']
     IconMdiBullhornVariantOutline: typeof import('~icons/mdi/bullhorn-variant-outline')['default']
     IconMdiCalendarAlert: typeof import('~icons/mdi/calendar-alert')['default']
     IconMdiCancel: typeof import('~icons/mdi/cancel')['default']
@@ -83,6 +84,7 @@ declare module 'vue' {
     IconMdiCogOutline: typeof import('~icons/mdi/cog-outline')['default']
     IconMdiContentCopy: typeof import('~icons/mdi/content-copy')['default']
     IconMdiContentPaste: typeof import('~icons/mdi/content-paste')['default']
+    IconMdiCreditCardOutline: typeof import('~icons/mdi/credit-card-outline')['default']
     IconMdiDatabaseCheck: typeof import('~icons/mdi/database-check')['default']
     IconMdiDrag: typeof import('~icons/mdi/drag')['default']
     IconMdiEye: typeof import('~icons/mdi/eye')['default']
@@ -184,6 +186,7 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Skin: typeof import('./components/menu/Skin.vue')['default']
+    SubscriptionAlertModal: typeof import('./components/SubscriptionAlertModal.vue')['default']
     VDContainer: typeof import('./components/dnd/VDContainer/src/VDContainer.vue')['default']
     WelcomeScreen: typeof import('./components/home/WelcomeScreen.vue')['default']
   }

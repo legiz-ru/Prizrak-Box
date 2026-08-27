@@ -9,6 +9,7 @@ import ProfileStats from './ProfileStats.vue';
 import AnnounceText from './AnnounceText.vue';
 import MyIp from './MyIp.vue';
 import { useHwidStatusStore } from '@/store/hwidStatusStore';
+import { shouldShowRenewButton } from '@/util/subscriptionAlerts';
 
 const { proxy } = getCurrentInstance()!;
 const api = createApi(proxy);
@@ -100,6 +101,26 @@ function openAnnounceUrl() {
 function hasValue(value: any) {
   return value !== undefined && value !== null && value !== '';
 }
+
+// Открыть страницу продления подписки
+function goRenew() {
+  const url = activeProfile.value?.renewUrl;
+  if (!hasValue(url)) {
+    return;
+  }
+  try {
+    Browser.OpenURL(url);
+  } catch (error) {
+    if (typeof window !== 'undefined') {
+      window.open(url, '_blank', 'noopener');
+    }
+  }
+}
+
+// Кнопка "Продлить подписку" — независима от настройки "Subscription
+// reminders" (это элемент интерфейса, не пуш) и от того, что уже было
+// показано пуш-уведомлениями: просто отражает текущее состояние подписки.
+const showRenewButton = computed(() => shouldShowRenewButton(activeProfile.value));
 </script>
 
 <template>
@@ -125,6 +146,14 @@ function hasValue(value: any) {
             :url="activeProfile.announceUrl"
             :clickable="hasValue(activeProfile?.announceUrl)"
           />
+        </div>
+
+        <!-- Продлить подписку — ненавязчивая подсказка, обычный акцентный цвет -->
+        <div v-if="showRenewButton" class="renew-button-container">
+          <el-button type="primary" class="renew-button" @click="goRenew">
+            <el-icon><icon-mdi-credit-card-outline/></el-icon>
+            {{ t('profiles.renew') }}
+          </el-button>
         </div>
       </div>
 
@@ -187,5 +216,15 @@ function hasValue(value: any) {
 
 .announce-clickable:hover {
   opacity: 0.8;
+}
+
+.renew-button-container {
+  width: 100%;
+  padding: 2px 30px 0;
+  box-sizing: border-box;
+}
+
+.renew-button {
+  width: 100%;
 }
 </style>

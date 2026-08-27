@@ -624,6 +624,15 @@ const ageKeypairDialogVisible = ref(false);
               <el-icon><EditPen/></el-icon>
             </button>
           </li>
+          <li class="toggle-row">
+            <strong>{{ $t('setting.subscriptionAlerts.title') }} :</strong>
+            <div :class="['px-toggle', { 'is-on': settingStore.notifySubscriptionAlerts }]" @click="settingStore.notifySubscriptionAlerts = !settingStore.notifySubscriptionAlerts">
+              <div class="px-toggle__thumb"></div>
+            </div>
+            <el-tooltip :content="$t('setting.subscriptionAlerts.tooltip')" placement="top" effect="dark">
+              <el-icon class="info-icon"><icon-mdi-information-outline/></el-icon>
+            </el-tooltip>
+          </li>
           <li class="btn-row">
             <strong>{{ $t('setting.px.dir') }} :</strong>
             <button class="pill-btn" @click="pxConfigDir">{{ $t('setting.px.open') }}</button>
@@ -1022,6 +1031,18 @@ const ageKeypairDialogVisible = ref(false);
 .pencil-btn:hover {
   background-color: var(--left-item-selected-bg);
   box-shadow: var(--left-nav-hover-shadow);
+}
+
+.info-icon {
+  color: var(--text-color);
+  opacity: 0.55;
+  font-size: 18px;
+  cursor: help;
+  flex-shrink: 0;
+}
+
+.info-icon:hover {
+  opacity: 0.85;
 }
 
 .pill-btn {

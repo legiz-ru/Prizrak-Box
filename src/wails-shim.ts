@@ -233,6 +233,28 @@ export function installWailsShim(): void {
             .catch(() => { /* notifications are best-effort */ });
     };
 
+    // window.pxNotifyAlert(title, body, data): like pxNotify, but attaches
+    // `data` as the notification's Data — the OS hands it back verbatim as
+    // NotificationResponse.UserInfo on click, which main.go's
+    // OnNotificationResponse forwards as "px:be:subscriptionAlertClicked"
+    // (see util/subscriptionAlerts.ts). Used for subscription expiry/traffic
+    // reminders, where the click needs to know which profile/alert fired.
+    w.pxNotifyAlert = (title: string, body: string, data: Record<string, unknown>): void => {
+        runtime()
+            .then(async ({ Call }) => {
+                notifAuth ||= Call.ByName(`${NOTIF_FQN}.RequestNotificationAuthorization`)
+                    .catch(() => false);
+                await notifAuth;
+                await Call.ByName(`${NOTIF_FQN}.SendNotification`, {
+                    id: 'px-' + Date.now().toString(36),
+                    title,
+                    body: body ?? '',
+                    data,
+                });
+            })
+            .catch(() => { /* notifications are best-effort */ });
+    };
+
     // The background-image cache stays in localStorage on purpose: it holds a
     // multi-hundred-KB data URL that would bloat the settings JSON (and get
     // rewritten on every store save); losing it merely triggers a re-download.
