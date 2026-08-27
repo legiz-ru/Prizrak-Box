@@ -59,6 +59,11 @@ const switchProfile = (proxy: any) => async function (payload: Profile | Profile
     return await proxy.$http.patch('/profile', payload);
 }
 
+// Подтверждение показа напоминаний об истечении/трафике (см. subscriptionAlerts.ts) —
+// очищает pendingAlerts на бэкенде, чтобы то же напоминание не всплыло повторно.
+const ackSubscriptionAlert = (proxy: any) => async function (id: string) {
+    return await proxy.$http.put('/profile/ackSubscriptionAlert', {id});
+}
 
 export { parseHwidFromError };
 
@@ -71,5 +76,6 @@ export default function createProfilesApi(proxy: any) {
         getProfileList: getProfileList(proxy),
         refreshProfile: refreshProfile(proxy),
         switchProfile: switchProfile(proxy),
+        ackSubscriptionAlert: ackSubscriptionAlert(proxy),
     }
 }

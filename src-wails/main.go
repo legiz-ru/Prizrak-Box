@@ -326,6 +326,20 @@ func main() {
 	// Sequoia (Apple bug FB15168205); MyHotkeyInput.vue warns the user about
 	// that case when recording the combo.
 	installHotkeys(app, win)
+
+	// Subscription-alert notification click round-trip (window.pxNotifyAlert
+	// in wails-shim.ts attaches {profileId, kind, days, percent} as the
+	// notification's Data; the OS hands it back here as UserInfo on click).
+	// SubscriptionAlertModal.vue listens for "subscriptionAlertClicked" and
+	// shows the same dialog Electron's direct Notification.onclick shows —
+	// see util/subscriptionAlerts.ts for why the two shells converge here.
+	notifier.OnNotificationResponse(func(result notifications.NotificationResult) {
+		if result.Error != nil || win == nil || result.Response.UserInfo == nil {
+			return
+		}
+		win.EmitEvent("px:be:subscriptionAlertClicked", result.Response.UserInfo)
+	})
+
 	app.Event.On("px:fe:doQuit", func(_ *application.CustomEvent) {
 		// The Exit button (Off.vue) fires this after asking px to shut down.
 		// It may carry data:false when px exits before confirming over HTTP,

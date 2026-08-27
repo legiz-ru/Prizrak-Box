@@ -48,6 +48,7 @@ export default function createApi(proxy: any) {
         getProfileList: createProfilesApi(proxy).getProfileList,
         refreshProfile: createProfilesApi(proxy).refreshProfile,
         switchProfile: createProfilesApi(proxy).switchProfile,
+        ackSubscriptionAlert: createProfilesApi(proxy).ackSubscriptionAlert,
         getDNS: createDnsApi(proxy).getDNS,
         updateDNS: createDnsApi(proxy).updateDNS,
         switchDNS: createDnsApi(proxy).switchDNS,

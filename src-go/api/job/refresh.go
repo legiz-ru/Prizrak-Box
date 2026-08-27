@@ -84,6 +84,7 @@ func DoRefresh() {
 		if err == nil {
 			// 进行请求头解析 — profile.Content may have been migrated
 			internal.ParseHeaders(mergedHeaders, profile.Content, profile)
+			internal.EvaluateSubscriptionAlerts(profile)
 			if title != "" {
 				profile.Title = title
 			}

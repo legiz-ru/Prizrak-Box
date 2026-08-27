@@ -197,6 +197,95 @@ Displayed alongside the profile for users to reach support.
 
 </details>
 
+<details>
+<summary>**`Subscription-Renew-Url`**</summary>
+
+A direct link to the subscription's renewal/payment page.
+
+| Property | Value |
+|----------|-------|
+| Type | `string` (URL) |
+
+**Example:**
+
+```http
+Subscription-Renew-Url: https://myvpn.example.com/renew?id=abc123
+```
+
+When present, the app shows a "Renew subscription" entry point in several places: the profile editor, an icon next to the profile in the main window and in the profile list, and — when a reminder threshold from `Notify-Expire-Days`/`Notify-Traffic-Percent` below is currently crossed — a full-width button under the profile card. Absent header means none of these appear; the profile otherwise works as normal.
+
+</details>
+
+---
+
+## Subscription Reminders
+
+These headers configure client-side reminders about an approaching or reached subscription expiry, and about traffic usage — shown as native OS notifications and, while a threshold is crossed, as a "Renew subscription" button in the app (see `Subscription-Renew-Url` above).
+
+<details>
+<summary>**`Notify-Expire-Days`**</summary>
+
+Days-before-expiry thresholds at which to remind the user.
+
+| Property | Value |
+|----------|-------|
+| Type | `string` (comma-separated integers) |
+| Range | 1–365 (out-of-range values are dropped) |
+
+**Example:**
+
+```http
+Notify-Expire-Days: 1,3,7
+```
+
+</details>
+
+<details>
+<summary>**`Notify-Traffic-Percent`**</summary>
+
+Traffic-usage-percentage thresholds at which to remind the user.
+
+| Property | Value |
+|----------|-------|
+| Type | `string` (comma-separated integers) |
+| Range | 1–100 |
+
+**Example:**
+
+```http
+Notify-Traffic-Percent: 80,90,100
+```
+
+</details>
+
+<details>
+<summary>**`Notification-Subs-Expire`**</summary>
+
+A simplified opt-in for panels that don't want to specify exact days (some Happ-style panels only send this).
+
+| Property | Value |
+|----------|-------|
+| Type | `string` (boolean) |
+| Values | `true` |
+
+**Example:**
+
+```http
+Notification-Subs-Expire: true
+```
+
+If `true` and `Notify-Expire-Days` is absent, the app enables expiry reminders using built-in default thresholds of **1, 3, and 7 days**.
+
+</details>
+
+<Aside type="caution" title="These headers require an explicit opt-in">
+Expiry and traffic notifications only fire when the panel sends **at least one** of `Notify-Expire-Days`, `Notify-Traffic-Percent`, or `Notification-Subs-Expire`. This is true even if `Subscription-Userinfo` already carries `expire`/`total` — the app does not invent reminder thresholds on its own. If none of the three headers are sent, no reminder notifications are shown, regardless of the user's local "Subscription reminders" setting (that setting is a permission to show them, not a source of thresholds).
+</Aside>
+
+<Aside type="note" title="The renew button uses the furthest threshold">
+The "Renew subscription" button (see `Subscription-Renew-Url`) reacts to the **largest** value in `Notify-Expire-Days`. For example, with `Notify-Expire-Days: 1,5,10` the button appears 10 days before expiry and stays visible through the 10 → 5 → 1 → expired countdown, not only at the exact 1/5/10-day marks. Unlike push notifications, the button also works with **no** `Notify-Expire-Days` header at all — it falls back to the built-in 1/3/7-day defaults as a courtesy — but for traffic it never invents a percentage: without an explicit `Notify-Traffic-Percent`, the button ignores traffic usage entirely.
+</Aside>
+
 ---
 
 ## Announcements

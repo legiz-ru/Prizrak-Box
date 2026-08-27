@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, withDefaults } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { prettyBytes } from '@/util/format';
 
@@ -7,12 +7,9 @@ const { t } = useI18n();
 
 interface Props {
   profile: any;
-  embedded?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  embedded: false,
-});
+const props = defineProps<Props>();
 
 // Проверка наличия значения
 function hasValue(value: any) {
@@ -77,17 +74,25 @@ function formatDateValue(value: any) {
   return String(value);
 }
 
-// Проверка, нужно ли показывать панель статистики
-const shouldShowStats = computed(() => {
-  return hasValue(props.profile?.used) ||
-         hasValue(props.profile?.available) ||
-         hasValue(props.profile?.expire) ||
-         hasValue(props.profile?.update);
+// Сколько показателей реально отдала подписка: любое из четырёх полей
+// необязательное, поэтому их бывает от одного до четырёх. Число уезжает в
+// data-count и задаёт колонки сетки — иначе перенос оставляет последний
+// показатель один на строке.
+const visibleCount = computed(() => {
+  return [
+    props.profile?.used,
+    props.profile?.available,
+    props.profile?.expire,
+    props.profile?.update,
+  ].filter(hasValue).length;
 });
+
+// Проверка, нужно ли показывать панель статистики
+const shouldShowStats = computed(() => visibleCount.value > 0);
 </script>
 
 <template>
-  <div v-if="shouldShowStats" class="profile-stats" :class="{ 'profile-stats--embedded': embedded }">
+  <div v-if="shouldShowStats" class="profile-stats" :data-count="visibleCount">
     <!-- Использованный трафик -->
     <div v-if="hasValue(profile?.used)" class="stat-item">
       <el-icon class="stat-icon" size="18">
@@ -128,61 +133,65 @@ const shouldShowStats = computed(() => {
 
 <style scoped>
 .profile-stats {
-  width: 95%;
-  margin: 15px auto 0;
-  padding: 15px 20px;
-  border-radius: 20px;
-  background: var(--sub-card-bg);
-  box-shadow: var(--right-box-shadow);
-  display: flex;
-  justify-content: center;
-  gap: 30px;
-  flex-wrap: wrap;
+  width: 100%;
+  padding: 0 30px;
+  box-sizing: border-box;
+  display: grid;
+  gap: 8px 20px;
+  justify-items: center;
 }
 
-.profile-stats--embedded {
-  width: 100%;
-  margin: 0;
-  padding: 0 30px;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px 18px;
+/* Колонки задаёт число показателей, а не перенос. Раньше раскладка была
+   flex-wrap с `flex: 1 1 220px`: при четырёх показателях суммарная база
+   4 × 220 не влезала в карточку, и четвёртый уезжал один на отдельную
+   строку. С явными колонками осиротевшая строка невозможна. */
+.profile-stats[data-count="1"] { grid-template-columns: minmax(0, 1fr); }
+.profile-stats[data-count="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.profile-stats[data-count="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.profile-stats[data-count="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+/* Средняя ширина: четыре показателя складываются 2 × 2. Три намеренно
+   остаются в три колонки — делить их пришлось бы как 2 + 1, а это ровно
+   тот же одинокий элемент, от которого мы уходим. */
+@media (max-width: 980px) {
+  .profile-stats[data-count="4"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 680px) {
+  .profile-stats[data-count="2"],
+  .profile-stats[data-count="3"],
+  .profile-stats[data-count="4"] { grid-template-columns: minmax(0, 1fr); }
 }
 
 .stat-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex: 0 0 auto;
-  min-width: 230px;
-  max-width: 240px;
-}
-
-.profile-stats--embedded .stat-item {
-  flex: 1 1 220px;
-  max-width: 260px;
   justify-content: center;
-  text-align: center;
+  gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .stat-icon {
   color: var(--text-color);
   opacity: 0.6;
+  flex: 0 0 auto;
 }
 
+/* Если ячейка всё же уже содержимого, сокращается подпись, а не значение. */
 .stat-label {
   font-size: 14px;
   color: var(--text-color);
   opacity: 0.7;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .stat-value {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-color);
+  flex: 0 0 auto;
 }
 </style>

@@ -41,6 +41,7 @@
     <DeepLinkImportOverlay/>
     <HwidNotSupportedDialog/>
     <HwidMaxDevicesDialog/>
+    <SubscriptionAlertModal/>
   </div>
 </template>
 
@@ -53,21 +54,30 @@ import {getCachedLogo, setCachedLogo, clearCachedLogo} from "@/util/logoCache";
 import DeepLinkImportOverlay from "@/components/DeepLinkImportOverlay.vue";
 import HwidNotSupportedDialog from "@/components/HwidNotSupportedDialog.vue";
 import HwidMaxDevicesDialog from "@/components/HwidMaxDevicesDialog.vue";
+import SubscriptionAlertModal from "@/components/SubscriptionAlertModal.vue";
 import {useUpdateStore} from "@/store/updateStore";
 import {storeToRefs} from "pinia";
 import {Browser, Events} from "@/runtime";
 import {useI18n} from "vue-i18n";
 import createApi from "@/api";
 import {useWebStore} from "@/store/webStore";
+import {useSettingStore} from "@/store/settingStore";
 import {getRendererOrigin, normalizeCustomBackground} from "@/util/customBackground";
 import {WS} from "@/util/ws";
 import {formatDate} from "@/util/format";
 import {logLevel} from "@/composables/logLevel";
 import {BACKEND_CONN_UPDATED_EVENT} from "@/util/backendConn";
+import {
+  checkPendingSubscriptionAlerts,
+  notifySubscriptionAlertClicked,
+  formatAlertText,
+  type SubscriptionAlert,
+} from "@/util/subscriptionAlerts";
 
 const menuStore = useMenuStore();
 const updateStore = useUpdateStore();
 const webStore = useWebStore();
+const settingStore = useSettingStore();
 const {t} = useI18n();
 const {proxy} = getCurrentInstance()!;
 const api = createApi(proxy);
@@ -297,11 +307,66 @@ const handleVueProfilesUpdate = (event: Event) => {
   pickSelectedProfile(detail.profiles);
 };
 
+// Fires the native OS notification for one subscription alert. The Wails
+// path (window.pxNotifyAlert) round-trips the click through Go — see
+// SubscriptionAlertModal.vue's onBackendEvent — while Electron's Web
+// Notification API fires the click callback directly in this same renderer,
+// so it dispatches the click event itself.
+function notifySubscriptionAlertOs(profileData: any, alert: SubscriptionAlert) {
+  const title = formatAlertText(t, alert);
+  const body = profileData?.title || profileData?.headerTitle || '';
+  const clickDetail = {
+    profileId: profileData?.id,
+    kind: alert.kind,
+    days: alert.days,
+    percent: alert.percent,
+  };
+
+  // @ts-ignore
+  const pxNotifyAlert = window.pxNotifyAlert;
+  if (typeof pxNotifyAlert === 'function') {
+    pxNotifyAlert(title, body, clickDetail);
+    return;
+  }
+
+  const NotificationCtor = window.Notification;
+  if (typeof NotificationCtor !== 'function') {
+    return;
+  }
+
+  const show = () => {
+    try {
+      const notification = new NotificationCtor(title, {body});
+      notification.onclick = () => {
+        if (typeof window.focus === 'function') {
+          window.focus();
+        }
+        notifySubscriptionAlertClicked(clickDetail);
+      };
+    } catch (error) {
+      console.error('Failed to display subscription alert notification', error);
+    }
+  };
+
+  if (NotificationCtor.permission === 'granted') {
+    show();
+  } else if (NotificationCtor.permission === 'default' && typeof NotificationCtor.requestPermission === 'function') {
+    NotificationCtor.requestPermission().then((permission) => {
+      if (permission === 'granted') show();
+    }).catch(() => { /* ignore */ });
+  }
+}
+
 const loadProfiles = async () => {
   try {
     const list = await api.getProfileList();
     if (Array.isArray(list)) webStore.profileList = list;
     pickSelectedProfile(list);
+    void checkPendingSubscriptionAlerts(list, {
+      enabled: settingStore.notifySubscriptionAlerts,
+      notify: notifySubscriptionAlertOs,
+      ack: (id: string) => api.ackSubscriptionAlert(id),
+    });
     // On startup fProfile is empty (no id), so Proxies.vue skips fetching
     // proxy groups. Set it from the active profile so groups load correctly
     // on re-launch without requiring the user to manually re-select a profile.

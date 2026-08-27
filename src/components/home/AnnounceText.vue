@@ -33,8 +33,10 @@ const emit = defineEmits<{
 // Parse announce text with color codes (#RRGGBB)
 const parsedSegments = computed(() => {
   const segments: TextSegment[] = [];
-  // Convert \n and \r\n to actual line breaks
-  const text = props.text.replace(/\\r\\n|\\n/g, '\n');
+  // Convert \n and \r\n to actual line breaks, and trim outer whitespace so
+  // padding preserved by white-space: pre-wrap can't shift the visible text
+  // off-center within an otherwise-centered block.
+  const text = props.text.replace(/\\r\\n|\\n/g, '\n').trim();
 
   // Regex to match #RRGGBB color codes followed by text
   const colorPattern = /#([0-9A-Fa-f]{6})(\S+)/g;
@@ -77,7 +79,8 @@ const handleClick = () => {
 
 <style scoped>
 .announce-text {
-  display: inline;
+  display: block;
+  text-align: center;
   word-wrap: break-word;
   white-space: pre-wrap;
 }

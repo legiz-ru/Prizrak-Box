@@ -42,6 +42,8 @@ func profileRouter() http.Handler {
 
 	// 更新订阅
 	r.Put("/refresh", refreshProfile)
+	// Подтверждение показа напоминаний об истечении/трафике
+	r.Put("/ackSubscriptionAlert", ackSubscriptionAlert)
 	// 切换订阅
 	r.Patch("/", switchProfile)
 	// 存储排序
@@ -370,6 +372,7 @@ func addFromWeb(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			internal.ParseHeaders(inlineHeaders, "", profile)
+			internal.EvaluateSubscriptionAlerts(profile)
 		}
 		job.UpdateDb(profile, 2)
 		ps = append(ps, profile)
@@ -423,6 +426,7 @@ func addFromWeb(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			// 进行请求头解析 — subProfile.Content may have been migrated
 			internal.ParseHeaders(mergedSubHeaders, subProfile.Content, subProfile)
+			internal.EvaluateSubscriptionAlerts(subProfile)
 			job.UpdateDb(subProfile, 1)
 			ps = append(ps, subProfile)
 			ok = true
@@ -464,6 +468,7 @@ func refreshProfile(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		// 进行请求头解析
 		internal.ParseHeaders(mergedHeaders, profile.Content, profile)
+		internal.EvaluateSubscriptionAlerts(profile)
 		if title != "" {
 			profile.Title = title
 		}
@@ -488,6 +493,37 @@ func refreshProfile(w http.ResponseWriter, r *http.Request) {
 		HwidMaxDevicesReached: maxDevicesReached,
 	}
 	render.JSON(w, r, resp)
+}
+
+type ackSubscriptionAlertRequest struct {
+	Id string `json:"id"`
+}
+
+// ackSubscriptionAlert clears a profile's PendingAlerts once the frontend has
+// acted on them — shown a native notification (or decided, per the local
+// "Subscription reminders" setting, not to). This is separate from
+// NotifiedAlerts (see subscriptionalerts.Evaluate), which already guarantees
+// each threshold is computed at most once regardless of when this ack
+// arrives; PendingAlerts only tracks whether *this* delivery has happened.
+func ackSubscriptionAlert(w http.ResponseWriter, r *http.Request) {
+	req := ackSubscriptionAlertRequest{}
+	if err := render.DecodeJSON(r.Body, &req); err != nil {
+		ErrorResponse(w, r, err)
+		return
+	}
+
+	var profile models.Profile
+	if err := cache.Get(req.Id, &profile); err != nil {
+		ErrorResponse(w, r, err)
+		return
+	}
+
+	if len(profile.PendingAlerts) > 0 {
+		profile.PendingAlerts = nil
+		_ = cache.Put(profile.Id, profile)
+	}
+
+	render.NoContent(w, r)
 }
 
 func putProfile(w http.ResponseWriter, r *http.Request) {

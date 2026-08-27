@@ -28,6 +28,18 @@ export class Profile {
     fallbackUrl?: string;
     fallbackDomain?: string;
     globalModeDisabled?: boolean;
+    renewUrl?: string; // 可选 — subscription-renew-url
+    notifyExpireDays?: number[]; // 可选 — notify-expire-days
+    notifyTrafficPercent?: number[]; // 可选 — notify-traffic-percent
+    pendingAlerts?: SubscriptionAlert[]; // 可选 — ещё не показанные напоминания
+    clockSkewSeconds?: number; // 可选 — рассинхрон часов панели/устройства (заголовок Date)
+    clockSkewAtSeconds?: number; // 可选 — когда измерено (unix seconds устройства)
+}
+
+export interface SubscriptionAlert {
+    kind: 'expired' | 'expires_in' | 'traffic_used';
+    days?: number; // при kind === 'expires_in'
+    percent?: number; // при kind === 'traffic_used'
 }
 
 export interface ProfileSelectionPayload {

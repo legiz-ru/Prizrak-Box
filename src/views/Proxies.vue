@@ -1215,6 +1215,12 @@ watch(groupList, (list) => {
 .proxy-nodes-card {
   width: calc(33% - 41px);
   max-width: 210px;
+  /* Без этого min-width остаётся `auto`, то есть min-content — а его задаёт имя
+     ноды с `white-space: nowrap`. В CSS min-width сильнее max-width, поэтому
+     длинное имя раздувало карточку за её же 210px здесь и за ширину дорожки
+     в сетке полного вида; ellipsis при этом не срабатывал, потому что внутри
+     переросшей карточки имени хватало места. */
+  min-width: 0;
   border: 2px solid var(--sub-card-border);
   border-radius: 20px;
   padding: 8px 12px;
@@ -1277,6 +1283,17 @@ watch(groupList, (list) => {
   align-items: center;
   gap: 4px;
   overflow: hidden;
+  min-width: 0;
+}
+
+/* Тип прокси. В displayType приходит serverDescription (до 25 символов), а не
+   короткое "Vless", поэтому его тоже нужно обрезать — иначе он распирает строку
+   тегов и выдавливает задержку за край карточки. */
+.proxy-nodes-tags-left > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .proxy-nodes-tags-right {
@@ -1525,7 +1542,10 @@ watch(groupList, (list) => {
      row always ends flush with the right edge instead of leaving the gutter the
      old `calc(33% - 41px)` + `max-width: 210px` combination always left behind. */
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* minmax(0, …), а не голый 1fr: `1fr` разворачивается в `minmax(auto, 1fr)`,
+     и нижней границей дорожки становится min-content самой длинной карточки —
+     из-за чего три колонки суммарно вылезали за правый край панели. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px; /* = padding контента */
   width: 100%;
   margin-left: 0;

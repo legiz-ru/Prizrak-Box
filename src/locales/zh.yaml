@@ -147,6 +147,10 @@ setting:
     edit: 修改组合键
     macOptionWarning: "在 macOS 上，仅使用 Option（⌥）而不含 ⌘ 或 ⌃ 的组合键可能不会触发——这是苹果的已知问题（Sequoia）。请添加 ⌘ 或 ⌃，例如 Cmd+Option+M。"
 
+  subscriptionAlerts:
+    title: 订阅提醒通知
+    tooltip: 仅当订阅提供商发送了配置提醒（到期/流量）的 HTTP 请求头时才生效。没有这些请求头，即使此开关已打开也不会显示通知。
+
   dashboard:
     open: 打开面板
     manage: 管理面板
@@ -232,6 +236,7 @@ profiles:
   home: 访问订阅主页
   support: 访问支持页面
   announce: 公告
+  renew: 续费订阅
   announce-url: 访问链接
   del-tip: 正在使用中，不可删除
   edit:
@@ -481,6 +486,18 @@ onboarding:
     title: 信息
     message: 现在您可以启用代理模式或网络适配器模式（TUN）
     ok: 确定
+
+subscriptionAlert:
+  bellTooltip: 此配置已设置订阅提醒
+  infoTitle: 订阅提醒
+  infoBody: 订阅提供商已为此配置设置了到期/流量提醒。
+  infoExpire: "到期提醒：订阅到期前 {days} 天。"
+  infoTraffic: "流量提醒：已使用 {percent}% 流量时。"
+  infoDisabledLocally: 此类提醒目前已在应用设置中关闭。
+  expired: 订阅已到期
+  expiresIn: "订阅将在 {days} 天后到期"
+  trafficUsed: "已使用 {percent}% 流量"
+
 hwid:
   not-supported:
     title: 不支持 HWID
