@@ -148,11 +148,12 @@ const showRenewButton = computed(() => shouldShowRenewButton(activeProfile.value
           />
         </div>
 
-        <!-- Продлить подписку — ненавязчивая подсказка, обычный акцентный цвет -->
+        <!-- Продлить подписку — ненавязчивая подсказка, тот же акцент, что у
+             активных пунктов бокового меню / кнопки "Открыть релиз" -->
         <div v-if="showRenewButton" class="renew-button-container">
-          <el-button type="primary" class="renew-button" @click="goRenew">
+          <el-button class="renew-button" @click="goRenew">
             <el-icon><icon-mdi-credit-card-outline/></el-icon>
-            {{ t('profiles.renew') }}
+            <span>{{ t('profiles.renew') }}</span>
           </el-button>
         </div>
       </div>
@@ -226,5 +227,20 @@ const showRenewButton = computed(() => shouldShowRenewButton(activeProfile.value
 
 .renew-button {
   width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  --el-button-bg-color: var(--left-item-selected-bg);
+  --el-button-hover-bg-color: var(--left-item-selected-bg);
+  --el-button-active-bg-color: var(--left-item-selected-bg);
+  --el-button-border-color: transparent;
+  --el-button-hover-border-color: transparent;
+  --el-button-active-border-color: transparent;
+  --el-button-text-color: var(--text-color);
+  --el-button-hover-text-color: var(--text-color);
+  --el-button-active-text-color: var(--text-color);
+  --el-border-radius-base: 999px;
+  border-radius: 999px;
 }
 </style>

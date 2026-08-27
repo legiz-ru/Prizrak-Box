@@ -77,7 +77,8 @@ const handleClick = () => {
 
 <style scoped>
 .announce-text {
-  display: inline;
+  display: block;
+  text-align: center;
   word-wrap: break-word;
   white-space: pre-wrap;
 }
