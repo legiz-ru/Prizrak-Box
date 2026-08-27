@@ -669,6 +669,10 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 				announce = string(decoded)
 			}
 		}
+		// Trim leading/trailing whitespace so padding in the source header
+		// doesn't throw off centered rendering on the client (internal
+		// newlines are preserved for intentional multi-line announcements).
+		announce = strings.TrimSpace(announce)
 		// Limit to 200 visible characters (excluding color codes)
 		announce = limitAnnounceText(announce, 200)
 		profile.Announce = announce
