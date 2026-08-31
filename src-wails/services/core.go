@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"sync"
 	"time"
 
@@ -160,32 +161,97 @@ func (c *CoreService) ClearStartedBySvc() {
 	c.mu.Unlock()
 }
 
+// pxShutdownGrace is how long px gets to finish its own shutdown before it is
+// force-killed. It has to cover DisableProxy, which shells out to `networksetup`
+// on macOS (slow, and once per network service) and to `gsettings` on Linux.
+const pxShutdownGrace = 5 * time.Second
+
 // KillPx terminates the locally spawned px process (if any). px started via
 // the service is not killed here; the caller handles that through the service.
 //
-// On Unix it first sends SIGINT so px can run its shutdown (which disables the
-// system proxy), then force-kills after a short grace period. On Windows it
-// kills directly.
+// px undoes its OS-level state — the system proxy above all — only inside its
+// own exit path, so it is always asked to shut itself down first and killed
+// only if it does not. Two mechanisms feed that exit path: the /prizrak/exit
+// endpoint and, on Unix, SIGINT.
+//
+// Windows previously had neither: Process.Kill is TerminateProcess, which
+// delivers no signal, and px's /pxAlive watchdog (its other cleanup trigger)
+// never noticed the shell was gone because the kill was instant. Closing the
+// app therefore left ProxyEnable=1 in the registry pointing at a dead port —
+// invisible while px happened to reclaim the same port next launch, and broken
+// as soon as another client rewrote those keys in between.
 func (c *CoreService) KillPx() {
 	c.mu.Lock()
 	cmd := c.cmd
 	c.cmd = nil
+	info := c.info
 	c.mu.Unlock()
+
+	// Sent to whoever owns px, including the elevated service (which this method
+	// deliberately does not kill, and which stops px with a hard kill of its
+	// own — see src-service/manager.StopPx).
+	requestPxExit(info)
+
 	if cmd == nil || cmd.Process == nil {
 		return
 	}
-	if runtime.GOOS == "windows" {
-		_ = cmd.Process.Kill()
+
+	exited := make(chan struct{})
+	go func() { _, _ = cmd.Process.Wait(); close(exited) }()
+
+	if runtime.GOOS != "windows" {
+		_ = cmd.Process.Signal(os.Interrupt)
+	}
+
+	select {
+	case <-exited:
+		return
+	case <-time.After(pxShutdownGrace):
+	}
+
+	_ = cmd.Process.Kill()
+	select {
+	case <-exited:
+	case <-time.After(2 * time.Second):
+	}
+}
+
+// RequestExit asks the running px — whoever spawned it — to shut itself down
+// cleanly, without touching the local process handle. Used where px is owned by
+// the elevated service and can only be reached over its control API.
+func (c *CoreService) RequestExit() {
+	c.mu.Lock()
+	info := c.info
+	c.mu.Unlock()
+	requestPxExit(info)
+}
+
+// requestPxExit asks px to shut itself down through its control API, which runs
+// the same cleanup as a signal (job.Exit -> DisableProxy) before calling
+// os.Exit. A no-op when px has not reported its port yet.
+//
+// px writes its reply and exits immediately after, so the connection is
+// routinely torn down mid-response: a transport error here is expected and says
+// nothing about whether the cleanup ran.
+func requestPxExit(info ConnInfo) {
+	if info.Port == 0 {
 		return
 	}
-	// Graceful: SIGINT -> px disables proxy and exits.
-	_ = cmd.Process.Signal(os.Interrupt)
-	done := make(chan struct{})
-	go func() { _, _ = cmd.Process.Wait(); close(done) }()
-	select {
-	case <-done:
-	case <-time.After(2 * time.Second):
-		_ = cmd.Process.Kill()
+	host := info.Host
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	url := fmt.Sprintf("http://%s/prizrak/exit", net.JoinHostPort(host, strconv.Itoa(info.Port)))
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return
+	}
+	if info.Secret != "" {
+		req.Header.Set("Authorization", "Bearer "+info.Secret)
+	}
+	client := &http.Client{Timeout: pxShutdownGrace}
+	if resp, err := client.Do(req); err == nil {
+		_ = resp.Body.Close()
 	}
 }
 

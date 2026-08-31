@@ -66,17 +66,29 @@ func enableProxy(w http.ResponseWriter, r *http.Request) {
 
 	log.Infoln("EnableProxy request: bindAddress=", mi.BindAddress, ", port=", mi.Port, ", username=", mi.Username)
 
+	// The port px actually listens on wins over the one the caller sent. When the
+	// configured mixed port is already taken — most often by another proxy client
+	// the user has open — internal.SwitchProfile silently moves px to a random
+	// port, while the frontend keeps sending its persisted value. Writing that
+	// stale value into the system proxy points the whole system at a port nothing
+	// is bound to, which looks exactly like "the system proxy stopped working".
+	port := mi.Port
+	if general := executor.GetGeneral(); general != nil && general.MixedPort > 0 && general.MixedPort != port {
+		log.Warnln("EnableProxy: requested port %d is not the running mixed port %d, using the latter", port, general.MixedPort)
+		port = general.MixedPort
+	}
+
 	// 开启 - если указан username, используем EnableProxyForUser
 	var err error
 	if mi.Username != "" {
 		log.Infoln("Enabling system proxy for user:", mi.Username)
-		err = sys.EnableProxyForUser(mi.BindAddress, mi.Port, mi.Username)
+		err = sys.EnableProxyForUser(mi.BindAddress, port, mi.Username)
 		if err == nil {
 			log.Infoln("System proxy successfully enabled for user", mi.Username)
 		}
 	} else {
 		log.Infoln("Enabling system proxy for current user (no username provided)")
-		err = sys.EnableProxy(mi.BindAddress, mi.Port)
+		err = sys.EnableProxy(mi.BindAddress, port)
 		if err == nil {
 			log.Infoln("System proxy successfully enabled")
 		}

@@ -59,7 +59,26 @@ export function installWailsShim(): void {
         const arch = /arm64|aarch64/i.test(ua) ? 'arm64' : 'x64';
         return `${name} ${arch}`;
     };
-    w.pxUsername = (): string => '';
+    // The frontend reads this SYNCHRONOUSLY (util/systemProxy.ts calls
+    // GetUsername() inline), while the Wails binding is async — so the value is
+    // fetched once here and served from a cache, like pxClipboard below. It
+    // identifies the account whose registry hive px must write the proxy
+    // settings into, and it cannot change while the app runs.
+    //
+    // This returned '' unconditionally before, which silently disabled the
+    // EnableProxyForUser / HKEY_USERS\<SID> path on Wails: px then wrote to
+    // HKEY_CURRENT_USER, which is the SYSTEM account's hive whenever px runs
+    // elevated through the TUN service, so the system proxy was applied to a
+    // hive the user's applications never read.
+    // pxUsernameReady lets bootstrap await the first fetch (main.ts) so the very
+    // first consumer — the startup re-assert of the system proxy — already sees
+    // the real value instead of the empty placeholder.
+    let usernameCache = '';
+    w.pxUsernameReady = services()
+        .then((s: any) => s.SystemService.Username())
+        .then((name: string) => { if (typeof name === 'string') usernameCache = name; })
+        .catch(() => { /* leave empty: px falls back to the current user's hive */ });
+    w.pxUsername = (): string => usernameCache;
 
     // Clipboard: the frontend reads it SYNCHRONOUSLY (Profiles.vue handlePaste:
     // `addForm.content = Clipboard.Text()`), matching Electron's sync API. The

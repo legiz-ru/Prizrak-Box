@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/user"
 	"runtime"
+	"strings"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -41,17 +42,29 @@ func (s *SystemService) OS() string {
 	return name + " " + arch
 }
 
-// Username returns the current user's username (best effort).
+// Username returns the current user's username (best effort), matching what
+// Electron's preload reports via os.userInfo().username.
+//
+// The bare account name is what callers need: px looks the user's SID up with
+// `Win32_UserAccount WHERE Name='<username>'` to reach their registry hive
+// (pkg/sys/proxy.getUserSID), and that query does not match a domain-qualified
+// name. user.Current() returns `DOMAIN\user` on Windows, so the prefix is
+// stripped here rather than at each call site.
 func (s *SystemService) Username() string {
+	name := ""
 	if u, err := user.Current(); err == nil {
-		if u.Username != "" {
-			return u.Username
-		}
+		name = u.Username
 	}
-	if v := os.Getenv("USER"); v != "" {
-		return v
+	if name == "" {
+		name = os.Getenv("USER")
 	}
-	return os.Getenv("USERNAME")
+	if name == "" {
+		name = os.Getenv("USERNAME")
+	}
+	if i := strings.LastIndexAny(name, `\/`); i >= 0 {
+		name = name[i+1:]
+	}
+	return name
 }
 
 // AutostartEnabled reports whether launch-at-login is currently registered AND

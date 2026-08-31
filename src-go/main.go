@@ -59,10 +59,15 @@ func main() {
 	select {
 	case <-termSign:
 		log.Warnln("received termination signal")
+		// The system proxy is the only piece of state here that outlives px and
+		// breaks the user's connectivity if it survives, so it is undone before
+		// the slower teardown steps rather than after them: the shell force-kills
+		// px once its grace period expires, and whatever runs last is what gets
+		// cut off.
+		sys.DisableProxy()
 		prizrak.Release()
 		utils.UnlockSingleton()
 		executor.Shutdown()
-		sys.DisableProxy()
 	}
 
 }

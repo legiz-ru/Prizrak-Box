@@ -164,6 +164,9 @@ func (t *TunService) Install() bool {
 // unprivileged px then had to fall back to a random port.
 func (t *TunService) Uninstall() bool {
 	if t.ping() {
+		// Ask px to exit on its own first: the service's stop_px is a hard kill,
+		// which would skip px's cleanup and strand the system proxy settings.
+		t.core.RequestExit()
 		if _, err := t.request("stop_px", nil, 5*time.Second); err != nil {
 			application.Get().Logger.Warn("stopping px through the service before uninstall failed", "error", err)
 		}

@@ -1115,11 +1115,20 @@ func startCore(profile models.Profile, profiles []models.Profile, reload bool) {
 		NowConfig.General.Tun.Enable = mi.Tun
 	} else {
 		// 检测端口占用
+		//
+		// Moving to a random port keeps px usable when the configured one is
+		// taken (typically by another proxy client), but it desynchronises px
+		// from every consumer that remembers the configured value — the system
+		// proxy most of all. mi is persisted below, so getMihomo hands the
+		// frontend the effective port; enableProxy additionally re-reads the
+		// running mixed port rather than trusting whatever it is sent.
+		requestedPort := mi.Port
 		err = utils.IsPortAvailable(mi.BindAddress, mi.Port)
 		if err != nil {
 			log.Errorln("IsPortAvailable error: %v", err)
 			mi.Port, _ = utils.GetRandomPort(mi.BindAddress)
 			NowConfig.General.MixedPort = mi.Port
+			log.Warnln("mixed port %d unavailable, moved to %d", requestedPort, mi.Port)
 		}
 
 		// 初次加载不能开启tun,不然在windows上会崩

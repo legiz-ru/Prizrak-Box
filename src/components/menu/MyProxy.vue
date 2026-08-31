@@ -352,6 +352,13 @@ onUnmounted(() => {
 
 onMounted(async () => {
   if (menuStore.proxy) {
+    // This call is the only thing that re-asserts the system proxy on a normal
+    // launch, and it has no retry: if it fails, whatever the previous session
+    // (or another proxy client) last wrote is what the OS keeps using. Bootstrap
+    // normally awaits px's connection info before mounting, but it deliberately
+    // mounts anyway when px was slow or failed, so gate on the backend actually
+    // answering — same as the TUN branch below.
+    await api.waitRunning();
     await applySystemProxyMode(settingStore.systemProxyMode, false);
   }
 

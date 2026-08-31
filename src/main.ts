@@ -153,6 +153,12 @@ async function bootstrap() {
     // The Electron shell passes everything in the URL and skips this entirely.
     if (!secret && typeof (window as any).pxConnInfo === "function") {
         try {
+            // Resolves once the shim has read the username from the Go side. It
+            // is needed by the first system-proxy call after mount, and settles
+            // long before px reports back, so this costs nothing in practice.
+            await (window as any).pxUsernameReady;
+        } catch { /* the shim already defaults to an empty username */ }
+        try {
             // Same path a post-install/uninstall restart takes, so the initial
             // and the refreshed connection info are applied identically.
             applyBackendConn(await (window as any).pxConnInfo());
