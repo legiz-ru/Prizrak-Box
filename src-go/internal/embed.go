@@ -31,3 +31,11 @@ var DefaultDNS string
 
 //go:embed em/Model.bin
 var ModelBin []byte
+
+// BundleMRS is the bundled .mrs rule-set archive (BundleMRS.7z). mihomo's
+// rules/bundle loads rule-providers declared with `path-in-bundle` from
+// C.Path.BundleMRS(), which resolves to <homeDir>/BundleMRS.7z — so we only need
+// to drop this file into the home dir (see releaseGeoData).
+//
+//go:embed em/BundleMRS.7z
+var BundleMRS []byte

@@ -119,41 +119,67 @@ watch(() => webStore.fProfile, async () => {
 </template>
 
 <style scoped>
+:deep(.bottom) {
+  padding-bottom: 0;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .now {
-  width: 95%;
-  margin-left: 10px;
+  width: 100%;
+  margin-left: 0;
   margin-top: 5px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .search {
   margin-top: 6px;
 }
 
+.search :deep(.custom-input) {
+  border-radius: 999px;
+  padding-left: 16px;
+}
+
+.search :deep(.clear-button) {
+  right: 14px;
+}
+
 .content {
   border: 2px solid var(--text-color);
-  border-radius: 10px;
+  border-radius: 20px;
+  overflow: hidden;
   margin-top: 25px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .title {
   border-bottom: 1px solid var(--text-color);
-  padding: 8px 10px;
+  padding: 8px 10px 8px 16px;
   font-weight: bold;
 }
 
 .info-list {
-  max-height: calc(100vh - 365px);
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .info {
   border-bottom: 1px solid var(--sub-card-border);
-  padding: 8px 10px;
+  padding: 8px 10px 8px 16px;
 }
 
 .info-s {
   border-bottom: 1px solid var(--sub-card-border);
-  padding: 8px 10px;
+  padding: 8px 10px 8px 16px;
   background-color: var(--rule-list-bg); /* 深灰色，透明度为50% */
 }
 

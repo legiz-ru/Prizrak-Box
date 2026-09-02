@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+
+  <Fragment>
+    <!-- TUN Service Feature is informational only -->
+    <!-- The actual px.exe and px-service.exe files are already included via heat.exe in ApplicationFiles -->
+    <!-- This feature serves as a user-facing option to control TUN service installation via CustomAction -->
+    <ComponentGroup Id="TUNServiceFiles">
+      <!-- Empty component group - files already in ApplicationFiles from heat.exe -->
+      <!-- The CustomAction "InstallTunService" checks &TUNServiceFeature=3 condition -->
+      <!-- No need to duplicate files here -->
+    </ComponentGroup>
+  </Fragment>
+
+</Wix>

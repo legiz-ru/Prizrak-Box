@@ -4,18 +4,23 @@ import (
 	"bytes"
 	"fmt"
 	sys "github.com/legiz-ru/prizrak-box/pkg/sys/cmd"
+	"log"
 	"strconv"
 	"strings"
 )
 
 func OffAll() error {
-	if err := OffHttps(); err != nil {
+	return OffAllForUser("")
+}
+
+func OffAllForUser(username string) error {
+	if err := OffHttpsForUser(username); err != nil {
 		return err
 	}
-	if err := OffHttp(); err != nil {
+	if err := OffHttpForUser(username); err != nil {
 		return err
 	}
-	if err := OffSocks(); err != nil {
+	if err := OffSocksForUser(username); err != nil {
 		return err
 	}
 	return nil
@@ -67,15 +72,19 @@ func GetIgnore() ([]string, error) {
 }
 
 func OnHttps(addr Addr) error {
-	err := set("https", "host", addr.Host)
+	return OnHttpsForUser(addr, "")
+}
+
+func OnHttpsForUser(addr Addr, username string) error {
+	err := setForUser("https", "host", addr.Host, username)
 	if err != nil {
 		return err
 	}
-	err = set("https", "port", strconv.Itoa(addr.Port))
+	err = setForUser("https", "port", strconv.Itoa(addr.Port), username)
 	if err != nil {
 		return err
 	}
-	err = set("", "mode", "manual")
+	err = setForUser("", "mode", "manual", username)
 	if err != nil {
 		return err
 	}
@@ -83,15 +92,19 @@ func OnHttps(addr Addr) error {
 }
 
 func OffHttps() error {
-	err := reset("", "mode")
+	return OffHttpsForUser("")
+}
+
+func OffHttpsForUser(username string) error {
+	err := resetForUser("", "mode", username)
 	if err != nil {
 		return err
 	}
-	err = reset("https", "host")
+	err = resetForUser("https", "host", username)
 	if err != nil {
 		return err
 	}
-	err = reset("https", "port")
+	err = resetForUser("https", "port", username)
 	if err != nil {
 		return err
 	}
@@ -119,15 +132,19 @@ func GetHttps() (*Addr, error) {
 }
 
 func OnHttp(addr Addr) error {
-	err := set("http", "host", addr.Host)
+	return OnHttpForUser(addr, "")
+}
+
+func OnHttpForUser(addr Addr, username string) error {
+	err := setForUser("http", "host", addr.Host, username)
 	if err != nil {
 		return err
 	}
-	err = set("http", "port", strconv.Itoa(addr.Port))
+	err = setForUser("http", "port", strconv.Itoa(addr.Port), username)
 	if err != nil {
 		return err
 	}
-	err = set("", "mode", "manual")
+	err = setForUser("", "mode", "manual", username)
 	if err != nil {
 		return err
 	}
@@ -135,15 +152,19 @@ func OnHttp(addr Addr) error {
 }
 
 func OffHttp() error {
-	err := reset("", "mode")
+	return OffHttpForUser("")
+}
+
+func OffHttpForUser(username string) error {
+	err := resetForUser("", "mode", username)
 	if err != nil {
 		return err
 	}
-	err = reset("http", "host")
+	err = resetForUser("http", "host", username)
 	if err != nil {
 		return err
 	}
-	err = reset("http", "port")
+	err = resetForUser("http", "port", username)
 	if err != nil {
 		return err
 	}
@@ -170,15 +191,19 @@ func GetHttp() (*Addr, error) {
 }
 
 func OnSocks(addr Addr) error {
-	err := set("socks", "host", addr.Host)
+	return OnSocksForUser(addr, "")
+}
+
+func OnSocksForUser(addr Addr, username string) error {
+	err := setForUser("socks", "host", addr.Host, username)
 	if err != nil {
 		return err
 	}
-	err = set("socks", "port", strconv.Itoa(addr.Port))
+	err = setForUser("socks", "port", strconv.Itoa(addr.Port), username)
 	if err != nil {
 		return err
 	}
-	err = set("", "mode", "manual")
+	err = setForUser("", "mode", "manual", username)
 	if err != nil {
 		return err
 	}
@@ -186,15 +211,19 @@ func OnSocks(addr Addr) error {
 }
 
 func OffSocks() error {
-	err := reset("", "mode")
+	return OffSocksForUser("")
+}
+
+func OffSocksForUser(username string) error {
+	err := resetForUser("", "mode", username)
 	if err != nil {
 		return err
 	}
-	err = reset("socks", "host")
+	err = resetForUser("socks", "host", username)
 	if err != nil {
 		return err
 	}
-	err = reset("socks", "port")
+	err = resetForUser("socks", "port", username)
 	if err != nil {
 		return err
 	}
@@ -223,20 +252,32 @@ func GetSocks() (*Addr, error) {
 const scheme = "org.gnome.system.proxy"
 
 func reset(sub, key string) error {
-	scheme := scheme
-	if sub != "" {
-		scheme = scheme + "." + sub
-	}
-	_, err := sys.Command("gsettings", "reset", scheme, key)
-	return err
+	return resetForUser(sub, key, "")
 }
 
 func get(sub, key string) (string, error) {
+	return getForUser(sub, key, "")
+}
+
+func set(sub, key string, val string) error {
+	return setForUser(sub, key, val, "")
+}
+
+func resetForUser(sub, key string, username string) error {
 	scheme := scheme
 	if sub != "" {
 		scheme = scheme + "." + sub
 	}
-	out, err := sys.Command("gsettings", "get", scheme, key)
+	_, err := sys.CommandAsUser(username, "gsettings", "reset", scheme, key)
+	return err
+}
+
+func getForUser(sub, key string, username string) (string, error) {
+	scheme := scheme
+	if sub != "" {
+		scheme = scheme + "." + sub
+	}
+	out, err := sys.CommandAsUser(username, "gsettings", "get", scheme, key)
 	if err != nil {
 		return "", err
 	}
@@ -244,11 +285,19 @@ func get(sub, key string) (string, error) {
 	return out, nil
 }
 
-func set(sub, key string, val string) error {
+func setForUser(sub, key string, val string, username string) error {
 	scheme := scheme
 	if sub != "" {
 		scheme = scheme + "." + sub
 	}
-	_, err := sys.Command("gsettings", "set", scheme, key, val)
+
+	if username != "" {
+		log.Printf("[SystemProxy] Setting %s.%s=%s for user %s", scheme, key, val, username)
+	}
+
+	_, err := sys.CommandAsUser(username, "gsettings", "set", scheme, key, val)
+	if err != nil {
+		log.Printf("[SystemProxy] Failed to set %s.%s for user %s: %v", scheme, key, username, err)
+	}
 	return err
 }

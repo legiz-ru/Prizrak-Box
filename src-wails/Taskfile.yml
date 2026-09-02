@@ -1,0 +1,79 @@
+version: "3"
+
+# Taskfile for the Wails v3 shell (Phase 0 PoC).
+#
+# Prerequisites:
+#   - wails3 CLI, pinned to the SAME version as go.mod's wails/v3 (the CLI
+#     generates bindings and build assets; a version mismatch can produce
+#     incompatible output):
+#       go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.5
+#   - The px backend built at ../src-go/px  (see repo README "Build px backend")
+#   - Frontend deps installed at the repo root:  npm install
+#
+# The frontend is the existing Vue app in the repo root (../). We build it
+# straight into ./frontend/dist so that main.go can embed it.
+
+vars:
+  REPO_ROOT: "{{.TASKFILE_DIR}}/.."
+  DIST: "{{.TASKFILE_DIR}}/frontend/dist"
+
+tasks:
+  frontend:
+    desc: Build the Vue frontend into frontend/dist
+    dir: "{{.REPO_ROOT}}"
+    cmds:
+      - npx vite build --outDir "{{.DIST}}" --emptyOutDir
+
+  icons:
+    desc: Regenerate .ico / tray.png and the macOS .icns from master appicon.png (sharp)
+    dir: "{{.TASKFILE_DIR}}/build"
+    cmds:
+      # gen-icons.mjs emits the Windows .ico, the Linux tray.png, and the macOS
+      # darwin/appicon.icns (built from a padded master inset to Apple's
+      # icon-grid safe area so the Dock / Cmd+Tab icon matches native apps).
+      # The .icns is assembled in pure Node — no sips / iconutil needed — so it
+      # regenerates identically on any OS and never drifts from the master.
+      - node gen-icons.mjs
+
+  px:
+    desc: Build the px backend (CGO disabled, gvisor TUN)
+    dir: "{{.REPO_ROOT}}/src-go"
+    cmds:
+      - CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -o px .
+
+  bindings:
+    desc: Regenerate the Go->JS service bindings (time.Time maps to JS Date)
+    cmds:
+      # -time-type Date makes any time.Time in a service API arrive in JS as a
+      # real Date object instead of the default RFC3339 string (alpha2.113+).
+      - wails3 generate bindings -d frontend/bindings -time-type Date
+
+  build:
+    desc: Build the full desktop app (frontend + Go shell) with wails3
+    deps: [frontend]
+    cmds:
+      - wails3 build
+
+  dev:
+    desc: Run the app in dev mode (Vite dev server + live Go)
+    cmds:
+      - wails3 dev
+
+  package:
+    desc: Produce platform installers
+    deps: [frontend]
+    cmds:
+      - wails3 package
+
+  bundle:
+    desc: Wrap the built binary into a signed .app bundle (macOS only)
+    cmds:
+      - mkdir -p bin/Prizrak-Box.app/Contents/{MacOS,Resources}
+      - cp build/darwin/appicon.icns bin/Prizrak-Box.app/Contents/Resources/
+      - cp bin/Prizrak-Box bin/Prizrak-Box.app/Contents/MacOS/
+      - cp build/darwin/Info.plist bin/Prizrak-Box.app/Contents/
+      - codesign --force --deep --sign - bin/Prizrak-Box.app
+
+  clean:
+    cmds:
+      - rm -rf "{{.DIST}}" ./bin

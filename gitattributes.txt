@@ -1,0 +1,4 @@
+
+# Entitlements plist must use LF — codesign/AMFI rejects CRLF
+build/entitlements.mac.plist text eol=lf
+*.plist text eol=lf

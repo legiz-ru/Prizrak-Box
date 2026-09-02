@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -22,7 +24,7 @@ func TestGenerateHWID(t *testing.T) {
 func TestBuildDeviceHeaders(t *testing.T) {
 	resetCachedDeviceDetailsForTest()
 
-	// Test with HWID disabled
+	// Test with HWID disabled — no device headers expected
 	config := &HTTPClientConfig{
 		EnableHWID: false,
 	}
@@ -33,7 +35,7 @@ func TestBuildDeviceHeaders(t *testing.T) {
 		t.Errorf("Expected nil headers when HWID is disabled, got %v", headers)
 	}
 
-	// Test with HWID enabled
+	// Test with HWID enabled — all device headers must be present
 	config = &HTTPClientConfig{
 		EnableHWID:  true,
 		DeviceOS:    "Linux",
@@ -76,26 +78,72 @@ func TestBuildDeviceHeaders(t *testing.T) {
 }
 
 func TestUpdateHTTPClientConfig(t *testing.T) {
-	// Test user agent with HWID enabled
+	// Определяем ожидаемое имя ОС для текущей платформы.
+	expectedOS := defaultOSName()
+
+	// Test: UA должен иметь единый формат с версией, HWID enabled
 	config := &HTTPClientConfig{
 		EnableHWID: true,
 		Version:    "1.0.1",
 	}
 	UpdateHTTPClientConfig(config)
 
-	expected := "prizrak-box/1.0.1"
-	if globalConfig.UserAgent != expected {
-		t.Errorf("Expected user agent '%s', got '%s'", expected, globalConfig.UserAgent)
+	ua := globalConfig.UserAgent
+	expectedPrefix := "Clash-Meta/Prizrak-Box (Desktop Build 1.0.1 "
+	if !strings.HasPrefix(ua, expectedPrefix) {
+		t.Errorf("Expected UA to start with %q, got %q", expectedPrefix, ua)
+	}
+	if !strings.Contains(ua, expectedOS) {
+		t.Errorf("Expected UA to contain OS %q, got %q", expectedOS, ua)
 	}
 
-	// Test user agent with HWID disabled
+	// Test: UA должен иметь единый формат с версией, HWID disabled
+	config = &HTTPClientConfig{
+		EnableHWID: false,
+		Version:    "1.0.1",
+	}
+	UpdateHTTPClientConfig(config)
+
+	ua = globalConfig.UserAgent
+	if !strings.HasPrefix(ua, expectedPrefix) {
+		t.Errorf("Expected UA to start with %q even when HWID disabled, got %q", expectedPrefix, ua)
+	}
+
+	// Test: UA без версии — должен содержать только ОС
 	config = &HTTPClientConfig{
 		EnableHWID: false,
 	}
 	UpdateHTTPClientConfig(config)
 
-	expected = "clash-verge/v2.3.0"
-	if globalConfig.UserAgent != expected {
-		t.Errorf("Expected user agent '%s', got '%s'", expected, globalConfig.UserAgent)
+	ua = globalConfig.UserAgent
+	if !strings.HasPrefix(ua, "Clash-Meta/Prizrak-Box (Desktop Build ") {
+		t.Errorf("Expected UA to start with 'Clash-Meta/Prizrak-Box (Desktop Build ', got %q", ua)
 	}
+	if !strings.Contains(ua, expectedOS) {
+		t.Errorf("Expected UA to contain OS %q, got %q", expectedOS, ua)
+	}
+}
+
+func TestBuildUserAgent(t *testing.T) {
+	cases := []struct {
+		version  string
+		deviceOS string
+		wantContains []string
+	}{
+		{"1.2.3", "Windows", []string{"Clash-Meta/Prizrak-Box", "Desktop Build", "1.2.3", "Windows"}},
+		{"2.0.0", "Linux", []string{"Clash-Meta/Prizrak-Box", "Desktop Build", "2.0.0", "Linux"}},
+		{"", "macOS", []string{"Clash-Meta/Prizrak-Box", "Desktop Build", "macOS"}},
+		{"1.0.0", "", []string{"Clash-Meta/Prizrak-Box", "Desktop Build", "1.0.0", defaultOSName()}},
+	}
+
+	for _, c := range cases {
+		ua := buildUserAgent(c.version, c.deviceOS)
+		for _, want := range c.wantContains {
+			if !strings.Contains(ua, want) {
+				t.Errorf("buildUserAgent(%q, %q) = %q, want it to contain %q", c.version, c.deviceOS, ua, want)
+			}
+		}
+	}
+
+	_ = runtime.GOOS // убеждаемся что пакет runtime используется
 }

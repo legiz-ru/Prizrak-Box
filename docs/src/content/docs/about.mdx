@@ -1,0 +1,69 @@
+---
+title: About App
+description: Learn about Prizrak-Box — its features, architecture, and how it works.
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Overview
+
+**Prizrak-Box** is an open-source, cross-platform proxy client built on top of [Mihomo](https://github.com/MetaCubeX/mihomo) (formerly Clash.Meta).
+It provides a user-friendly graphical interface for managing proxy subscriptions, monitoring traffic, and applying routing rules.
+
+![Prizrak-Box main screen](../../assets/about-main.webp)
+
+## Key Features
+
+<CardGrid>
+  <Card title="Remote Subscriptions" icon="open-book">
+    Add and manage remote proxy subscriptions with automatic periodic updates. Supports Clash YAML format.
+  </Card>
+  <Card title="Proxy Keys" icon="forward-slash">
+    Supports direct proxy keys (vless://, hy2://, and others) — built-in configurable templates are available for profiles without a Mihomo configuration.
+  </Card>
+  <Card title="AGE Encryption" icon="approve-check-circle">
+    Supports age-encrypted subscription files. Decrypt with your private key stored securely in the profile.
+  </Card>
+  <Card title="Traffic Monitoring" icon="bars">
+    View and manage active proxy connections in real-time via the Connections section in app settings.
+  </Card>
+  <Card title="Routing Rules" icon="list-format">
+    Built-in templates with routing rules for Russia and China — routing based on geo-IP and domain lists.
+  </Card>
+  <Card title="TUN Mode" icon="laptop">
+    System-level traffic capture via TUN interface — routes all device traffic through the proxy without per-app configuration.
+  </Card>
+</CardGrid>
+
+## Supported Platforms
+
+| Platform | Status |
+|----------|--------|
+| Windows (arm64, x64) | ✅ Supported |
+| macOS (arm64, x64) | ✅ Supported |
+| Linux (arm64, x64) | ✅ Supported |
+| Android (arm64, armv7, x86_64) | ✅ Supported |
+
+## Subscription Management
+
+![Managing profiles](../../assets/about-profiles.webp)
+
+Prizrak-Box supports three types of profiles:
+
+1. **Remote Subscription** — fetched from a URL with optional auto-update interval
+2. **Local Configuration** — a local Clash YAML file
+3. **Crawl & Merge** — aggregated from multiple sources
+4. **Proxy Keys** — direct connection keys (`vless://`, `hy2://`, and others) with built-in configurable templates
+
+When a remote subscription is fetched, the server can return HTTP response headers to control the client behavior — see [Supported Headers](/for-devs/supported-headers/) for the full reference.
+
+## Architecture
+
+The app is structured as:
+
+- **Wails v3** (Windows, macOS) — native desktop shell rendering the Vue 3 UI
+- **Electron** (Linux) — desktop shell rendering the Vue 3 UI
+- **Android** — Jetpack Compose UI
+- **Go backend** (`px`) — HTTP API, subscription management, BoltDB persistence
+- **Go service** (`px-service`) — elevated system service for TUN mode (Windows, Linux, macOS)
+- **Mihomo core** — proxy routing engine (custom fork) embedded in the Go binary

@@ -1,0 +1,47 @@
+---
+title: Добро пожаловать
+description: Добро пожаловать в Prizrak-Box — кроссплатформенный прокси-клиент на базе Mihomo.
+template: splash
+hero:
+  title: Prizrak-Box
+  tagline: Кроссплатформенный прокси-клиент на базе Mihomo (Clash.Meta) для Windows, macOS, Linux и Android.
+  image:
+    light: ../../../assets/logo-dark.svg
+    dark: ../../../assets/logo-light.svg
+    alt: Prizrak-Box
+  actions:
+    - text: Установка
+      link: /ru/install/
+      icon: right-arrow
+      variant: primary
+    - text: GitHub
+      link: https://github.com/legiz-ru/Prizrak-Box
+      icon: external
+      variant: secondary
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Что такое Prizrak-Box?
+
+Prizrak-Box — это графический прокси-клиент на базе [Mihomo](https://github.com/MetaCubeX/mihomo) (Clash.Meta).
+Поддерживает Clash YAML и прямые ключи (vless://, hy2://), встроенные шаблоны правил для России и Китая, мониторинг трафика и TUN-режим.
+
+<CardGrid>
+  <Card title="Установка" icon="down-caret">
+    Установите Prizrak-Box на Windows, macOS, Linux или Android.
+    [Установить →](/ru/install/)
+  </Card>
+  <Card title="О приложении" icon="information">
+    Возможности, управление подписками и принцип работы.
+    [Подробнее →](/ru/about/)
+  </Card>
+  <Card title="FAQ (Частые вопросы)" icon="open-book">
+    Ответы на частые вопросы о функциях и режимах работы приложения.
+    [FAQ →](/ru/faq/)
+  </Card>
+  <Card title="Интеграция" icon="document">
+    Документация для разработчиков — HTTP-заголовки, шифрование AGE, интеграция с Remnawave и прокси группа Smart.
+    [Интеграция →](/ru/for-devs/)
+  </Card>
+</CardGrid>

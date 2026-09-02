@@ -5,8 +5,11 @@
   >
     <div class="left">
       <div :class="isWindows?'top-title win':'top-title'">
-        <div class="top-icon"></div>
-        <span class="top-title-text">Prizrak-Box</span>
+        <div
+            class="top-icon"
+            :style="topIconStyle"
+        ></div>
+        <span class="top-title-text">{{ topTitle }}</span>
       </div>
       <div v-if="showUpdateBanner" class="update-banner">
         <div class="update-banner__content">
@@ -26,9 +29,8 @@
       </div>
       <MyEvent/>
       <MyNav/>
-      <MyRule/>
+      <MyRule :active-profile="activeProfile"/>
       <MyProxy/>
-      <MySecNav/>
       <MyBottom/>
     </div>
 
@@ -37,27 +39,104 @@
       <MyDrop/>
     </div>
     <DeepLinkImportOverlay/>
+    <HwidNotSupportedDialog/>
+    <HwidMaxDevicesDialog/>
+    <SubscriptionAlertModal/>
   </div>
 </template>
 
 
 <script setup lang="ts">
 import {useMenuStore} from "@/store/menuStore";
-import {preloadBackgroundImage} from "@/util/theme";
+import {preloadBackgroundImage, changeTheme} from "@/util/theme";
+import {getCachedBg, setCachedBg, clearCachedBg} from "@/util/bgCache";
+import {getCachedLogo, setCachedLogo, clearCachedLogo} from "@/util/logoCache";
 import DeepLinkImportOverlay from "@/components/DeepLinkImportOverlay.vue";
+import HwidNotSupportedDialog from "@/components/HwidNotSupportedDialog.vue";
+import HwidMaxDevicesDialog from "@/components/HwidMaxDevicesDialog.vue";
+import SubscriptionAlertModal from "@/components/SubscriptionAlertModal.vue";
 import {useUpdateStore} from "@/store/updateStore";
 import {storeToRefs} from "pinia";
-import {Browser} from "@/runtime";
+import {Browser, Events} from "@/runtime";
 import {useI18n} from "vue-i18n";
+import createApi from "@/api";
+import {useWebStore} from "@/store/webStore";
+import {useSettingStore} from "@/store/settingStore";
+import {getRendererOrigin, normalizeCustomBackground} from "@/util/customBackground";
+import {WS} from "@/util/ws";
+import {formatDate} from "@/util/format";
+import {logLevel} from "@/composables/logLevel";
+import {BACKEND_CONN_UPDATED_EVENT} from "@/util/backendConn";
+import {
+  checkPendingSubscriptionAlerts,
+  notifySubscriptionAlertClicked,
+  formatAlertText,
+  type SubscriptionAlert,
+} from "@/util/subscriptionAlerts";
 
 const menuStore = useMenuStore();
 const updateStore = useUpdateStore();
+const webStore = useWebStore();
+const settingStore = useSettingStore();
 const {t} = useI18n();
+const {proxy} = getCurrentInstance()!;
+const api = createApi(proxy);
+
+const rendererOrigin = getRendererOrigin();
 
 const {hasVisibleUpdate, latestUrl} = storeToRefs(updateStore);
 
 const showUpdateBanner = computed(() => hasVisibleUpdate.value);
 const updateBannerMessage = computed(() => t('updates.banner.message'));
+const defaultTitle = "Prizrak-Box";
+const defaultLogo = new URL("@/assets/images/appicon.png", import.meta.url).href;
+
+const activeProfile = ref<any | null>((() => {
+  // Hydrate from the synchronous logo cache so a custom logo/title shows
+  // instantly on launch (no flash of the default), before loadProfiles() runs.
+  const cached = getCachedLogo();
+  return cached ? {id: cached.id, logo: cached.logo, headerTitle: cached.title} : null;
+})());
+const hasCustomLogo = computed(() => {
+  const logo = activeProfile.value?.logo;
+  return typeof logo === "string" && logo.trim() !== "";
+});
+const topTitle = computed(() => {
+  if (!hasCustomLogo.value) {
+    return defaultTitle;
+  }
+
+  const title = activeProfile.value?.headerTitle;
+  const trimmed = typeof title === "string" ? title.trim() : "";
+  return trimmed || defaultTitle;
+});
+const logoUrl = computed(() => {
+  const logo = activeProfile.value?.logo;
+  const trimmed = typeof logo === "string" ? logo.trim() : "";
+  return trimmed;
+});
+const logoFallback = ref(false);
+const topLogo = computed(() => {
+  if (!logoUrl.value || logoFallback.value) {
+    return defaultLogo;
+  }
+  return logoUrl.value;
+});
+const topIconStyle = computed(() => ({
+  backgroundImage: `url(${topLogo.value})`
+}));
+
+const preloadLogo = (url: string) => new Promise<boolean>((resolve) => {
+  const img = new Image();
+  const done = (ok: boolean) => {
+    img.onload = null;
+    img.onerror = null;
+    resolve(ok);
+  };
+  img.onload = () => done(true);
+  img.onerror = () => done(false);
+  img.src = url;
+});
 
 const openExternalLink = (url: string) => {
   if (!url) {
@@ -87,20 +166,291 @@ const currentBackground = ref("linear-gradient(to bottom, #434343, #000000)");
 const changeBg = (bg: string, useWhite: boolean) => {
   currentBackground.value = bg;
   menuStore.setUseWhite(useWhite);
+  // Persist dark/light for the Wails shell: it paints the native window
+  // background in a matching colour before the webview renders, so the first
+  // frame doesn't flash a mismatched black/white rectangle. useWhite (white
+  // text) implies a dark background. No-op under Electron (no handler).
+  Events.Emit({name: 'darkBg', data: !!useWhite});
+  // Same value for index.html's boot placeholder, which runs before any
+  // module (and before the async pxStore) is available.
+  try {
+    localStorage.setItem('px:darkBg', useWhite ? '1' : '0');
+  } catch (e) {
+    /* ignore */
+  }
 }
+
+function isExternalBg(bg: string): boolean {
+  const url = bg.match(/url\(['"]?(.*?)['"]?\)/)?.[1] ?? '';
+  return url.startsWith('http://') || url.startsWith('https://');
+}
+
+// Capture the already-loaded img element via canvas — no second network request,
+// so we always store the exact image that was displayed on screen.
+function captureAndCache(img: HTMLImageElement, storageKey: string): void {
+  if (!img.naturalWidth || !img.naturalHeight) return;
+  try {
+    const MAX_DIM = 1920;
+    const scale = Math.min(1, MAX_DIM / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.round(img.naturalWidth * scale);
+    const h = Math.round(img.naturalHeight * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(img, 0, 0, w, h);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    if (menuStore.background === storageKey) {
+      setCachedBg(storageKey, dataUrl);
+    }
+  } catch (e) {
+    console.warn('[bg-cache] canvas capture failed:', e);
+  }
+}
+
+const applyBackground = (value: string) => {
+  const normalized = normalizeCustomBackground(value, rendererOrigin);
+
+  if (normalized && normalized.storageValue !== value) {
+    menuStore.setBackground(normalized.storageValue);
+  }
+
+  const storageKey = normalized?.storageValue ?? value;
+  const cssValue = normalized?.cssValue ?? value;
+
+  const loadExternal = () => {
+    preloadBackgroundImage(cssValue, (bg: string, useWhite: boolean, img?: HTMLImageElement) => {
+      changeBg(bg, useWhite);
+      // img is the already-loaded element — capture it without a second request
+      if (img && isExternalBg(bg)) {
+        captureAndCache(img, storageKey);
+      }
+    });
+  };
+
+  // In-memory cache pre-loaded from userData/px-bg-cache.json during bootstrap
+  const cachedDataUrl = getCachedBg(storageKey);
+  if (cachedDataUrl) {
+    const img = new Image();
+    img.onload = () => {
+      let useWhite = false;
+      try {
+        useWhite = changeTheme(img);
+      } catch (e) {
+        console.warn('[bg-cache] theme analysis failed for cached image:', e);
+      }
+      changeBg(`url('${cachedDataUrl}')`, useWhite);
+    };
+    img.onerror = () => {
+      clearCachedBg();
+      loadExternal();
+    };
+    img.src = cachedDataUrl;
+    return;
+  }
+
+  loadExternal();
+};
 
 const isWindows = ref(false)
 onMounted(() => {
-  preloadBackgroundImage(menuStore.background, changeBg);
+  applyBackground(menuStore.background);
   // @ts-ignore
   if (window["pxShowBar"]) {
     isWindows.value = true;
   }
 });
 
+const applyProfile = (data: any | null) => {
+  activeProfile.value = data;
+  // Keep the logo cache in sync: store on apply/refresh, clear on rollback
+  // (profile without a custom logo) so the next launch shows the right thing.
+  const logo = typeof data?.logo === "string" ? data.logo.trim() : "";
+  if (logo) {
+    setCachedLogo(String(data?.id ?? ""), logo, typeof data?.headerTitle === "string" ? data.headerTitle : "");
+  } else {
+    clearCachedLogo();
+  }
+};
+
+watch(logoUrl, async (url) => {
+  logoFallback.value = false;
+  if (!url) {
+    return;
+  }
+  const ok = await preloadLogo(url);
+  if (!ok) {
+    logoFallback.value = true;
+  }
+});
+
+const pickSelectedProfile = (list: any[]) => {
+  if (!Array.isArray(list) || list.length === 0) {
+    applyProfile(null);
+    return;
+  }
+
+  const primary = list.find(item => item?.primary);
+  const selected = primary ?? list.find(item => item?.selected);
+  applyProfile(selected ?? list[0]);
+};
+
+const handleVueProfilesUpdate = (event: Event) => {
+  const customEvent = event as CustomEvent;
+  const detail = customEvent.detail;
+
+  if (!detail || !Array.isArray(detail.profiles)) {
+    return;
+  }
+
+  pickSelectedProfile(detail.profiles);
+};
+
+// Fires the native OS notification for one subscription alert. The Wails
+// path (window.pxNotifyAlert) round-trips the click through Go — see
+// SubscriptionAlertModal.vue's onBackendEvent — while Electron's Web
+// Notification API fires the click callback directly in this same renderer,
+// so it dispatches the click event itself.
+function notifySubscriptionAlertOs(profileData: any, alert: SubscriptionAlert) {
+  const title = formatAlertText(t, alert);
+  const body = profileData?.title || profileData?.headerTitle || '';
+  const clickDetail = {
+    profileId: profileData?.id,
+    kind: alert.kind,
+    days: alert.days,
+    percent: alert.percent,
+  };
+
+  // @ts-ignore
+  const pxNotifyAlert = window.pxNotifyAlert;
+  if (typeof pxNotifyAlert === 'function') {
+    pxNotifyAlert(title, body, clickDetail);
+    return;
+  }
+
+  const NotificationCtor = window.Notification;
+  if (typeof NotificationCtor !== 'function') {
+    return;
+  }
+
+  const show = () => {
+    try {
+      const notification = new NotificationCtor(title, {body});
+      notification.onclick = () => {
+        if (typeof window.focus === 'function') {
+          window.focus();
+        }
+        notifySubscriptionAlertClicked(clickDetail);
+      };
+    } catch (error) {
+      console.error('Failed to display subscription alert notification', error);
+    }
+  };
+
+  if (NotificationCtor.permission === 'granted') {
+    show();
+  } else if (NotificationCtor.permission === 'default' && typeof NotificationCtor.requestPermission === 'function') {
+    NotificationCtor.requestPermission().then((permission) => {
+      if (permission === 'granted') show();
+    }).catch(() => { /* ignore */ });
+  }
+}
+
+const loadProfiles = async () => {
+  try {
+    const list = await api.getProfileList();
+    if (Array.isArray(list)) webStore.profileList = list;
+    pickSelectedProfile(list);
+    void checkPendingSubscriptionAlerts(list, {
+      enabled: settingStore.notifySubscriptionAlerts,
+      notify: notifySubscriptionAlertOs,
+      ack: (id: string) => api.ackSubscriptionAlert(id),
+    });
+    // On startup fProfile is empty (no id), so Proxies.vue skips fetching
+    // proxy groups. Set it from the active profile so groups load correctly
+    // on re-launch without requiring the user to manually re-select a profile.
+    // Guard prevents re-entry: if fProfile already has an id, do nothing.
+    if (!webStore.fProfile?.id) {
+      const primary = list.find((item: any) => item?.primary);
+      const selected = primary ?? list.find((item: any) => item?.selected);
+      const profile = selected ?? list[0];
+      if (profile?.id) {
+        webStore.fProfile = toRaw(profile);
+      }
+    }
+  } catch (error) {
+    console.error("Failed to load profiles", error);
+  }
+};
+
+watch(
+    () => webStore.fProfile,
+    async (data: any) => {
+      if (data && Object.keys(data).length > 0) {
+        await loadProfiles();
+      }
+    }
+);
+
 // 监控背景切换
 watch(() => menuStore.background, (nextBackground) => {
-  preloadBackgroundImage(nextBackground, changeBg);
+  applyBackground(nextBackground);
+});
+
+let logWs: WS | null = null;
+
+function buildLogUrl() {
+  const level = logLevel.value;
+  const levelParam = level ? `&level=${encodeURIComponent(level)}` : '';
+  return webStore.wsUrl + "/logs?token=" + webStore.secret + levelParam;
+}
+
+function connectLog(clearOnReconnect = false) {
+  if (logWs) {
+    logWs.close();
+    logWs = null;
+  }
+  if (clearOnReconnect) {
+    webStore.clearLogs();
+  }
+  logWs = new WS(buildLogUrl(), null, (ev: MessageEvent) => {
+    const parsedData = JSON.parse(ev.data);
+    webStore.addLog({
+      time: formatDate(new Date()),
+      type: parsedData["type"].toUpperCase(),
+      payload: parsedData["payload"],
+    });
+  });
+}
+
+watch(logLevel, (newVal, oldVal) => {
+  if (newVal !== oldVal) {
+    connectLog(true);
+  }
+});
+
+// px can be restarted while the app keeps running (TUN service install /
+// uninstall) and comes back on a different port/secret, which leaves this
+// long-lived socket pointing at a process that no longer exists.
+function reconnectLogAfterBackendChange() {
+  connectLog(false);
+}
+
+onMounted(async () => {
+  await loadProfiles();
+  Events.On("profiles", (list: any[]) => {
+    pickSelectedProfile(list);
+  });
+  window.addEventListener('vue-profiles-updated', handleVueProfilesUpdate as EventListener);
+  window.addEventListener(BACKEND_CONN_UPDATED_EVENT, reconnectLogAfterBackendChange);
+
+  connectLog(false);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('vue-profiles-updated', handleVueProfilesUpdate as EventListener);
+  window.removeEventListener(BACKEND_CONN_UPDATED_EVENT, reconnectLogAfterBackendChange);
 });
 
 </script>
@@ -133,10 +483,13 @@ watch(() => menuStore.background, (nextBackground) => {
 }
 
 .left {
-  padding-right: 18px;
+  margin-right: 22px;
   z-index: 1;
   display: flex;
   flex-direction: column;
+  width: 208px;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .right {
@@ -146,7 +499,7 @@ watch(() => menuStore.background, (nextBackground) => {
   width: 100%;
   flex-grow: 1;
   margin: 15px 15px 15px 0;
-  border-radius: 15px;
+  border-radius: 35px;
   background-color: var(--right-bg-color);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15),
   0 2px 8px rgba(0, 0, 0, 0.08);
@@ -157,13 +510,14 @@ watch(() => menuStore.background, (nextBackground) => {
 
 .top-title {
   padding-top: 40px;
-  padding-left: 24px;
-  padding-right: 24px;
+  margin-left: 22px;
+  width: 185px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  -webkit-app-region: drag;
+  -webkit-app-region: drag; /* Electron */
+  --wails-draggable: drag;  /* Wails (frameless on Windows/Linux) */
   user-select: none;
 }
 
@@ -175,11 +529,10 @@ watch(() => menuStore.background, (nextBackground) => {
   width: 80px;
   height: 80px;
   background-image: url("@/assets/images/appicon.png");
-  background-size: cover;
+  background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 0;
 }
 
 .top-title-text {
@@ -189,12 +542,13 @@ watch(() => menuStore.background, (nextBackground) => {
   text-align: center;
   line-height: 1.2;
   width: 100%;
+  word-wrap: break-word;
 }
 
 .update-banner {
   margin: 12px 0 0 22px;
   padding: 14px 16px 16px;
-  border-radius: 12px;
+  border-radius: 20px;
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -203,7 +557,7 @@ watch(() => menuStore.background, (nextBackground) => {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: 193px;
+  width: 185px;
   align-self: flex-start;
   box-sizing: border-box;
 }
@@ -233,6 +587,8 @@ watch(() => menuStore.background, (nextBackground) => {
   --el-button-text-color: var(--text-color);
   --el-button-hover-text-color: var(--text-color);
   --el-button-active-text-color: var(--text-color);
+  --el-border-radius-base: 999px;
+  border-radius: 999px;
 }
 
 .update-banner__dismiss {

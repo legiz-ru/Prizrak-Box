@@ -4,8 +4,8 @@ const enableProxy = (proxy: any) => async function (configs: any) {
 }
 
 // 关闭代理
-const disableProxy = (proxy: any) => async function () {
-    return await proxy.$http.get('/prizrak/disableProxy');
+const disableProxy = (proxy: any) => async function (configs?: any) {
+    return await proxy.$http.put('/prizrak/disableProxy', configs || {});
 }
 
 // 检测地址端口是否可用

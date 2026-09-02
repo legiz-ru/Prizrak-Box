@@ -1,0 +1,249 @@
+<script setup lang="ts">
+import { ref, computed, onMounted, toRaw } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { Events, Browser } from '@/runtime';
+import createApi from '@/api';
+import { pLoad, pSuccess, pError } from '@/util/pLoad';
+import ProfileToolbar from './ProfileToolbar.vue';
+import ProfileStats from './ProfileStats.vue';
+import AnnounceText from './AnnounceText.vue';
+import MyIp from './MyIp.vue';
+import { useHwidStatusStore } from '@/store/hwidStatusStore';
+import { shouldShowRenewButton } from '@/util/subscriptionAlerts';
+
+const { proxy } = getCurrentInstance()!;
+const api = createApi(proxy);
+const { t } = useI18n();
+const hwidStatusStore = useHwidStatusStore();
+
+interface Props {
+  profiles: any[];
+}
+
+const props = defineProps<Props>();
+
+// Определение активного профиля
+const activeProfile = computed(() => {
+  if (!props.profiles || props.profiles.length === 0) {
+    return null;
+  }
+
+  // Приоритет: primary > selected > первый в списке
+  const primary = props.profiles.find(p => p.primary);
+  if (primary) return primary;
+
+  const selected = props.profiles.find(p => p.selected);
+  if (selected) return selected;
+
+  return props.profiles[0];
+});
+
+// Обновление профиля
+async function refreshProfile() {
+  if (!activeProfile.value) return;
+
+  await pLoad(t('profiles.refresh.ing'), async () => {
+    try {
+      const refreshed = await api.refreshProfile(activeProfile.value);
+      Object.assign(activeProfile.value, refreshed);
+
+      // Получаем обновленный список профилей для синхронизации
+      const fullList = await api.getProfileList();
+
+      // Используем toRaw для избежания ошибки клонирования
+      Events.Emit({
+        name: "profiles",
+        data: toRaw(fullList)
+      });
+
+      // Также отправляем событие внутри Vue для немедленного обновления
+      window.dispatchEvent(new CustomEvent('vue-profiles-updated', {
+        detail: { profiles: toRaw(fullList) }
+      }));
+
+      pSuccess(t('profiles.refresh.success'));
+
+      if (refreshed?.hwidNotSupported) {
+        hwidStatusStore.showNotSupported();
+      } else if (refreshed?.hwidMaxDevicesReached) {
+        const supportUrl = typeof refreshed.support === 'string' ? refreshed.support : '';
+        hwidStatusStore.showMaxDevicesReached(supportUrl);
+      }
+    } catch (e) {
+      if (e['message']) {
+        pError(e['message']);
+      }
+    }
+  });
+}
+
+// Открыть announce URL
+function openAnnounceUrl() {
+  if (!activeProfile.value?.announceUrl) {
+    return;
+  }
+
+  const url = activeProfile.value.announceUrl.trim();
+  if (!url) {
+    return;
+  }
+
+  try {
+    Browser.OpenURL(url);
+  } catch (error) {
+    if (typeof window !== 'undefined') {
+      window.open(url, '_blank', 'noopener');
+    }
+  }
+}
+
+// Проверка наличия значения
+function hasValue(value: any) {
+  return value !== undefined && value !== null && value !== '';
+}
+
+// Открыть страницу продления подписки
+function goRenew() {
+  const url = activeProfile.value?.renewUrl;
+  if (!hasValue(url)) {
+    return;
+  }
+  try {
+    Browser.OpenURL(url);
+  } catch (error) {
+    if (typeof window !== 'undefined') {
+      window.open(url, '_blank', 'noopener');
+    }
+  }
+}
+
+// Кнопка "Продлить подписку" — независима от настройки "Subscription
+// reminders" (это элемент интерфейса, не пуш) и от того, что уже было
+// показано пуш-уведомлениями: просто отражает текущее состояние подписки.
+const showRenewButton = computed(() => shouldShowRenewButton(activeProfile.value));
+</script>
+
+<template>
+  <div class="active-profile-container">
+    <div class="home-cards">
+      <div v-if="activeProfile" class="profile-card">
+        <ProfileToolbar
+          :profile="activeProfile"
+          @refresh="refreshProfile"
+        />
+
+        <ProfileStats :profile="activeProfile" />
+
+        <!-- Announce -->
+        <div
+          v-if="hasValue(activeProfile?.announce)"
+          class="announce-container"
+          :class="{ 'announce-clickable': hasValue(activeProfile?.announceUrl) }"
+          @click="hasValue(activeProfile?.announceUrl) && openAnnounceUrl()"
+        >
+          <AnnounceText
+            :text="activeProfile.announce"
+            :url="activeProfile.announceUrl"
+            :clickable="hasValue(activeProfile?.announceUrl)"
+          />
+        </div>
+
+        <!-- Продлить подписку — ненавязчивая подсказка, тот же акцент, что у
+             активных пунктов бокового меню / кнопки "Открыть релиз" -->
+        <div v-if="showRenewButton" class="renew-button-container">
+          <el-button class="renew-button" @click="goRenew">
+            <el-icon><icon-mdi-credit-card-outline/></el-icon>
+            <span>{{ t('profiles.renew') }}</span>
+          </el-button>
+        </div>
+      </div>
+
+      <!-- Нижняя панель IP и Система -->
+      <MyIp class="home-ip" />
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.active-profile-container {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-top: 15px;
+  padding-bottom: 0;
+  position: relative;
+  gap: 16px;
+  --home-card-width: 95%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.home-cards {
+  margin-left: 10px;
+  margin-right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.profile-card {
+  width: 100%;
+  padding: 12px 0;
+  border-radius: 20px;
+  background: var(--sub-card-bg);
+  border: 1px solid var(--sub-card-border);
+  box-shadow: var(--right-box-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.announce-container {
+  width: 100%;
+  padding: 12px 30px;
+  font-size: 14px;
+  color: var(--text-color);
+  text-align: center;
+  word-wrap: break-word;
+  /* Без border-box ширина 100% складывается с горизонтальными padding,
+     блок вылезает вправо и центрованный текст уезжает на 30px. */
+  box-sizing: border-box;
+}
+
+.announce-clickable {
+  cursor: pointer;
+}
+
+.announce-clickable:hover {
+  opacity: 0.8;
+}
+
+.renew-button-container {
+  width: 100%;
+  padding: 2px 30px 0;
+  box-sizing: border-box;
+}
+
+.renew-button {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  --el-button-bg-color: var(--left-item-selected-bg);
+  --el-button-hover-bg-color: var(--left-item-selected-bg);
+  --el-button-active-bg-color: var(--left-item-selected-bg);
+  --el-button-border-color: transparent;
+  --el-button-hover-border-color: transparent;
+  --el-button-active-border-color: transparent;
+  --el-button-text-color: var(--text-color);
+  --el-button-hover-text-color: var(--text-color);
+  --el-button-active-text-color: var(--text-color);
+  --el-border-radius-base: 999px;
+  border-radius: 999px;
+}
+</style>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+
+  <Fragment>
+    <!-- License file location -->
+    <WixVariable Id="WixUILicenseRtf" Value="localization\License.rtf" />
+
+    <UI Id="CustomUI">
+      <!-- Use FeatureTree base UI -->
+      <UIRef Id="WixUI_FeatureTree" />
+      <UIRef Id="WixUI_ErrorProgressText" />
+
+      <!-- Progress text for custom actions -->
+      <ProgressText Action="StopProcessesBeforeInstall">!(loc.PB_ProgressStopProcesses)</ProgressText>
+      <ProgressText Action="InstallTunService">!(loc.PB_ProgressInstallTUNService)</ProgressText>
+      <ProgressText Action="StopProcessesBeforeUninstall">!(loc.PB_ProgressStopProcesses)</ProgressText>
+    </UI>
+
+  </Fragment>
+
+</Wix>

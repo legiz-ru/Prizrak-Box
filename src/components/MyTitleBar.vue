@@ -12,7 +12,7 @@
     <el-tooltip
         :content="$t('mini')"
         placement="bottom">
-      <span class="bar" @click="minus">
+      <span class="bar ncr-min" @click="minus">
           <el-icon>
               <icon-mdi-minus/>
           </el-icon>
@@ -22,7 +22,7 @@
         v-if="isMaximized"
         :content="$t('restore')"
         placement="bottom">
-      <span class="bar" @click="max">
+      <span class="bar ncr-max" @click="max">
           <el-icon>
               <icon-mdi-window-restore/>
           </el-icon>
@@ -32,7 +32,7 @@
         v-else
         :content="$t('max')"
         placement="bottom">
-      <span class="bar" @click="max">
+      <span class="bar ncr-max" @click="max">
           <el-icon>
               <icon-mdi-window-maximize/>
           </el-icon>
@@ -72,6 +72,13 @@ onMounted(() => {
   if (window["pxShowBar"]) {
     isWindows.value = true;
   }
+  // Authoritative maximise state from the Wails shell (Windows). Needed
+  // because with native non-client regions (--wails-non-client-region below)
+  // Windows handles the maximize button itself and the @click above never
+  // fires; also covers Win+Up and other native maximise paths.
+  Events.On('maximized', (val: any) => {
+    isMaximized.value = !!val;
+  });
 })
 
 function close() {
@@ -96,5 +103,20 @@ function minus2tray() {
 <style scoped>
 .bar {
   margin-right: 15px;
+}
+
+/* Native non-client regions (Wails v3 + WebView2CompositionHosting on
+   Windows): Windows treats these HTML buttons as real caption buttons, which
+   enables the Win11 Snap Layouts flyout over the maximize button and native
+   press/hover handling. The @click handlers remain as the fallback when the
+   feature is unavailable (macOS/Linux/Electron, old WebView2 runtime).
+   The close button is deliberately NOT marked: its semantics are custom
+   (quit via px:fe:close), while a native close would hide to tray. */
+.ncr-min {
+  --wails-non-client-region: minimize;
+}
+
+.ncr-max {
+  --wails-non-client-region: maximize;
 }
 </style>

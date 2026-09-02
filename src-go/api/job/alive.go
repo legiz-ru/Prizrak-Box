@@ -72,10 +72,13 @@ func AliveJob(name string, server string) {
 }
 
 func Exit(needExit bool) {
+	// Undone first for the same reason as in main.go's signal handler: it is the
+	// state that breaks the user's connectivity if it outlives px, and the caller
+	// (the shell, or the /prizrak/exit handler) is working against a deadline.
+	sys.DisableProxy()
 	cache.Close()
 	utils.UnlockSingleton()
 	executor.Shutdown()
-	sys.DisableProxy()
 	if needExit {
 		os.Exit(0)
 	}

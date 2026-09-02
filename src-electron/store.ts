@@ -19,7 +19,7 @@ export function initStore(home: string) {
         store.set(key, value);
     });
 
-    log.info("数据库初始化完成")
+    log.info("Store initialization complete")
 }
 
 // 从数据库获取数据

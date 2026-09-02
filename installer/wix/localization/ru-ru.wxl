@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WixLocalization Culture="ru-ru" Codepage="1251" xmlns="http://schemas.microsoft.com/wix/2006/localization">
+
+  <!-- Информация о продукте -->
+  <String Id="PB_ProductDescription">Простой GUI для Mihomo</String>
+  <String Id="PB_ProtocolDescription">Обработчик протокола Prizrak-Box</String>
+
+  <!-- Компоненты -->
+  <String Id="PB_FeatureMainTitle">Приложение Prizrak-Box</String>
+  <String Id="PB_FeatureMainDescription">Основные файлы приложения и ярлыки (обязательно)</String>
+  <String Id="PB_FeatureTUNTitle">Режим службы TUN</String>
+  <String Id="PB_FeatureTUNDescription">Установить службу TUN для расширенных сетевых функций (рекомендуется)</String>
+
+  <!-- Сообщения об ошибках -->
+  <String Id="PB_OSVersionError">Это приложение требует Windows 7 или выше.</String>
+  <String Id="PB_NewerVersionInstalled">Уже установлена более новая версия [ProductName].</String>
+
+  <!-- Сообщения о прогрессе -->
+  <String Id="PB_ProgressStopProcesses">Остановка запущенных процессов и служб Prizrak-Box...</String>
+  <String Id="PB_ProgressInstallTUNService">Установка службы TUN...</String>
+
+  <!-- Диалог выбора языка -->
+  <String Id="PB_LanguageSelectionTitle">Выбор языка установки</String>
+  <String Id="PB_LanguageSelectionDescription">Пожалуйста, выберите язык для установки.</String>
+  <String Id="PB_LanguageSelectionLabel">Выберите предпочитаемый язык:</String>
+  <String Id="PB_LanguageSelectionBannerBitmap">WixUI_Bmp_Banner</String>
+
+  <!-- Тексты диалогов -->
+  <String Id="PB_WelcomeDlgTitle">Добро пожаловать в мастер установки Prizrak-Box</String>
+  <String Id="PB_WelcomeDlgDescription">Мастер установки установит [ProductName] на ваш компьютер. Нажмите "Далее" для продолжения или "Отмена" для выхода.</String>
+
+  <String Id="PB_LicenseAgreementDlgTitle">Лицензионное соглашение</String>
+  <String Id="PB_LicenseAgreementDlgDescription">Пожалуйста, внимательно прочитайте следующее лицензионное соглашение.</String>
+
+  <String Id="PB_CustomizeDlgTitle">Выборочная установка</String>
+  <String Id="PB_CustomizeDlgDescription">Выберите способ установки компонентов.</String>
+
+  <String Id="PB_VerifyReadyDlgTitle">Готов к установке</String>
+  <String Id="PB_VerifyReadyDlgDescription">Нажмите "Установить" для начала установки.</String>
+
+  <String Id="PB_ProgressDlgTitleInstalling">Установка [ProductName]</String>
+  <String Id="PB_ProgressDlgTextInstalling">Пожалуйста, подождите, пока мастер установки устанавливает [ProductName]. Это может занять несколько минут.</String>
+
+  <String Id="PB_ExitDlgTitle">Завершение работы мастера установки Prizrak-Box</String>
+  <String Id="PB_ExitDlgDescription">[ProductName] успешно установлен. Нажмите "Готово" для выхода из мастера.</String>
+
+</WixLocalization>

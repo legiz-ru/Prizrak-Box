@@ -19,9 +19,12 @@ var (
 // GetInstance 获取 Cron 单例
 func GetInstance() *Cron {
 	once.Do(func() {
-		instance = &Cron{
-			scheduler: gocron.NewScheduler(time.Local),
-		}
+		s := gocron.NewScheduler(time.Local)
+		// Do not run jobs immediately on Start — wait for the first full interval.
+		// This gives the Electron frontend time to call updateHTTPClientConfig
+		// (setting EnableHWID and other headers) before any subscription refresh fires.
+		s.WaitForScheduleAll()
+		instance = &Cron{scheduler: s}
 	})
 	return instance
 }

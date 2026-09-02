@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import MySimpleInput from "@/components/MySimpleInput.vue";
+import LogLevelSelect from "@/components/LogLevelSelect.vue";
 import {useWebStore} from "@/store/webStore";
 
 // 获取Store
@@ -37,12 +38,14 @@ function filterData() {
     </template>
     <template #bottom>
       <div class="conn">
-        <div class="search">
-          <MySimpleInput
-              :onInputChange="handleInputChange"
-              :placeholder="$t('log.search')"
-              class="search"
-          ></MySimpleInput>
+        <div class="toolbar">
+          <LogLevelSelect />
+          <div class="search">
+            <MySimpleInput
+                :onInputChange="handleInputChange"
+                :placeholder="$t('log.search')"
+            ></MySimpleInput>
+          </div>
         </div>
       </div>
 
@@ -68,10 +71,23 @@ function filterData() {
   margin-top: 20px;
 }
 
+:deep(.bottom) {
+  padding-bottom: 0;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .conn {
-  width: 95%;
-  margin-left: 10px;
+  width: 100%;
+  margin-left: 0;
   margin-top: 2px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .title {
@@ -81,20 +97,26 @@ function filterData() {
 }
 
 .search {
-  width: 400px;
+  width: 360px;
 }
 
 .content {
   border: 2px solid var(--text-color);
-  border-radius: 10px;
+  border-radius: 20px;
+  overflow: hidden;
   margin-top: 20px;
-  width: 95%;
-  margin-left: 10px;
+  width: 100%;
+  margin-left: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .info-list {
-  max-height: calc(100vh - 250px);
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .info {
