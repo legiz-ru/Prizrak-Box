@@ -2,6 +2,7 @@ import {defineConfig} from 'vite'
 import vue from '@vitejs/plugin-vue'
 import Icons from 'unplugin-icons/vite';
 import IconsResolver from "unplugin-icons/resolver";
+import {FileSystemIconLoader} from 'unplugin-icons/loaders';
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import {ElementPlusResolver} from 'unplugin-vue-components/resolvers'
@@ -54,7 +55,11 @@ export default defineConfig({
             resolvers: [
                 IconsResolver({
                     prefix: 'icon',
-                    enabledCollections: ["ep", "mdi"],
+                    enabledCollections: ["ep", "mdi", "proto"],
+                    // "proto" is the local collection below; its files are not
+                    // in an Iconify package, so the resolver needs to be told
+                    // which names belong to it.
+                    customCollections: ["proto"],
                 }),
                 ElementPlusResolver()
             ],
@@ -63,6 +68,15 @@ export default defineConfig({
         Icons({
             autoInstall: true,
             compiler: "vue3",
+            customCollections: {
+                // Protocol brand marks, normalised to MDI's 24x24 box and to
+                // currentColor so one asset serves both themes. See
+                // src/assets/icons/proto/ATTRIBUTION.md for sources, licences
+                // and the normalisation pipeline. Used as <icon-proto-xray/>.
+                proto: FileSystemIconLoader(
+                    path.resolve(pathSrc, 'assets/icons/proto'),
+                ),
+            },
         }),
         VueI18nPlugin({
             include: [path.resolve(pathSrc, './locales/**')],

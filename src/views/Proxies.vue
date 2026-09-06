@@ -8,6 +8,7 @@ import {pError, pSuccess, pWarning} from "@/util/pLoad";
 import {useWebStore} from "@/store/webStore";
 import {changeProxyAndCloseConnections} from "@/util/proxy";
 import {proxyNodeDelayLimiter} from "@/util/pLimit";
+import {proxyTypeIcon, proxyTypeTooltip} from "@/util/proxyType";
 
 // Delay-test timeouts (ms). Kept distinct: a single node's dial should fail
 // fast, while a group-level /group/:name/delay call needs enough budget for
@@ -28,6 +29,25 @@ const nodeList = ref<any[]>([]);
 const fullViewNodes = ref<Record<string, any[]>>({});
 const groupIcons = ref<Record<string, string>>({});
 const nestedGroupSelections = ref<Record<string, string>>({});
+
+// --- Type badge -------------------------------------------------------------
+// The type is shown as an icon, the panel's server description (when it sends
+// one) as text. They used to share one text slot, where the description won and
+// the type disappeared entirely.
+
+// A node that is itself a group. Read from groupTypeMap, which is keyed by every
+// group name the core reports, so a group type this build has never heard of is
+// still recognised as a group.
+const isGroupNode = (node: any) => !!groupTypeMap.value[node?.name];
+
+const typeIcon = (node: any) => proxyTypeIcon(node?.type, isGroupNode(node));
+const typeTooltip = (node: any) => proxyTypeTooltip(node?.type, isGroupNode(node), t);
+
+// getDisplayType() returns the server description when the panel sends one and
+// the plain type otherwise; only the former is worth printing next to the icon.
+const serverDescription = (node: any): string | undefined =>
+    node?.displayType && node.displayType !== node.type ? node.displayType : undefined;
+
 const handleIconError = (event: Event) => {
   const target = event.target as HTMLImageElement | null;
   if (target) {
@@ -921,9 +941,14 @@ watch(groupList, (list) => {
           </div>
           <div class="proxy-nodes-tags">
             <span class="proxy-nodes-tags-left">
-              <span>{{ node["displayType"] ?? node["type"] }}</span>
+              <el-tooltip :content="typeTooltip(node)" placement="top">
+                <el-icon class="proxy-type-icon">
+                  <component :is="typeIcon(node)"/>
+                </el-icon>
+              </el-tooltip>
+              <span v-if="serverDescription(node)" class="proxy-type-desc">{{ serverDescription(node) }}</span>
               <template v-if="nestedGroupSelections[node['name']] && node['type']?.toLowerCase() !== 'smart' && node['type']?.toLowerCase() !== 'loadbalance'">
-                <span class="proxy-selected-separator">•</span>
+                <span v-if="serverDescription(node)" class="proxy-selected-separator">•</span>
                 <span class="proxy-selected-name" :title="nestedGroupSelections[node['name']]">
                   {{ nestedGroupSelections[node['name']] }}
                 </span>
@@ -1038,9 +1063,14 @@ watch(groupList, (list) => {
                 </div>
                 <div class="proxy-nodes-tags">
                   <span class="proxy-nodes-tags-left">
-                    <span>{{ node["displayType"] ?? node["type"] }}</span>
+                    <el-tooltip :content="typeTooltip(node)" placement="top">
+                      <el-icon class="proxy-type-icon">
+                        <component :is="typeIcon(node)"/>
+                      </el-icon>
+                    </el-tooltip>
+                    <span v-if="serverDescription(node)" class="proxy-type-desc">{{ serverDescription(node) }}</span>
                     <template v-if="nestedGroupSelections[node['name']] && node['type']?.toLowerCase() !== 'smart' && node['type']?.toLowerCase() !== 'loadbalance'">
-                      <span class="proxy-selected-separator">•</span>
+                      <span v-if="serverDescription(node)" class="proxy-selected-separator">•</span>
                       <span class="proxy-selected-name" :title="nestedGroupSelections[node['name']]">
                         {{ nestedGroupSelections[node['name']] }}
                       </span>
@@ -1286,14 +1316,23 @@ watch(groupList, (list) => {
   min-width: 0;
 }
 
-/* Тип прокси. В displayType приходит serverDescription (до 25 символов), а не
-   короткое "Vless", поэтому его тоже нужно обрезать — иначе он распирает строку
-   тегов и выдавливает задержку за край карточки. */
-.proxy-nodes-tags-left > span:first-child {
+/* Описание сервера от панели (serverDescription, до 25 символов). Обрезается,
+   иначе распирает строку тегов и выдавливает задержку за край карточки. Сам тип
+   теперь показывает иконка слева, а не этот текст. */
+.proxy-type-desc {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+}
+
+/* Иконка типа: не сжимается, когда описание длинное, и приглушена, чтобы не
+   спорить с именем узла. */
+.proxy-type-icon {
+  flex-shrink: 0;
+  font-size: 15px;
+  opacity: 0.75;
+  cursor: help;
 }
 
 .proxy-nodes-tags-right {

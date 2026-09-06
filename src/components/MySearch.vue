@@ -9,6 +9,7 @@ import {pError, pWarning} from "@/util/pLoad";
 import {Events} from "@/runtime";
 import type {ProxyGroupInfo} from "@/api/proxies";
 import {useWebStore} from "@/store/webStore";
+import {proxyTypeIcon, proxyTypeTooltip} from "@/util/proxyType";
 
 // 获取当前 Vue 实例的 proxy 对象
 const {proxy} = getCurrentInstance()!;
@@ -92,6 +93,13 @@ async function loadProxies() {
 function getServerDescription(proxy: any): string | undefined {
   return proxy?.displayType !== proxy?.type ? proxy?.displayType : undefined;
 }
+
+// Type badge. The search list never showed the adapter type at all; the icon
+// adds it without spending horizontal space in an already narrow dropdown.
+// A node named by a known group is a group — groupList holds every group.
+const isGroupProxy = (p: any) => groupList.value.some((g) => g.name === p?.name);
+const typeIcon = (p: any) => proxyTypeIcon(p?.type, isGroupProxy(p));
+const typeTooltip = (p: any) => proxyTypeTooltip(p?.type, isGroupProxy(p), t);
 
 // Get latency color class
 function getLatencyColor(toClass: string): string {
@@ -308,6 +316,11 @@ watch(() => proxiesStore.now, (newNow) => {
                 @click="selectProxy(proxyItem)"
             >
               <div class="proxy-item-content">
+                <el-tooltip :content="typeTooltip(proxyItem)" placement="top">
+                  <el-icon class="proxy-type-icon">
+                    <component :is="typeIcon(proxyItem)"/>
+                  </el-icon>
+                </el-tooltip>
                 <span class="proxy-item-name">{{ proxyItem.displayName ?? proxyItem.name }}</span>
                 <el-tooltip
                     v-if="getServerDescription(proxyItem)"
@@ -540,6 +553,20 @@ watch(() => proxiesStore.now, (newNow) => {
   color: var(--text-color);
   opacity: 0.6;
   flex-shrink: 0;
+}
+
+/* Тип узла. Те же метрики, что у info-иконки справа от имени, чтобы строка
+   читалась симметрично. */
+.proxy-type-icon {
+  font-size: 14px;
+  color: var(--text-color);
+  opacity: 0.6;
+  flex-shrink: 0;
+  cursor: help;
+}
+
+.proxy-type-icon:hover {
+  opacity: 1;
 }
 
 .proxy-info-icon:hover {

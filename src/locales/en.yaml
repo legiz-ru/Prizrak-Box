@@ -209,6 +209,25 @@ proxies:
   test-group: Test Group Latency
   auto-group-no-manual-select: "This group is automatic — manual proxy selection is not allowed."
   test-result: "{name}: {succeeded}/{total} nodes reachable"
+  # Tooltips for the type icon in the node list. The "(Type) description"
+  # shape names the type explicitly, since an icon alone cannot be guessed.
+  type:
+    selector: "(Selector) Manual choice: you pick the node, it never switches on its own"
+    urltest: "(URLTest) Fastest wins: uses the node with the lowest measured latency"
+    fallback: "(Fallback) Failover: the first working node in order, moves on when it fails"
+    loadbalance: "(LoadBalance) Load balancing: connections are spread across the group's nodes"
+    relay: "(Relay) Chain: traffic passes through the nodes one after another"
+    smart: "(Smart) Smart selection: picks a node from accumulated usage statistics"
+    direct: "(Direct) Direct connection, bypassing the proxy"
+    reject: "(Reject) The connection is refused immediately"
+    rejectdrop: "(RejectDrop) The connection is dropped silently, with no reply"
+    pass: "(Pass) The rule is skipped; matching continues with the next one"
+    passrule: "(PassRule) The composite rule counts as not matched; matching continues"
+    rematch: "(Rematch) The route is re-evaluated once the domain is known"
+    dns: "(Dns) Handled by the built-in DNS"
+    compatible: "(Compatible) An internal core placeholder kept for compatibility"
+    protocol: "Uses the {type} protocol"
+    unknown: "The protocol type could not be determined"
 
 profiles:
   title: Profiles

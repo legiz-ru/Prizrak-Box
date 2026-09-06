@@ -209,6 +209,25 @@ proxies:
   test-group: 测试分组延迟
   auto-group-no-manual-select: "该组为自动组，不允许手动选择代理。"
   test-result: "{name}：{succeeded}/{total} 个节点可用"
+  # 节点列表中类型图标的提示。采用“(类型) 说明”的形式，
+  # 因为仅凭图标无法判断具体类型。
+  type:
+    selector: "(Selector) 手动选择：由你指定节点，不会自动切换"
+    urltest: "(URLTest) 自动测速：使用延迟最低的节点"
+    fallback: "(Fallback) 故障转移：按顺序使用第一个可用节点，失效则切换"
+    loadbalance: "(LoadBalance) 负载均衡：连接分散到组内各节点"
+    relay: "(Relay) 链式代理：流量依次经过各个节点"
+    smart: "(Smart) 智能选择：根据使用统计挑选节点"
+    direct: "(Direct) 直连，不经过代理"
+    reject: "(Reject) 立即拒绝连接"
+    rejectdrop: "(RejectDrop) 静默丢弃连接，不返回任何响应"
+    pass: "(Pass) 跳过该规则，继续匹配下一条"
+    passrule: "(PassRule) 组合规则视为未命中，继续向下匹配"
+    rematch: "(Rematch) 域名确定后重新匹配路由"
+    dns: "(Dns) 由内置 DNS 处理"
+    compatible: "(Compatible) 内核为兼容性保留的占位类型"
+    protocol: "使用 {type} 协议"
+    unknown: "无法识别协议类型"
 
 profiles:
   title: 订阅
