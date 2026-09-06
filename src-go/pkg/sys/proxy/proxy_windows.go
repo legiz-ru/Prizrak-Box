@@ -1,43 +1,60 @@
 package sys
 
 import (
-	"bufio"
-	"bytes"
-	"io"
-	"net/textproto"
-	"strconv"
+	"fmt"
+	"log"
 	"strings"
 
-	sys "github.com/legiz-ru/prizrak-box/pkg/sys/cmd"
+	"golang.org/x/sys/windows"
+	"golang.org/x/sys/windows/registry"
 )
 
+// Proxy settings live under this key, in HKEY_CURRENT_USER for the account px
+// runs as, or under HKEY_USERS\<SID> when a specific user is targeted. The
+// latter is what makes the system proxy work while px runs elevated through the
+// TUN service: HKEY_CURRENT_USER then resolves to the SYSTEM account's hive,
+// which no user application ever reads.
+const settingSubKey = `Software\Microsoft\Windows\CurrentVersion\Internet Settings`
+
 func OffAll() error {
-	if err := OffHttps(); err != nil {
+	return OffAllForUser("")
+}
+
+func OffAllForUser(username string) error {
+	// На Windows поддерживается работа с конкретным пользователем через HKEY_USERS\{SID}
+	if err := OffHttpsForUser(username); err != nil {
 		return err
 	}
-	if err := OffHttp(); err != nil {
+	if err := OffHttpForUser(username); err != nil {
 		return err
 	}
-	if err := OffSocks(); err != nil {
+	if err := OffSocksForUser(username); err != nil {
 		return err
 	}
 	return nil
 }
 
 func SetIgnore(ignores []string) error {
-	return set("ProxyOverride", "REG_SZ", strings.Join(ignores, ";"))
+	if err := setString("ProxyOverride", strings.Join(ignores, ";"), ""); err != nil {
+		return err
+	}
+	notifyWinInet()
+	return nil
 }
 
 func ClearIgnore() error {
-	return set("ProxyOverride", "REG_SZ", "")
+	if err := setString("ProxyOverride", "", ""); err != nil {
+		return err
+	}
+	notifyWinInet()
+	return nil
 }
 
 func GetIgnore() ([]string, error) {
-	m, err := get("ProxyOverride")
+	ignores, err := getString("ProxyOverride")
 	if err != nil {
 		return nil, err
 	}
-	ignores := m["ProxyOverride"]
 	if ignores == "" {
 		return []string{}, nil
 	}
@@ -45,36 +62,70 @@ func GetIgnore() ([]string, error) {
 }
 
 func OnHttps(addr Addr) error {
-	err := set("ProxyServer", "REG_SZ", addr.String())
-	if err != nil {
+	return OnHttpsForUser(addr, "")
+}
+
+func OnHttpsForUser(addr Addr, username string) error {
+	// На Windows поддерживается работа с конкретным пользователем через HKEY_USERS\{SID}
+	if err := setString("ProxyServer", addr.String(), username); err != nil {
 		return err
 	}
-
-	return useProxy(true)
+	if err := useProxyForUser(true, username); err != nil {
+		return err
+	}
+	notifyWinInet()
+	return nil
 }
 
 func OffHttps() error {
-	err := useProxy(false)
-	if err != nil {
+	return OffHttpsForUser("")
+}
+
+func OffHttpsForUser(username string) error {
+	// На Windows поддерживается работа с конкретным пользователем
+	if err := useProxyForUser(false, username); err != nil {
 		return err
 	}
-
-	return set("ProxyServer", "REG_SZ", "")
+	if err := setString("ProxyServer", "", username); err != nil {
+		return err
+	}
+	notifyWinInet()
+	return nil
 }
 
 func OnHttp(addr Addr) error {
+	return OnHttpForUser(addr, "")
+}
+
+func OnHttpForUser(addr Addr, username string) error {
+	// На Windows username игнорируется
 	return nil
 }
 
 func OffHttp() error {
+	return OffHttpForUser("")
+}
+
+func OffHttpForUser(username string) error {
+	// На Windows username игнорируется
 	return nil
 }
 
 func OnSocks(addr Addr) error {
+	return OnSocksForUser(addr, "")
+}
+
+func OnSocksForUser(addr Addr, username string) error {
+	// На Windows username игнорируется
 	return nil
 }
 
 func OffSocks() error {
+	return OffSocksForUser("")
+}
+
+func OffSocksForUser(username string) error {
+	// На Windows username игнорируется
 	return nil
 }
 
@@ -90,11 +141,10 @@ func GetHttp() (*Addr, error) {
 	}
 
 	// 获取代理服务器地址
-	m, err := get("ProxyServer")
+	addr, err := getString("ProxyServer")
 	if err != nil {
 		return nil, err
 	}
-	addr := m["ProxyServer"]
 	if addr == "" {
 		return nil, nil
 	}
@@ -118,87 +168,171 @@ func GetHttp() (*Addr, error) {
 	return ParseAddrPtr(addr), nil
 }
 
-const settingPath = `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings`
+// --- WinINet notification ---------------------------------------------------
 
-func set(key string, typ string, value string) error {
-	_, err := sys.Command(`reg`, `add`, settingPath, `/v`, key, `/t`, typ, `/d`, value, `/f`)
-	return err
+var (
+	modWininet            = windows.NewLazySystemDLL("wininet.dll")
+	procInternetSetOption = modWininet.NewProc("InternetSetOptionW")
+)
+
+const (
+	internetOptionRefresh         = 37
+	internetOptionSettingsChanged = 39
+)
+
+// notifyWinInet tells Windows that the proxy configuration changed.
+//
+// Writing the registry is only half of setting the system proxy: WinINet caches
+// the configuration, and so does every process that has already read it. Until
+// it is told otherwise, the old values stay in effect — which looks exactly like
+// "the proxy was set but nothing goes through it", and resolves only when some
+// unrelated event (opening the Windows proxy settings page, a network change)
+// happens to force a refresh. This never used to be sent at all.
+//
+// Best-effort: a failure here leaves the registry correct and the refresh late,
+// which is the old behaviour, so it is logged rather than surfaced.
+func notifyWinInet() {
+	if err := procInternetSetOption.Find(); err != nil {
+		log.Printf("[SystemProxy] wininet.dll unavailable, proxy change will apply lazily: %v", err)
+		return
+	}
+	// SETTINGS_CHANGED invalidates the cached configuration; REFRESH makes
+	// WinINet re-read it from the registry. Both are documented as taking a null
+	// handle and no buffer.
+	if r, _, err := procInternetSetOption.Call(0, internetOptionSettingsChanged, 0, 0); r == 0 {
+		log.Printf("[SystemProxy] InternetSetOption(SETTINGS_CHANGED) failed: %v", err)
+	}
+	if r, _, err := procInternetSetOption.Call(0, internetOptionRefresh, 0, 0); r == 0 {
+		log.Printf("[SystemProxy] InternetSetOption(REFRESH) failed: %v", err)
+	}
 }
 
-func get(keys ...string) (map[string]string, error) {
-	buf, err := sys.Command(`reg`, `query`, settingPath)
+// --- Registry access --------------------------------------------------------
+
+// getUserSID resolves a username to its SID string.
+//
+// This used to shell out to PowerShell for a WMI query, which cost a process
+// spawn (and a hidden console) on every proxy change; LookupSID is the same
+// lookup without either.
+func getUserSID(username string) (string, error) {
+	if username == "" {
+		return "", nil
+	}
+	sid, _, _, err := windows.LookupSID("", username)
 	if err != nil {
-		return nil, err
+		return "", fmt.Errorf("failed to get SID for user %q: %w", username, err)
 	}
-	return getFrom(buf, settingPath, keys...)
+	return sid.String(), nil
 }
 
-func del(key string) error {
-	_, err := sys.Command(`reg`, `delete`, settingPath, `/v`, key, `/f`)
-	return err
-}
-
-func strBool(b bool) string {
-	if b {
-		return "1"
+// settingsKeyFor returns the root and subkey holding the proxy settings for the
+// given user (empty username = the account px itself runs as).
+func settingsKeyFor(username string) (registry.Key, string, error) {
+	if username == "" {
+		return registry.CURRENT_USER, settingSubKey, nil
 	}
-	return "0"
+	sid, err := getUserSID(username)
+	if err != nil {
+		return 0, "", err
+	}
+	return registry.USERS, sid + `\` + settingSubKey, nil
 }
 
-func useProxy(b bool) error {
-	return set("ProxyEnable", "REG_DWORD", strBool(b))
+// openSettingsWrite opens the settings key for writing, creating it if needed
+// (the previous `reg add` created it implicitly).
+func openSettingsWrite(username string) (registry.Key, error) {
+	root, path, err := settingsKeyFor(username)
+	if err != nil {
+		return 0, err
+	}
+	key, _, err := registry.CreateKey(root, path, registry.SET_VALUE)
+	if err != nil {
+		return 0, fmt.Errorf("open %s for writing: %w", path, err)
+	}
+	return key, nil
+}
+
+func setString(name string, value string, username string) error {
+	key, err := openSettingsWrite(username)
+	if err != nil {
+		if username != "" {
+			log.Printf("[SystemProxy] Failed to open settings for user %s: %v", username, err)
+		}
+		return err
+	}
+	defer key.Close()
+
+	if username != "" {
+		log.Printf("[SystemProxy] Setting %s=%s for user %s", name, value, username)
+	}
+	if err := key.SetStringValue(name, value); err != nil {
+		log.Printf("[SystemProxy] Failed to set %s: %v", name, err)
+		return err
+	}
+	return nil
+}
+
+func setDword(name string, value uint32, username string) error {
+	key, err := openSettingsWrite(username)
+	if err != nil {
+		if username != "" {
+			log.Printf("[SystemProxy] Failed to open settings for user %s: %v", username, err)
+		}
+		return err
+	}
+	defer key.Close()
+
+	if username != "" {
+		log.Printf("[SystemProxy] Setting %s=%d for user %s", name, value, username)
+	}
+	if err := key.SetDWordValue(name, value); err != nil {
+		log.Printf("[SystemProxy] Failed to set %s: %v", name, err)
+		return err
+	}
+	return nil
+}
+
+// getString reads a string value for the account px runs as. Reads stay on
+// HKEY_CURRENT_USER: they back GetHttp/GetIgnore, which describe the proxy px
+// itself would use.
+func getString(name string) (string, error) {
+	key, err := registry.OpenKey(registry.CURRENT_USER, settingSubKey, registry.QUERY_VALUE)
+	if err != nil {
+		return "", err
+	}
+	defer key.Close()
+
+	value, _, err := key.GetStringValue(name)
+	if err == registry.ErrNotExist {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return value, nil
+}
+
+func useProxyForUser(enabled bool, username string) error {
+	var value uint32
+	if enabled {
+		value = 1
+	}
+	return setDword("ProxyEnable", value, username)
 }
 
 func getProxy() (bool, error) {
-	m, err := get("ProxyEnable", "REG_DWORD")
+	key, err := registry.OpenKey(registry.CURRENT_USER, settingSubKey, registry.QUERY_VALUE)
 	if err != nil {
 		return false, err
 	}
-	i, err := strconv.ParseInt(m["ProxyEnable"], 0, 0)
-	if err != nil {
-		return false, err
-	}
-	return i != 0, nil
-}
+	defer key.Close()
 
-func getFrom(data string, path string, keys ...string) (map[string]string, error) {
-	m := map[string]string{}
-	index := strings.Index(data, path)
-	if index == -1 {
-		return m, nil
+	value, _, err := key.GetIntegerValue("ProxyEnable")
+	if err == registry.ErrNotExist {
+		return false, nil
 	}
-	data = data[index+len(path):]
-	reader := textproto.NewReader(bufio.NewReader(bytes.NewBufferString(data)))
-	_, _ = reader.ReadLine()
-	for len(m) != len(keys) {
-		row, err := reader.ReadLine()
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return nil, err
-		}
-		if row == "" {
-			break
-		}
-		row = strings.TrimSpace(row)
-		s := strings.SplitN(row, "    ", 3)
-		key := s[0]
-		skip := true
-		for _, k := range keys {
-			if k == key {
-				skip = false
-				break
-			}
-		}
-		if skip {
-			continue
-		}
-		val := ""
-		if len(s) == 3 {
-			val = s[2]
-		}
-		m[key] = val
+	if err != nil {
+		return false, err
 	}
-	return m, nil
+	return value != 0, nil
 }

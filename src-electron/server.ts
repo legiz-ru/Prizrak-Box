@@ -151,14 +151,14 @@ app.get("/pxStore", (req, res) => {
     const {port, secret} = req.query;
 
     if (!port || !secret) {
-        return res.status(400).json({error: "缺少参数 port 或 secret"});
+        return res.status(400).json({error: "Missing port or secret parameter"});
     }
 
     storedPort = port as string;
     storedSecret = secret as string;
 
-    log.info("已获取 port:", storedPort);
-    log.info("已获取 secret:", storedSecret);
+    log.info("Retrieved port:", storedPort);
+    log.info("Retrieved secret:", storedSecret);
     res.status(200).send("ok");
 
     if (goFlag) {

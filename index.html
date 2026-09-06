@@ -5,9 +5,67 @@
     <link rel="icon" href="/icon.ico"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Prizrak-Box</title>
+    <style>
+        /* Boot placeholder. The Wails shell reveals the window as soon as the
+           webview renders, without waiting for the px backend (which can take
+           seconds to bring up TUN), so something has to be on screen until Vue
+           mounts. Vue clears #app on mount, so this needs no teardown code. */
+        html, body {
+            margin: 0;
+            height: 100%;
+        }
+
+        #px-boot {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(to bottom, #434343, #000000);
+        }
+
+        #px-boot.px-boot-light {
+            background: #f2f2f2;
+        }
+
+        #px-boot::after {
+            content: "";
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, .25);
+            border-top-color: #fff;
+            animation: px-boot-spin .8s linear infinite;
+        }
+
+        #px-boot.px-boot-light::after {
+            border-color: rgba(0, 0, 0, .2);
+            border-top-color: rgba(0, 0, 0, .6);
+        }
+
+        @keyframes px-boot-spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </head>
 <body>
-<div id="app"></div>
+<div id="app">
+    <div id="px-boot"></div>
+</div>
+<script>
+    // Match the placeholder to the theme the app last rendered so the first
+    // frame does not flash the wrong colour. Written by App.vue on every theme
+    // change; dark is the default, matching the app's default background.
+    try {
+        if (localStorage.getItem('px:darkBg') === '0') {
+            document.getElementById('px-boot').className = 'px-boot-light';
+        }
+    } catch (e) {
+        /* ignore */
+    }
+</script>
 <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

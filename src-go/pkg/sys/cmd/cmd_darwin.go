@@ -14,3 +14,9 @@ func Command(name string, arg ...string) (string, error) {
 	}
 	return strings.TrimSpace(string(out)), nil
 }
+
+// CommandAsUser выполняет команду от имени указанного пользователя
+// На macOS username игнорируется, так как networksetup автоматически работает с текущим пользователем
+func CommandAsUser(username string, name string, arg ...string) (string, error) {
+	return Command(name, arg...)
+}

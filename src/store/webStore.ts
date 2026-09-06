@@ -14,6 +14,7 @@ export const useWebStore = defineStore('web', {
         dnd: false,         // 拖拽显示
         dProfile: [],         // 传输文件 拖拽添加文件用
         fProfile: {}, // 更新profile 配置切换用
+        profileList: [] as any[], // кэш списка профилей для мгновенного показа при навигации
         customDashboards: [] as CustomDashboard[],
     }),
     getters: {
@@ -38,6 +39,9 @@ export const useWebStore = defineStore('web', {
             }
             // 在头部添加新日志
             this.logs.unshift(log);
+        },
+        clearLogs() {
+            this.logs = [];
         },
         addCustomDashboard(dashboard: CustomDashboard) {
             this.customDashboards.push(dashboard);

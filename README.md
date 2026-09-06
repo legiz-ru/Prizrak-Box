@@ -57,11 +57,37 @@ go mod tidy
 CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags "-X github.com/legiz-ru/prizrak-box/api.Version=v-test" -o px(.exe)
 cd ..
 
+# Build px-service (for TUN service mode)
+cd src-service
+go mod tidy
+CGO_ENABLED=0 go build -ldflags="-s -w" -o px-service(.exe)
+cd ..
+
 # Build desktop app
 npm run package
 
 # Run in dev mode
 npm run start
+```
+
+#### Service Mode (Optional) | 服务模式（可选）| Режим сервиса (опционально)
+
+The service allows TUN mode to work without running the app as administrator.
+服务允许 TUN 模式在不以管理员身份运行应用程序的情况下工作。
+Сервис позволяет использовать TUN режим без запуска приложения от администратора.
+
+```bash
+# Install service (requires admin/root)
+./px-service -install
+
+# Uninstall service
+./px-service -uninstall
+
+# Check service status
+./px-service -status
+
+# Run in standalone mode (for debugging)
+./px-service -standalone
 ```
 
 ---

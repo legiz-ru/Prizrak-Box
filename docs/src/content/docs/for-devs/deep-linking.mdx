@@ -1,0 +1,26 @@
+---
+title: Deep Linking
+description: Add subscriptions to Prizrak-Box using prizrak-box:// deep links.
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Deep links let you open Prizrak-Box and pre-fill a subscription URL with a single click or tap.
+This is useful for sharing subscription URLs with users without requiring manual copy-paste.
+
+## URL Format
+
+```
+prizrak-box://install-config?url=https://example.com/sub/username
+```
+
+## How to Use
+
+<Steps>
+1. Share the `prizrak-box://install-config?url=...` link with your users (in Telegram, on a web page, in a QR code, etc.).
+2. When a user taps/clicks the link on a device with Prizrak-Box installed:
+   - On **Android** — the system will offer to open the link in Prizrak-Box.
+   - On **Windows/macOS/Linux** — the Prizrak-Box protocol handler opens the app directly.
+3. The app opens an **Add Subscription** dialog with the URL pre-filled.
+4. The user confirms and the subscription is added.
+</Steps>

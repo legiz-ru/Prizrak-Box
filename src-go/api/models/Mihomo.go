@@ -5,9 +5,11 @@ type Mihomo struct {
 	Proxy bool   `json:"proxy"`
 	Tun   bool   `json:"tun"`
 
-	Port        int    `json:"port"`
-	BindAddress string `json:"bindAddress"`
-	Stack       string `json:"stack"`
-	Dns         bool   `json:"dns"`
-	Ipv6        bool   `json:"ipv6"`
+	Port            int    `json:"port"`
+	BindAddress     string `json:"bindAddress"`
+	Stack           string `json:"stack"`
+	Dns             bool   `json:"dns"`
+	Ipv6            bool   `json:"ipv6"`
+	SystemProxyMode bool   `json:"systemProxyMode"`
+	Username        string `json:"username"` // Имя пользователя для системного прокси (для режима сервиса)
 }

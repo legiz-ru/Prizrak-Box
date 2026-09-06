@@ -41,6 +41,15 @@ import {onMounted, ref} from 'vue';
 import {useI18n} from 'vue-i18n';
 import {ElMessage} from 'element-plus';
 import {useMenuStore} from "@/store/menuStore";
+import {
+  buildRendererUrl,
+  createStorageValue,
+  ensureRelativeStorageValue,
+  getRendererOrigin,
+  getRelativeUserImagePath,
+  normalizeCustomBackground,
+  normalizeResponsePath,
+} from "@/util/customBackground";
 
 interface ThemeOption {
   id: string;
@@ -52,123 +61,9 @@ const uploadableThemeIds = new Set(['custom']);
 
 const supportsUpload = (id: string) => uploadableThemeIds.has(id);
 
-const USER_IMAGE_PREFIX = '/user-images/';
+const rendererOrigin = getRendererOrigin();
 
-const parseHttpOrigin = (value: string | null) => {
-  if (!value || value === 'null' || value === 'undefined') {
-    return null;
-  }
-
-  try {
-    const parsed = new URL(value);
-    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-      return `${parsed.protocol}//${parsed.host}`;
-    }
-  } catch (error) {
-    try {
-      const parsed = new URL(`http://${value}`);
-      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-        return `${parsed.protocol}//${parsed.host}`;
-      }
-    } catch {
-      return null;
-    }
-  }
-
-  return null;
-};
-
-const rendererOrigin = (() => {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  const params = new URLSearchParams(window.location.search);
-  const fromParam = parseHttpOrigin(params.get('frontendOrigin'));
-  const fromLocation = parseHttpOrigin(window.location.origin);
-
-  return fromParam ?? fromLocation;
-})();
-
-const buildRendererUrl = (path: string) => {
-  if (!rendererOrigin) {
-    return path;
-  }
-
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  return `${rendererOrigin}${normalizedPath}`;
-};
-
-const customBackgroundApiUrl = buildRendererUrl('/api/custom-background');
-
-const getRelativeUserImagePath = (value: string | null) => {
-  const url = extractUrlFromCssValue(value);
-  if (!url) {
-    return null;
-  }
-
-  if (url.startsWith(USER_IMAGE_PREFIX)) {
-    return url;
-  }
-
-  if (rendererOrigin && url.startsWith(rendererOrigin)) {
-    const candidate = url.slice(rendererOrigin.length);
-    if (candidate.startsWith(USER_IMAGE_PREFIX)) {
-      return candidate;
-    }
-  }
-
-  try {
-    const parsed = new URL(url);
-    if (parsed.pathname.startsWith(USER_IMAGE_PREFIX)) {
-      return parsed.pathname;
-    }
-  } catch {
-    // ignore invalid urls
-  }
-
-  return null;
-};
-
-const ensureRelativeStorageValue = (value: string | null) => {
-  if (!value) {
-    return null;
-  }
-
-  const relative = getRelativeUserImagePath(value);
-  if (relative) {
-    return `url('${relative}')`;
-  }
-
-  return value;
-};
-
-const makeCssAbsoluteForUse = (value: string) => {
-  const relative = getRelativeUserImagePath(value);
-  if (relative && rendererOrigin) {
-    return `url('${buildRendererUrl(relative)}')`;
-  }
-  return value;
-};
-
-const normalizeResponsePath = (value: string) => {
-  if (value.startsWith(USER_IMAGE_PREFIX)) {
-    return value;
-  }
-
-  try {
-    const parsed = new URL(value);
-    if (parsed.pathname.startsWith(USER_IMAGE_PREFIX)) {
-      return parsed.pathname;
-    }
-  } catch {
-    // ignore
-  }
-
-  throw new Error('Invalid custom background path received from server');
-};
-
-const createStorageValue = (relativePath: string) => `url('${relativePath}')`;
+const customBackgroundApiUrl = buildRendererUrl('/api/custom-background', rendererOrigin);
 
 const applyStoredCustomBackground = (themeId: string) => {
   const key = getCustomBackgroundKey(themeId);
@@ -177,17 +72,20 @@ const applyStoredCustomBackground = (themeId: string) => {
     return false;
   }
 
-  const normalizedForStorage = ensureRelativeStorageValue(stored);
-  if (normalizedForStorage && normalizedForStorage !== stored) {
+  const normalized = normalizeCustomBackground(stored, rendererOrigin);
+  if (!normalized) {
+    return false;
+  }
+
+  if (normalized.storageValue !== stored) {
     try {
-      localStorage.setItem(key, normalizedForStorage);
+      localStorage.setItem(key, normalized.storageValue);
     } catch (error) {
       console.error('Failed to normalize stored custom background', error);
     }
   }
 
-  const cssValue = makeCssAbsoluteForUse(normalizedForStorage ?? stored);
-  menuStore.setBackground(cssValue);
+  menuStore.setBackground(normalized.storageValue);
   return true;
 };
 
@@ -264,17 +162,6 @@ const triggerUpload = (item: ThemeOption) => {
   fileInput.value?.click();
 };
 
-const extractUrlFromCssValue = (value: string | null) => {
-  if (!value) {
-    return null;
-  }
-  const match = value.match(/^url\(['"]?(.*?)['"]?\)$/);
-  if (!match) {
-    return null;
-  }
-  return match[1];
-};
-
 const handleFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
@@ -300,7 +187,7 @@ const handleFileChange = (event: Event) => {
 
     const key = getCustomBackgroundKey(themeId);
     const previousValue = localStorage.getItem(key);
-    const normalizedPrevious = ensureRelativeStorageValue(previousValue);
+    const normalizedPrevious = ensureRelativeStorageValue(previousValue, rendererOrigin);
     if (normalizedPrevious && normalizedPrevious !== previousValue) {
       try {
         localStorage.setItem(key, normalizedPrevious);
@@ -334,8 +221,7 @@ const handleFileChange = (event: Event) => {
 
       const relativePath = normalizeResponsePath(data.url);
       const storageValue = createStorageValue(relativePath);
-      const cssValue = makeCssAbsoluteForUse(storageValue);
-      menuStore.setBackground(cssValue);
+      menuStore.setBackground(storageValue);
       try {
         localStorage.setItem(key, storageValue);
       } catch (error) {

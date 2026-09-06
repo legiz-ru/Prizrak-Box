@@ -1,4 +1,7 @@
-import {createApp, watch} from "vue";
+// Must be first: installs the window.px* shim before any module (e.g. @/runtime)
+// captures those globals at import time. No-op under Electron.
+import "./wails-shim";
+import {createApp, watch, toRaw} from "vue";
 import App from "./App.vue";
 import router from "@/router";
 import {createPinia} from "pinia";
@@ -14,9 +17,11 @@ import "./styles/basic.css";
 import {useMenuStore} from "@/store/menuStore";
 import {useWebStore} from "@/store/webStore";
 import {AxiosRequest} from "@/util/axiosRequest";
+import {applyBackendConn, registerHttpTarget} from "@/util/backendConn";
 import {useHomeStore} from "@/store/homeStore";
 import {useSettingStore} from "@/store/settingStore";
 import {memoryCache} from "@/types/persist"
+import {initBgCache} from "@/util/bgCache"
 import {detectLanguage} from "@/util/menu";
 import createApi from "@/api";
 import {Profile} from "@/types/profile";
@@ -26,6 +31,7 @@ import {useDeepLinkImportStore} from "@/store/deepLinkStore";
 import {useUpdateStore} from "@/store/updateStore";
 import {Browser, Events} from "@/runtime";
 import {createDashboardLinks} from "@/util/dashboard";
+import {initRendererIPC} from "./renderer-ipc";
 
 const app = createApp(App);
 const lang = detectLanguage();
@@ -54,10 +60,24 @@ function isCanceledError(error: any) {
 }
 
 async function bootstrap() {
+    initRendererIPC();
+
+    // Tell the native shell the webview is alive so it can reveal the window.
+    // Emitted BEFORE the awaits below on purpose: under the Wails shell the
+    // backend connection info only exists once px has started, which can take
+    // seconds (TUN adapter, px-service at boot), and the window must not stay
+    // hidden for that whole time. index.html paints a placeholder meanwhile.
+    // No-op under Electron / the web build.
+    try {
+        (window as any).pxTray?.emit?.("ready");
+    } catch {
+        /* ignore */
+    }
+
     // 加载缓存数据
     // @ts-ignore
     if (window["pxStore"]) {
-        const keys = ['menu', 'home', 'proxies', 'setting', 'web'];
+        const keys = ['menu', 'home', 'proxies', 'setting', 'web', 'onboarding'];
         for (const key of keys) {
             // @ts-ignore
             const val = await window["pxStore"].get(key);
@@ -65,6 +85,18 @@ async function bootstrap() {
                 memoryCache[key] = val;
             }
         }
+    }
+
+    // Загрузить кэш фона до монтирования Vue, чтобы applyBackground мог использовать его синхронно
+    // @ts-ignore
+    if (window["pxBgCache"]) {
+        try {
+            // @ts-ignore
+            const cached = await window["pxBgCache"].read();
+            if (cached?.forBg && cached?.dataUrl) {
+                initBgCache(cached.forBg, cached.dataUrl);
+            }
+        } catch {}
     }
 
     // 国际化设置
@@ -115,6 +147,28 @@ async function bootstrap() {
         webStore.setSecret(secret);
     }
 
+    // Wails shell: the connection info is not in the URL. The window is shown
+    // before px is up, so ask the shell for it — the call resolves once px has
+    // reported its port/secret, or rejects if the backend failed to start.
+    // The Electron shell passes everything in the URL and skips this entirely.
+    if (!secret && typeof (window as any).pxConnInfo === "function") {
+        try {
+            // Resolves once the shim has read the username from the Go side. It
+            // is needed by the first system-proxy call after mount, and settles
+            // long before px reports back, so this costs nothing in practice.
+            await (window as any).pxUsernameReady;
+        } catch { /* the shim already defaults to an empty username */ }
+        try {
+            // Same path a post-install/uninstall restart takes, so the initial
+            // and the refreshed connection info are applied identically.
+            applyBackendConn(await (window as any).pxConnInfo());
+        } catch (error) {
+            // Mount anyway: the app renders its normal "cannot reach the core"
+            // state instead of leaving the user on the boot placeholder.
+            console.error("Backend did not report connection info", error);
+        }
+    }
+
     const emitDashboardLinks = () => {
         const dashboards = createDashboardLinks(webStore.customDashboards, {
             host: webStore.host,
@@ -140,6 +194,11 @@ async function bootstrap() {
         webStore.baseUrl,
         webStore.secret
     );
+
+    // Let applyBackendConn() rebuild $http when px is restarted while the app
+    // keeps running (TUN service install/uninstall) — px may come back on a
+    // different port, which used to leave every request pointing at a dead one.
+    registerHttpTarget(app.config.globalProperties);
 
     const api = createApi(app.config.globalProperties);
 
@@ -168,6 +227,11 @@ async function bootstrap() {
         }
     };
 
+    // Start the backend HWID config request immediately so the backend receives
+    // enableHWID=true before it can fire a startup auto-refresh of subscriptions.
+    // We still await the promise at the end of bootstrap before mounting the app.
+    const httpConfigPromise = updateHttpClientConfig();
+
     watch(() => settingStore.hwid, () => {
         void updateHttpClientConfig();
     });
@@ -188,6 +252,22 @@ async function bootstrap() {
         menuStore.setLanguage(lang);
     }
 
+    // Sync i18n locale to stored preference immediately — before app.mount()
+    // so that any tray interaction before Language.vue mounts shows the correct language
+    i18n.global.locale.value = menuStore.language;
+
+    // Pre-send tray translations with the correct language before the slow HTTP call
+    // (updateHttpClientConfig below). Without this the tray shows Chinese default labels
+    // until Language.vue mounts, which can take a few seconds on slow Mihomo startup.
+    const _trayMenuId = ['tray.show','tray.rule','tray.global','tray.direct',
+        'tray.profiles','tray.proxyGroups','tray.dashboard','tray.proxy','tray.tun','tray.quit'];
+    if ((window as any)?.pxTray?.emit) {
+        const _translate: Record<string, string> = {};
+        _trayMenuId.forEach(k => { _translate[k] = i18n.global.t(k); });
+        (window as any).pxTray.emit('translate', _translate);
+        (window as any).pxTray.emit('tunAuthTip', i18n.global.t('tun-auth-tip'));
+    }
+
     // 设置起始时间 和 操作系统类型
     // 获取系统类型
     homeStore.setOS(window.pxOs());
@@ -195,7 +275,7 @@ async function bootstrap() {
     // 设置软件开始时间
     homeStore.setStartTime(Date.now());
 
-    await updateHttpClientConfig();
+    await httpConfigPromise;
 
 }
 
@@ -281,6 +361,41 @@ function setupDeepLinkHandler() {
             }
 
             if (Array.isArray(result) && result.length > 0) {
+                const firstProfile = result[0];
+
+                try {
+                    await api.switchProfile({
+                        id: firstProfile.id,
+                        selected: true,
+                        exclusive: true,
+                    });
+
+                    await api.waitRunning();
+
+                    const fullList = await api.getProfileList();
+                    const activeProfile = fullList?.find((item: any) => item?.id === firstProfile.id) ?? firstProfile;
+
+                    Events.Emit({
+                        name: "profileChanged",
+                        data: {
+                            profile: activeProfile,
+                            exclusive: true,
+                        }
+                    });
+                    window.dispatchEvent(new CustomEvent('profile-changed'));
+
+                    Events.Emit({
+                        name: "profiles",
+                        data: toRaw(fullList)
+                    });
+
+                    window.dispatchEvent(new CustomEvent('vue-profiles-updated', {
+                        detail: { profiles: toRaw(fullList) }
+                    }));
+                } catch (error) {
+                    console.error('Failed to activate deeplink profile', error);
+                }
+
                 window.dispatchEvent(new CustomEvent(DEEP_LINK_IMPORTED_EVENT, {
                     detail: {profiles: result}
                 }));
@@ -360,6 +475,20 @@ function setupUpdateChecker() {
         const message = translate('updates.notification.message', {version: label});
 
         const notify = async () => {
+            // Native notification via the Wails shell when available — WebView2
+            // does not implement the Web Notification API, so under Wails the
+            // web path below would silently do nothing. (Click-to-open is not
+            // wired for the native path; the in-app banner remains clickable.)
+            const pxNotify = (window as any).pxNotify;
+            if (typeof pxNotify === 'function') {
+                try {
+                    pxNotify(title, message);
+                } finally {
+                    updateStore.markNotified();
+                }
+                return;
+            }
+
             const NotificationCtor = window.Notification;
 
             if (typeof NotificationCtor !== 'function') {
@@ -510,7 +639,7 @@ function safeDecode(value?: string) {
 }
 
 // 🚀 启动应用
-bootstrap().then(() => app.mount("#app"));
-
-
-
+bootstrap().then(() => {
+    // Replaces index.html's boot placeholder.
+    app.mount("#app");
+});

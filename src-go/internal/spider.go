@@ -97,6 +97,9 @@ func Deduplicate(proxies []map[string]any) []map[string]any {
 			proxyId = fmt.Sprintf("%s|%v|%v|%v|%v", "http", server, port, username, password)
 		case "anytls":
 			proxyId = fmt.Sprintf("%s|%v|%v|%v", "anytls", server, port, password)
+		case "sudoku":
+			key := p["key"]
+			proxyId = fmt.Sprintf("%s|%v|%v|%v", "sudoku", server, port, key)
 		default:
 			err = fmt.Errorf("unsupport proxy type: %s", proxyType)
 		}

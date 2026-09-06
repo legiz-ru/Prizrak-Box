@@ -1,0 +1,26 @@
+# Wails v3 build configuration for the Prizrak-Box shell.
+#
+# After editing `info` or `protocols`, regenerate the platform build assets
+# (Info.plist for macOS, NSIS installer scripts for Windows) with:
+#
+#     wails3 task common:update:build-assets
+#
+# That step writes the prizrak-box:// scheme into the generated Info.plist
+# (CFBundleURLTypes) and the Windows installer, so the OS routes deep links to
+# the app. The runtime delivery is handled in main.go via
+# events.Common.ApplicationLaunchedWithUrl and SingleInstance argv.
+version: '3'
+
+info:
+  companyName: "legiz-ru"
+  productName: "Prizrak-Box"
+  productIdentifier: "com.legiz-ru.prizrak-box"
+  description: "A Simple Mihomo GUI"
+  copyright: "(c) 2026 legiz-ru"
+  comments: "Prizrak-Box — Mihomo GUI (Wails shell)"
+  version: "1.0.1"
+
+# Custom URL scheme for deep-link subscription import (prizrak-box://install-config?...)
+protocols:
+  - scheme: prizrak-box
+    description: "Prizrak-Box Protocol"

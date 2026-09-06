@@ -13,6 +13,11 @@ import (
 )
 
 func OffAll() error {
+	return OffAllForUser("")
+}
+
+func OffAllForUser(username string) error {
+	// На macOS username игнорируется, так как networksetup работает для текущего пользователя
 	if err := OffHttps(); err != nil {
 		return err
 	}
@@ -59,6 +64,11 @@ func GetIgnore() ([]string, error) {
 }
 
 func OnHttps(addr Addr) error {
+	return OnHttpsForUser(addr, "")
+}
+
+func OnHttpsForUser(addr Addr, username string) error {
+	// На macOS username игнорируется
 	s, err := getNetworkInterface()
 	if err != nil {
 		return err
@@ -75,6 +85,11 @@ func OnHttps(addr Addr) error {
 }
 
 func OffHttps() error {
+	return OffHttpsForUser("")
+}
+
+func OffHttpsForUser(username string) error {
+	// На macOS username игнорируется
 	s, err := getNetworkInterface()
 	if err != nil {
 		return err
@@ -107,6 +122,11 @@ func GetHttps() (*Addr, error) {
 }
 
 func OnHttp(addr Addr) error {
+	return OnHttpForUser(addr, "")
+}
+
+func OnHttpForUser(addr Addr, username string) error {
+	// На macOS username игнорируется
 	s, err := getNetworkInterface()
 	if err != nil {
 		return err
@@ -123,6 +143,11 @@ func OnHttp(addr Addr) error {
 }
 
 func OffHttp() error {
+	return OffHttpForUser("")
+}
+
+func OffHttpForUser(username string) error {
+	// На macOS username игнорируется
 	s, err := getNetworkInterface()
 	if err != nil {
 		return err
@@ -155,6 +180,11 @@ func GetHttp() (*Addr, error) {
 }
 
 func OnSocks(addr Addr) error {
+	return OnSocksForUser(addr, "")
+}
+
+func OnSocksForUser(addr Addr, username string) error {
+	// На macOS username игнорируется
 	s, err := getNetworkInterface()
 	if err != nil {
 		return err
@@ -171,6 +201,11 @@ func OnSocks(addr Addr) error {
 }
 
 func OffSocks() error {
+	return OffSocksForUser("")
+}
+
+func OffSocksForUser(username string) error {
+	// На macOS username игнорируется
 	s, err := getNetworkInterface()
 	if err != nil {
 		return err

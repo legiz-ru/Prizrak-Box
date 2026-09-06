@@ -10,14 +10,27 @@ export const useSettingStore = defineStore('setting', {
         ipv6: false,
         dns: false,
         startup: false,
+        startMinimized: false,
         auth: false,
         hwid: true,
+        systemProxyMode: true,
+        multiProfileEnabled: false,
+        multiProfileHintShown: false,
         hwidHeaders: {
             hwid: '',
             os: '',
             osVersion: '',
             model: '',
         },
+        sc_switch: false,
+        sc_switch_key: 'Ctrl+Shift+X',
+        independentDelayTest: true,
+        groupTestUrls: [] as Array<{name: string; url: string}>,
+        // Системные напоминания об истечении подписки/трафике (см.
+        // subscriptionAlerts.ts) — работают только если продавец подписки
+        // прислал notify-expire-days/notify-traffic-percent/notification-subs-expire;
+        // этот тумблер лишь разрешает их показ, а не задаёт пороги.
+        notifySubscriptionAlerts: true,
     }),
     actions: {
         setTestUrl(testUrl: any) {
@@ -38,6 +51,9 @@ export const useSettingStore = defineStore('setting', {
         setStartup(startup: any) {
             this.startup = startup;
         },
+        setStartMinimized(startMinimized: any) {
+            this.startMinimized = startMinimized;
+        },
         setBindAddress(bindAddress: any) {
             this.bindAddress = bindAddress;
         },
@@ -47,6 +63,15 @@ export const useSettingStore = defineStore('setting', {
         setHwid(hwid: any) {
             this.hwid = hwid;
         },
+        setSystemProxyMode(systemProxyMode: any) {
+            this.systemProxyMode = systemProxyMode;
+        },
+        setMultiProfileEnabled(enabled: any) {
+            this.multiProfileEnabled = !!enabled;
+        },
+        setMultiProfileHintShown(shown: any) {
+            this.multiProfileHintShown = !!shown;
+        },
         setHwidHeaders(headers: { hwid?: string; os?: string; osVersion?: string; model?: string }) {
             this.hwidHeaders = {
                 hwid: headers?.hwid ?? this.hwidHeaders.hwid,
@@ -54,6 +79,18 @@ export const useSettingStore = defineStore('setting', {
                 osVersion: headers?.osVersion ?? this.hwidHeaders.osVersion,
                 model: headers?.model ?? this.hwidHeaders.model,
             };
+        },
+        setScSwitch(val: boolean) {
+            this.sc_switch = val;
+        },
+        setScSwitchKey(val: string) {
+            this.sc_switch_key = val;
+        },
+        setIndependentDelayTest(val: boolean) {
+            this.independentDelayTest = val;
+        },
+        setGroupTestUrls(val: Array<{name: string; url: string}>) {
+            this.groupTestUrls = val;
         },
     },
     persist: defaultPersist,
