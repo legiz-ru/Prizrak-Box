@@ -34,7 +34,7 @@
           clearable
       >
         <template #prefix>
-          <el-icon><icon-mdi-key-variant/></el-icon>
+          <el-icon><icon-tabler-key/></el-icon>
         </template>
       </el-input>
     </div>

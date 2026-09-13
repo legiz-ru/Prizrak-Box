@@ -129,7 +129,7 @@ watch(() => webStore.fProfile, async () => {
 .now {
   width: 100%;
   margin-left: 0;
-  margin-top: 5px;
+  margin-top: var(--px-space-1);
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -137,7 +137,7 @@ watch(() => webStore.fProfile, async () => {
 }
 
 .search {
-  margin-top: 6px;
+  margin-top: var(--px-space-2);
 }
 
 .search :deep(.custom-input) {
@@ -150,10 +150,10 @@ watch(() => webStore.fProfile, async () => {
 }
 
 .content {
-  border: 2px solid var(--text-color);
-  border-radius: 20px;
+  border: 1px solid var(--sub-card-border);
+  border-radius: var(--px-r-lg);
   overflow: hidden;
-  margin-top: 25px;
+  margin-top: var(--px-space-6);
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -161,7 +161,7 @@ watch(() => webStore.fProfile, async () => {
 }
 
 .title {
-  border-bottom: 1px solid var(--text-color);
+  border-bottom: 1px solid var(--sub-card-border);
   padding: 8px 10px 8px 16px;
   font-weight: bold;
 }

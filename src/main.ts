@@ -14,6 +14,11 @@ import "element-plus/dist/index.css";
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import "./styles/global.css";
 import "./styles/basic.css";
+// After basic.css: tokens.css only adds vocabulary, it never overrides the
+// legacy variables the left menu and the profile cards read.
+import "./styles/tokens.css";
+// Last: maps Element Plus' own variables onto those tokens.
+import "./styles/elementplus.css";
 import {useMenuStore} from "@/store/menuStore";
 import {useWebStore} from "@/store/webStore";
 import {AxiosRequest} from "@/util/axiosRequest";

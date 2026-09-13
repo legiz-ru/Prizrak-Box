@@ -37,7 +37,7 @@ function openSupport() {
   >
     <div class="hwid-dialog__body">
       <el-icon class="hwid-dialog__icon hwid-dialog__icon--danger">
-        <icon-mdi-alert-octagon-outline />
+        <icon-tabler-alert-octagon />
       </el-icon>
       <p class="hwid-dialog__text">{{ t('hwid.max-devices.message') }}</p>
     </div>

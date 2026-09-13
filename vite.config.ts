@@ -55,7 +55,7 @@ export default defineConfig({
             resolvers: [
                 IconsResolver({
                     prefix: 'icon',
-                    enabledCollections: ["ep", "mdi", "proto"],
+                    enabledCollections: ["tabler", "proto"],
                     // "proto" is the local collection below; its files are not
                     // in an Iconify package, so the resolver needs to be told
                     // which names belong to it.

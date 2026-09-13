@@ -31,7 +31,7 @@ function goToSettings() {
   >
     <div class="hwid-dialog__body">
       <el-icon class="hwid-dialog__icon hwid-dialog__icon--warning">
-        <icon-mdi-alert-circle-outline />
+        <icon-tabler-alert-circle />
       </el-icon>
       <p class="hwid-dialog__text">{{ t('hwid.not-supported.message') }}</p>
     </div>

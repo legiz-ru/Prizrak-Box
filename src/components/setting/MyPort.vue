@@ -1,6 +1,35 @@
+<template>
+  <!-- Контрол без метки: её держит SettingRow, поэтому все значения группы
+       выстраиваются по одной правой границе. -->
+  <template v-if="isEditing">
+    <input
+        class="px-value-input"
+        type="text"
+        v-model="port"
+        inputmode="numeric"
+        autocapitalize="off"
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+        :aria-label="$t('setting.mihomo.port')"
+        @keyup.enter="savePort"
+        @keyup.esc="cancelEdit"
+    />
+    <button class="px-iconbtn" :aria-label="$t('save')" @click="savePort">
+      <el-icon><icon-tabler-check/></el-icon>
+    </button>
+    <button class="px-iconbtn" :aria-label="$t('cancel')" @click="cancelEdit">
+      <el-icon><icon-tabler-x/></el-icon>
+    </button>
+  </template>
+  <button v-else class="px-value" @click="toggleEditing">
+    <span class="px-value__text">{{ settingStore.port }}</span>
+    <el-icon class="px-value__icon"><icon-tabler-pencil/></el-icon>
+  </button>
+</template>
+
 <script setup lang="ts">
 import {ref} from "vue";
-import {EditPen} from "@element-plus/icons-vue";
 import {useSettingStore} from "@/store/settingStore";
 import {pError} from "@/util/pLoad";
 import {useI18n} from "vue-i18n";
@@ -87,87 +116,3 @@ onMounted(() => {
   port.value = settingStore.port;
 });
 </script>
-
-<template>
-  <div class="input-container">
-    <span>{{ $t('setting.mihomo.port') }} :</span>
-    <template v-if="isEditing">
-      <input
-          type="text"
-          v-model="port"
-          placeholder="请输入端口号"
-          autocapitalize="off"
-          autocomplete="off"
-          autocorrect="off"
-          spellcheck="false"
-      />
-    </template>
-    <template v-else>
-      <span class="content">{{ settingStore.port }}</span>
-    </template>
-    <button class="action-btn" @click="toggleEditing" v-if="!isEditing">
-      <el-icon><EditPen/></el-icon>
-    </button>
-    <button class="action-btn" @click="savePort" v-if="isEditing">
-      <el-icon><icon-ep-select/></el-icon>
-    </button>
-    <button class="action-btn" @click="cancelEdit" v-if="isEditing">
-      <el-icon><icon-ep-close-bold/></el-icon>
-    </button>
-  </div>
-</template>
-
-<style scoped>
-.input-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 30px;
-}
-
-span {
-  color: var(--text-color);
-  font-size: 18px;
-  font-weight: bold;
-}
-
-.content {
-  font-weight: normal;
-}
-
-input {
-  width: 100px;
-  padding: 5px 8px;
-  border: 1px solid var(--text-color);
-  border-radius: 5px;
-  background-color: rgba(255, 255, 255, 0.1);
-  color: var(--text-color);
-  font-size: 16px;
-}
-
-input:focus {
-  outline: none;
-}
-
-.action-btn {
-  height: 36px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 999px;
-  background-color: var(--left-nav-btn-bg);
-  color: var(--text-color);
-  box-shadow: var(--left-nav-shadow);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  flex-shrink: 0;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.action-btn:hover {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
-}
-</style>

@@ -109,6 +109,11 @@ setting:
   tab:
     app: 应用设置
     core: 内核设置
+  hints:
+    port: HTTP 和 SOCKS 共用一个端口
+    dns: 拦截应用程序的 DNS 请求
+    independentDelayTest: 为每个分组单独设置测试地址
+    secret: 外部控制面板的访问密钥
   mihomo:
     port: 端口
     port-error: 端口号必须大于0，小于65535

@@ -214,7 +214,7 @@ watch(() => webStore.fProfile, async () => {
           type="button"
           @click="refreshProviders"
       >
-        <icon-mdi-refresh :class="['btn-icon', {spin: loading}]"/>
+        <icon-tabler-refresh :class="['btn-icon', {spin: loading}]"/>
         {{ $t('rule.providers.refresh') }}
       </button>
       <button
@@ -223,7 +223,7 @@ watch(() => webStore.fProfile, async () => {
           type="button"
           @click="updateAllProviders"
       >
-        <icon-mdi-sync :class="['btn-icon', {spin: updatingAll}]"/>
+        <icon-tabler-refresh :class="['btn-icon', {spin: updatingAll}]"/>
         {{ $t('rule.providers.updateAll') }}
       </button>
     </div>
@@ -258,7 +258,7 @@ watch(() => webStore.fProfile, async () => {
         <div class="card-header">
           <el-tooltip :content="$t('rule.providers.viewRules')" placement="top">
             <el-icon class="view-btn" @click.stop="openRulesDialog(provider)" size="22">
-              <icon-mdi-eye-outline/>
+              <icon-tabler-eye/>
             </el-icon>
           </el-tooltip>
           <div class="provider-name" :title="provider.name">{{ provider.name }}</div>
@@ -269,7 +269,7 @@ watch(() => webStore.fProfile, async () => {
                   @click.stop="handleUpdateClick(provider.name)"
                   size="22"
               >
-                <icon-mdi-refresh :class="{spin: isUpdating(provider.name)}"/>
+                <icon-tabler-refresh :class="{spin: isUpdating(provider.name)}"/>
               </el-icon>
             </el-tooltip>
           </div>
@@ -288,7 +288,7 @@ watch(() => webStore.fProfile, async () => {
             <span class="stat-line-value">{{ formatUpdatedAt(provider.updatedAt) }}</span>
           </div>
           <div v-if="provider.path" class="stat-row path-row">
-            <el-icon size="18" class="stat-icon"><icon-mdi-folder-outline/></el-icon>
+            <el-icon size="18" class="stat-icon"><icon-tabler-folder/></el-icon>
             <span class="stat-label">{{ $t('rule.providers.path') }}</span>
             <span class="stat-value path-text">{{ provider.path }}</span>
           </div>
@@ -315,7 +315,7 @@ watch(() => webStore.fProfile, async () => {
           <div class="col-icon">
             <el-tooltip :content="$t('rule.providers.viewRules')" placement="top">
               <el-icon class="row-action-btn" size="18" @click.stop="openRulesDialog(provider)">
-                <icon-mdi-eye-outline/>
+                <icon-tabler-eye/>
               </el-icon>
             </el-tooltip>
           </div>
@@ -326,7 +326,7 @@ watch(() => webStore.fProfile, async () => {
                   size="18"
                   @click.stop="handleUpdateClick(provider.name)"
               >
-                <icon-mdi-refresh :class="{spin: isUpdating(provider.name)}"/>
+                <icon-tabler-refresh :class="{spin: isUpdating(provider.name)}"/>
               </el-icon>
             </el-tooltip>
           </div>
@@ -367,20 +367,20 @@ watch(() => webStore.fProfile, async () => {
               @keydown.enter.prevent="findNext"
               @keydown.shift.enter.prevent="findPrev"
           >
-            <template #prefix><icon-mdi-magnify/></template>
+            <template #prefix><icon-tabler-search/></template>
           </el-input>
           <span :class="['match-badge', {zero: (matchCount ?? 0) === 0}]">{{ matchCount ?? 0 }}</span>
           <div class="nav-buttons">
             <button class="nav-btn" :disabled="!contentSearch.trim() || (matchCount ?? 0) === 0" @click="findPrev" :title="$t('rule.providers.prevMatch')">
-              <icon-mdi-chevron-up/>
+              <icon-tabler-chevron-up/>
             </button>
             <button class="nav-btn" :disabled="!contentSearch.trim() || (matchCount ?? 0) === 0" @click="findNext" :title="$t('rule.providers.nextMatch')">
-              <icon-mdi-chevron-down/>
+              <icon-tabler-chevron-down/>
             </button>
           </div>
         </div>
         <button class="dialog-close-btn" @click="close" :title="$t('common.close')">
-          <icon-mdi-close/>
+          <icon-tabler-x/>
         </button>
       </div>
     </template>
@@ -403,7 +403,7 @@ watch(() => webStore.fProfile, async () => {
 .rule-providers {
   width: 100%;
   margin-left: 0;
-  margin-top: 10px;
+  margin-top: var(--px-space-2);
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -453,20 +453,20 @@ watch(() => webStore.fProfile, async () => {
 
 /* ── Cards view ── */
 .skeleton {
-  margin-top: 20px;
+  margin-top: var(--px-space-5);
 }
 
 .provider-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 16px;
-  margin-top: 20px;
+  margin-top: var(--px-space-5);
 }
 
 .provider-card {
   padding: 8px 10px;
   border: 2px solid var(--sub-card-border);
-  border-radius: 20px;
+  border-radius: var(--px-r-lg);
   background: var(--sub-card-bg);
   color: var(--text-color);
   box-shadow: var(--left-nav-shadow);
@@ -477,7 +477,7 @@ watch(() => webStore.fProfile, async () => {
 
 .provider-card:hover {
   background-color: var(--left-item-selected-bg);
-  border: 2px solid var(--text-color);
+  border: 1px solid var(--sub-card-border);
 }
 
 .card-header {
@@ -570,10 +570,10 @@ watch(() => webStore.fProfile, async () => {
 
 /* ── Table view — same style as Now.vue ── */
 .table-wrap {
-  border: 2px solid var(--text-color);
-  border-radius: 20px;
+  border: 1px solid var(--sub-card-border);
+  border-radius: var(--px-r-lg);
   overflow: hidden;
-  margin-top: 20px;
+  margin-top: var(--px-space-5);
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -584,7 +584,7 @@ watch(() => webStore.fProfile, async () => {
   display: flex;
   align-items: center;
   padding: 8px 10px 8px 16px;
-  border-bottom: 1px solid var(--text-color);
+  border-bottom: 1px solid var(--sub-card-border);
   font-weight: bold;
   gap: 4px;
   flex-shrink: 0;
@@ -809,7 +809,7 @@ watch(() => webStore.fProfile, async () => {
 .content-editor {
   width: 100%;
   height: 500px;
-  border: 2px solid var(--text-color);
+  border: 1px solid var(--sub-card-border);
   border-radius: 12px;
   font: 13px "Monaco", "Menlo", "Ubuntu Mono", "Consolas", "Source Code Pro", monospace;
 }

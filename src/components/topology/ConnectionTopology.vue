@@ -381,8 +381,8 @@ onUnmounted(() => {
           size="small"
           :title="isPaused ? $t('connections.resume') : $t('connections.pause')"
         >
-          <icon-mdi-play v-if="isPaused" />
-          <icon-mdi-pause v-else />
+          <icon-tabler-player-play v-if="isPaused" />
+          <icon-tabler-player-pause v-else />
         </el-button>
       </div>
     </div>

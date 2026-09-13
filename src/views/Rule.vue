@@ -36,7 +36,7 @@ const providersView = computed({
               :class="getActive('Now')"
               @click="setActive('Now')"
           >
-            <icon-mdi-eye-arrow-right class="pre"/>
+            <icon-tabler-eye-search class="pre"/>
             <span class="suf">
               {{ $t('rule.now.title') }}
             </span>
@@ -45,7 +45,7 @@ const providersView = computed({
               :class="getActive('Group')"
               @click="setActive('Group')"
           >
-            <icon-mdi-view-dashboard class="pre"/>
+            <icon-tabler-layout-dashboard class="pre"/>
             <span class="suf">
               {{ $t('rule.group.title') }}
             </span>
@@ -54,7 +54,7 @@ const providersView = computed({
               :class="getActive('Providers')"
               @click="setActive('Providers')"
           >
-            <icon-mdi-script-text-outline class="pre"/>
+            <icon-tabler-file-code class="pre"/>
             <span class="suf">
               {{ $t('rule.providers.title') }}
             </span>
@@ -63,7 +63,7 @@ const providersView = computed({
               :class="getActive('Ignore')"
               @click="setActive('Ignore')"
           >
-            <icon-mdi-cancel class="pre"/>
+            <icon-tabler-ban class="pre"/>
             <span class="suf">
               {{ $t('rule.ignore.title') }}
             </span>
@@ -77,7 +77,7 @@ const providersView = computed({
                 type="button"
                 @click="providersView = 'cards'"
             >
-              <el-icon size="18"><icon-mdi-view-module/></el-icon>
+              <el-icon size="18"><icon-tabler-layout-grid/></el-icon>
             </button>
           </el-tooltip>
           <el-tooltip :content="$t('rule.providers.viewTable')" placement="bottom" :show-after="300">
@@ -86,7 +86,7 @@ const providersView = computed({
                 type="button"
                 @click="providersView = 'table'"
             >
-              <el-icon size="18"><icon-mdi-view-list/></el-icon>
+              <el-icon size="18"><icon-tabler-layout-list/></el-icon>
             </button>
           </el-tooltip>
         </div>

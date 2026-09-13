@@ -217,21 +217,21 @@ async function handleDrop(e: DragEvent) {
         }">
           <button class="add-profile-button" :aria-label="t('onboarding.welcome.add-profile')">
             <el-icon :size="40">
-              <icon-mdi-plus-thick />
+              <icon-tabler-plus />
             </el-icon>
           </button>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="add">
-                <el-icon><icon-mdi-pencil /></el-icon>
+                <el-icon><icon-tabler-pencil /></el-icon>
                 {{ t('profiles.add') }}
               </el-dropdown-item>
               <el-dropdown-item command="paste">
-                <el-icon><icon-mdi-content-paste /></el-icon>
+                <el-icon><icon-tabler-clipboard /></el-icon>
                 {{ t('profiles.paste') }}
               </el-dropdown-item>
               <el-dropdown-item command="file">
-                <el-icon><icon-mdi-folder-open /></el-icon>
+                <el-icon><icon-tabler-folder-open /></el-icon>
                 {{ t('profiles.open') }}
               </el-dropdown-item>
             </el-dropdown-menu>

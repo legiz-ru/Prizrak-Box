@@ -5,7 +5,7 @@
         placement="bottom">
       <span class="bar" @click="minus2tray">
           <el-icon>
-              <icon-mdi-card-minus-outline/>
+              <icon-tabler-arrow-bar-to-down/>
           </el-icon>
       </span>
     </el-tooltip>
@@ -14,7 +14,7 @@
         placement="bottom">
       <span class="bar ncr-min" @click="minus">
           <el-icon>
-              <icon-mdi-minus/>
+              <icon-tabler-minus/>
           </el-icon>
       </span>
     </el-tooltip>
@@ -24,7 +24,7 @@
         placement="bottom">
       <span class="bar ncr-max" @click="max">
           <el-icon>
-              <icon-mdi-window-restore/>
+              <icon-tabler-window-minimize/>
           </el-icon>
       </span>
     </el-tooltip>
@@ -34,7 +34,7 @@
         placement="bottom">
       <span class="bar ncr-max" @click="max">
           <el-icon>
-              <icon-mdi-window-maximize/>
+              <icon-tabler-window-maximize/>
           </el-icon>
       </span>
     </el-tooltip>
@@ -43,7 +43,7 @@
         placement="bottom">
       <span class="" @click="close">
           <el-icon>
-              <icon-mdi-window-close/>
+              <icon-tabler-x/>
           </el-icon>
       </span>
     </el-tooltip>
@@ -54,7 +54,7 @@
         placement="left">
       <span class="" @click="minus2tray">
           <el-icon>
-              <icon-mdi-card-minus-outline/>
+              <icon-tabler-arrow-bar-to-down/>
           </el-icon>
       </span>
     </el-tooltip>

@@ -457,11 +457,11 @@ function closeAll() {
                 <div class="info-card__meta">
                   <div class="info-card__traffic">
                     <span class="info-traffic-item" :title="$t('connections.upload')">
-                      <icon-mdi-arrow-up class="traffic-icon traffic-icon--up"/>
+                      <icon-tabler-arrow-up class="traffic-icon traffic-icon--up"/>
                       {{ prettyBytes(item.upload) }}
                     </span>
                     <span class="info-traffic-item" :title="$t('connections.download')">
-                      <icon-mdi-arrow-down class="traffic-icon traffic-icon--down"/>
+                      <icon-tabler-arrow-down class="traffic-icon traffic-icon--down"/>
                       {{ prettyBytes(item.download) }}
                     </span>
                   </div>
@@ -477,14 +477,14 @@ function closeAll() {
                         @click="openLogDialog(item)"
                         @keydown.enter.prevent="openLogDialog(item)"
                         @keydown.space.prevent="openLogDialog(item)">
-                    <icon-mdi-information-outline/>
+                    <icon-tabler-info-circle/>
                   </span>
                   <span class="icon-btn" role="button" tabindex="0"
                         :title="$t('connections.copy-log')"
                         @click="copyLog(item)"
                         @keydown.enter.prevent="copyLog(item)"
                         @keydown.space.prevent="copyLog(item)">
-                    <icon-mdi-content-copy/>
+                    <icon-tabler-copy/>
                   </span>
                 </div>
               </div>
@@ -523,7 +523,7 @@ function closeAll() {
                       class="process-app-icon"
                       :alt="group.processName"
                   />
-                  <icon-mdi-application-outline v-else class="process-app-icon-placeholder" />
+                  <icon-tabler-app-window v-else class="process-app-icon-placeholder" />
                 </div>
                 <div class="process-item-body">
                   <div class="process-name-row">
@@ -538,7 +538,7 @@ function closeAll() {
                     <span class="ot">{{ $t('connections.upload') }}: </span>{{ prettyBytes(group.upload) }}
                   </div>
                 </div>
-                <icon-mdi-chevron-right class="process-chevron" />
+                <icon-tabler-chevron-right class="process-chevron" />
               </div>
             </el-col>
           </el-row>
@@ -550,7 +550,7 @@ function closeAll() {
         <!-- Selected process connections -->
         <div v-else class="process-connections-wrap">
           <div class="process-back-bar" @click="selectedProcess = null">
-            <icon-mdi-arrow-left class="process-back-icon" />
+            <icon-tabler-arrow-left class="process-back-icon" />
             <span>{{ $t('connections.back') }}</span>
             <span class="process-back-name">— {{ processGroups.find(g => g.processPath === selectedProcess)?.processName }}</span>
           </div>
@@ -577,11 +577,11 @@ function closeAll() {
                   <div class="info-card__meta">
                     <div class="info-card__traffic">
                       <span class="info-traffic-item" :title="$t('connections.upload')">
-                        <icon-mdi-arrow-up class="traffic-icon traffic-icon--up"/>
+                        <icon-tabler-arrow-up class="traffic-icon traffic-icon--up"/>
                         {{ prettyBytes(item.upload) }}
                       </span>
                       <span class="info-traffic-item" :title="$t('connections.download')">
-                        <icon-mdi-arrow-down class="traffic-icon traffic-icon--down"/>
+                        <icon-tabler-arrow-down class="traffic-icon traffic-icon--down"/>
                         {{ prettyBytes(item.download) }}
                       </span>
                     </div>
@@ -597,14 +597,14 @@ function closeAll() {
                           @click.stop="openLogDialog(item)"
                           @keydown.enter.prevent="openLogDialog(item)"
                           @keydown.space.prevent="openLogDialog(item)">
-                      <icon-mdi-information-outline/>
+                      <icon-tabler-info-circle/>
                     </span>
                     <span class="icon-btn" role="button" tabindex="0"
                           :title="$t('connections.copy-log')"
                           @click.stop="copyLog(item)"
                           @keydown.enter.prevent="copyLog(item)"
                           @keydown.space.prevent="copyLog(item)">
-                      <icon-mdi-content-copy/>
+                      <icon-tabler-copy/>
                     </span>
                   </div>
                 </div>
@@ -634,7 +634,7 @@ function closeAll() {
                   :aria-label="$t('connections.copy-log')"
                   @click="copyLog()"
               >
-                <icon-mdi-content-copy/>
+                <icon-tabler-copy/>
               </el-button>
               <el-button
                   class="log-dialog__action log-dialog__close"
@@ -643,7 +643,7 @@ function closeAll() {
                   :aria-label="$t('connections.dialog-close')"
                   @click="closeLogDialog()"
               >
-                <icon-mdi-close/>
+                <icon-tabler-x/>
               </el-button>
             </div>
           </div>
@@ -671,7 +671,7 @@ function closeAll() {
                   </template>
                   <div class="log-popover__inner">
                     <button class="log-popover__btn" @click="copyText(row.value)">
-                      <icon-mdi-content-copy class="log-popover__icon"/>
+                      <icon-tabler-copy class="log-popover__icon"/>
                       {{ $t('connections.copy-value') }}
                     </button>
                     <button
@@ -679,7 +679,7 @@ function closeAll() {
                         class="log-popover__btn"
                         @click="openInBrowser('https://ipinfo.io/' + row.value)"
                     >
-                      <icon-mdi-open-in-new class="log-popover__icon"/>
+                      <icon-tabler-external-link class="log-popover__icon"/>
                       ipinfo.io
                     </button>
                     <button
@@ -687,7 +687,7 @@ function closeAll() {
                         class="log-popover__btn"
                         @click="openInBrowser('https://' + row.value)"
                     >
-                      <icon-mdi-open-in-new class="log-popover__icon"/>
+                      <icon-tabler-external-link class="log-popover__icon"/>
                       {{ $t('connections.open-in-browser') }}
                     </button>
                     <button
@@ -695,7 +695,7 @@ function closeAll() {
                         class="log-popover__btn"
                         @click="showInExplorer(row.explorerPath!)"
                     >
-                      <icon-mdi-folder-open-outline class="log-popover__icon"/>
+                      <icon-tabler-folder-open class="log-popover__icon"/>
                       {{ $t('connections.show-in-explorer') }}
                     </button>
                   </div>

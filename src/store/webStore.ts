@@ -5,6 +5,9 @@ export interface CustomDashboard {
     url: string;
 }
 
+// Счётчик записей журнала: только для :key, наружу не отдаётся.
+let logSeq = 0;
+
 export const useWebStore = defineStore('web', {
     state: () => ({
         host: '127.0.0.1', // 默认值
@@ -37,8 +40,11 @@ export const useWebStore = defineStore('web', {
             if (this.logs.length >= 100) {
                 this.logs.pop();
             }
-            // 在头部添加新日志
-            this.logs.unshift(log);
+            // Стабильный ключ для v-for. Записи добавляются в начало списка,
+            // поэтому индекс в качестве :key заставлял Vue переписывать каждую
+            // строку при каждом новом сообщении.
+            logSeq += 1;
+            this.logs.unshift({...log, id: logSeq});
         },
         clearLogs() {
             this.logs = [];

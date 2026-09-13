@@ -278,8 +278,8 @@ watch(() => proxiesStore.now, (newNow) => {
             <span class="dropdown-label"><span class="dropdown-label-text">{{ t('proxySelector.group') }}</span></span>
             <span class="dropdown-value">{{ selectedGroup }}</span>
             <el-icon class="dropdown-icon" @click.stop="toggleGroupDropdown">
-              <icon-ep-arrow-down v-if="!isGroupDropdownOpen" />
-              <icon-ep-arrow-up v-else />
+              <icon-tabler-chevron-down v-if="!isGroupDropdownOpen" />
+              <icon-tabler-chevron-up v-else />
             </el-icon>
           </div>
           <div v-if="isGroupDropdownOpen" class="dropdown-list">
@@ -303,8 +303,8 @@ watch(() => proxiesStore.now, (newNow) => {
               {{ (proxyList.find(p => p.now)?.displayName ?? proxyList.find(p => p.now)?.name ?? selectedProxy) || 'Не выбрано' }}
             </span>
             <el-icon class="dropdown-icon" @click.stop="toggleProxyDropdown">
-              <icon-ep-arrow-down v-if="!isProxyDropdownOpen" />
-              <icon-ep-arrow-up v-else />
+              <icon-tabler-chevron-down v-if="!isProxyDropdownOpen" />
+              <icon-tabler-chevron-up v-else />
             </el-icon>
           </div>
           <div v-if="isProxyDropdownOpen" class="dropdown-list">
@@ -328,7 +328,7 @@ watch(() => proxiesStore.now, (newNow) => {
                     placement="top"
                 >
                   <el-icon class="proxy-info-icon">
-                    <icon-mdi-information-outline />
+                    <icon-tabler-info-circle />
                   </el-icon>
                 </el-tooltip>
               </div>

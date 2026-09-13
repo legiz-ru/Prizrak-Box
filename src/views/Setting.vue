@@ -46,8 +46,7 @@ const ruleSubComponents: Record<string, any> = {
               @click="settingTab = 'app'"
             >
               <el-icon size="19">
-                <icon-mdi-cog v-if="settingTab === 'app'"/>
-                <icon-mdi-cog-outline v-else/>
+                <icon-tabler-settings/>
               </el-icon>
             </button>
           </el-tooltip>
@@ -74,7 +73,7 @@ const ruleSubComponents: Record<string, any> = {
               @click="settingTab = 'rule'"
             >
               <el-icon size="19">
-                <icon-mdi-source-branch/>
+                <icon-tabler-git-branch/>
               </el-icon>
             </button>
           </el-tooltip>
@@ -85,7 +84,7 @@ const ruleSubComponents: Record<string, any> = {
               @click="settingTab = 'connection'"
             >
               <el-icon size="19">
-                <icon-mdi-lan-connect/>
+                <icon-tabler-network/>
               </el-icon>
             </button>
           </el-tooltip>
@@ -96,7 +95,7 @@ const ruleSubComponents: Record<string, any> = {
               @click="settingTab = 'log'"
             >
               <el-icon size="19">
-                <icon-mdi-text-box-outline/>
+                <icon-tabler-file-text/>
               </el-icon>
             </button>
           </el-tooltip>
@@ -114,7 +113,7 @@ const ruleSubComponents: Record<string, any> = {
                 type="button"
                 @click="connectionStore.setShowClosed(false)"
             >
-              <el-icon size="18"><icon-mdi-lightning-bolt/></el-icon>
+              <el-icon size="18"><icon-tabler-bolt/></el-icon>
             </button>
           </el-tooltip>
           <el-tooltip :content="t('connections.closed')" placement="bottom" :show-after="300">
@@ -123,7 +122,7 @@ const ruleSubComponents: Record<string, any> = {
                 type="button"
                 @click="connectionStore.setShowClosed(true)"
             >
-              <el-icon size="18"><icon-mdi-history/></el-icon>
+              <el-icon size="18"><icon-tabler-history/></el-icon>
             </button>
           </el-tooltip>
         </div>
@@ -139,7 +138,7 @@ const ruleSubComponents: Record<string, any> = {
                 type="button"
                 @click="providersView = 'cards'"
             >
-              <el-icon size="18"><icon-mdi-view-module/></el-icon>
+              <el-icon size="18"><icon-tabler-layout-grid/></el-icon>
             </button>
           </el-tooltip>
           <el-tooltip :content="t('rule.providers.viewTable')" placement="bottom" :show-after="300">
@@ -148,7 +147,7 @@ const ruleSubComponents: Record<string, any> = {
                 type="button"
                 @click="providersView = 'table'"
             >
-              <el-icon size="18"><icon-mdi-view-list/></el-icon>
+              <el-icon size="18"><icon-tabler-layout-list/></el-icon>
             </button>
           </el-tooltip>
         </div>
@@ -181,11 +180,12 @@ const ruleSubComponents: Record<string, any> = {
 
 <style scoped>
 .setting-tabs-wrap {
-  margin-top: 20px;
-  margin-left: 10px;
+  /* Без собственного margin-left: шапка встаёт на ту же вертикаль, что и
+     карточки настроек ниже. Сам переключатель не тронут. */
+  margin-top: var(--px-space-5);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--px-space-3);
 }
 
 .log-level-select-wrap {
@@ -240,9 +240,8 @@ const ruleSubComponents: Record<string, any> = {
 
 /* Rule sub-tab text toggle */
 .rule-nav {
-  margin-top: 10px;
-  margin-bottom: 16px;
-  width: 95%;
+  margin-bottom: var(--px-space-4);
+  width: 100%;
 }
 
 .pill-toggle--text {

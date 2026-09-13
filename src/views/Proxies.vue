@@ -759,7 +759,7 @@ watch(groupList, (list) => {
 </script>
 
 <template>
-  <MyLayout hr-show>
+  <MyLayout>
     <template #top>
       <el-space class="space">
         <div class="title">
@@ -772,8 +772,8 @@ watch(groupList, (list) => {
                 class="proxy-option-btn"
                 :class="{ 'proxy-option-btn--testing': bulkTestRunning }"
             >
-              <icon-ep-loading v-if="bulkTestRunning"/>
-              <icon-mdi-speedometer v-else/>
+              <icon-tabler-loader-2 v-if="bulkTestRunning"/>
+              <icon-tabler-gauge v-else/>
             </el-icon>
           </el-tooltip>
 
@@ -786,8 +786,8 @@ watch(groupList, (list) => {
               placement="top"
           >
             <el-icon @click="setHide" class="proxy-option-btn">
-              <icon-mdi-eye-off v-if="proxiesStore.isHide"/>
-              <icon-mdi-eye v-else/>
+              <icon-tabler-eye-off v-if="proxiesStore.isHide"/>
+              <icon-tabler-eye v-else/>
             </el-icon>
           </el-tooltip>
 
@@ -800,8 +800,8 @@ watch(groupList, (list) => {
               placement="top"
           >
             <el-icon @click="setSort" class="proxy-option-btn">
-              <icon-mdi-sort-ascending v-if="proxiesStore.isSort"/>
-              <icon-mdi-sort v-else/>
+              <icon-tabler-sort-ascending v-if="proxiesStore.isSort"/>
+              <icon-tabler-arrows-sort v-else/>
             </el-icon>
           </el-tooltip>
 
@@ -810,9 +810,9 @@ watch(groupList, (list) => {
               placement="top"
           >
             <el-icon @click="cycleViewMode" class="proxy-option-btn">
-              <icon-mdi-arrow-expand-horizontal v-if="proxiesStore.viewMode === 'horizontal'"/>
-              <icon-mdi-arrow-expand-vertical v-else-if="proxiesStore.viewMode === 'dropdown'"/>
-              <icon-mdi-format-list-bulleted v-else/>
+              <icon-tabler-arrows-horizontal v-if="proxiesStore.viewMode === 'horizontal'"/>
+              <icon-tabler-arrows-vertical v-else-if="proxiesStore.viewMode === 'dropdown'"/>
+              <icon-tabler-list v-else/>
             </el-icon>
           </el-tooltip>
         </div>
@@ -877,7 +877,7 @@ watch(groupList, (list) => {
           v-if="proxiesStore.viewMode === 'horizontal' && menuStore.rule != 'direct' && groupList.length > 0"
       >
         <el-icon v-if="!atStart" @click="scrollLeft" class="scroll-left">
-          <icon-mdi-arrow-expand-left/>
+          <icon-tabler-chevron-left/>
         </el-icon>
         <div
             @scroll="handleScroll"
@@ -913,7 +913,7 @@ watch(groupList, (list) => {
           </button>
         </div>
         <el-icon v-if="!atEnd" class="scroll-right" @click="scrollRight">
-          <icon-mdi-arrow-expand-right/>
+          <icon-tabler-chevron-right/>
         </el-icon>
       </div>
     </template>
@@ -932,6 +932,7 @@ watch(groupList, (list) => {
             :key="node['name']"
         >
           <div class="proxy-nodes-title">
+            <icon-tabler-check v-if="node['now']" class="proxy-node-check"/>
             <span class="proxy-node-name" :title="node['name']">
               {{ node["displayName"] ?? node["name"] }}
             </span>
@@ -958,22 +959,22 @@ watch(groupList, (list) => {
               <!-- Иконка ранга: прокси внутри Smart-группы -->
               <template v-if="groupTypeMap[proxiesStore.active] === 'Smart'">
                 <el-tooltip v-if="getNodeWeightInfo(proxiesStore.active, node['name'])?.rank === 'MostUsed'" :content="t('proxies.smart.most-used-tip', { weight: getNodeWeightInfo(proxiesStore.active, node['name'])?.weight })" placement="top">
-                  <el-icon class="proxy-weight-icon"><icon-mdi-shield/></el-icon>
+                  <el-icon class="proxy-weight-icon"><icon-tabler-shield-filled/></el-icon>
                 </el-tooltip>
                 <el-tooltip v-else-if="getNodeWeightInfo(proxiesStore.active, node['name'])?.rank === 'OccasionalUsed'" :content="t('proxies.smart.occasional-used-tip', { weight: getNodeWeightInfo(proxiesStore.active, node['name'])?.weight })" placement="top">
-                  <el-icon class="proxy-weight-icon"><icon-mdi-shield-half-full/></el-icon>
+                  <el-icon class="proxy-weight-icon"><icon-tabler-shield-half/></el-icon>
                 </el-tooltip>
                 <el-tooltip v-else-if="getNodeWeightInfo(proxiesStore.active, node['name'])?.rank === 'RarelyUsed'" :content="t('proxies.smart.rarely-used-tip', { weight: getNodeWeightInfo(proxiesStore.active, node['name'])?.weight })" placement="top">
-                  <el-icon class="proxy-weight-icon"><icon-mdi-shield-outline/></el-icon>
+                  <el-icon class="proxy-weight-icon"><icon-tabler-shield/></el-icon>
                 </el-tooltip>
                 <el-tooltip v-else :content="t('proxies.smart.no-data')" placement="top">
-                  <el-icon class="proxy-weight-icon"><icon-mdi-shield-sync-outline/></el-icon>
+                  <el-icon class="proxy-weight-icon"><icon-tabler-shield-question/></el-icon>
                 </el-tooltip>
               </template>
               <!-- Иконка сводки: сам прокси является Smart-группой -->
               <template v-else-if="node['type'] === 'Smart'">
                 <el-tooltip v-if="!smartGroupWeights[node['name']]?.hasData" :content="t('proxies.smart.no-data')" placement="top">
-                  <el-icon class="proxy-weight-icon"><icon-mdi-shield-sync-outline/></el-icon>
+                  <el-icon class="proxy-weight-icon"><icon-tabler-shield-question/></el-icon>
                 </el-tooltip>
                 <el-tooltip v-else placement="top">
                   <template #content>
@@ -981,7 +982,7 @@ watch(groupList, (list) => {
                       {{ w.Name }}: {{ rankLabel(w.Rank) }} ({{ w.Weight }})
                     </div>
                   </template>
-                  <el-icon class="proxy-weight-icon"><icon-mdi-shield-check-outline/></el-icon>
+                  <el-icon class="proxy-weight-icon"><icon-tabler-shield-check/></el-icon>
                 </el-tooltip>
               </template>
               <span :class="node['toClass']">{{ node["delay"] }} ms</span>
@@ -1028,13 +1029,13 @@ watch(groupList, (list) => {
                     :class="{ 'full-view-test-btn--testing': groupLatencyTesting[group] }"
                     @click.stop="testGroupDelay(group)"
                 >
-                  <icon-ep-loading v-if="groupLatencyTesting[group]"/>
-                  <icon-mdi-speedometer v-else/>
+                  <icon-tabler-loader-2 v-if="groupLatencyTesting[group]"/>
+                  <icon-tabler-gauge v-else/>
                 </el-icon>
               </el-tooltip>
               <el-icon class="full-view-toggle">
-                <icon-ep-arrow-up v-if="expandedGroups[group]"/>
-                <icon-ep-arrow-down v-else/>
+                <icon-tabler-chevron-up v-if="expandedGroups[group]"/>
+                <icon-tabler-chevron-down v-else/>
               </el-icon>
             </div>
           </div>
@@ -1054,6 +1055,9 @@ watch(groupList, (list) => {
                   :key="group + '-' + node['name']"
               >
                 <div class="proxy-nodes-title">
+                  <!-- Выбранный узел помечен не только заливкой: цвет не должен
+                       быть единственным носителем состояния. -->
+                  <icon-tabler-check v-if="node['now']" class="proxy-node-check"/>
                   <span class="proxy-node-name" :title="node['name']">
                     {{ node["displayName"] ?? node["name"] }}
                   </span>
@@ -1080,22 +1084,22 @@ watch(groupList, (list) => {
                     <!-- Иконка ранга: прокси внутри Smart-группы -->
                     <template v-if="groupTypeMap[group] === 'Smart'">
                       <el-tooltip v-if="getNodeWeightInfo(group, node['name'])?.rank === 'MostUsed'" :content="t('proxies.smart.most-used-tip', { weight: getNodeWeightInfo(group, node['name'])?.weight })" placement="top">
-                        <el-icon class="proxy-weight-icon"><icon-mdi-shield/></el-icon>
+                        <el-icon class="proxy-weight-icon"><icon-tabler-shield-filled/></el-icon>
                       </el-tooltip>
                       <el-tooltip v-else-if="getNodeWeightInfo(group, node['name'])?.rank === 'OccasionalUsed'" :content="t('proxies.smart.occasional-used-tip', { weight: getNodeWeightInfo(group, node['name'])?.weight })" placement="top">
-                        <el-icon class="proxy-weight-icon"><icon-mdi-shield-half-full/></el-icon>
+                        <el-icon class="proxy-weight-icon"><icon-tabler-shield-half/></el-icon>
                       </el-tooltip>
                       <el-tooltip v-else-if="getNodeWeightInfo(group, node['name'])?.rank === 'RarelyUsed'" :content="t('proxies.smart.rarely-used-tip', { weight: getNodeWeightInfo(group, node['name'])?.weight })" placement="top">
-                        <el-icon class="proxy-weight-icon"><icon-mdi-shield-outline/></el-icon>
+                        <el-icon class="proxy-weight-icon"><icon-tabler-shield/></el-icon>
                       </el-tooltip>
                       <el-tooltip v-else :content="t('proxies.smart.no-data')" placement="top">
-                        <el-icon class="proxy-weight-icon"><icon-mdi-shield-sync-outline/></el-icon>
+                        <el-icon class="proxy-weight-icon"><icon-tabler-shield-question/></el-icon>
                       </el-tooltip>
                     </template>
                     <!-- Иконка сводки: сам прокси является Smart-группой -->
                     <template v-else-if="node['type'] === 'Smart'">
                       <el-tooltip v-if="!smartGroupWeights[node['name']]?.hasData" :content="t('proxies.smart.no-data')" placement="top">
-                        <el-icon class="proxy-weight-icon"><icon-mdi-shield-sync-outline/></el-icon>
+                        <el-icon class="proxy-weight-icon"><icon-tabler-shield-question/></el-icon>
                       </el-tooltip>
                       <el-tooltip v-else placement="top">
                         <template #content>
@@ -1103,7 +1107,7 @@ watch(groupList, (list) => {
                             {{ w.Name }}: {{ rankLabel(w.Rank) }} ({{ w.Weight }})
                           </div>
                         </template>
-                        <el-icon class="proxy-weight-icon"><icon-mdi-shield-check-outline/></el-icon>
+                        <el-icon class="proxy-weight-icon"><icon-tabler-shield-check/></el-icon>
                       </el-tooltip>
                     </template>
                     <span :class="node['toClass']">{{ node["delay"] }} ms</span>
@@ -1132,15 +1136,13 @@ watch(groupList, (list) => {
 }
 
 .title {
-  font-size: 32px;
+  font-size: var(--px-fs-display);
   font-weight: bold;
-  margin-left: 10px;
 }
 
 .proxy-option {
-  margin-left: 10px;
   font-size: 30px;
-  padding-top: 10px;
+  padding-top: var(--px-space-3);
 }
 
 .proxy-option-btn {
@@ -1161,8 +1163,7 @@ watch(groupList, (list) => {
 .button-container {
   display: flex;
   align-items: center;
-  width: 95%;
-  margin-left: 10px;
+  width: 100%;
   min-height: 50px;
 }
 
@@ -1251,9 +1252,9 @@ watch(groupList, (list) => {
      в сетке полного вида; ellipsis при этом не срабатывал, потому что внутри
      переросшей карточки имени хватало места. */
   min-width: 0;
-  border: 2px solid var(--sub-card-border);
-  border-radius: 20px;
-  padding: 8px 12px;
+  border: 1px solid var(--sub-card-border);
+  border-radius: var(--px-r-md);
+  padding: var(--px-space-2) var(--px-space-3);
   background: var(--sub-card-bg);
   display: flex;
   flex-direction: column;
@@ -1267,7 +1268,7 @@ watch(groupList, (list) => {
 .proxy-nodes-card:hover,
 .proxy-node-select {
   background-color: var(--left-item-selected-bg);
-  border: 2px solid var(--text-color);
+  border-color: var(--text-color);
   cursor: pointer;
 }
 
@@ -1281,6 +1282,12 @@ watch(groupList, (list) => {
   align-items: center;
   gap: 6px;
   min-width: 0;
+}
+
+.proxy-node-check {
+  flex-shrink: 0;
+  font-size: 15px;
+  color: var(--text-color);
 }
 
 .proxy-node-name {
@@ -1378,8 +1385,8 @@ watch(groupList, (list) => {
 .dropdown {
   position: relative;
   display: inline-block;
-  width: 95%;
-  margin: 12px 10px 5px 10px;
+  width: 100%;
+  margin: var(--px-space-3) 0 var(--px-space-1);
 }
 
 .dropdown-btn {
@@ -1470,10 +1477,15 @@ watch(groupList, (list) => {
 }
 
 .full-view-group {
-  border: 2px solid var(--sub-card-border);
-  border-radius: 20px;
-  background: var(--sub-card-bg);
-  box-shadow: var(--left-nav-shadow);
+  border: 1px solid var(--sub-card-border);
+  border-radius: var(--px-r-lg);
+  /* Подложка ложится поверх штатной заливки: при нулевой плотности (тёмные
+     обои) карточка выглядит ровно как раньше. */
+  background:
+    linear-gradient(rgba(var(--px-scrim-rgb), var(--px-scrim-a)),
+    rgba(var(--px-scrim-rgb), var(--px-scrim-a))),
+    var(--sub-card-bg);
+  box-shadow: var(--px-elev-1);
   overflow: hidden;
 }
 
@@ -1608,7 +1620,7 @@ watch(groupList, (list) => {
   width: auto;
   max-width: none;
   margin-top: 0;
-  border-radius: 12px; /* concentric: group(20) - padding(8) = 12 */
+  border-radius: var(--px-r-sm); /* concentric: group(20) - padding(8) */
   box-sizing: border-box;
 }
 </style>

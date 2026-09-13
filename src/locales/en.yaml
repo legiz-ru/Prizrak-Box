@@ -109,6 +109,11 @@ setting:
   tab:
     app: App Settings
     core: Core Settings
+  hints:
+    port: HTTP and SOCKS on one port
+    dns: Intercept applications' DNS queries
+    independentDelayTest: A separate test URL for each group
+    secret: Access key for the external dashboard
   mihomo:
     port: Mixed-Port
     port-error: The port number must be greater than 0 and less than 65535

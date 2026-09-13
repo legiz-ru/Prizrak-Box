@@ -16,14 +16,18 @@ onBeforeMount(() => {
 })
 
 // 主题切换
-const changeTheme = (useWhite:boolean) => {
-  if (useWhite) {
-    document.documentElement.classList.remove('dark')
-    document.documentElement.setAttribute('data-theme', '');
-  } else {
-    document.documentElement.classList.add('dark')
-    document.documentElement.setAttribute('data-theme', 'dark');
-  }
+//
+// useWhite === "фон тёмный, текст белый". Element Plus включает тёмную тему по
+// классу `dark` на <html> — значит он должен совпадать с useWhite, а не быть
+// обратным ему: иначе диалоги, селекты и тултипы приезжают светлыми поверх
+// тёмного приложения (и наоборот).
+//
+// Атрибут data-theme трогать нельзя: в basic.css `[data-theme="dark"]`
+// исторически означает ровно противоположное — «фон светлый». Имя legacy,
+// значения под него уже написаны.
+const changeTheme = (useWhite: boolean) => {
+  document.documentElement.classList.toggle('dark', useWhite);
+  document.documentElement.setAttribute('data-theme', useWhite ? '' : 'dark');
 }
 
 //

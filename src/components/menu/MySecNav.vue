@@ -120,7 +120,7 @@ onMounted(() => {
     >
       <el-text class="nav-text">
         <el-icon>
-          <icon-mdi-source-branch/>
+          <icon-tabler-git-branch/>
         </el-icon>
         <span class="nav-info"
         >{{ $t("sec-nav.rule") }} · {{ menuStore.ruleNum }}</span
@@ -136,7 +136,7 @@ onMounted(() => {
     >
       <el-text class="nav-text">
         <el-icon>
-          <icon-mdi-lan-connect/>
+          <icon-tabler-network/>
         </el-icon>
         <span class="nav-info">{{ $t("sec-nav.conn") }} · {{ conn }}</span>
       </el-text>
@@ -148,7 +148,7 @@ onMounted(() => {
     >
       <el-text class="nav-text">
         <el-icon>
-          <icon-mdi-text-box-outline/>
+          <icon-tabler-file-text/>
         </el-icon>
         <span class="nav-info">{{ $t("sec-nav.log") }}</span>
       </el-text>

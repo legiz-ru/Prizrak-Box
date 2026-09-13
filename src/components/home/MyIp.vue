@@ -194,7 +194,7 @@ onMounted(async () => {
                 :content="$t('home.ip.service-tip')"
                 placement="top">
               <el-icon size="18" class="ipServiceInfo">
-                <icon-mdi-information-outline/>
+                <icon-tabler-info-circle/>
               </el-icon>
             </el-tooltip>
             <el-tooltip
@@ -203,7 +203,7 @@ onMounted(async () => {
               <el-icon size="18"
                        @click="getIpInfo(false)"
                        class="refreshIp">
-                <icon-mdi-refresh/>
+                <icon-tabler-refresh/>
               </el-icon>
             </el-tooltip>
           </div>
@@ -227,7 +227,7 @@ onMounted(async () => {
                     @keydown.space.prevent.stop="goIpInfo()"
                     tabindex="0"
                 >
-                  <icon-mdi-open-in-new/>
+                  <icon-tabler-external-link/>
                 </a>
               </span>
             </li>
@@ -258,7 +258,7 @@ onMounted(async () => {
                     @keydown.space.prevent.stop="goAsnInfo()"
                     tabindex="0"
                 >
-                  <icon-mdi-open-in-new/>
+                  <icon-tabler-external-link/>
                 </a>
               </span>
             </li>

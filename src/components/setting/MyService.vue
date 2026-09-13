@@ -185,104 +185,35 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="service-setting">
-    <div class="service-setting__header">
-      <strong>{{ t('service.mode') }}:</strong>
-      <el-tag :type="statusType" size="small" class="service-setting__status">
-        {{ statusText }}
-      </el-tag>
-    </div>
-    <p class="service-setting__description">{{ t('service.mode-description') }}</p>
-    <div class="service-setting__actions">
-      <button class="pill-btn" :disabled="loading" @click="installService">
-        <icon-mdi-loading v-if="loading" class="pill-spin"/>
-        {{ t('service.install-btn') }}
-      </button>
-      <button
-          v-if="serviceStatus.installed || serviceStatus.running"
-          class="pill-btn pill-btn--danger"
-          :disabled="loading"
-          @click="uninstallService"
-      >
-        <icon-mdi-loading v-if="loading" class="pill-spin"/>
-        {{ t('service.uninstall-btn') }}
-      </button>
-      <button class="pill-btn" :disabled="loading" @click="fetchServiceStatus">
-        <icon-mdi-loading v-if="loading" class="pill-spin"/>
-        {{ t('service.check-status') }}
-      </button>
-    </div>
-  </div>
+  <!-- Только контрол: метку «Режим сервиса» и пояснение держит SettingRow. -->
+  <el-tag :type="statusType" size="small" class="service-status">{{ statusText }}</el-tag>
+  <button class="px-btn" :disabled="loading" @click="installService">
+    <icon-tabler-loader-2 v-if="loading" class="px-spin"/>
+    {{ t('service.install-btn') }}
+  </button>
+  <button
+      v-if="serviceStatus.installed || serviceStatus.running"
+      class="px-btn px-btn--danger"
+      :disabled="loading"
+      @click="uninstallService"
+  >
+    {{ t('service.uninstall-btn') }}
+  </button>
+  <button class="px-btn px-btn--quiet" :disabled="loading" @click="fetchServiceStatus">
+    {{ t('service.check-status') }}
+  </button>
 </template>
 
 <style scoped>
-.service-setting {
-  margin: 8px 0;
+.service-status {
+  flex-shrink: 0;
 }
 
-.service-setting__header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 18px;
+.px-spin {
+  animation: px-spin 1s linear infinite;
 }
 
-.service-setting__status {
-  margin-left: 8px;
-  --el-tag-border-radius: 999px;
-  border-radius: 999px;
-}
-
-.service-setting__description {
-  font-size: 14px;
-  color: var(--text-color);
-  opacity: 0.7;
-  margin: 8px 0;
-}
-
-.service-setting__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.pill-btn {
-  border: none;
-  border-radius: 999px;
-  background-color: var(--left-nav-btn-bg);
-  color: var(--text-color);
-  padding: 6px 18px;
-  font-size: 14px;
-  cursor: pointer;
-  box-shadow: var(--left-nav-shadow);
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-}
-
-.pill-btn:hover {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-.pill-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.pill-btn--danger:hover {
-  background-color: #f56c6c;
-}
-
-.pill-spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
+@keyframes px-spin {
   to { transform: rotate(360deg); }
 }
 </style>

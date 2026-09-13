@@ -241,6 +241,11 @@ const displayData = computed(() =>
   connectionStore.showClosed ? connectionStore.closedConnections : paginatedData.value
 );
 
+// Отфильтрованный список считается один раз на изменение данных или запроса.
+// Раньше filterData() вызывалась прямо в шаблоне, то есть на каждый рендер —
+// а рендер здесь происходит раз в секунду, на каждом пакете статистики.
+const visibleConnections = computed(() => filterData(displayData.value) ?? []);
+
 function openLogDialog(item: any) {
   logItem.value = item
   logDialogVisible.value = true
@@ -388,62 +393,58 @@ function closeAll() {
   </div>
 
   <div class="content" v-if="connectionStore.viewMode === 'list'">
-    <div class="info-list">
-      <el-row class="info" v-for="(item, i) in filterData(displayData)" :key="i">
-        <el-col :span="24">
-          <div class="info-card" :class="{ 'info-card--live': isLive(item) }">
-            <div class="info-card__main">
-              <div class="info-card__host">{{ fHost(item.metadata) }}</div>
-              <div class="info-card__sub">
-                <span class="sub-type">{{ formatConnType(item.metadata) }}</span>
-                <template v-if="item.metadata.process">
-                  <span class="sub-dot">·</span>
-                  <span class="sub-proc">{{ item.metadata.process }}</span>
-                </template>
-                <template v-if="item.rule || item.chains?.length">
-                  <span class="sub-dot">·</span>
-                  <span class="sub-route" :title="[[item.rule, item.rulePayload].filter(Boolean).join(' / '), item.chains?.length ? formatChains(item.chains) : ''].filter(Boolean).join('  ·  ')">
-                    <template v-if="item.rule">{{ [item.rule, item.rulePayload].filter(Boolean).join(' / ') }}<template v-if="item.chains?.length"> · </template></template><template v-if="item.chains?.length">{{ formatChains(item.chains) }}</template>
-                  </span>
-                </template>
-              </div>
-            </div>
-            <div class="info-card__meta">
-              <div class="info-card__traffic">
-                <span class="info-traffic-item" :title="$t('connections.upload')">
-                  <icon-mdi-arrow-up class="traffic-icon traffic-icon--up"/>
-                  {{ prettyBytes(item.upload) }}
-                </span>
-                <span class="info-traffic-item" :title="$t('connections.download')">
-                  <icon-mdi-arrow-down class="traffic-icon traffic-icon--down"/>
-                  {{ prettyBytes(item.download) }}
-                </span>
-              </div>
-              <div class="info-card__speed" v-if="isLive(item)">
-                <span class="speed-item speed-item--up">↑ {{ prettyBytes(item.uploadSpeed) }}/s</span>
-                <span class="speed-item speed-item--down">↓ {{ prettyBytes(item.downloadSpeed) }}/s</span>
-              </div>
-              <div class="info-card__time" v-else>{{ fDate(item.start) }}</div>
-            </div>
-            <div class="info-card__actions">
-              <span class="icon-btn" role="button" tabindex="0"
-                    :title="$t('connections.view-log')"
-                    @click="openLogDialog(item)"
-                    @keydown.enter.prevent="openLogDialog(item)"
-                    @keydown.space.prevent="openLogDialog(item)">
-                <icon-mdi-information-outline/>
-              </span>
-              <span class="icon-btn" role="button" tabindex="0"
-                    :title="$t('connections.copy-log')"
-                    @click="copyLog(item)"
-                    @keydown.enter.prevent="copyLog(item)"
-                    @keydown.space.prevent="copyLog(item)">
-                <icon-mdi-content-copy/>
-              </span>
-            </div>
+    <div class="conn-list px-surface">
+      <p v-if="visibleConnections.length === 0" class="conn-empty">{{ $t('connections.noData') }}</p>
+      <div v-for="item in visibleConnections" :key="item.id" class="conn-row">
+        <div class="conn-row__main">
+          <div class="conn-row__host">{{ fHost(item.metadata) }}</div>
+          <div class="conn-row__meta">
+            <!-- Статус словом и точкой, а не только цветом строки. -->
+            <span class="conn-chip" :class="isLive(item) ? 'conn-chip--live' : 'conn-chip--done'">
+              <i></i>{{ isLive(item) ? $t('connections.active') : $t('connections.closed') }}
+            </span>
+            <span>{{ formatConnType(item.metadata) }}</span>
+            <template v-if="item.metadata.process">
+              <span class="conn-dot">·</span>
+              <span>{{ item.metadata.process }}</span>
+            </template>
+            <template v-if="item.rule || item.chains?.length">
+              <span class="conn-dot">·</span>
+              <span
+                  class="conn-route"
+                  :title="[[item.rule, item.rulePayload].filter(Boolean).join(' / '), item.chains?.length ? formatChains(item.chains) : ''].filter(Boolean).join('  ·  ')"
+              ><template v-if="item.rule">{{ [item.rule, item.rulePayload].filter(Boolean).join(' / ') }}<template v-if="item.chains?.length"> · </template></template><template v-if="item.chains?.length">{{ formatChains(item.chains) }}</template></span>
+            </template>
           </div>
-        </el-col>
-      </el-row>
+        </div>
+
+        <!-- Мгновенная скорость и накопленный объём разведены по колонкам,
+             цифры табличные: значения обновляются раз в секунду и при обычных
+             пропорциональных цифрах колонка дёргается. -->
+        <div class="conn-row__speed px-num">
+          <template v-if="isLive(item)">
+            <span class="conn-up"><icon-tabler-arrow-up/>{{ prettyBytes(item.uploadSpeed) }}/s</span>
+            <span class="conn-down"><icon-tabler-arrow-down/>{{ prettyBytes(item.downloadSpeed) }}/s</span>
+          </template>
+          <span v-else class="conn-time">{{ fDate(item.start) }}</span>
+        </div>
+
+        <div class="conn-row__traffic px-num">
+          <span :title="$t('connections.upload')"><icon-tabler-arrow-up/>{{ prettyBytes(item.upload) }}</span>
+          <span :title="$t('connections.download')"><icon-tabler-arrow-down/>{{ prettyBytes(item.download) }}</span>
+        </div>
+
+        <div class="conn-row__actions">
+          <button class="px-iconbtn px-iconbtn--plain" :title="$t('connections.view-log')"
+                  :aria-label="$t('connections.view-log')" @click="openLogDialog(item)">
+            <icon-tabler-info-circle/>
+          </button>
+          <button class="px-iconbtn px-iconbtn--plain" :title="$t('connections.copy-log')"
+                  :aria-label="$t('connections.copy-log')" @click="copyLog(item)">
+            <icon-tabler-copy/>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -453,9 +454,9 @@ function closeAll() {
 
   <div class="content" v-else-if="connectionStore.viewMode === 'process'">
     <!-- Process list -->
-    <div v-if="selectedProcess === null" class="info-list">
+    <div v-if="selectedProcess === null" class="conn-list px-surface">
       <el-row
-          class="info process-row"
+          class="conn-row process-row"
           v-for="group in processGroups.filter(g => !search || g.processName.toLowerCase().includes(search.toLowerCase()))"
           :key="group.processPath"
           @click="selectedProcess = group.processPath"
@@ -472,7 +473,7 @@ function closeAll() {
                 <ellipse cx="25.9047" cy="20.9553" rx="1.31286" ry="2.3244" fill="#0A0A0A"/>
               </svg>
               <img v-else-if="group.iconUrl" :src="group.iconUrl" class="process-app-icon" :alt="group.processName" />
-              <icon-mdi-application-outline v-else class="process-app-icon-placeholder" />
+              <icon-tabler-app-window v-else class="process-app-icon-placeholder" />
             </div>
             <div class="process-item-body">
               <div class="process-name-row">
@@ -487,7 +488,7 @@ function closeAll() {
                 <span class="ot">{{ $t('connections.upload') }}: </span>{{ prettyBytes(group.upload) }}
               </div>
             </div>
-            <icon-mdi-chevron-right class="process-chevron" />
+            <icon-tabler-chevron-right class="process-chevron" />
           </div>
         </el-col>
       </el-row>
@@ -499,58 +500,55 @@ function closeAll() {
     <!-- Selected process connections -->
     <div v-else class="process-connections-wrap">
       <div class="process-back-bar" @click="selectedProcess = null">
-        <icon-mdi-arrow-left class="process-back-icon" />
+        <icon-tabler-arrow-left class="process-back-icon" />
         <span>{{ $t('connections.back') }}</span>
         <span class="process-back-name">— {{ processGroups.find(g => g.processPath === selectedProcess)?.processName }}</span>
       </div>
-      <div class="info-list">
-        <el-row class="info" v-for="(item, i) in selectedProcessConnections" :key="i">
-          <el-col :span="24">
-            <div class="info-card" :class="{ 'info-card--live': isLive(item) }">
-              <div class="info-card__main">
-                <div class="info-card__host">{{ fHost(item.metadata) }}</div>
-                <div class="info-card__sub">
-                  <span class="sub-type">{{ formatConnType(item.metadata) }}</span>
-                  <template v-if="item.rule || item.chains?.length">
-                    <span class="sub-dot">·</span>
-                    <span class="sub-route" :title="[[item.rule, item.rulePayload].filter(Boolean).join(' / '), item.chains?.length ? formatChains(item.chains) : ''].filter(Boolean).join('  ·  ')">
-                      <template v-if="item.rule">{{ [item.rule, item.rulePayload].filter(Boolean).join(' / ') }}<template v-if="item.chains?.length"> · </template></template><template v-if="item.chains?.length">{{ formatChains(item.chains) }}</template>
-                    </span>
-                  </template>
-                </div>
-              </div>
-              <div class="info-card__meta">
-                <div class="info-card__traffic">
-                  <span class="info-traffic-item" :title="$t('connections.upload')">
-                    <icon-mdi-arrow-up class="traffic-icon traffic-icon--up"/>
-                    {{ prettyBytes(item.upload) }}
-                  </span>
-                  <span class="info-traffic-item" :title="$t('connections.download')">
-                    <icon-mdi-arrow-down class="traffic-icon traffic-icon--down"/>
-                    {{ prettyBytes(item.download) }}
-                  </span>
-                </div>
-                <div class="info-card__speed" v-if="isLive(item)">
-                  <span class="speed-item speed-item--up">↑ {{ prettyBytes(item.uploadSpeed) }}/s</span>
-                  <span class="speed-item speed-item--down">↓ {{ prettyBytes(item.downloadSpeed) }}/s</span>
-                </div>
-                <div class="info-card__time" v-else>{{ fDate(item.start) }}</div>
-              </div>
-              <div class="info-card__actions">
-                <span class="icon-btn" role="button" tabindex="0" :title="$t('connections.view-log')"
-                      @click.stop="openLogDialog(item)" @keydown.enter.prevent="openLogDialog(item)" @keydown.space.prevent="openLogDialog(item)">
-                  <icon-mdi-information-outline/>
-                </span>
-                <span class="icon-btn" role="button" tabindex="0" :title="$t('connections.copy-log')"
-                      @click.stop="copyLog(item)" @keydown.enter.prevent="copyLog(item)" @keydown.space.prevent="copyLog(item)">
-                  <icon-mdi-content-copy/>
-                </span>
-              </div>
-            </div>
-          </el-col>
-        </el-row>
-        <div v-if="selectedProcessConnections.length === 0" class="process-empty">
+      <div class="conn-list px-surface">
+        <p v-if="selectedProcessConnections.length === 0" class="conn-empty">
           {{ $t('connections.noData') }}
+        </p>
+        <div v-for="item in selectedProcessConnections" :key="item.id" class="conn-row">
+          <div class="conn-row__main">
+            <div class="conn-row__host">{{ fHost(item.metadata) }}</div>
+            <div class="conn-row__meta">
+              <span class="conn-chip" :class="isLive(item) ? 'conn-chip--live' : 'conn-chip--done'">
+                <i></i>{{ isLive(item) ? $t('connections.active') : $t('connections.closed') }}
+              </span>
+              <span>{{ formatConnType(item.metadata) }}</span>
+              <template v-if="item.rule || item.chains?.length">
+                <span class="conn-dot">·</span>
+                <span
+                    class="conn-route"
+                    :title="[[item.rule, item.rulePayload].filter(Boolean).join(' / '), item.chains?.length ? formatChains(item.chains) : ''].filter(Boolean).join('  ·  ')"
+                ><template v-if="item.rule">{{ [item.rule, item.rulePayload].filter(Boolean).join(' / ') }}<template v-if="item.chains?.length"> · </template></template><template v-if="item.chains?.length">{{ formatChains(item.chains) }}</template></span>
+              </template>
+            </div>
+          </div>
+
+          <div class="conn-row__speed px-num">
+            <template v-if="isLive(item)">
+              <span class="conn-up"><icon-tabler-arrow-up/>{{ prettyBytes(item.uploadSpeed) }}/s</span>
+              <span class="conn-down"><icon-tabler-arrow-down/>{{ prettyBytes(item.downloadSpeed) }}/s</span>
+            </template>
+            <span v-else class="conn-time">{{ fDate(item.start) }}</span>
+          </div>
+
+          <div class="conn-row__traffic px-num">
+            <span :title="$t('connections.upload')"><icon-tabler-arrow-up/>{{ prettyBytes(item.upload) }}</span>
+            <span :title="$t('connections.download')"><icon-tabler-arrow-down/>{{ prettyBytes(item.download) }}</span>
+          </div>
+
+          <div class="conn-row__actions">
+            <button class="px-iconbtn px-iconbtn--plain" :title="$t('connections.view-log')"
+                    :aria-label="$t('connections.view-log')" @click.stop="openLogDialog(item)">
+              <icon-tabler-info-circle/>
+            </button>
+            <button class="px-iconbtn px-iconbtn--plain" :title="$t('connections.copy-log')"
+                    :aria-label="$t('connections.copy-log')" @click.stop="copyLog(item)">
+              <icon-tabler-copy/>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -569,12 +567,12 @@ function closeAll() {
           <el-button class="log-dialog__action log-dialog__copy" circle
                      :title="$t('connections.copy-log')" :aria-label="$t('connections.copy-log')"
                      @click="copyLog()">
-            <icon-mdi-content-copy/>
+            <icon-tabler-copy/>
           </el-button>
           <el-button class="log-dialog__action log-dialog__close" circle
                      :title="$t('connections.dialog-close')" :aria-label="$t('connections.dialog-close')"
                      @click="closeLogDialog()">
-            <icon-mdi-close/>
+            <icon-tabler-x/>
           </el-button>
         </div>
       </div>
@@ -592,19 +590,19 @@ function closeAll() {
               </template>
               <div class="log-popover__inner">
                 <button class="log-popover__btn" @click="copyText(row.value)">
-                  <icon-mdi-content-copy class="log-popover__icon"/>
+                  <icon-tabler-copy class="log-popover__icon"/>
                   {{ $t('connections.copy-value') }}
                 </button>
                 <button v-if="row.type === 'ip'" class="log-popover__btn" @click="openInBrowser('https://ipinfo.io/' + row.value)">
-                  <icon-mdi-open-in-new class="log-popover__icon"/>
+                  <icon-tabler-external-link class="log-popover__icon"/>
                   ipinfo.io
                 </button>
                 <button v-if="row.type === 'host'" class="log-popover__btn" @click="openInBrowser('https://' + row.value)">
-                  <icon-mdi-open-in-new class="log-popover__icon"/>
+                  <icon-tabler-external-link class="log-popover__icon"/>
                   {{ $t('connections.open-in-browser') }}
                 </button>
                 <button v-if="(row.type === 'process' || row.type === 'path') && row.explorerPath" class="log-popover__btn" @click="showInExplorer(row.explorerPath!)">
-                  <icon-mdi-folder-open-outline class="log-popover__icon"/>
+                  <icon-tabler-folder-open class="log-popover__icon"/>
                   {{ $t('connections.show-in-explorer') }}
                 </button>
               </div>
@@ -617,20 +615,18 @@ function closeAll() {
 </template>
 
 <style scoped>
+/* Панель инструментов. Внешние поля контента задаёт MyLayout, поэтому здесь
+   больше нет собственных width: 95% и margin-left: 10px — раньше из-за них
+   каждый экран стоял на своём отступе. */
 .conn {
-  width: 95%;
-  margin-left: 10px;
-  margin-top: 2px;
-}
-
-.search {
-  width: 100%;
-  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--px-space-3);
 }
 
 .search :deep(.custom-input) {
-  border-radius: 999px;
-  padding-left: 16px;
+  border-radius: var(--px-r-pill);
+  padding-left: var(--px-space-4);
 }
 
 .search :deep(.clear-button) {
@@ -639,45 +635,41 @@ function closeAll() {
 
 .pill-btn {
   border: none;
-  border-radius: 999px;
+  border-radius: var(--px-r-pill);
   background-color: var(--left-nav-btn-bg);
+  box-shadow: var(--px-elev-1);
   color: var(--text-color);
-  padding: 9px 18px;
-  font-size: 14px;
+  font-family: inherit;
+  font-size: var(--px-fs-body);
+  padding: var(--px-space-2) var(--px-space-4);
   cursor: pointer;
-  box-shadow: var(--left-nav-shadow);
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-  white-space: nowrap;
+  transition: background-color var(--px-dur) var(--px-ease);
 }
 
 .pill-btn:hover {
   background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
 }
 
 .pill-toggle {
   display: inline-flex;
-  border-radius: 999px;
+  border-radius: var(--px-r-pill);
   background-color: var(--left-nav-btn-bg);
-  box-shadow: var(--left-nav-shadow);
-  padding: 4px;
-  gap: 4px;
-}
-
-.pill-toggle:hover {
-  box-shadow: var(--left-nav-hover-shadow);
+  box-shadow: var(--px-elev-1);
+  padding: var(--px-space-1);
+  gap: var(--px-space-1);
 }
 
 .pill-toggle__btn {
   border: none;
-  border-radius: 999px;
+  border-radius: var(--px-r-pill);
   background: transparent;
   color: var(--text-color);
-  cursor: pointer;
-  font-size: 14px;
-  padding: 5px 14px;
+  font-family: inherit;
+  font-size: var(--px-fs-body);
+  padding: var(--px-space-1) var(--px-space-3);
   white-space: nowrap;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  transition: background-color var(--px-dur) var(--px-ease);
 }
 
 .pill-toggle__btn:hover {
@@ -686,193 +678,172 @@ function closeAll() {
 
 .pill-toggle__btn.is-active {
   background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
+  box-shadow: var(--px-elev-2);
 }
 
+/* --- Список соединений --- */
 .content {
-  border: 2px solid var(--text-color);
-  margin-top: 20px;
-  width: calc(95% - 10px);
-  margin-left: 10px;
-  border-radius: 20px;
-  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+  margin-top: var(--px-space-3);
+  display: flex;
 }
 
-.info-list {
-  max-height: calc(100vh - 250px);
+.conn-list {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
-.info {
-  border-bottom: 1px solid var(--sub-card-border);
-  padding: 0;
-  background-color: var(--sub-card-bg);
-  transition: background-color 0.15s ease;
+.conn-list::-webkit-scrollbar { width: 5px; }
+.conn-list::-webkit-scrollbar-track { background: transparent; }
+.conn-list::-webkit-scrollbar-thumb { background: var(--scrollbar-bg); border-radius: 2px; }
+.conn-list::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover-bg); }
+
+.conn-empty {
+  margin: 0;
+  padding: var(--px-space-6);
+  text-align: center;
+  color: var(--px-text-muted);
+  font-size: var(--px-fs-small);
 }
 
-.info:hover {
-  background-color: var(--left-item-selected-bg);
-}
-
-.info:last-child {
-  border-bottom: none;
-}
-
-.info-card {
+/* Строка вместо карточки: на экран помещается вдвое больше соединений, а
+   разделители дают ту же группировку, что рамки, но без шума. */
+.conn-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  column-gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 132px 104px auto;
   align-items: center;
-  padding: 8px 10px;
-  font-size: 14px;
-  line-height: 1.45;
+  gap: var(--px-space-4);
+  padding: var(--px-space-2) var(--px-row-pad-x);
+  border-top: 1px solid var(--sub-card-border);
+  transition: background-color var(--px-dur-fast) var(--px-ease);
 }
 
-/* Active (live) connection: left accent stripe, no blur — matches the
-   profile-card visual language while flagging connections moving traffic. */
-.info-card--live {
-  box-shadow: inset 3px 0 0 var(--el-color-primary);
+.conn-row:first-of-type {
+  border-top: 0;
 }
 
-.info-card__main {
+.conn-row:hover {
+  background-color: var(--left-nav-btn-hover-bg);
+}
+
+.conn-row__main {
   min-width: 0;
 }
 
-.info-card__host {
-  font-size: 14px;
+.conn-row__host {
+  font-size: var(--px-fs-body);
   font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-bottom: 2px;
+  overflow-wrap: anywhere;
+  /* Хост нужно уметь выделить: глобально стоит user-select: none. */
+  user-select: text;
 }
 
-.info-card__sub {
+.conn-row__meta {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  color: var(--text-color);
+  flex-wrap: wrap;
+  gap: var(--px-space-2);
+  margin-top: 3px;
+  font-size: var(--px-fs-caption);
+  color: var(--px-text-muted);
   min-width: 0;
+}
+
+.conn-dot {
+  opacity: .5;
+}
+
+.conn-route {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.conn-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 8px;
+  border: 1px solid currentColor;
+  border-radius: var(--px-r-pill);
+  font-size: 10.5px;
+  font-weight: 700;
   white-space: nowrap;
 }
 
-.sub-type {
-  flex-shrink: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+.conn-chip i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
-.sub-dot {
-  opacity: 0.5;
-  flex-shrink: 0;
+.conn-chip--live {
+  color: var(--px-ok);
 }
 
-.sub-proc {
-  flex-shrink: 0;
-  max-width: 32%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.conn-chip--done {
+  color: var(--px-text-muted);
 }
 
-.sub-route {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
-.info-card__meta {
+.conn-row__speed,
+.conn-row__traffic {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 2px;
-  min-width: 0;
-}
-
-.info-card__traffic {
-  display: flex;
-  gap: 10px;
-  font-size: 13px;
-  white-space: nowrap;
-}
-
-.info-traffic-item {
-  display: flex;
-  align-items: center;
   gap: 3px;
-}
-
-.traffic-icon {
-  width: 13px;
-  height: 13px;
-  flex-shrink: 0;
-}
-
-.traffic-icon--up {
-  color: #f59e0b;
-}
-
-.traffic-icon--down {
-  color: #10b981;
-}
-
-.info-card__speed {
-  display: flex;
-  gap: 8px;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: var(--px-fs-caption);
   white-space: nowrap;
 }
 
-.speed-item--up {
-  color: #f59e0b;
-}
-
-.speed-item--down {
-  color: #10b981;
-}
-
-.info-card__time {
-  font-size: 11px;
-  color: var(--el-text-color-secondary);
-  white-space: nowrap;
-}
-
-.info-card__actions {
-  /* Sit at the left edge of the card (before host/meta) while keeping the DOM
-     order; the card grid is actions | main | meta. */
-  order: -1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.icon-btn {
+.conn-row__speed span,
+.conn-row__traffic span {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  cursor: pointer;
-  color: var(--text-color);
-  transition: color 0.2s ease, background-color 0.2s ease;
+  gap: 5px;
 }
 
-.icon-btn svg {
-  width: 18px;
-  height: 18px;
-  display: block;
+.conn-row__speed svg,
+.conn-row__traffic svg {
+  width: 12px;
+  height: 12px;
 }
 
-.icon-btn:hover,
-.icon-btn:focus {
-  color: var(--left-item-selected-bg);
-  background-color: rgba(255, 255, 255, 0.08);
-  outline: none;
+.conn-row__traffic {
+  color: var(--px-text-muted);
 }
+
+.conn-up {
+  color: var(--px-info);
+}
+
+.conn-down {
+  color: var(--px-ok);
+}
+
+.conn-time {
+  color: var(--px-text-muted);
+}
+
+.conn-row__actions {
+  display: flex;
+  gap: var(--px-space-1);
+  justify-content: flex-end;
+}
+
+/* Действия проявляются по наведению, но остаются доступными с клавиатуры. */
+.conn-row__actions .px-iconbtn {
+  opacity: .45;
+}
+
+.conn-row:hover .px-iconbtn,
+.conn-row__actions .px-iconbtn:focus-visible {
+  opacity: 1;
+}
+
 
 .log-dialog__header {
   display: flex;
@@ -1130,10 +1101,16 @@ function closeAll() {
 .process-connections-wrap {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: var(--px-space-2);
 }
 
-.process-connections-wrap .info-list {
-  max-height: calc(100vh - 300px);
+/* Строка процесса живёт в той же сетке, что и строка соединения, но её
+   содержимое занимает всю ширину: колонок со скоростью здесь нет. */
+.process-row {
+  display: block;
+  cursor: pointer;
 }
 
 .process-back-bar {

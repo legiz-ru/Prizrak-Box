@@ -1,0 +1,364 @@
+/* Design tokens.
+ *
+ * Loaded after basic.css, which keeps every legacy variable (--text-color,
+ * --left-*, --sub-card-*, --right-*) with its current value. Nothing here
+ * renames or overrides those: the left menu, the profile cards and the proxy
+ * list keep reading the variables they already read and render exactly as
+ * before. This file only adds the vocabulary the redesigned screens use.
+ *
+ * Two tokens are written at runtime by src/util/theme.ts, which derives them
+ * from the wallpaper: --px-accent (the selection colour) and --px-scrim-a
+ * (how opaque a content substrate must be for text to stay readable on that
+ * particular wallpaper — 0 on dark ones, so they look untouched).
+ */
+
+:root {
+    /* ---- Spacing. One 4/8 scale for every panel, row and gap. ---- */
+    --px-space-1: 4px;
+    --px-space-2: 8px;
+    --px-space-3: 12px;
+    --px-space-4: 16px;
+    --px-space-5: 20px;
+    --px-space-6: 24px;
+    --px-space-8: 32px;
+
+    /* Content insets of the right pane. Every section uses these instead of
+       its own margin-left: 10px / width: 95% pair. */
+    --px-pane-pad-x: 18px;
+    --px-pane-pad-y: 16px;
+    --px-section-gap: 14px;
+    --px-row-pad-x: 18px;
+    --px-row-pad-y: 9px;
+    --px-row-min-h: 52px;
+
+    /* ---- Radii ---- */
+    --px-r-xs: 8px;
+    --px-r-sm: 10px;
+    --px-r-md: 14px;
+    --px-r-lg: 20px;
+    --px-r-pill: 999px;
+
+    /* ---- Typography ---- */
+    --px-fs-caption: 12px;
+    --px-fs-small: 13px;
+    --px-fs-body: 14px;
+    --px-fs-label: 14.5px;
+    --px-fs-lead: 16px;
+    --px-fs-title: 20px;
+    --px-fs-display: 32px;
+    --px-lh-body: 1.5;
+    --px-lh-tight: 1.3;
+    /* Digits that line up in columns (ports, addresses, latency, traffic). */
+    --px-font-num: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono",
+    "Roboto Mono", Menlo, Consolas, monospace;
+
+    /* ---- Motion ---- */
+    --px-dur-fast: 120ms;
+    --px-dur: 200ms;
+    --px-dur-slow: 320ms;
+    --px-ease: cubic-bezier(.2, .7, .3, 1);
+
+    /* ---- Text ----
+       Muted is the descriptions/secondary column. Measured against the
+       substrate below, not against the wallpaper: 4.5:1 or better. */
+    --px-text-muted: #cbd5e1;
+    --px-text-faint: #94a3b8;
+
+    /* ---- Status ----
+       Verified on the app's own dark card (#192134-equivalent):
+       ok 9.2:1, warn 10.5:1, danger 5.8:1, info 7.5:1. The obvious choice
+       for danger (#DC2626) is only 3.3:1 as text on dark, so it is reserved
+       for filled backgrounds under white text. */
+    --px-ok: #4ade80;
+    --px-warn: #facc15;
+    --px-danger: #f87171;
+    --px-info: #38bdf8;
+    --px-danger-fill: #dc2626;
+
+    /* ---- Substrate ----
+       A flat overlay, deliberately not backdrop-filter: the Linux shell runs
+       the webview with WebviewGpuPolicyNever, where a live backdrop filter on
+       every section is expensive. Alpha is computed per wallpaper by
+       theme.ts; 0 means "this wallpaper needs no help" and the block then
+       looks exactly like today's --sub-card-bg. */
+    --px-scrim-rgb: 11, 16, 26;
+    --px-scrim-a: 0;
+
+    /* ---- Focus ----
+       --top-hr-color is the theme-derived subtitle colour, kept at a
+       measured distance from both the text and the background, which is
+       exactly what a focus ring needs. */
+    --px-focus: var(--top-hr-color);
+    --px-focus-width: 2px;
+
+    /* ---- Elevation. Aliases so new code stops inventing shadow literals. ---- */
+    --px-elev-1: var(--left-nav-shadow);
+    --px-elev-2: var(--left-nav-hover-shadow);
+}
+
+/* [data-theme="dark"] is set when the wallpaper is LIGHT and the app switched
+   to black text (see MyBottom.vue / theme.ts). The name is legacy; the state
+   is "light background". */
+[data-theme="dark"] {
+    --px-text-muted: #475569;
+    --px-text-faint: #64748b;
+
+    --px-ok: #12703c;
+    --px-warn: #7a5300;
+    --px-danger: #a52020;
+    --px-info: #0b6a99;
+    --px-danger-fill: #b91c1c;
+
+    --px-scrim-rgb: 255, 255, 255;
+}
+
+/* ---------------------------------------------------------------------------
+   Substrate utility.
+   Layers the scrim over the card fill the app already uses, so at alpha 0 the
+   block is byte-for-byte today's card and the wallpaper keeps showing through.
+   --------------------------------------------------------------------------- */
+.px-surface {
+    border-radius: var(--px-r-lg);
+    border: 1px solid var(--sub-card-border);
+    background:
+        linear-gradient(rgba(var(--px-scrim-rgb), var(--px-scrim-a)),
+        rgba(var(--px-scrim-rgb), var(--px-scrim-a))),
+        var(--sub-card-bg);
+}
+
+/* Row inside a surface: label + description on the left, control on the right,
+   one shared right edge down the whole section. */
+.px-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--px-space-5);
+    min-height: var(--px-row-min-h);
+    padding: var(--px-row-pad-y) var(--px-row-pad-x);
+    border-top: 1px solid var(--sub-card-border);
+}
+
+.px-row:first-child {
+    border-top: 0;
+}
+
+.px-row__label {
+    min-width: 0;
+    font-size: var(--px-fs-label);
+    font-weight: 600;
+    line-height: var(--px-lh-tight);
+}
+
+.px-row__hint {
+    margin: var(--px-space-1) 0 0;
+    font-size: var(--px-fs-caption);
+    line-height: var(--px-lh-body);
+    color: var(--px-text-muted);
+    font-weight: 400;
+    max-width: 54ch;
+}
+
+.px-row__control {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--px-space-2);
+    flex-wrap: wrap;
+}
+
+/* Section header: small caps label plus an optional status note. */
+.px-section__head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--px-space-3);
+    padding: var(--px-space-3) var(--px-row-pad-x) var(--px-space-3);
+}
+
+.px-section__title {
+    margin: 0;
+    font-size: var(--px-fs-caption);
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.px-section__note {
+    font-size: var(--px-fs-small);
+    color: var(--px-text-muted);
+}
+
+/* Numeric cells. */
+.px-num {
+    font-family: var(--px-font-num);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------------
+   Controls.
+   One definition each, instead of the seven local copies of .pill-btn and the
+   two of .px-toggle that had drifted apart.
+   --------------------------------------------------------------------------- */
+
+.px-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--px-space-2);
+    min-height: 32px;
+    padding: var(--px-space-2) var(--px-space-3);
+    border: 1px solid var(--sub-card-border);
+    border-radius: var(--px-r-pill);
+    background-color: var(--left-nav-btn-bg);
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: var(--px-fs-small);
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color var(--px-dur) var(--px-ease),
+    box-shadow var(--px-dur) var(--px-ease);
+}
+
+.px-btn:hover:not(:disabled) {
+    background-color: var(--left-item-selected-bg);
+    box-shadow: var(--px-elev-1);
+}
+
+.px-btn:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+.px-btn--quiet {
+    background-color: transparent;
+}
+
+.px-btn--danger {
+    color: var(--px-danger);
+    border-color: var(--px-danger);
+    background-color: transparent;
+}
+
+.px-btn--danger:hover:not(:disabled) {
+    background-color: var(--px-danger-fill);
+    color: #fff;
+    border-color: transparent;
+}
+
+/* A value that is its own edit affordance: the port, the bind address, the
+   API URL. Replaces "текст + отдельная кнопка-карандаш рядом", where the
+   pencil was a separate 36px target for a value nobody could click. */
+.px-value {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--px-space-2);
+    max-width: 100%;
+    min-height: 32px;
+    padding: var(--px-space-1) var(--px-space-3);
+    border: 1px solid var(--sub-card-border);
+    border-radius: var(--px-r-pill);
+    background-color: var(--left-nav-btn-bg);
+    color: var(--text-color);
+    font-family: var(--px-font-num);
+    font-size: var(--px-fs-small);
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: background-color var(--px-dur) var(--px-ease);
+}
+
+.px-value:hover {
+    background-color: var(--left-nav-btn-hover-bg);
+}
+
+.px-value__text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.px-value__icon {
+    flex-shrink: 0;
+    opacity: .7;
+    font-size: 14px;
+}
+
+/* Input shown in place of .px-value while editing, same box so the row does
+   not jump when it swaps. */
+.px-value-input {
+    min-height: 32px;
+    padding: var(--px-space-1) var(--px-space-3);
+    border: 1px solid var(--text-color);
+    border-radius: var(--px-r-pill);
+    background-color: var(--left-nav-btn-bg);
+    color: var(--text-color);
+    font-family: var(--px-font-num);
+    font-size: var(--px-fs-small);
+}
+
+.px-value-input:focus {
+    outline: none;
+}
+
+.px-iconbtn {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: var(--px-r-pill);
+    background-color: var(--left-nav-btn-bg);
+    color: var(--text-color);
+    font-size: 15px;
+    cursor: pointer;
+    transition: background-color var(--px-dur) var(--px-ease);
+}
+
+.px-iconbtn:hover:not(:disabled) {
+    background-color: var(--left-item-selected-bg);
+}
+
+.px-iconbtn--plain {
+    background-color: transparent;
+    opacity: .6;
+}
+
+.px-iconbtn--plain:hover:not(:disabled) {
+    background-color: var(--left-nav-btn-hover-bg);
+    opacity: 1;
+}
+
+/* Segmented control — the Tun Stack / view-mode pattern. */
+.px-seg {
+    display: inline-flex;
+    gap: var(--px-space-1);
+    padding: var(--px-space-1);
+    border-radius: var(--px-r-pill);
+    background-color: var(--left-nav-btn-bg);
+    box-shadow: var(--px-elev-1);
+}
+
+.px-seg__btn {
+    border: none;
+    border-radius: var(--px-r-pill);
+    background: transparent;
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: var(--px-fs-small);
+    font-weight: 600;
+    padding: var(--px-space-1) var(--px-space-3);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color var(--px-dur) var(--px-ease);
+}
+
+.px-seg__btn:hover {
+    background-color: var(--left-nav-btn-hover-bg);
+}
+
+.px-seg__btn.is-active {
+    background-color: var(--left-item-selected-bg);
+    box-shadow: var(--px-elev-2);
+}

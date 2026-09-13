@@ -3,7 +3,7 @@
        @mouseenter="showDropdown"
        @mouseleave="hideDropdown">
     <el-icon class="dropdown-button">
-      <icon-mdi-tshirt-crew-outline/>
+      <icon-tabler-shirt/>
     </el-icon>
     <div class="dropdown-content"
          v-show="isDropdownVisible"
@@ -23,7 +23,7 @@
                 :aria-label="t('bg.upload')"
                 @click.stop="triggerUpload(item)">
           <el-icon aria-hidden="true">
-            <icon-mdi-upload/>
+            <icon-tabler-upload/>
           </el-icon>
         </button>
       </div>

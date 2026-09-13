@@ -14,7 +14,7 @@
       <div v-if="showUpdateBanner" class="update-banner">
         <div class="update-banner__content">
           <span class="update-banner__message">{{ updateBannerMessage }}</span>
-          <icon-mdi-close-circle
+          <icon-tabler-circle-x
               class="update-banner__dismiss"
               @click="dismissUpdateNotification"
           />

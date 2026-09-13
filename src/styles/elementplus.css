@@ -1,0 +1,78 @@
+/* Element Plus bridge.
+ *
+ * Element Plus ships its own grey palette, which has nothing to do with the
+ * wallpaper-derived colours the rest of the app uses. Every component that
+ * needed to look like the app got a local patch (18 files carried ad-hoc
+ * --el-* overrides, plus 20 !important rules). This file maps EP's variables
+ * onto our tokens once, so dialogs, selects, inputs, tooltips and messages
+ * follow the theme on their own.
+ *
+ * EP's dark theme is keyed on `html.dark`, toggled in MyBottom.vue together
+ * with the app's own theme.
+ */
+
+:root {
+    /* Accent: the same colour the sidebar paints a selected item with. */
+    --el-color-primary: var(--left-item-selected-bg);
+
+    /* Surfaces. --dropdown-list-bg already exists for exactly this purpose
+       (#1a1d2e on a dark background, #ffffff on a light one), so dialogs and
+       dropdowns land on one surface colour instead of two. */
+    --el-bg-color: var(--dropdown-list-bg);
+    --el-bg-color-overlay: var(--dropdown-list-bg);
+    --el-bg-color-page: var(--dropdown-list-bg);
+
+    /* Text follows the app's own text colour, which flips with the wallpaper. */
+    --el-text-color-primary: var(--text-color);
+    --el-text-color-regular: var(--text-color);
+    --el-text-color-secondary: var(--px-text-muted);
+    --el-text-color-placeholder: var(--placeholder-color);
+    --el-text-color-disabled: var(--px-text-faint);
+
+    /* Borders and fills reuse the card tokens, so an input inside a dialog has
+       the same edge as a card outside it. */
+    --el-border-color: var(--sub-card-border);
+    --el-border-color-light: var(--sub-card-border);
+    --el-border-color-lighter: var(--sub-card-border);
+    --el-border-color-extra-light: var(--sub-card-border);
+    --el-fill-color: var(--sub-card-bg);
+    --el-fill-color-light: var(--sub-card-bg);
+    --el-fill-color-lighter: var(--sub-card-bg);
+    --el-fill-color-blank: transparent;
+
+    /* Status colours come from tokens.css, which picked values that hold 4.5:1
+       on the app's own surfaces rather than on EP's white. */
+    --el-color-success: var(--px-ok);
+    --el-color-warning: var(--px-warn);
+    --el-color-danger: var(--px-danger);
+    --el-color-error: var(--px-danger);
+    --el-color-info: var(--px-info);
+
+    /* Shape. Matches the pill/rounded language of the rest of the app, which
+       global.css used to force with !important inside dialogs. */
+    --el-border-radius-base: var(--px-r-sm);
+    --el-border-radius-small: var(--px-r-xs);
+    --el-border-radius-round: var(--px-r-pill);
+
+    /* Motion: one duration token instead of EP's three. */
+    --el-transition-duration: var(--px-dur);
+    --el-transition-duration-fast: var(--px-dur-fast);
+}
+
+/* The modal scrim. EP's default is a flat black 50%, which on a light
+   wallpaper leaves the dialog floating on a grey haze; tie it to the theme. */
+:root {
+    --el-overlay-color-lighter: rgba(0, 0, 0, .5);
+}
+
+[data-theme="dark"] {
+    --el-overlay-color-lighter: rgba(15, 23, 42, .35);
+}
+
+/* Tooltips: EP renders them in a fixed dark box regardless of theme. Keep the
+   dark box (it reads as an overlay, not as a surface) but give it the app's
+   radius and border so it stops looking like a different toolkit. */
+.el-popper.is-dark {
+    border-radius: var(--px-r-sm);
+    border: 1px solid var(--sub-card-border);
+}

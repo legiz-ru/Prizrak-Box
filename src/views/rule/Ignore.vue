@@ -52,7 +52,7 @@ async function savaIgnore() {
           :show-after="300"
       >
         <el-icon class="info-icon" size="16">
-          <icon-mdi-information-outline/>
+          <icon-tabler-info-circle/>
         </el-icon>
       </el-tooltip>
     </el-space>
@@ -77,7 +77,7 @@ async function savaIgnore() {
 .ignore {
   width: 100%;
   margin-left: 0;
-  margin-top: 5px;
+  margin-top: var(--px-space-1);
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -85,7 +85,7 @@ async function savaIgnore() {
 }
 
 .op {
-  margin-top: 6px;
+  margin-top: var(--px-space-2);
 }
 
 .pill-btn {
@@ -120,7 +120,7 @@ async function savaIgnore() {
 }
 
 .content {
-  margin-top: 25px;
+  margin-top: var(--px-space-6);
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -129,10 +129,10 @@ async function savaIgnore() {
 
 .custom-textarea {
   background-color: transparent; /* 背景透明 */
-  border: 2px solid var(--text-color); /* 边界为 2px 的白色 */
+  border: 1px solid var(--sub-card-border);
   color: var(--text-color);
   padding: 8px 8px 8px 16px; /* 内间距，确保内容不贴边 */
-  border-radius: 20px;
+  border-radius: var(--px-r-lg);
   font-size: 16px; /* 字体大小 */
   resize: none; /* 禁止调整大小（可选） */
   outline: none; /* 去掉点击时的默认高亮框 */

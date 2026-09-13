@@ -40,7 +40,7 @@ const settingStore = useSettingStore();
 
 .box {
   padding: 10px;
-  border-radius: 20px;
+  border-radius: var(--px-r-lg);
   text-align: left;
   box-shadow: var(--right-box-shadow);
 }
@@ -75,7 +75,7 @@ const settingStore = useSettingStore();
   width: 46px;
   height: 26px;
   border-radius: 12px;
-  border: 2px solid var(--text-color);
+  border: 1px solid var(--sub-card-border);
 }
 
 :deep(.el-switch__core .el-switch__action) {

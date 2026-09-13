@@ -217,7 +217,7 @@ function handleDropdownCommand(command: string) {
           placement="top"
         >
           <el-icon class="toolbar-icon" @click="goRenew" size="20">
-            <icon-mdi-credit-card-outline />
+            <icon-tabler-credit-card />
           </el-icon>
         </el-tooltip>
 
@@ -228,7 +228,7 @@ function handleDropdownCommand(command: string) {
           placement="top"
         >
           <el-icon class="toolbar-icon" @click="goHome" size="20">
-            <icon-mdi-home-import-outline />
+            <icon-tabler-home-link />
           </el-icon>
         </el-tooltip>
 
@@ -239,7 +239,7 @@ function handleDropdownCommand(command: string) {
           placement="top"
         >
           <el-icon class="toolbar-icon" @click="goSupport" size="20">
-            <icon-mdi-face-agent />
+            <icon-tabler-headset />
           </el-icon>
         </el-tooltip>
       </div>
@@ -259,7 +259,7 @@ function handleDropdownCommand(command: string) {
           placement="top"
         >
           <el-icon class="toolbar-icon" @click="switchProfiles" size="20">
-            <icon-mdi-swap-horizontal />
+            <icon-tabler-arrows-left-right />
           </el-icon>
         </el-tooltip>
 
@@ -274,7 +274,7 @@ function handleDropdownCommand(command: string) {
             @click="refreshProfile"
             size="20"
           >
-            <icon-mdi-refresh />
+            <icon-tabler-refresh />
           </el-icon>
         </el-tooltip>
 
@@ -285,20 +285,20 @@ function handleDropdownCommand(command: string) {
         >
           <el-dropdown trigger="click" @command="handleDropdownCommand">
             <el-icon class="toolbar-icon" size="20">
-              <icon-mdi-plus-thick />
+              <icon-tabler-plus />
             </el-icon>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="add">
-                  <el-icon><icon-mdi-pencil /></el-icon>
+                  <el-icon><icon-tabler-pencil /></el-icon>
                   {{ t('profiles.add') }}
                 </el-dropdown-item>
                 <el-dropdown-item command="paste">
-                  <el-icon><icon-mdi-content-paste /></el-icon>
+                  <el-icon><icon-tabler-clipboard /></el-icon>
                   {{ t('profiles.paste') }}
                 </el-dropdown-item>
                 <el-dropdown-item command="file">
-                  <el-icon><icon-mdi-folder-open /></el-icon>
+                  <el-icon><icon-tabler-folder-open /></el-icon>
                   {{ t('profiles.open') }}
                 </el-dropdown-item>
               </el-dropdown-menu>

@@ -152,7 +152,7 @@ const showRenewButton = computed(() => shouldShowRenewButton(activeProfile.value
              активных пунктов бокового меню / кнопки "Открыть релиз" -->
         <div v-if="showRenewButton" class="renew-button-container">
           <el-button class="renew-button" @click="goRenew">
-            <el-icon><icon-mdi-credit-card-outline/></el-icon>
+            <el-icon><icon-tabler-credit-card/></el-icon>
             <span>{{ t('profiles.renew') }}</span>
           </el-button>
         </div>
