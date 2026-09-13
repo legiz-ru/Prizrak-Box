@@ -102,6 +102,9 @@ const hwidTooltipContent = computed(() => {
   if (lines.length === 0) {
     return ['HWID=—', 'OS=—', 'OS Version=—', 'Model=—'];
   }
+  return lines;
+});
+
 const importInputRef = ref<HTMLInputElement | null>(null);
 
 const openImportDialog = () => {
@@ -162,9 +165,6 @@ const handleImportFile = async (event: Event) => {
   }
 };
 
-
-  return lines;
-});
 
 const openExternalLink = (url: string) => {
   if (!url) {
@@ -401,12 +401,82 @@ const ageKeypairDialogVisible = ref(false);
 // регулярно попадает в скриншоты, а ключ даёт полный доступ к API ядра.
 const secretVisible = ref(false);
 
+// Версия ядра для подсказки у заголовка раздела. Отдельного запроса не жалко:
+// /version — самый дешёвый маршрут ядра, и он же показывает, что ядро живо.
+const coreVersion = ref('');
+onMounted(async () => {
+  try {
+    coreVersion.value = await api.getVersion();
+  } catch {
+    coreVersion.value = '';
+  }
+});
+
 </script>
 
 <template>
   <!-- Настройки ядра -->
   <div v-if="props.section !== 'app'" class="setting-stack">
     <SettingSection title="Mihomo">
+      <template #title-after>
+        <PxInfo
+            :content="coreVersion ? `${t('setting.mihomo.coreVersion')}: ${coreVersion}` : t('setting.mihomo.coreVersionUnknown')"
+            :label="t('setting.mihomo.coreVersion')"
+        />
+      </template>
+
+      <!-- Api и Secret наверху: это то, что отсюда чаще всего копируют. -->
+      <SettingRow label="Api">
+        <button class="px-value" :title="$t('copy.title')" @click="copy(webStore.baseUrl, t)">
+          <span class="px-value__text">{{ webStore.baseUrl }}</span>
+          <el-icon class="px-value__icon"><icon-tabler-copy/></el-icon>
+        </button>
+        <el-dropdown trigger="click" @command="handleDashboardCommand">
+          <button class="px-btn">
+            <el-icon><icon-tabler-layout-dashboard/></el-icon>
+            {{ t('setting.dashboard.open') }}
+            <el-icon><icon-tabler-chevron-down/></el-icon>
+          </button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item
+                  v-for="dashboard in dashboardOptions"
+                  :key="dashboard.key"
+                  :command="dashboard"
+              >
+                {{ dashboard.name }}
+              </el-dropdown-item>
+              <el-dropdown-item divided command="manage">
+                {{ t('setting.dashboard.manage') }}
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </SettingRow>
+
+      <!-- Секрет по умолчанию скрыт: раздел настроек часто попадает в
+           скриншоты и на стримы, а ключ даёт полный доступ к ядру. -->
+      <SettingRow label="Secret">
+        <PxInfo :content="$t('setting.hints.secret')"/>
+        <button class="px-value" :title="$t('copy.title')" @click="copy(webStore.secret, t)">
+          <span class="px-value__text" :class="{ 'px-value__text--masked': !secretVisible }">
+            {{ secretVisible ? webStore.secret : '••••••••••••' }}
+          </span>
+          <el-icon class="px-value__icon"><icon-tabler-copy/></el-icon>
+        </button>
+        <button
+            class="px-iconbtn px-iconbtn--plain"
+            :aria-label="$t('setting.hints.secret')"
+            :aria-pressed="secretVisible"
+            @click="secretVisible = !secretVisible"
+        >
+          <el-icon>
+            <icon-tabler-eye-off v-if="secretVisible"/>
+            <icon-tabler-eye v-else/>
+          </el-icon>
+        </button>
+      </SettingRow>
+
       <SettingRow :label="$t('setting.mihomo.port')" :hint="$t('setting.hints.port')">
         <MyPort/>
       </SettingRow>
@@ -444,130 +514,49 @@ const secretVisible = ref(false);
         />
       </SettingRow>
 
-      <SettingRow
-          v-if="settingStore.independentDelayTest"
-          stacked
-          :label="$t('setting.mihomo.groupTestUrls')"
-      >
-        <div class="group-urls">
-          <div
-              v-for="(item, index) in settingStore.groupTestUrls"
-              :key="index"
-              class="group-urls__row"
-          >
-            <el-input
-                v-model="item.name"
-                :placeholder="$t('setting.mihomo.groupName')"
-                size="small"
-            />
-            <el-input
-                v-model="item.url"
-                :placeholder="$t('setting.mihomo.testUrlPlaceholder')"
-                size="small"
-            />
-            <button
-                class="px-iconbtn px-iconbtn--plain"
-                :aria-label="$t('setting.dashboard.remove')"
-                @click="removeGroupTestUrl(index)"
-            >
-              <el-icon><icon-tabler-x/></el-icon>
-            </button>
-          </div>
-          <button class="px-btn px-btn--quiet" @click="addGroupTestUrl">
-            <el-icon><icon-tabler-plus/></el-icon>
-            {{ $t('setting.mihomo.addGroupUrl') }}
-          </button>
-        </div>
-      </SettingRow>
-
-      <SettingRow :label="$t('age.settings.label')">
-        <button class="px-btn" @click="ageKeypairDialogVisible = true">
-          {{ $t('age.settings.generateBtn') }}
-        </button>
-      </SettingRow>
-
-      <SettingRow label="Api">
-        <button class="px-value" :title="$t('copy.title')" @click="copy(webStore.baseUrl, t)">
-          <span class="px-value__text">{{ webStore.baseUrl }}</span>
-          <el-icon class="px-value__icon"><icon-tabler-copy/></el-icon>
-        </button>
-        <el-dropdown trigger="click" @command="handleDashboardCommand">
-          <button class="px-btn">
-            {{ t('setting.dashboard.open') }}
-            <el-icon><icon-tabler-chevron-down/></el-icon>
-          </button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item
-                  v-for="dashboard in dashboardOptions"
-                  :key="dashboard.key"
-                  :command="dashboard"
-              >
-                {{ dashboard.name }}
-              </el-dropdown-item>
-              <el-dropdown-item divided command="manage">
-                {{ t('setting.dashboard.manage') }}
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-      </SettingRow>
-
-      <!-- Секрет по умолчанию скрыт: раздел настроек часто попадает в
-           скриншоты и на стримы, а ключ даёт полный доступ к ядру. -->
-      <SettingRow label="Secret" :hint="$t('setting.hints.secret')">
-        <button class="px-value" :title="$t('copy.title')" @click="copy(webStore.secret, t)">
-          <span class="px-value__text" :class="{ 'px-value__text--masked': !secretVisible }">
-            {{ secretVisible ? webStore.secret : '••••••••••••' }}
-          </span>
-          <el-icon class="px-value__icon"><icon-tabler-copy/></el-icon>
-        </button>
+      <!-- Кнопка добавления стоит в колонке контролов, на месте тумблера:
+           широкая кнопка под списком ломала правую границу раздела. -->
+      <SettingRow v-if="settingStore.independentDelayTest" :label="$t('setting.mihomo.groupTestUrls')">
         <button
-            class="px-iconbtn px-iconbtn--plain"
-            :aria-label="$t('setting.hints.secret')"
-            :aria-pressed="secretVisible"
-            @click="secretVisible = !secretVisible"
+            class="px-iconbtn"
+            :aria-label="$t('setting.mihomo.addGroupUrl')"
+            :title="$t('setting.mihomo.addGroupUrl')"
+            @click="addGroupTestUrl"
         >
-          <el-icon>
-            <icon-tabler-eye-off v-if="secretVisible"/>
-            <icon-tabler-eye v-else/>
-          </el-icon>
+          <el-icon><icon-tabler-plus/></el-icon>
         </button>
+        <template #hint>
+          <div v-if="settingStore.groupTestUrls.length" class="group-urls">
+            <div
+                v-for="(item, index) in settingStore.groupTestUrls"
+                :key="index"
+                class="group-urls__row"
+            >
+              <input
+                  v-model="item.name"
+                  class="px-value-input"
+                  :placeholder="$t('setting.mihomo.groupName')"
+                  :aria-label="$t('setting.mihomo.groupName')"
+              />
+              <input
+                  v-model="item.url"
+                  class="px-value-input"
+                  :placeholder="$t('setting.mihomo.testUrlPlaceholder')"
+                  :aria-label="$t('setting.mihomo.testUrlPlaceholder')"
+              />
+              <button
+                  class="px-iconbtn px-iconbtn--plain"
+                  :aria-label="$t('setting.dashboard.remove')"
+                  @click="removeGroupTestUrl(index)"
+              >
+                <el-icon><icon-tabler-x/></el-icon>
+              </button>
+            </div>
+          </div>
+        </template>
       </SettingRow>
 
-      <SettingRow stacked :label="$t('setting.mihomo.dnsQuery.queryTitle')">
-        <div class="dns-query">
-          <input
-              v-model="dnsQueryName"
-              class="px-value-input dns-query__input"
-              placeholder="example.com"
-              autocapitalize="off"
-              autocomplete="off"
-              autocorrect="off"
-              spellcheck="false"
-              :aria-label="$t('setting.mihomo.dnsQuery.queryTitle')"
-              @keyup.enter="runDnsQuery"
-          />
-          <el-dropdown trigger="click" @command="(cmd: string) => dnsQueryType = cmd">
-            <button class="px-btn">
-              {{ dnsQueryType }}
-              <el-icon><icon-tabler-chevron-down/></el-icon>
-            </button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item
-                    v-for="type in ['A','AAAA','CNAME','MX','TXT','NS']"
-                    :key="type"
-                    :command="type"
-                >{{ type }}</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-          <button class="px-btn" :disabled="dnsQueryLoading" @click="runDnsQuery">
-            <icon-tabler-loader-2 v-if="dnsQueryLoading" class="px-spin"/>
-            {{ $t('setting.mihomo.dnsQuery.query') }}
-          </button>
-        </div>
+      <SettingRow :label="$t('setting.mihomo.dnsQuery.queryTitle')">
         <template #hint>
           <div v-if="dnsQueryError" class="dns-query__error">{{ dnsQueryError }}</div>
           <div v-if="dnsQueryResults.length > 0" class="dns-query__results">
@@ -581,6 +570,47 @@ const secretVisible = ref(false);
             </div>
           </div>
         </template>
+        <input
+            v-model="dnsQueryName"
+            class="px-value-input dns-query__input"
+            placeholder="example.com"
+            autocapitalize="off"
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+            :aria-label="$t('setting.mihomo.dnsQuery.queryTitle')"
+            @keyup.enter="runDnsQuery"
+        />
+        <el-dropdown trigger="click" @command="(cmd: string) => dnsQueryType = cmd">
+          <button class="px-btn dns-query__type">
+            {{ dnsQueryType }}
+            <el-icon><icon-tabler-chevron-down/></el-icon>
+          </button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item
+                  v-for="type in ['A','AAAA','CNAME','MX','TXT','NS']"
+                  :key="type"
+                  :command="type"
+              >{{ type }}</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <button class="px-btn" :disabled="dnsQueryLoading" @click="runDnsQuery">
+          <el-icon>
+            <icon-tabler-loader-2 v-if="dnsQueryLoading" class="px-spin"/>
+            <icon-tabler-world-search v-else/>
+          </el-icon>
+          {{ $t('setting.mihomo.dnsQuery.query') }}
+        </button>
+      </SettingRow>
+
+      <!-- Генерация ключей — редкое действие, поэтому в самом низу. -->
+      <SettingRow :label="$t('age.settings.label')">
+        <button class="px-btn" @click="ageKeypairDialogVisible = true">
+          <el-icon><icon-tabler-key/></el-icon>
+          {{ $t('age.settings.generateBtn') }}
+        </button>
       </SettingRow>
     </SettingSection>
   </div>
@@ -592,36 +622,54 @@ const secretVisible = ref(false);
         :note="manualUpdateStatus.text"
         :note-type="manualUpdateStatus.type"
     >
-      <!-- В тултипе HWID лежало не пояснение, а данные устройства. Пояснению
-           здесь взяться неоткуда, поэтому данные показаны как данные:
-           моноширинный компактный блок, а не абзац описания. -->
+      <!-- Обновление относится ко всему разделу, а не к отдельной настройке,
+           поэтому живёт в заголовке иконками, а не строкой внизу списка. -->
+      <template #actions>
+        <el-tooltip :content="t('updates.actions.open')" placement="top" :show-after="150">
+          <button
+              class="px-iconbtn px-iconbtn--plain"
+              :aria-label="t('updates.actions.open')"
+              @click="openReleasesPage"
+          >
+            <el-icon><icon-tabler-external-link/></el-icon>
+          </button>
+        </el-tooltip>
+        <el-tooltip :content="t('updates.actions.check')" placement="top" :show-after="150">
+          <button
+              class="px-iconbtn px-iconbtn--plain"
+              :aria-label="t('updates.actions.check')"
+              :disabled="updateChecking"
+              @click="checkForUpdatesManually"
+          >
+            <el-icon>
+              <icon-tabler-loader-2 v-if="updateChecking" class="px-spin"/>
+              <icon-tabler-refresh v-else/>
+            </el-icon>
+          </button>
+        </el-tooltip>
+      </template>
+
       <SettingRow label="HWID">
-        <template #hint>
-          <div class="hwid-facts px-num">
-            <span v-for="line in hwidTooltipContent" :key="line">{{ line }}</span>
-          </div>
-        </template>
+        <PxInfo :lines="hwidTooltipContent" label="HWID"/>
         <PxToggle v-model="settingStore.hwid" label="HWID"/>
+      </SettingRow>
+
+      <SettingRow :label="$t('service.mode')">
+        <PxInfo :content="$t('service.mode-description')"/>
+        <MyService/>
       </SettingRow>
 
       <SettingRow :label="$t('setting.px.startup')">
         <PxToggle v-model="settingStore.startup" :label="$t('setting.px.startup')"/>
       </SettingRow>
 
-      <SettingRow :label="$t('setting.px.startMinimized')">
-        <PxToggle v-model="settingStore.startMinimized" :label="$t('setting.px.startMinimized')"/>
+      <SettingRow :label="$t('setting.px.auth')">
+        <PxInfo :content="$t('setting.hints.auth')"/>
+        <PxToggle v-model="settingStore.auth" :label="$t('setting.px.auth')"/>
       </SettingRow>
 
       <SettingRow :label="$t('setting.px.systemProxyMode')">
         <PxToggle v-model="settingStore.systemProxyMode" :label="$t('setting.px.systemProxyMode')"/>
-      </SettingRow>
-
-      <SettingRow :label="$t('setting.px.auth')">
-        <PxToggle v-model="settingStore.auth" :label="$t('setting.px.auth')"/>
-      </SettingRow>
-
-      <SettingRow :label="$t('service.mode')" :hint="$t('service.mode-description')">
-        <MyService/>
       </SettingRow>
 
       <SettingRow :label="$t('setting.shortcut.title')">
@@ -635,12 +683,8 @@ const secretVisible = ref(false);
         <PxToggle v-model="settingStore.sc_switch" :label="$t('setting.shortcut.title')"/>
       </SettingRow>
 
-      <!-- Пояснение раньше пряталось в тултип, хотя без него переключатель
-           выглядит сломанным: без заголовков от продавца он ничего не делает. -->
-      <SettingRow
-          :label="$t('setting.subscriptionAlerts.title')"
-          :hint="$t('setting.subscriptionAlerts.tooltip')"
-      >
+      <SettingRow :label="$t('setting.subscriptionAlerts.title')">
+        <PxInfo :content="$t('setting.subscriptionAlerts.tooltip')"/>
         <PxToggle
             v-model="settingStore.notifySubscriptionAlerts"
             :label="$t('setting.subscriptionAlerts.title')"
@@ -648,9 +692,18 @@ const secretVisible = ref(false);
       </SettingRow>
 
       <SettingRow :label="$t('setting.px.dir')">
-        <button class="px-btn" @click="pxConfigDir">{{ $t('setting.px.open') }}</button>
-        <button class="px-btn px-btn--quiet" @click="changeConfigDir">{{ $t('setting.px.change') }}</button>
-        <button class="px-btn px-btn--quiet" @click="openImportDialog">{{ $t('setting.px.import') }}</button>
+        <button class="px-btn" @click="pxConfigDir">
+          <el-icon><icon-tabler-folder-open/></el-icon>
+          {{ $t('setting.px.open') }}
+        </button>
+        <button class="px-btn px-btn--quiet" @click="changeConfigDir">
+          <el-icon><icon-tabler-edit/></el-icon>
+          {{ $t('setting.px.change') }}
+        </button>
+        <button class="px-btn px-btn--quiet" @click="openImportDialog">
+          <el-icon><icon-tabler-file-import/></el-icon>
+          {{ $t('setting.px.import') }}
+        </button>
         <input
             ref="importInputRef"
             type="file"
@@ -660,18 +713,13 @@ const secretVisible = ref(false);
         />
       </SettingRow>
 
-      <SettingRow :label="$t('setting.px.update')">
-        <button class="px-btn" @click="openReleasesPage">{{ t('updates.actions.open') }}</button>
-        <button class="px-btn px-btn--quiet" :disabled="updateChecking" @click="checkForUpdatesManually">
-          <icon-tabler-loader-2 v-if="updateChecking" class="px-spin"/>
-          {{ t('updates.actions.check') }}
-        </button>
+      <SettingRow :label="$t('setting.px.startMinimized')">
+        <PxToggle v-model="settingStore.startMinimized" :label="$t('setting.px.startMinimized')"/>
       </SettingRow>
     </SettingSection>
   </div>
 
   <MyAgeKeypair v-model="ageKeypairDialogVisible"/>
-
 
   <!-- Диалог 1: Горячие клавиши -->
   <el-dialog
@@ -775,12 +823,15 @@ const secretVisible = ref(false);
   gap: var(--px-section-gap);
 }
 
-/* --- Строка «URL тестов для групп» --- */
+/* --- Строка «URL тестов для групп» ---
+   Список живёт под меткой, а кнопка добавления — в колонке контролов, на
+   месте тумблера: так правая граница раздела остаётся единой. */
 .group-urls {
   display: flex;
   flex-direction: column;
   gap: var(--px-space-2);
   width: 100%;
+  margin-top: var(--px-space-2);
 }
 
 .group-urls__row {
@@ -790,18 +841,16 @@ const secretVisible = ref(false);
   align-items: center;
 }
 
-/* --- Строка DNS-запроса --- */
-.dns-query {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--px-space-2);
-  width: 100%;
+/* --- Строка DNS-запроса ---
+   Высота инпута, выпадающего списка и кнопки задана общим --px-control-h,
+   здесь остаётся только ширина поля. */
+.dns-query__input {
+  width: 190px;
 }
 
-.dns-query__input {
-  flex: 1 1 200px;
-  min-width: 0;
+.dns-query__type {
+  min-width: 74px;
+  justify-content: space-between;
 }
 
 .dns-query__error {
@@ -862,18 +911,6 @@ const secretVisible = ref(false);
 
 @keyframes px-spin {
   to { transform: rotate(360deg); }
-}
-
-/* Данные устройства под меткой HWID: в две колонки, чтобы четыре короткие
-   строки не растягивали строку настройки по вертикали. */
-.hwid-facts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, max-content));
-  gap: 2px var(--px-space-4);
-  margin-top: var(--px-space-1);
-  font-size: var(--px-fs-caption);
-  line-height: 1.45;
-  color: var(--px-text-muted);
 }
 
 /* Маскированный секрет: точки набираются моноширинным шрифтом, поэтому ширина

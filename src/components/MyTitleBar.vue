@@ -5,7 +5,7 @@
         placement="bottom">
       <span class="bar" @click="minus2tray">
           <el-icon>
-              <icon-tabler-arrow-bar-to-down/>
+              <icon-tabler-square-rounded-minus-2/>
           </el-icon>
       </span>
     </el-tooltip>
@@ -54,7 +54,7 @@
         placement="left">
       <span class="" @click="minus2tray">
           <el-icon>
-              <icon-tabler-arrow-bar-to-down/>
+              <icon-tabler-square-rounded-minus-2/>
           </el-icon>
       </span>
     </el-tooltip>

@@ -274,14 +274,20 @@ watch(() => proxiesStore.now, (newNow) => {
       <div class="proxy-selector">
         <!-- Group Dropdown -->
         <div class="dropdown-wrapper">
-          <div class="dropdown-button" @click="toggleGroupDropdown">
+          <button
+              type="button"
+              class="dropdown-button"
+              :aria-expanded="isGroupDropdownOpen"
+              aria-haspopup="listbox"
+              @click="toggleGroupDropdown"
+          >
             <span class="dropdown-label"><span class="dropdown-label-text">{{ t('proxySelector.group') }}</span></span>
             <span class="dropdown-value">{{ selectedGroup }}</span>
-            <el-icon class="dropdown-icon" @click.stop="toggleGroupDropdown">
+            <el-icon class="dropdown-icon">
               <icon-tabler-chevron-down v-if="!isGroupDropdownOpen" />
               <icon-tabler-chevron-up v-else />
             </el-icon>
-          </div>
+          </button>
           <div v-if="isGroupDropdownOpen" class="dropdown-list">
             <div
                 v-for="group in groupList"
@@ -297,16 +303,22 @@ watch(() => proxiesStore.now, (newNow) => {
 
         <!-- Proxy Dropdown -->
         <div class="dropdown-wrapper">
-          <div class="dropdown-button" @click="toggleProxyDropdown">
+          <button
+              type="button"
+              class="dropdown-button"
+              :aria-expanded="isProxyDropdownOpen"
+              aria-haspopup="listbox"
+              @click="toggleProxyDropdown"
+          >
             <span class="dropdown-label"><span class="dropdown-label-text">{{ t('proxySelector.proxy') }}</span></span>
             <span class="dropdown-value">
               {{ (proxyList.find(p => p.now)?.displayName ?? proxyList.find(p => p.now)?.name ?? selectedProxy) || 'Не выбрано' }}
             </span>
-            <el-icon class="dropdown-icon" @click.stop="toggleProxyDropdown">
+            <el-icon class="dropdown-icon">
               <icon-tabler-chevron-down v-if="!isProxyDropdownOpen" />
               <icon-tabler-chevron-up v-else />
             </el-icon>
-          </div>
+          </button>
           <div v-if="isProxyDropdownOpen" class="dropdown-list">
             <div
                 v-for="proxyItem in proxyList"
@@ -345,14 +357,14 @@ watch(() => proxiesStore.now, (newNow) => {
 
 <style scoped>
 .search-container {
-  padding-top: 25px;
+  padding-top: var(--px-space-6);
   position: relative;
   -webkit-app-region: drag; /* Electron */
   --wails-draggable: drag;  /* Wails (frameless on Windows/Linux) */
 }
 
 .win {
-  padding-top: 15px;
+  padding-top: var(--px-space-4);
 }
 
 .no-drag {
@@ -368,12 +380,13 @@ watch(() => proxiesStore.now, (newNow) => {
   width: 100%;
 }
 
-/* Proxy Selector Container */
+/* Proxy Selector Container.
+   Без собственного margin-left: селекторы встают на ту же вертикаль, что и
+   заголовки и карточки разделов ниже. */
 .proxy-selector {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-left: 8px;
+  gap: var(--px-space-3);
 }
 
 /* Dropdown Wrapper */
@@ -390,42 +403,46 @@ watch(() => proxiesStore.now, (newNow) => {
   position: relative;
   width: 100%;
   min-width: 0;
-  padding: 14px 12px 8px 12px;
+  padding: var(--px-space-4) var(--px-space-3) var(--px-space-2);
   border: 1px solid var(--dropdown-border-color);
   border-top-color: transparent;
-  border-radius: 20px;
-  background-color: var(--sub-card-bg);
+  border-radius: var(--px-r-md);
+  background-color: var(--left-nav-btn-bg);
   color: var(--text-color);
-  font-size: 12px;
+  font-size: var(--px-fs-small);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  transition: all 0.2s ease;
+  gap: var(--px-space-2);
+  transition: background-color var(--px-dur) var(--px-ease),
+  border-color var(--px-dur) var(--px-ease);
   font-family: 'Twemoji', 'Nunito', 'Microsoft YaHei', '微软雅黑', sans-serif;
   font-variant-emoji: emoji;
   box-sizing: border-box;
+  text-align: left;
 }
 
 .dropdown-button:hover {
-  background-color: var(--skin-hover-color);
-  --dropdown-border-color: rgba(255, 255, 255, 0.3);
+  background-color: var(--left-nav-btn-hover-bg);
+  --dropdown-border-color: var(--text-color);
 }
 
 /* Outlined Label (врезанный в рамку) */
 .dropdown-label {
   position: absolute;
   top: 0;
-  left: 10px;
-  right: 10px;
+  left: var(--px-space-3);
+  right: var(--px-space-3);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--px-space-2);
   transform: translateY(-50%);
-  font-size: 12px;
-  color: var(--text-color);
-  opacity: 0.6;
+  font-size: var(--px-fs-caption);
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--px-text-muted);
   font-family: 'Twemoji', 'Nunito', 'Microsoft YaHei', '微软雅黑', sans-serif;
   z-index: 1;
   pointer-events: none;
@@ -458,14 +475,14 @@ watch(() => proxiesStore.now, (newNow) => {
 /* Dropdown List */
 .dropdown-list {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + var(--px-space-1));
   left: 0;
   right: 0;
   width: 100%;
   max-height: 300px;
   overflow-y: auto;
-  border: 1px solid var(--dropdown-border-color);
-  border-radius: 20px;
+  border: 1px solid var(--sub-card-border);
+  border-radius: var(--px-r-md);
   background-color: var(--dropdown-list-bg);
   box-shadow: var(--skin-box-shadow);
   z-index: 9999;
@@ -500,18 +517,18 @@ watch(() => proxiesStore.now, (newNow) => {
 
 /* Dropdown Item */
 .dropdown-item {
-  padding: 10px 12px;
+  padding: var(--px-space-2) var(--px-space-3);
   cursor: pointer;
   color: var(--text-color);
-  font-size: 12px;
-  transition: background-color 0.2s ease;
+  font-size: var(--px-fs-small);
+  transition: background-color var(--px-dur) var(--px-ease);
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
 .dropdown-item:hover {
-  background-color: var(--skin-hover-color);
+  background-color: var(--left-nav-btn-hover-bg);
 }
 
 .dropdown-item-selected {

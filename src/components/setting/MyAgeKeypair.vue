@@ -23,7 +23,7 @@
           <div class="key-label">{{ $t('age.keypair.publicKey') }}</div>
           <div class="key-area">
             <span class="key-value">{{ keypair.publicKey }}</span>
-            <button class="pill-btn" @click="copyKey(keypair.publicKey, 'pub')">
+            <button class="px-btn" @click="copyKey(keypair.publicKey, 'pub')">
               {{ copiedPub ? $t('age.keypair.copied') : $t('age.keypair.copy') }}
             </button>
           </div>
@@ -32,7 +32,7 @@
           <div class="key-label">{{ $t('age.keypair.secretKey') }}</div>
           <div class="key-area">
             <span class="key-value">{{ keypair.secretKey }}</span>
-            <button class="pill-btn" @click="copyKey(keypair.secretKey, 'sec')">
+            <button class="px-btn" @click="copyKey(keypair.secretKey, 'sec')">
               {{ copiedSec ? $t('age.keypair.copied') : $t('age.keypair.copy') }}
             </button>
           </div>
@@ -42,7 +42,7 @@
 
     <template #footer>
       <div class="age-keypair-footer">
-        <button class="pill-btn" :disabled="loading" @click="regenerate">
+        <button class="px-btn" :disabled="loading" @click="regenerate">
           {{ keypair ? $t('age.keypair.regenerate') : $t('age.keypair.generate') }}
         </button>
       </div>
@@ -132,7 +132,7 @@ function onClosed() {
 }
 
 .algo-label {
-  font-size: 14px;
+  font-size: var(--px-fs-body);
   font-weight: 600;
   color: var(--el-text-color-primary);
   white-space: nowrap;
@@ -145,7 +145,7 @@ function onClosed() {
 }
 
 .key-label {
-  font-size: 12px;
+  font-size: var(--px-fs-caption);
   font-weight: 600;
   color: var(--el-text-color-secondary);
   text-transform: uppercase;
@@ -158,15 +158,15 @@ function onClosed() {
   gap: 10px;
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color);
-  border-radius: 10px;
-  padding: 8px 12px;
+  border-radius: var(--px-r-sm);
+  padding: var(--px-space-2) var(--px-space-3);
   min-width: 0;
 }
 
 .key-value {
   flex: 1;
   font-family: monospace;
-  font-size: 12px;
+  font-size: var(--px-fs-caption);
   color: var(--el-text-color-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -176,7 +176,7 @@ function onClosed() {
 
 .loading-hint,
 .error-hint {
-  font-size: 13px;
+  font-size: var(--px-fs-small);
   text-align: center;
   padding: 12px 0;
 }
@@ -188,33 +188,5 @@ function onClosed() {
 .age-keypair-footer {
   display: flex;
   justify-content: center;
-}
-
-.pill-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 28px;
-  padding: 0 14px;
-  border: 1.5px solid var(--el-border-color);
-  border-radius: 999px;
-  cursor: pointer;
-  font-size: 12px;
-  background: transparent;
-  color: var(--el-text-color-primary);
-  user-select: none;
-  transition: border-color 0.2s, color 0.2s;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.pill-btn:hover {
-  border-color: var(--el-color-primary);
-  color: var(--el-color-primary);
-}
-
-.pill-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 </style>

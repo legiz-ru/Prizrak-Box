@@ -69,10 +69,26 @@
     --el-overlay-color-lighter: rgba(15, 23, 42, .35);
 }
 
-/* Tooltips: EP renders them in a fixed dark box regardless of theme. Keep the
-   dark box (it reads as an overlay, not as a surface) but give it the app's
-   radius and border so it stops looking like a different toolkit. */
+/* Tooltips.
+ *
+ * EP inverts effect="dark" poppers inside its own dark theme: the box turns
+ * white with dark text. That is EP's internal convention, and it was invisible
+ * here only because the app used to run EP in the *wrong* theme. With the
+ * theme wired correctly, every tooltip in the app would flip to white, so the
+ * popper is painted from our own tokens instead of EP's.
+ */
 .el-popper.is-dark {
     border-radius: var(--px-r-sm);
+    border: 1px solid var(--sub-card-border);
+    background: var(--dropdown-list-bg);
+    color: var(--text-color);
+    font-size: var(--px-fs-small);
+    line-height: var(--px-lh-body);
+    box-shadow: var(--px-elev-2);
+}
+
+/* Стрелка тултипа рисуется отдельным элементом и цвет фона не наследует. */
+.el-popper.is-dark .el-popper__arrow::before {
+    background: var(--dropdown-list-bg);
     border: 1px solid var(--sub-card-border);
 }

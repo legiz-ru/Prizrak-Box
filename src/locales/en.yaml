@@ -109,12 +109,17 @@ setting:
   tab:
     app: App Settings
     core: Core Settings
+    appShort: App
+    coreShort: Core
   hints:
+    auth: The app will ask for administrator rights on launch. Useful when the service mode is not installed.
     port: HTTP and SOCKS on one port
     dns: Intercept applications' DNS queries
     independentDelayTest: A separate test URL for each group
     secret: Access key for the external dashboard
   mihomo:
+    coreVersion: Core version
+    coreVersionUnknown: Core version unavailable
     port: Mixed-Port
     port-error: The port number must be greater than 0 and less than 65535
     dns: DNS Override

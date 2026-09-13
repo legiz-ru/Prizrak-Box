@@ -228,7 +228,7 @@ function handleDropdownCommand(command: string) {
           placement="top"
         >
           <el-icon class="toolbar-icon" @click="goHome" size="20">
-            <icon-tabler-home-link />
+            <icon-tabler-home-shield />
           </el-icon>
         </el-tooltip>
 

@@ -30,6 +30,8 @@
     --px-row-pad-x: 18px;
     --px-row-pad-y: 9px;
     --px-row-min-h: 52px;
+    /* Высота всех контролов в строке: инпут, кнопка, иконка-кнопка. */
+    --px-control-h: 32px;
 
     /* ---- Radii ---- */
     --px-r-xs: 8px;
@@ -204,8 +206,8 @@
     align-items: center;
     justify-content: center;
     gap: var(--px-space-2);
-    min-height: 32px;
-    padding: var(--px-space-2) var(--px-space-3);
+    height: var(--px-control-h);
+    padding: 0 var(--px-space-3);
     border: 1px solid var(--sub-card-border);
     border-radius: var(--px-r-pill);
     background-color: var(--left-nav-btn-bg);
@@ -218,6 +220,12 @@
     cursor: pointer;
     transition: background-color var(--px-dur) var(--px-ease),
     box-shadow var(--px-dur) var(--px-ease);
+}
+
+.px-btn svg,
+.px-iconbtn svg {
+    width: 15px;
+    height: 15px;
 }
 
 .px-btn:hover:not(:disabled) {
@@ -254,8 +262,8 @@
     align-items: center;
     gap: var(--px-space-2);
     max-width: 100%;
-    min-height: 32px;
-    padding: var(--px-space-1) var(--px-space-3);
+    height: var(--px-control-h);
+    padding: 0 var(--px-space-3);
     border: 1px solid var(--sub-card-border);
     border-radius: var(--px-r-pill);
     background-color: var(--left-nav-btn-bg);
@@ -286,8 +294,8 @@
 /* Input shown in place of .px-value while editing, same box so the row does
    not jump when it swaps. */
 .px-value-input {
-    min-height: 32px;
-    padding: var(--px-space-1) var(--px-space-3);
+    height: var(--px-control-h);
+    padding: 0 var(--px-space-3);
     border: 1px solid var(--text-color);
     border-radius: var(--px-r-pill);
     background-color: var(--left-nav-btn-bg);
@@ -304,8 +312,8 @@
     display: grid;
     place-items: center;
     flex-shrink: 0;
-    width: 32px;
-    height: 32px;
+    width: var(--px-control-h);
+    height: var(--px-control-h);
     padding: 0;
     border: none;
     border-radius: var(--px-r-pill);
@@ -322,7 +330,7 @@
 
 .px-iconbtn--plain {
     background-color: transparent;
-    opacity: .6;
+    opacity: .72;
 }
 
 .px-iconbtn--plain:hover:not(:disabled) {
@@ -341,6 +349,10 @@
 }
 
 .px-seg__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--px-space-2);
     border: none;
     border-radius: var(--px-r-pill);
     background: transparent;
@@ -361,4 +373,11 @@
 .px-seg__btn.is-active {
     background-color: var(--left-item-selected-bg);
     box-shadow: var(--px-elev-2);
+}
+
+/* Сегмент без подписи — квадратная кнопка под одну иконку. */
+.px-seg__btn--icon {
+    width: 34px;
+    height: 34px;
+    padding: 0;
 }

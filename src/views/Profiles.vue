@@ -1111,7 +1111,7 @@ watch(() => webStore.dProfile, async (pList) => {
                       class="ops"
                       @click.stop="goHome(data)"
                       size="20">
-                    <icon-tabler-home-link/>
+                    <icon-tabler-home-shield/>
                   </el-icon>
                 </el-tooltip>
                 <el-tooltip

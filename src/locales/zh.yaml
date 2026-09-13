@@ -109,12 +109,17 @@ setting:
   tab:
     app: 应用设置
     core: 内核设置
+    appShort: 应用
+    coreShort: 内核
   hints:
+    auth: 启动时应用会请求管理员权限。未安装服务模式时可以用它。
     port: HTTP 和 SOCKS 共用一个端口
     dns: 拦截应用程序的 DNS 请求
     independentDelayTest: 为每个分组单独设置测试地址
     secret: 外部控制面板的访问密钥
   mihomo:
+    coreVersion: 内核版本
+    coreVersionUnknown: 无法获取内核版本
     port: 端口
     port-error: 端口号必须大于0，小于65535
     dns: DNS覆写

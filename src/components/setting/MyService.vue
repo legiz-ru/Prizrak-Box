@@ -1,4 +1,10 @@
 <script setup lang="ts">
+// Иконки статуса импортируются явно: они выбираются в коде, а не по имени в
+// шаблоне, поэтому авто-импорт по употреблению их не увидит.
+import IconShieldOff from '~icons/tabler/shield-off';
+import IconShieldCheck from '~icons/tabler/shield-check';
+import IconShieldX from '~icons/tabler/shield-x';
+import IconShieldPause from '~icons/tabler/shield-pause';
 import {useI18n} from "vue-i18n";
 import createApi from "@/api";
 import {pSuccess, pError, pWarning} from "@/util/pLoad";
@@ -160,6 +166,21 @@ const statusText = computed(() => {
   return t('service.status-stopped');
 });
 
+// Иконка статуса. Форма щита несёт состояние, цвет только усиливает: на
+// цвет одна нагрузка ложиться не должна, а сам текст доступен в подсказке.
+const statusIcon = computed(() => {
+  if (!serviceStatus.value.installed) {
+    return IconShieldOff;
+  }
+  if (serviceStatus.value.running && serviceStatus.value.isAdmin) {
+    return IconShieldCheck;
+  }
+  if (serviceStatus.value.running && !serviceStatus.value.isAdmin) {
+    return IconShieldX;
+  }
+  return IconShieldPause;
+});
+
 const statusType = computed(() => {
   if (!serviceStatus.value.installed) {
     return 'info';
@@ -186,9 +207,13 @@ onUnmounted(() => {
 
 <template>
   <!-- Только контрол: метку «Режим сервиса» и пояснение держит SettingRow. -->
-  <el-tag :type="statusType" size="small" class="service-status">{{ statusText }}</el-tag>
+  <el-tooltip :content="statusText" placement="top" effect="dark" :show-after="150">
+    <span class="service-status" :class="`service-status--${statusType}`" tabindex="0" :aria-label="statusText">
+      <el-icon><component :is="statusIcon"/></el-icon>
+    </span>
+  </el-tooltip>
   <button class="px-btn" :disabled="loading" @click="installService">
-    <icon-tabler-loader-2 v-if="loading" class="px-spin"/>
+    <el-icon><icon-tabler-loader-2 v-if="loading" class="px-spin"/><icon-tabler-settings-check v-else/></el-icon>
     {{ t('service.install-btn') }}
   </button>
   <button
@@ -197,16 +222,46 @@ onUnmounted(() => {
       :disabled="loading"
       @click="uninstallService"
   >
+    <el-icon><icon-tabler-trash/></el-icon>
     {{ t('service.uninstall-btn') }}
   </button>
   <button class="px-btn px-btn--quiet" :disabled="loading" @click="fetchServiceStatus">
+    <el-icon><icon-tabler-refresh/></el-icon>
     {{ t('service.check-status') }}
   </button>
 </template>
 
 <style scoped>
 .service-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--px-r-pill);
+  cursor: help;
+}
+
+.service-status :deep(svg) {
+  width: 19px;
+  height: 19px;
+}
+
+.service-status--info {
+  color: var(--px-text-muted);
+}
+
+.service-status--success {
+  color: var(--px-ok);
+}
+
+.service-status--warning {
+  color: var(--px-warn);
+}
+
+.service-status--danger {
+  color: var(--px-danger);
 }
 
 .px-spin {
