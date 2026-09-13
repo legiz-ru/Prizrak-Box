@@ -335,6 +335,7 @@ rule:
     delete:
       success: Delete success
   ignore:
+    hint: "Domains listed here bypass the system proxy and connect directly (DIRECT). One domain per line, for example: localhost, *.local, intranet.company"
     title: Ignore these domains
     tip: Split by row
     place: Type Here

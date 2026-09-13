@@ -206,11 +206,11 @@ watch(() => webStore.fProfile, async () => {
 
 <template>
   <div class="rule-providers">
-    <div class="actions">
+    <div class="px-toolbar">
       <!-- Action buttons only; the view toggle lives in Setting.vue's top bar -->
       <button
           :disabled="loading"
-          :class="['pill-btn', {loading}]"
+          :class="['px-btn', {loading}]"
           type="button"
           @click="refreshProviders"
       >
@@ -219,7 +219,7 @@ watch(() => webStore.fProfile, async () => {
       </button>
       <button
           :disabled="!providers.length || updatingAll"
-          :class="['pill-btn', {loading: updatingAll, disabled: !providers.length && !updatingAll}]"
+          :class="['px-btn', 'px-btn--quiet', {loading: updatingAll}]"
           type="button"
           @click="updateAllProviders"
       >
@@ -411,39 +411,10 @@ watch(() => webStore.fProfile, async () => {
 }
 
 /* ── Toolbar ── */
-.actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-/* Action buttons — same pill-btn as Group.vue */
-.pill-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: none;
-  border-radius: 999px;
-  background-color: var(--left-nav-btn-bg);
-  color: var(--text-color);
-  padding: 9px 18px;
-  font-size: 15px;
-  cursor: pointer;
-  box-shadow: var(--left-nav-shadow);
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.pill-btn:hover,
-.pill-btn.loading {
+/* Кнопка в состоянии загрузки подсвечена так же, как наведённая. */
+.px-btn.loading {
   background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-.pill-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  box-shadow: none;
+  box-shadow: var(--px-elev-1);
 }
 
 .btn-icon {
@@ -459,13 +430,13 @@ watch(() => webStore.fProfile, async () => {
 .provider-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
-  margin-top: var(--px-space-5);
+  gap: var(--px-space-3);
+  margin-top: var(--px-space-1);
 }
 
 .provider-card {
-  padding: 8px 10px;
-  border: 2px solid var(--sub-card-border);
+  padding: var(--px-space-2) var(--px-space-3);
+  border: 1px solid var(--sub-card-border);
   border-radius: var(--px-r-lg);
   background: var(--sub-card-bg);
   color: var(--text-color);
@@ -477,7 +448,6 @@ watch(() => webStore.fProfile, async () => {
 
 .provider-card:hover {
   background-color: var(--left-item-selected-bg);
-  border: 1px solid var(--sub-card-border);
 }
 
 .card-header {

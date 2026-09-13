@@ -627,7 +627,7 @@ onMounted(async () => {
       <template #actions>
         <el-tooltip :content="t('updates.actions.open')" placement="top" :show-after="150">
           <button
-              class="px-iconbtn px-iconbtn--plain"
+              class="px-iconbtn px-iconbtn--plain px-iconbtn--sm"
               :aria-label="t('updates.actions.open')"
               @click="openReleasesPage"
           >
@@ -636,7 +636,7 @@ onMounted(async () => {
         </el-tooltip>
         <el-tooltip :content="t('updates.actions.check')" placement="top" :show-after="150">
           <button
-              class="px-iconbtn px-iconbtn--plain"
+              class="px-iconbtn px-iconbtn--plain px-iconbtn--sm"
               :aria-label="t('updates.actions.check')"
               :disabled="updateChecking"
               @click="checkForUpdatesManually"

@@ -168,12 +168,14 @@
     flex-wrap: wrap;
 }
 
-/* Section header: small caps label plus an optional status note. */
+/* Заголовок раздела: капитель, приписка и действия справа.
+   По центру, а не по базовой линии: иконка информации рядом с названием —
+   бокс 24px, по базовой линии она садилась ниже текста. */
 .px-section__head {
     display: flex;
-    align-items: baseline;
-    gap: var(--px-space-3);
-    padding: var(--px-space-3) var(--px-row-pad-x) var(--px-space-3);
+    align-items: center;
+    gap: var(--px-space-2);
+    padding: var(--px-space-2) var(--px-row-pad-x);
 }
 
 .px-section__title {
@@ -333,6 +335,12 @@
     opacity: .72;
 }
 
+/* Компактный вариант — для действий в заголовке раздела. */
+.px-iconbtn--sm {
+    width: 28px;
+    height: 28px;
+}
+
 .px-iconbtn--plain:hover:not(:disabled) {
     background-color: var(--left-nav-btn-hover-bg);
     opacity: 1;
@@ -380,4 +388,106 @@
     width: 34px;
     height: 34px;
     padding: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Таблица.
+   Правила, провайдеры и прочие плотные списки: шапка колонок, строки через
+   разделитель и слабая «зебра» — на трёх колонках без неё глаз теряет строку.
+   Колонки задаёт сам экран через grid-template-columns на .px-table.
+   --------------------------------------------------------------------------- */
+.px-table {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.px-table__head,
+.px-table__row {
+    display: grid;
+    grid-template-columns: inherit;
+    gap: var(--px-space-3);
+    align-items: center;
+    padding: var(--px-space-2) var(--px-row-pad-x);
+}
+
+.px-table__head {
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--sub-card-border);
+    font-size: var(--px-fs-caption);
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--px-text-muted);
+}
+
+.px-table__body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.px-table__row {
+    font-size: var(--px-fs-small);
+    /* Содержимое таблиц нужно уметь выделить и скопировать. */
+    user-select: text;
+}
+
+.px-table__row:nth-child(even) {
+    background-color: var(--rule-list-bg);
+}
+
+.px-table__row:hover {
+    background-color: var(--left-nav-btn-hover-bg);
+}
+
+.px-table__cell {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.px-table__empty {
+    padding: var(--px-space-6);
+    text-align: center;
+    color: var(--px-text-muted);
+    font-size: var(--px-fs-small);
+}
+
+.px-table__body::-webkit-scrollbar {
+    width: 5px;
+}
+
+.px-table__body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.px-table__body::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-bg);
+    border-radius: 2px;
+}
+
+.px-table__body::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-hover-bg);
+}
+
+/* Панель инструментов раздела: кнопки и переключатели над содержимым. */
+.px-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--px-space-2);
+    margin-bottom: var(--px-space-3);
+}
+
+.px-toolbar__sep {
+    width: 1px;
+    height: 20px;
+    background-color: var(--sub-card-border);
+    margin: 0 var(--px-space-1);
+}
+
+.px-toolbar__note {
+    font-size: var(--px-fs-small);
+    color: var(--px-text-muted);
 }

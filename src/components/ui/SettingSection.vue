@@ -50,10 +50,6 @@ defineProps<{
   flex-direction: column;
 }
 
-.px-section__head {
-  min-height: 44px;
-}
-
 .px-section__actions {
   display: flex;
   align-items: center;

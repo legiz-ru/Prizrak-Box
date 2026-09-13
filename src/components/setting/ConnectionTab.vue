@@ -367,23 +367,27 @@ function closeAll() {
 
 <template>
   <div class="conn">
-    <el-space class="op">
-      <button class="pill-btn" @click="closeAll">{{ $t('connections.close') }}</button>
-      <div class="pill-toggle">
+    <div class="px-toolbar">
+      <button class="px-btn px-btn--danger" @click="closeAll">
+        <el-icon><icon-tabler-plug-connected-x/></el-icon>
+        {{ $t('connections.close') }}
+      </button>
+      <span class="px-toolbar__sep"></span>
+      <div class="px-seg">
         <button
-            :class="['pill-toggle__btn', { 'is-active': connectionStore.viewMode === 'list' }]"
+            :class="['px-seg__btn', { 'is-active': connectionStore.viewMode === 'list' }]"
             @click="connectionStore.viewMode = 'list'"
         >{{ $t('connections.list') }}</button>
         <button
-            :class="['pill-toggle__btn', { 'is-active': connectionStore.viewMode === 'topology' }]"
+            :class="['px-seg__btn', { 'is-active': connectionStore.viewMode === 'topology' }]"
             @click="connectionStore.viewMode = 'topology'"
         >{{ $t('connections.topology-view') }}</button>
         <button
-            :class="['pill-toggle__btn', { 'is-active': connectionStore.viewMode === 'process' }]"
+            :class="['px-seg__btn', { 'is-active': connectionStore.viewMode === 'process' }]"
             @click="connectionStore.viewMode = 'process'"
         >{{ $t('connections.process-view') }}</button>
       </div>
-    </el-space>
+    </div>
     <div class="search" v-if="connectionStore.viewMode === 'list' || connectionStore.viewMode === 'process'">
       <MySimpleInput
           :onInputChange="handleInputChange"
@@ -633,53 +637,11 @@ function closeAll() {
   right: 14px;
 }
 
-.pill-btn {
-  border: none;
-  border-radius: var(--px-r-pill);
-  background-color: var(--left-nav-btn-bg);
-  box-shadow: var(--px-elev-1);
-  color: var(--text-color);
-  font-family: inherit;
-  font-size: var(--px-fs-body);
-  padding: var(--px-space-2) var(--px-space-4);
-  cursor: pointer;
-  transition: background-color var(--px-dur) var(--px-ease);
-}
 
-.pill-btn:hover {
-  background-color: var(--left-item-selected-bg);
-}
 
-.pill-toggle {
-  display: inline-flex;
-  border-radius: var(--px-r-pill);
-  background-color: var(--left-nav-btn-bg);
-  box-shadow: var(--px-elev-1);
-  padding: var(--px-space-1);
-  gap: var(--px-space-1);
-}
 
-.pill-toggle__btn {
-  border: none;
-  border-radius: var(--px-r-pill);
-  background: transparent;
-  color: var(--text-color);
-  font-family: inherit;
-  font-size: var(--px-fs-body);
-  padding: var(--px-space-1) var(--px-space-3);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color var(--px-dur) var(--px-ease);
-}
 
-.pill-toggle__btn:hover {
-  background-color: var(--left-nav-btn-hover-bg);
-}
 
-.pill-toggle__btn.is-active {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--px-elev-2);
-}
 
 /* --- Список соединений --- */
 .content {
@@ -859,7 +821,7 @@ function closeAll() {
 
 .log-dialog__actions {
   display: flex;
-  gap: 8px;
+  gap: var(--px-space-2);
 }
 
 .log-dialog__action {
@@ -906,26 +868,26 @@ function closeAll() {
 .log-section { margin-bottom: 4px; }
 
 .log-section__title {
-  font-size: 11px;
+  font-size: var(--px-fs-caption);
   font-weight: 700;
   letter-spacing: 0.06em;
   color: var(--left-item-selected-bg);
-  padding: 6px 16px 2px;
+  padding: var(--px-space-2) var(--px-row-pad-x) 2px;
 }
 
 .log-row {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  padding: 2px 16px;
-  font-size: 13px;
+  gap: var(--px-space-2);
+  padding: 2px var(--px-row-pad-x);
+  font-size: var(--px-fs-small);
   line-height: 1.4;
 }
 
 .log-label {
   flex: 0 0 42%;
   color: var(--el-text-color-secondary);
-  font-size: 13px;
+  font-size: var(--px-fs-small);
   word-break: break-word;
 }
 
@@ -951,7 +913,7 @@ function closeAll() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: var(--px-space-4);
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -1020,7 +982,7 @@ function closeAll() {
 .process-row {
   cursor: pointer;
   transition: background-color 0.15s ease;
-  padding: 5px 10px 5px 16px;
+  padding: var(--px-space-1) var(--px-row-pad-x);
 }
 
 .process-row:hover {
@@ -1030,7 +992,7 @@ function closeAll() {
 .process-item-inner {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--px-space-3);
   padding: 2px 0;
 }
 
@@ -1047,7 +1009,7 @@ function closeAll() {
   width: 36px;
   height: 36px;
   object-fit: contain;
-  border-radius: 8px;
+  border-radius: var(--px-r-xs);
 }
 
 .process-app-icon-placeholder {
@@ -1065,12 +1027,12 @@ function closeAll() {
 .process-name-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--px-space-2);
   margin-bottom: 4px;
 }
 
 .process-name {
-  font-size: 15px;
+  font-size: var(--px-fs-body);
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -1078,7 +1040,7 @@ function closeAll() {
 }
 
 .process-stats {
-  font-size: 14px;
+  font-size: var(--px-fs-body);
   opacity: 0.75;
 }
 
@@ -1095,7 +1057,7 @@ function closeAll() {
   justify-content: center;
   height: 80px;
   opacity: 0.5;
-  font-size: 14px;
+  font-size: var(--px-fs-body);
 }
 
 .process-connections-wrap {
@@ -1116,11 +1078,11 @@ function closeAll() {
 .process-back-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--px-space-2);
   padding: 10px 16px;
   cursor: pointer;
   border-bottom: 1px solid var(--sub-card-border);
-  font-size: 14px;
+  font-size: var(--px-fs-body);
   font-weight: 600;
   background-color: var(--left-bg-color);
   transition: background-color 0.15s ease;
