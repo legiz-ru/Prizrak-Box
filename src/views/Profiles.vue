@@ -968,9 +968,8 @@ watch(() => webStore.dProfile, async (pList) => {
       <VDContainer
           :data="profiles"
           @getData="sendOrder"
-          :gap="15"
+          :gap="12"
           :draggable="canDrag"
-          style="margin-left: 10px;width: 95%;"
       >
         <template v-slot:VDC="{data,index}">
           <div
@@ -1478,23 +1477,24 @@ watch(() => webStore.dProfile, async (pList) => {
 
 <style scoped>
 .space {
-  margin-top: 15px;
+  margin-top: var(--px-space-4);
 }
 
+/* Заголовок без собственного отступа слева — его задаёт панель, как в
+   остальных разделах. */
 .title {
-  font-size: 32px;
+  font-size: var(--px-fs-display);
   font-weight: bold;
-  margin-left: 10px;
 }
 
 .profile-option {
-  margin-left: 10px;
   font-size: 30px;
-  padding-top: 10px;
+  padding-top: var(--px-space-3);
+  margin-left: var(--px-space-3);
 }
 
 .profile-option-btn {
-  margin-right: 15px;
+  margin-right: var(--px-space-4);
 }
 
 .profile-option-btn:hover {
@@ -1505,7 +1505,7 @@ watch(() => webStore.dProfile, async (pList) => {
 .multi-profile-info {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--px-space-2);
   color: var(--el-text-color-regular);
   line-height: 1.4;
 }
@@ -1514,24 +1514,40 @@ watch(() => webStore.dProfile, async (pList) => {
   font-weight: 600;
 }
 
+/* Карточки раскладываются сеткой, как узлы в полном виде раздела прокси:
+   auto-fill сохраняет ширину колонки независимо от числа карточек, а 1fr
+   раздаёт остаток, поэтому ряд всегда заканчивается вровень с правым краем.
+   Минимум колонки — прежние 245px плюс треть, как и просили. */
+:deep(.vdc-trans-group-container) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(326px, 1fr));
+  align-items: start;
+}
+
+:deep(.vdc-out-container) {
+  width: 100%;
+}
+
 :deep(.vdc-item-container) {
-  width: calc(33% - 10px);
-  max-width: 245px;
+  width: auto;
+  max-width: none;
+  min-width: 0;
 }
 
 .sub-card {
-  padding: 5px 8px 5px 5px;
-  border: 2px solid var(--sub-card-border);
-  border-radius: 20px;
+  padding: var(--px-space-2);
+  border: 1px solid var(--sub-card-border);
+  border-radius: var(--px-r-lg);
   background: var(--sub-card-bg);
   color: var(--text-color);
-  box-shadow: var(--left-nav-shadow);
-  margin-top: 5px;
+  box-shadow: var(--px-elev-1);
+  transition: background-color var(--px-dur) var(--px-ease),
+  border-color var(--px-dur) var(--px-ease);
 }
 
 .sub-card:hover, .sub-card-select {
   background-color: var(--left-item-selected-bg);
-  border: 2px solid var(--text-color);
+  border-color: var(--text-color);
   cursor: pointer;
 }
 
@@ -1554,8 +1570,8 @@ watch(() => webStore.dProfile, async (pList) => {
 
 .card-header {
   align-items: center;
-  gap: 8px;
-  padding: 4px 6px 0 6px;
+  gap: var(--px-space-2);
+  padding: var(--px-space-1) var(--px-space-2) 0;
 }
 
 .profile-name {
@@ -1586,8 +1602,8 @@ watch(() => webStore.dProfile, async (pList) => {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 6px 6px 0 6px;
-  font-size: 13px;
+  padding: var(--px-space-2) var(--px-space-2) 0;
+  font-size: var(--px-fs-small);
   color: var(--text-color);
   min-height: 90px;
 }
@@ -1633,7 +1649,7 @@ watch(() => webStore.dProfile, async (pList) => {
   border: none;
   background: transparent;
   color: var(--text-color);
-  border-radius: 999px;
+  border-radius: var(--px-r-pill);
   transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -1660,15 +1676,15 @@ watch(() => webStore.dProfile, async (pList) => {
 .bottom-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--px-space-2);
 }
 .stat-icon {
   color: var(--text-color);
 }
 
 .announce-dialog-content {
-  padding: 20px;
-  font-size: 14px;
+  padding: var(--px-space-5);
+  font-size: var(--px-fs-body);
   color: var(--el-text-color-primary);
   text-align: center;
   line-height: 1.6;
@@ -1685,7 +1701,7 @@ watch(() => webStore.dProfile, async (pList) => {
 
 .dialog-footer__actions {
   display: flex;
-  gap: 8px;
+  gap: var(--px-space-2);
 }
 
 .dialog-footer__indicators {
@@ -1707,7 +1723,7 @@ watch(() => webStore.dProfile, async (pList) => {
 .age-toggle-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--px-space-2);
   cursor: pointer;
 }
 
