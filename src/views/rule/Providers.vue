@@ -207,7 +207,7 @@ watch(() => webStore.fProfile, async () => {
 <template>
   <div class="rule-providers">
     <div class="actions">
-      <!-- Action buttons only; view toggle moved to Rule.vue / Setting.vue top bar -->
+      <!-- Action buttons only; the view toggle lives in Setting.vue's top bar -->
       <button
           :disabled="loading"
           :class="['pill-btn', {loading}]"

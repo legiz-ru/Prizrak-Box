@@ -20,7 +20,10 @@ const settingTab = computed({
   set: (val: string) => menuStore.setSettingTab(val),
 });
 
-const ruleSubTab = ref('Now');
+const ruleSubTab = computed({
+  get: () => menuStore.ruleMenu,
+  set: (val: string) => menuStore.setRuleMenu(val),
+});
 
 const providersView = computed({
   get: () => menuStore.providersView,

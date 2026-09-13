@@ -1,4 +1,3 @@
-import RuleProviders from '@/views/rule/Providers.vue';
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router';
 import { useMenuStore } from '@/store/menuStore';
 
@@ -6,20 +5,17 @@ import Home from '@/views/Home.vue';
 import Setting from '@/views/Setting.vue';
 import Proxies from '@/views/Proxies.vue';
 import Profiles from '@/views/Profiles.vue';
-import Rule from '@/views/Rule.vue';
-import Now from '@/views/rule/Now.vue';
-import Group from '@/views/rule/Group.vue';
-import Ignore from '@/views/rule/Ignore.vue';
-import Crawl from '@/views/Crawl.vue';
 import Dns from '@/views/setting/Dns.vue';
 import Shortcut from '@/views/setting/Shortcut.vue';
+
+const RULE_TABS = ['Now', 'Group', 'Providers', 'Ignore'];
 
 /**
  * Переводит старый отдельный экран на соответствующую вкладку настроек и
  * чинит сохранённый путь, чтобы перенаправление сработало один раз, а не при
  * каждом запуске.
  */
-function legacyTabRedirect(tab: 'connection' | 'log'): string {
+function legacyTabRedirect(tab: 'connection' | 'log' | 'rule'): string {
     const menuStore = useMenuStore();
     menuStore.setSettingTab(tab);
     menuStore.setPath('/Setting');
@@ -62,32 +58,17 @@ const routes: Array<RouteRecordRaw> = [
         name: 'Profiles',
         component: Profiles,
     },
+    // Правила тоже были отдельным экраном со своей навигацией по подразделам;
+    // сам подраздел сохраняется в сторе, поэтому переносим и его.
     {
-        path: '/Rule',
-        name: 'Rule',
-        component: Rule,
-        children: [
-            {
-                path: 'Now',
-                name: 'Now',
-                component: Now,
-            },
-            {
-                path: 'Group',
-                name: 'Group',
-                component: Group,
-            },
-            {
-                path: 'Ignore',
-                name: 'Ignore',
-                component: Ignore,
-            },
-            {
-                path: 'Providers',
-                name: 'RuleProviders',
-                component: RuleProviders,
-            },
-        ],
+        path: '/Rule/:sub?',
+        redirect: (to) => {
+            const sub = String(to.params.sub ?? '');
+            if (RULE_TABS.includes(sub)) {
+                useMenuStore().setRuleMenu(sub);
+            }
+            return legacyTabRedirect('rule');
+        },
     },
     // Наследие: до перехода на вкладки настроек соединения и журнал были
     // отдельными экранами, а путь последнего открытого раздела сохраняется в
@@ -101,11 +82,6 @@ const routes: Array<RouteRecordRaw> = [
     {
         path: '/Log',
         redirect: () => legacyTabRedirect('log'),
-    },
-    {
-        path: '/Crawl',
-        name: 'Crawl',
-        component: Crawl,
     },
     // Любой другой сохранённый путь из прошлых версий ведёт на главную, а не в
     // пустоту.
