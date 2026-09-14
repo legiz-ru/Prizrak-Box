@@ -917,8 +917,8 @@ watch(() => webStore.dProfile, async (pList) => {
 <template>
   <MyLayout>
     <template #top>
-        <n-space class="space">
-          <div class="title">
+        <div class="px-page-head">
+          <div class="px-page-title">
             {{ $t('profiles.title') }}
           </div>
           <div class="profile-option">
@@ -927,8 +927,8 @@ watch(() => webStore.dProfile, async (pList) => {
               <n-icon
                   @click="toggleMultiProfile"
                   class="profile-option-btn">
-                <icon-mdi-checkbox-multiple-marked v-if="multiProfileEnabled"/>
-                <icon-mdi-checkbox-multiple-blank-outline v-else/>
+                <icon-tabler-checkbox v-if="multiProfileEnabled"/>
+                <icon-tabler-square v-else/>
               </n-icon>
             </template>
   {{ multiProfileEnabled ? t('profiles.multi-select.disable') : t('profiles.multi-select.enable') }}
@@ -938,7 +938,7 @@ watch(() => webStore.dProfile, async (pList) => {
               <n-icon
                   @click="showMultiProfileInfo"
                   class="profile-option-btn">
-                <icon-mdi-information-outline/>
+                <icon-tabler-info-circle/>
               </n-icon>
             </template>
   {{ t('profiles.multi-select.info') }}
@@ -948,7 +948,7 @@ watch(() => webStore.dProfile, async (pList) => {
               <n-icon
                   @click="handleAdd"
                 class="profile-option-btn">
-              <icon-mdi-plus-thick/>
+              <icon-tabler-plus/>
             </n-icon>
           </template>
   {{ $t('profiles.add') }}
@@ -959,7 +959,7 @@ watch(() => webStore.dProfile, async (pList) => {
             <n-icon
                 @click="handlePaste"
                 class="profile-option-btn">
-              <icon-mdi-content-paste/>
+              <icon-tabler-clipboard/>
             </n-icon>
           </template>
   {{ $t('profiles.paste') }}
@@ -970,13 +970,13 @@ watch(() => webStore.dProfile, async (pList) => {
             <n-icon
                 @click="openFile"
                 class="profile-option-btn">
-              <icon-mdi-folder-open/>
+              <icon-tabler-folder-open/>
             </n-icon>
           </template>
   {{ $t('profiles.open') }}
 </n-tooltip>
         </div>
-      </n-space>
+      </div>
 
     </template>
 
@@ -1000,7 +1000,7 @@ watch(() => webStore.dProfile, async (pList) => {
                   @click.stop
                   size="22"
                   class="drag">
-                <icon-mdi-drag/>
+                <icon-tabler-grip-vertical/>
               </n-icon>
               <div class="profile-name" :title="getProfileDisplayTitle(data)">
                 <span class="profile-name-text">{{ getProfileDisplayTitle(data) }}</span>
@@ -1011,7 +1011,7 @@ watch(() => webStore.dProfile, async (pList) => {
                   <n-icon size="22"
                            class="ops"
                            @click.stop="refresh(data)">
-                    <icon-mdi-refresh/>
+                    <icon-tabler-refresh/>
                   </n-icon>
                 </template>
   {{ $t('refresh') }}
@@ -1021,28 +1021,28 @@ watch(() => webStore.dProfile, async (pList) => {
             <div class="stats">
               <div class="stat-row" v-if="hasValue(data.used)">
                 <n-icon size="18" class="stat-icon">
-                  <icon-mdi-chart-timeline-variant/>
+                  <icon-tabler-chart-line/>
                 </n-icon>
                 <span class="stat-label">{{ $t('profiles.use') }}</span>
                 <span class="stat-value">{{ formatTrafficValue(data.used) }}</span>
               </div>
               <div class="stat-row" v-if="hasValue(data.available)">
                 <n-icon size="18" class="stat-icon">
-                  <icon-mdi-database-check/>
+                  <icon-tabler-database/>
                 </n-icon>
                 <span class="stat-label">{{ $t('profiles.available') }}</span>
                 <span class="stat-value">{{ formatTrafficValue(data.available) }}</span>
               </div>
               <div class="stat-row" v-if="hasValue(data.expire)">
                 <n-icon size="18" class="stat-icon">
-                  <icon-mdi-calendar-alert/>
+                  <icon-tabler-calendar-exclamation/>
                 </n-icon>
                 <span class="stat-label">{{ $t('profiles.expire') }}</span>
                 <span class="stat-value">{{ formatDateValue(data.expire) }}</span>
               </div>
               <div class="stat-row" v-if="hasValue(data.update)">
                 <n-icon size="18" class="stat-icon">
-                  <icon-mdi-update/>
+                  <icon-tabler-clock-check/>
                 </n-icon>
                 <span class="stat-label">{{ $t('profiles.update') }}</span>
                 <span class="stat-value">{{ formatDateValue(data.update) }}</span>
@@ -1057,20 +1057,20 @@ watch(() => webStore.dProfile, async (pList) => {
                     @click.stop="switchProfile(data, !data.selected)"
                 >
                   <n-icon class="profile-select-icon" size="18">
-                    <icon-mdi-check-circle v-if="data.selected"/>
-                    <icon-mdi-circle-outline v-else/>
+                    <icon-tabler-circle-check v-if="data.selected"/>
+                    <icon-tabler-circle v-else/>
                   </n-icon>
                   <n-icon v-if="data.selected" class="profile-select-order-icon" size="18">
-                    <icon-mdi-numeric-1-circle v-if="data.selectionOrder === 1"/>
-                    <icon-mdi-numeric-2-circle v-else-if="data.selectionOrder === 2"/>
-                    <icon-mdi-numeric-3-circle v-else-if="data.selectionOrder === 3"/>
-                    <icon-mdi-numeric-4-circle v-else-if="data.selectionOrder === 4"/>
-                    <icon-mdi-numeric-5-circle v-else-if="data.selectionOrder === 5"/>
-                    <icon-mdi-numeric-6-circle v-else-if="data.selectionOrder === 6"/>
-                    <icon-mdi-numeric-7-circle v-else-if="data.selectionOrder === 7"/>
-                    <icon-mdi-numeric-8-circle v-else-if="data.selectionOrder === 8"/>
-                    <icon-mdi-numeric-9-circle v-else-if="data.selectionOrder === 9"/>
-                    <icon-mdi-numeric-10-circle v-else/>
+                    <icon-tabler-circle-number-1 v-if="data.selectionOrder === 1"/>
+                    <icon-tabler-circle-number-2 v-else-if="data.selectionOrder === 2"/>
+                    <icon-tabler-circle-number-3 v-else-if="data.selectionOrder === 3"/>
+                    <icon-tabler-circle-number-4 v-else-if="data.selectionOrder === 4"/>
+                    <icon-tabler-circle-number-5 v-else-if="data.selectionOrder === 5"/>
+                    <icon-tabler-circle-number-6 v-else-if="data.selectionOrder === 6"/>
+                    <icon-tabler-circle-number-7 v-else-if="data.selectionOrder === 7"/>
+                    <icon-tabler-circle-number-8 v-else-if="data.selectionOrder === 8"/>
+                    <icon-tabler-circle-number-9 v-else-if="data.selectionOrder === 9"/>
+                    <icon-tabler-circle-dot v-else/>
                   </n-icon>
                 </button>
               </div>
@@ -1081,7 +1081,7 @@ watch(() => webStore.dProfile, async (pList) => {
                       class="ops"
                       @click.stop="openTvDialog(data)"
                       size="20">
-                    <icon-mdi-television-classic/>
+                    <icon-tabler-device-tv/>
                   </n-icon>
                 </template>
   {{ $t('profiles.tv-send') }}
@@ -1092,7 +1092,7 @@ watch(() => webStore.dProfile, async (pList) => {
                       class="ops"
                       @click.stop="showAnnounce(data)"
                       size="20">
-                    <icon-mdi-bullhorn-variant-outline/>
+                    <icon-tabler-speakerphone/>
                   </n-icon>
                 </template>
   {{ $t('profiles.announce') }}
@@ -1103,7 +1103,7 @@ watch(() => webStore.dProfile, async (pList) => {
                       class="ops"
                       @click.stop="goRenew(data)"
                       size="20">
-                    <icon-mdi-credit-card-outline/>
+                    <icon-tabler-credit-card/>
                   </n-icon>
                 </template>
   {{ $t('profiles.renew') }}
@@ -1114,7 +1114,7 @@ watch(() => webStore.dProfile, async (pList) => {
                       class="ops"
                       @click.stop="goSupport(data)"
                       size="20">
-                    <icon-mdi-face-agent/>
+                    <icon-tabler-headset/>
                   </n-icon>
                 </template>
   {{ $t('profiles.support') }}
@@ -1125,7 +1125,7 @@ watch(() => webStore.dProfile, async (pList) => {
                       class="ops"
                       @click.stop="goHome(data)"
                       size="20">
-                    <icon-mdi-home-import-outline/>
+                    <icon-tabler-home-link/>
                   </n-icon>
                 </template>
   {{ $t('profiles.home') }}
@@ -1136,7 +1136,7 @@ watch(() => webStore.dProfile, async (pList) => {
                       class="ops"
                       @click.stop="updateProfile(data)"
                       size="20">
-                    <icon-mdi-square-edit-outline/>
+                    <icon-tabler-edit/>
                   </n-icon>
                 </template>
   {{ $t('edit') }}
@@ -1147,7 +1147,7 @@ watch(() => webStore.dProfile, async (pList) => {
                       class="ops"
                       @click.stop="deleteProfile(data,index)"
                       size="20">
-                    <icon-mdi-trash-can/>
+                    <icon-tabler-trash-filled/>
                   </n-icon>
                 </template>
   {{ $t('delete') }}
@@ -1189,7 +1189,7 @@ watch(() => webStore.dProfile, async (pList) => {
             clearable
         >
           <template #prefix>
-            <n-icon><icon-mdi-key-variant/></n-icon>
+            <n-icon><icon-tabler-key/></n-icon>
           </template>
         </n-input>
       </n-form-item>
@@ -1200,7 +1200,7 @@ watch(() => webStore.dProfile, async (pList) => {
   <template #trigger>
           <div class="age-toggle-wrap" @click="addForm.useAgeKey = !addForm.useAgeKey">
             <n-icon class="age-toggle-icon" :class="{ 'age-toggle-icon--active': addForm.useAgeKey }">
-              <icon-mdi-key-variant/>
+              <icon-tabler-key/>
             </n-icon>
             <div :class="['px-toggle', { 'is-on': addForm.useAgeKey }]">
               <div class="px-toggle__thumb"></div>
@@ -1240,7 +1240,7 @@ watch(() => webStore.dProfile, async (pList) => {
           label-width="120"
           class="renew-subscription-field">
         <n-button class="renew-subscription-btn" @click="goRenew(editForm)">
-          <n-icon><icon-mdi-credit-card-outline/></n-icon>
+          <n-icon><icon-tabler-credit-card/></n-icon>
           {{ t('profiles.renew') }}
         </n-button>
       </n-form-item>
@@ -1301,7 +1301,7 @@ watch(() => webStore.dProfile, async (pList) => {
             spellcheck="false"
             :placeholder="t('age.profile.keyPlaceholder')">
           <template #prefix>
-            <n-icon><icon-mdi-key-variant/></n-icon>
+            <n-icon><icon-tabler-key/></n-icon>
           </template>
         </n-input>
       </n-form-item>
@@ -1313,7 +1313,7 @@ watch(() => webStore.dProfile, async (pList) => {
           <n-tooltip trigger="hover" placement="top" v-if="editForm.hwidActive">
   <template #trigger>
             <n-icon class="hwid-active-icon">
-              <icon-mdi-shield-check />
+              <icon-tabler-shield-check />
             </n-icon>
           </template>
   {{ t('hwid.active.tooltip') }}
@@ -1321,7 +1321,7 @@ watch(() => webStore.dProfile, async (pList) => {
           <n-tooltip trigger="hover" placement="top" v-if="editForm.notifyExpireDays?.length || editForm.notifyTrafficPercent?.length">
   <template #trigger>
             <n-icon class="subscription-alert-icon" @click="showSubscriptionAlertInfo">
-              <icon-mdi-bell-outline/>
+              <icon-tabler-bell/>
             </n-icon>
           </template>
   {{ t('subscriptionAlert.bellTooltip') }}
@@ -1332,7 +1332,7 @@ watch(() => webStore.dProfile, async (pList) => {
                 class="age-toggle-icon age-edit-icon"
                 :class="{ 'age-toggle-icon--active': editShowAgeKey }"
                 @click="editShowAgeKey = !editShowAgeKey">
-              <icon-mdi-key-variant/>
+              <icon-tabler-key/>
             </n-icon>
           </template>
   {{ editHasAgeKey ? t('age.profile.replaceHint') : t('age.profile.toggleOff') }}
@@ -1479,42 +1479,20 @@ watch(() => webStore.dProfile, async (pList) => {
 </template>
 
 <style scoped>
-.space {
-  margin-top: 15px;
-}
-
-.title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 32px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  margin-left: 10px;
-}
-
-.title::before {
-  content: "";
-  width: 4px;
-  height: 26px;
-  border-radius: 999px;
-  background: var(--left-item-selected-bg);
-  flex-shrink: 0;
-}
-
+/* Заголовок и панель значков раскладывает .px-page-head (gap на общем
+   родителе) — своего отступа между ними .profile-option больше не носит. */
 .profile-option {
-  margin-left: 10px;
   font-size: 30px;
-  padding-top: 6px;
+  padding-top: var(--px-space-3);
   display: flex;
   align-items: center;
 }
 
 .profile-option-btn {
-  margin-right: 6px;
+  margin-right: var(--px-space-2);
   padding: 6px;
-  border-radius: 999px;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  border-radius: var(--px-r-pill);
+  transition: background-color var(--px-dur) var(--px-ease), color var(--px-dur) var(--px-ease);
 }
 
 .profile-option-btn:hover {

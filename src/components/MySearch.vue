@@ -9,7 +9,6 @@ import {pError, pWarning} from "@/util/pLoad";
 import {Events} from "@/runtime";
 import type {ProxyGroupInfo} from "@/api/proxies";
 import {useWebStore} from "@/store/webStore";
-import {proxyTypeIcon, proxyTypeTooltip} from "@/util/proxyType";
 
 // 获取当前 Vue 实例的 proxy 对象
 const {proxy} = getCurrentInstance()!;
@@ -93,13 +92,6 @@ async function loadProxies() {
 function getServerDescription(proxy: any): string | undefined {
   return proxy?.displayType !== proxy?.type ? proxy?.displayType : undefined;
 }
-
-// Type badge. The search list never showed the adapter type at all; the icon
-// adds it without spending horizontal space in an already narrow dropdown.
-// A node named by a known group is a group — groupList holds every group.
-const isGroupProxy = (p: any) => groupList.value.some((g) => g.name === p?.name);
-const typeIcon = (p: any) => proxyTypeIcon(p?.type, isGroupProxy(p));
-const typeTooltip = (p: any) => proxyTypeTooltip(p?.type, isGroupProxy(p), t);
 
 // Get latency color class
 function getLatencyColor(toClass: string): string {
@@ -274,14 +266,21 @@ watch(() => proxiesStore.now, (newNow) => {
       <div class="proxy-selector">
         <!-- Group Dropdown -->
         <div class="dropdown-wrapper">
-          <div class="dropdown-button" @click="toggleGroupDropdown">
-            <span class="dropdown-label"><span class="dropdown-label-text">{{ t('proxySelector.group') }}</span></span>
-            <span class="dropdown-value">{{ selectedGroup }}</span>
-            <el-icon class="dropdown-icon" @click.stop="toggleGroupDropdown">
-              <icon-ep-arrow-down v-if="!isGroupDropdownOpen" />
-              <icon-ep-arrow-up v-else />
-            </el-icon>
-          </div>
+          <button
+              type="button"
+              class="dropdown-button"
+              :class="{ 'is-open': isGroupDropdownOpen }"
+              @click="toggleGroupDropdown"
+          >
+            <span class="dropdown-text">
+              <span class="dropdown-label-text">{{ t('proxySelector.group') }}</span>
+              <span class="dropdown-value">{{ selectedGroup || '—' }}</span>
+            </span>
+            <n-icon class="dropdown-icon">
+              <icon-tabler-chevron-down v-if="!isGroupDropdownOpen" />
+              <icon-tabler-chevron-up v-else />
+            </n-icon>
+          </button>
           <div v-if="isGroupDropdownOpen" class="dropdown-list">
             <div
                 v-for="group in groupList"
@@ -291,22 +290,30 @@ watch(() => proxiesStore.now, (newNow) => {
                 @click="selectGroup(group)"
             >
               <span class="dropdown-item-text">{{ group.name }}</span>
+              <icon-tabler-check v-if="group.name === selectedGroup" class="dropdown-item-check"/>
             </div>
           </div>
         </div>
 
         <!-- Proxy Dropdown -->
         <div class="dropdown-wrapper">
-          <div class="dropdown-button" @click="toggleProxyDropdown">
-            <span class="dropdown-label"><span class="dropdown-label-text">{{ t('proxySelector.proxy') }}</span></span>
-            <span class="dropdown-value">
-              {{ (proxyList.find(p => p.now)?.displayName ?? proxyList.find(p => p.now)?.name ?? selectedProxy) || 'Не выбрано' }}
+          <button
+              type="button"
+              class="dropdown-button"
+              :class="{ 'is-open': isProxyDropdownOpen }"
+              @click="toggleProxyDropdown"
+          >
+            <span class="dropdown-text">
+              <span class="dropdown-label-text">{{ t('proxySelector.proxy') }}</span>
+              <span class="dropdown-value">
+                {{ (proxyList.find(p => p.now)?.displayName ?? proxyList.find(p => p.now)?.name ?? selectedProxy) || 'Не выбрано' }}
+              </span>
             </span>
-            <el-icon class="dropdown-icon" @click.stop="toggleProxyDropdown">
-              <icon-ep-arrow-down v-if="!isProxyDropdownOpen" />
-              <icon-ep-arrow-up v-else />
-            </el-icon>
-          </div>
+            <n-icon class="dropdown-icon">
+              <icon-tabler-chevron-down v-if="!isProxyDropdownOpen" />
+              <icon-tabler-chevron-up v-else />
+            </n-icon>
+          </button>
           <div v-if="isProxyDropdownOpen" class="dropdown-list">
             <div
                 v-for="proxyItem in proxyList"
@@ -315,24 +322,21 @@ watch(() => proxiesStore.now, (newNow) => {
                 :class="{ 'dropdown-item-selected': proxyItem.now }"
                 @click="selectProxy(proxyItem)"
             >
-              <div class="proxy-item-content">
-                <el-tooltip :content="typeTooltip(proxyItem)" placement="top">
-                  <el-icon class="proxy-type-icon">
-                    <component :is="typeIcon(proxyItem)"/>
-                  </el-icon>
-                </el-tooltip>
-                <span class="proxy-item-name">{{ proxyItem.displayName ?? proxyItem.name }}</span>
-                <el-tooltip
-                    v-if="getServerDescription(proxyItem)"
-                    :content="getServerDescription(proxyItem)"
-                    placement="top"
-                >
-                  <el-icon class="proxy-info-icon">
-                    <icon-mdi-information-outline />
-                  </el-icon>
-                </el-tooltip>
-              </div>
               <span :class="['latency-dot', getLatencyColor(proxyItem.toClass)]"></span>
+              <span class="proxy-item-name">{{ proxyItem.displayName ?? proxyItem.name }}</span>
+              <n-tooltip
+                  v-if="getServerDescription(proxyItem)"
+                  trigger="hover"
+                  placement="top"
+              >
+                <template #trigger>
+                  <n-icon class="proxy-info-icon">
+                    <icon-tabler-info-circle />
+                  </n-icon>
+                </template>
+                {{ getServerDescription(proxyItem) }}
+              </n-tooltip>
+              <icon-tabler-check v-if="proxyItem.now" class="dropdown-item-check"/>
             </div>
           </div>
         </div>
@@ -372,8 +376,8 @@ watch(() => proxiesStore.now, (newNow) => {
 .proxy-selector {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-left: 8px;
+  gap: var(--px-space-3);
+  margin-left: var(--px-space-2);
 }
 
 /* Dropdown Wrapper */
@@ -384,75 +388,66 @@ watch(() => proxiesStore.now, (newNow) => {
   width: 200px;
 }
 
-/* Dropdown Button */
+/* Dropdown Button — сплошная плашка-контрол в языке остального приложения
+   (тот же --left-nav-btn-bg/--sub-card-border, что у кнопок и полей), а не
+   подпись, врезанная в разрыв рамки. */
 .dropdown-button {
-  --dropdown-border-color: var(--sub-card-border);
-  position: relative;
   width: 100%;
   min-width: 0;
-  padding: 14px 12px 8px 12px;
-  border: 1px solid var(--dropdown-border-color);
-  border-top-color: transparent;
-  border-radius: 20px;
-  background-color: var(--sub-card-bg);
+  padding: var(--px-space-2) var(--px-space-3);
+  border: 1px solid var(--sub-card-border);
+  border-radius: var(--px-r-lg);
+  background-color: var(--left-nav-btn-bg);
   color: var(--text-color);
-  font-size: 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  transition: all 0.2s ease;
+  gap: var(--px-space-2);
+  transition: background-color var(--px-dur) var(--px-ease),
+  border-color var(--px-dur) var(--px-ease);
   font-family: 'Twemoji', 'Nunito', 'Microsoft YaHei', '微软雅黑', sans-serif;
   font-variant-emoji: emoji;
   box-sizing: border-box;
 }
 
-.dropdown-button:hover {
-  background-color: var(--skin-hover-color);
-  --dropdown-border-color: rgba(255, 255, 255, 0.3);
+.dropdown-button:hover,
+.dropdown-button.is-open {
+  background-color: var(--left-nav-btn-hover-bg);
+  border-color: var(--text-color);
 }
 
-/* Outlined Label (врезанный в рамку) */
-.dropdown-label {
-  position: absolute;
-  top: 0;
-  left: 10px;
-  right: 10px;
+/* Подпись роли ("Group"/"Proxy") над текущим значением. */
+.dropdown-text {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  transform: translateY(-50%);
-  font-size: 12px;
-  color: var(--text-color);
-  opacity: 0.6;
-  font-family: 'Twemoji', 'Nunito', 'Microsoft YaHei', '微软雅黑', sans-serif;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.dropdown-label::before,
-.dropdown-label::after {
-  content: "";
-  flex: 1;
-  border-top: 1px solid var(--dropdown-border-color);
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
 }
 
 .dropdown-label-text {
-  padding: 0 6px;
+  font-size: var(--px-fs-caption);
+  color: var(--text-color);
+  opacity: .6;
   white-space: nowrap;
 }
 
 .dropdown-value {
-  flex: 1;
+  font-size: var(--px-fs-small);
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .dropdown-icon {
-  font-size: 14px;
+  font-size: var(--px-fs-body);
   flex-shrink: 0;
+  opacity: .7;
+}
+
+.dropdown-button.is-open .dropdown-icon {
+  opacity: 1;
 }
 
 /* Dropdown List */
@@ -465,7 +460,7 @@ watch(() => proxiesStore.now, (newNow) => {
   max-height: 300px;
   overflow-y: auto;
   border: 1px solid var(--dropdown-border-color);
-  border-radius: 20px;
+  border-radius: var(--px-r-lg);
   background-color: var(--dropdown-list-bg);
   box-shadow: var(--skin-box-shadow);
   z-index: 9999;
@@ -484,34 +479,35 @@ watch(() => proxiesStore.now, (newNow) => {
 }
 
 .dropdown-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--scrollbar-bg);
   border-radius: 2px;
 }
 
 .dropdown-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--scrollbar-hover-bg);
 }
 
 /* Firefox */
 .dropdown-list {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: var(--scrollbar-bg) transparent;
 }
 
 /* Dropdown Item */
 .dropdown-item {
-  padding: 10px 12px;
+  padding: var(--px-space-2) var(--px-space-3);
   cursor: pointer;
   color: var(--text-color);
-  font-size: 12px;
-  transition: background-color 0.2s ease;
+  font-size: var(--px-fs-small);
+  transition: background-color var(--px-dur) var(--px-ease);
   display: flex;
   align-items: center;
+  gap: var(--px-space-2);
   justify-content: space-between;
 }
 
 .dropdown-item:hover {
-  background-color: var(--skin-hover-color);
+  background-color: var(--left-nav-btn-hover-bg);
 }
 
 .dropdown-item-selected {
@@ -525,55 +521,40 @@ watch(() => proxiesStore.now, (newNow) => {
   text-overflow: ellipsis;
 }
 
-/* Proxy Item */
-.proxy-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+/* Отмеченный элемент — та же галочка, что помечает выбранный узел в
+   разделе Прокси: состояние не только цветом заливки строки. */
+.dropdown-item-check {
+  flex-shrink: 0;
+  font-size: 15px;
+  color: var(--text-color);
 }
 
-.proxy-item-content {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
-  min-width: 0;
+/* Proxy Item */
+.proxy-item {
+  gap: var(--px-space-2);
 }
 
 .proxy-item-name {
   flex: 1;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .proxy-info-icon {
-  font-size: 14px;
+  font-size: var(--px-fs-body);
   color: var(--text-color);
   opacity: 0.6;
   flex-shrink: 0;
-}
-
-/* Тип узла. Те же метрики, что у info-иконки справа от имени, чтобы строка
-   читалась симметрично. */
-.proxy-type-icon {
-  font-size: 14px;
-  color: var(--text-color);
-  opacity: 0.6;
-  flex-shrink: 0;
-  cursor: help;
-}
-
-.proxy-type-icon:hover {
-  opacity: 1;
 }
 
 .proxy-info-icon:hover {
   opacity: 1;
 }
 
-/* Latency Dot */
+/* Latency Dot — тот же смысл, что у .toLow/.toMiddle/.toHigh в global.css,
+   на общих статусных токенах, а не на своём отдельном наборе цветов. */
 .latency-dot {
   width: 8px;
   height: 8px;
@@ -582,19 +563,19 @@ watch(() => proxiesStore.now, (newNow) => {
 }
 
 .latency-low {
-  background-color: #52c41a; /* Green */
+  background-color: var(--px-ok);
 }
 
 .latency-medium {
-  background-color: #faad14; /* Orange */
+  background-color: var(--px-warn);
 }
 
 .latency-high {
-  background-color: #f5222d; /* Red */
+  background-color: var(--px-danger);
 }
 
 .latency-hidden {
-  background-color: #666; /* Gray for dead/unavailable */
+  background-color: var(--px-text-faint);
 }
 
 /* Title Bar */
