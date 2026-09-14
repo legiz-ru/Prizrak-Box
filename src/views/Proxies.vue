@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import createApi from "@/api";
-import {useProxiesStore, type ProxyViewMode} from "@/store/proxiesStore";
+import {useProxiesStore} from "@/store/proxiesStore";
 import {useMenuStore} from "@/store/menuStore";
 import {useSettingStore} from "@/store/settingStore";
 import {useI18n} from "vue-i18n";
@@ -252,7 +252,6 @@ async function nodes(onlyGroup?: string) {
   }
 
   try {
-  if (proxiesStore.viewMode === 'full') {
     if (onlyGroup) {
       // Only refresh the specific group that was tested
       const overrideUrl = settingStore.independentDelayTest
@@ -300,38 +299,9 @@ async function nodes(onlyGroup?: string) {
     // Update nested group selections
     await updateNestedGroupSelections();
     fetchSmartWeights(); // fire-and-forget
-    return;
-  }
-
-  const activeOverrideUrl = settingStore.independentDelayTest
-      ? (settingStore.groupTestUrls.find((x: {name: string; url: string}) => x.name === proxiesStore.active)?.url || null)
-      : null;
-  nodeList.value = await api.getProxies(
-      proxiesStore.active,
-      proxiesStore.isHide,
-      proxiesStore.isSort,
-      settingStore.independentDelayTest,
-      activeOverrideUrl,
-      settingStore.independentDelayTest ? settingStore.testUrl : null
-  ); // 更新响应式数据
   } catch (e) {
     // Mihomo ещё не готов — earlyRetry повторит попытку
-    return;
   }
-  fullViewNodes.value = {};
-
-  // Update nested group selections for non-full view
-  await updateNestedGroupSelections();
-  fetchSmartWeights(); // fire-and-forget
-}
-
-// 设置活跃分组
-async function setActive(value: any) {
-  if (proxiesStore.active == value) {
-    return;
-  }
-  proxiesStore.setActive(value);
-  await nodes();
 }
 
 // 设置隐藏
@@ -343,41 +313,6 @@ async function setHide() {
 // 设置排序
 async function setSort() {
   proxiesStore.setSort(!proxiesStore.isSort);
-  await nodes();
-}
-
-// 设置分组
-const viewModeOrder: Record<ProxyViewMode, ProxyViewMode> = {
-  horizontal: 'dropdown',
-  dropdown: 'full',
-  full: 'horizontal',
-};
-
-const viewModeTooltip = computed(() => {
-  switch (proxiesStore.viewMode) {
-    case 'horizontal':
-      return t('proxies.vertical-off');
-    case 'dropdown':
-      return t('proxies.full-view');
-    case 'full':
-      return t('proxies.vertical-on');
-  }
-  return t('proxies.vertical-off');
-});
-
-async function cycleViewMode() {
-  const nextMode = viewModeOrder[proxiesStore.viewMode];
-  proxiesStore.setViewMode(nextMode);
-  if (nextMode !== 'horizontal') {
-    atStart.value = true;
-    atEnd.value = true;
-  }
-  if (nextMode !== 'dropdown') {
-    isDropdownOpen.value = false;
-  }
-  setTimeout(() => {
-    updateButtonVisibility();
-  }, 200);
   await nodes();
 }
 
@@ -425,54 +360,33 @@ function testDelay() {
   if (bulkTestRunning.value) return;
   bulkTestRunning.value = true;
 
-  if (proxiesStore.viewMode === 'full') {
-    // Full view: test ALL groups concurrently (max 3 at a time), like Zashboard's allProxiesLatencyTest
-    (async () => {
-      try {
-        const groups = [...groupList.value];
-        if (groups.length === 0) return;
-        // Simple p-limit(3): run at most 3 concurrent group tests
-        const CONCURRENCY = 3;
-        let active = 0;
-        let idx = 0;
-        await new Promise<void>((resolve) => {
-          const next = () => {
-            while (active < CONCURRENCY && idx < groups.length) {
-              const g = groups[idx++];
-              active++;
-              testGroupDelay(g).finally(() => {
-                active--;
-                if (idx < groups.length) {
-                  next();
-                } else if (active === 0) {
-                  resolve();
-                }
-              });
-            }
-            if (idx >= groups.length && active === 0) resolve();
-          };
-          next();
-        });
-      } finally {
-        bulkTestRunning.value = false;
-      }
-    })();
-    return;
-  }
-  // Horizontal / dropdown: test only the active group
+  // Тестируем все группы разом, не больше трёх одновременно.
   (async () => {
     try {
-      if (settingStore.independentDelayTest) {
-        await testGroupDelay(proxiesStore.active);
-      } else {
-        await api.getDelay(proxiesStore.active, settingStore.testUrl, GROUP_TEST_TIMEOUT);
-        await nodes();
-        fetchSmartWeights();
-      }
-    } catch (e) {
-      if (e['message']) {
-        pError(e['message'])
-      }
+      const groups = [...groupList.value];
+      if (groups.length === 0) return;
+      // Simple p-limit(3): run at most 3 concurrent group tests
+      const CONCURRENCY = 3;
+      let active = 0;
+      let idx = 0;
+      await new Promise<void>((resolve) => {
+        const next = () => {
+          while (active < CONCURRENCY && idx < groups.length) {
+            const g = groups[idx++];
+            active++;
+            testGroupDelay(g).finally(() => {
+              active--;
+              if (idx < groups.length) {
+                next();
+              } else if (active === 0) {
+                resolve();
+              }
+            });
+          }
+          if (idx >= groups.length && active === 0) resolve();
+        };
+        next();
+      });
     } finally {
       bulkTestRunning.value = false;
     }
@@ -570,111 +484,9 @@ async function testGroupDelay(groupName: string) {
   }
 }
 
-const proxyGroup = ref(null);
-const atStart = ref(true); // 标记是否在最左边
-const atEnd = ref(true); // 标记是否在最右边
-
-const updateButtonVisibility = () => {
-  if (proxiesStore.viewMode !== 'horizontal' || !proxyGroup.value) {
-    atStart.value = true;
-    atEnd.value = true;
-    return;
-  }
-
-  const scrollLeft = proxyGroup.value.scrollLeft;
-  const scrollWidth = proxyGroup.value.scrollWidth;
-  const clientWidth = proxyGroup.value.clientWidth;
-
-  atStart.value = scrollLeft === 0;
-  atEnd.value = scrollLeft + clientWidth >= scrollWidth;
-};
-
-const scrollLeft = () => {
-  if (proxyGroup.value) {
-    proxyGroup.value.scrollLeft -= proxyGroup.value.clientWidth + 15;
-  }
-};
-
-const scrollRight = () => {
-  if (proxyGroup.value) {
-    proxyGroup.value.scrollLeft += proxyGroup.value.clientWidth - 15;
-  }
-};
-
-const scrollGroupIntoView = async (groupName: string) => {
-  await nextTick();
-  const container = proxyGroup.value as HTMLElement | null;
-  if (!container) {
-    return;
-  }
-  const buttons = Array.from(container.querySelectorAll<HTMLButtonElement>('button[data-group]'));
-  const target = buttons.find((button) => button.dataset.group === groupName);
-  if (!target) {
-    return;
-  }
-  target.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'center'});
-};
-
-let wheelAccumulator = 0;
-let wheelResetTimer: ReturnType<typeof setTimeout> | null = null;
-const handleGroupWheel = async (event: WheelEvent) => {
-  if (proxiesStore.viewMode !== 'horizontal' || groupList.value.length === 0) {
-    return;
-  }
-  if (event.deltaY === 0) {
-    return;
-  }
-  wheelAccumulator += event.deltaY;
-  if (wheelResetTimer) {
-    clearTimeout(wheelResetTimer);
-  }
-  wheelResetTimer = setTimeout(() => {
-    wheelAccumulator = 0;
-  }, 150);
-  if (Math.abs(wheelAccumulator) < 40) {
-    return;
-  }
-  const direction = wheelAccumulator > 0 ? 1 : -1;
-  wheelAccumulator = 0;
-  const groups = groupList.value;
-  const currentIndex = Math.max(0, groups.indexOf(proxiesStore.active));
-  const nextIndex = Math.min(groups.length - 1, Math.max(0, currentIndex + direction));
-  if (nextIndex === currentIndex) {
-    return;
-  }
-  await setActive(groups[nextIndex]);
-  await scrollGroupIntoView(groups[nextIndex]);
-};
-
-let isScrolling: any;
-const handleScroll = () => {
-  clearTimeout(isScrolling);
-  isScrolling = setTimeout(() => {
-    updateButtonVisibility();
-  }, 200); // 200ms 延迟
-};
-
-const isDropdownOpen = ref(false);
 const toggleGroup = (group: string) => {
   const next = !expandedGroups.value[group];
   proxiesStore.setGroupExpansionState(group, next);
-};
-
-// 添加延时隐藏下拉菜单
-let isOvering: any;
-const hideDropdown = () => {
-  isOvering = setTimeout(() => {
-    isDropdownOpen.value = false;
-  }, 200); // 延迟 200 毫秒
-};
-
-// 鼠标进入下拉菜单时，清除延时隐藏
-const enterDropDown = () => {
-  clearTimeout(isOvering);
-  if (!isDropdownOpen.value) {
-    runDelayTestSilent(); // fire-and-forget: auto-test when dropdown first opens
-  }
-  isDropdownOpen.value = true;
 };
 
 let fresh: any = null;
@@ -683,10 +495,7 @@ let earlyRetryInterval: any = null;
 onMounted(async () => {
   await groups();
   await nodes();
-  updateButtonVisibility();
   runDelayTestSilent(); // fire-and-forget: auto-test on initial mount
-  // 监听 resize 事件
-  window.addEventListener("resize", updateButtonVisibility);
 
   // earlyRetry: если Mihomo ещё не загрузил pxd-template конфиг при старте —
   // повторяем каждые 3 секунды до 30 секунд, пока группы не появятся.
@@ -722,8 +531,6 @@ onBeforeUnmount(() => {
   clearInterval(fresh);
   clearInterval(weightsInterval);
   clearInterval(earlyRetryInterval);
-  // 移除 resize 事件监听
-  window.removeEventListener("resize", updateButtonVisibility);
 });
 
 // 监听具体状态
@@ -731,14 +538,12 @@ watch(() => menuStore.rule, // 监听 store 中的某个状态
     async () => {
       await groups();
       await nodes();
-      updateButtonVisibility();
     }
 );
 
 watch(() => webStore.fProfile, async () => {
   await groups();
   await nodes();
-  updateButtonVisibility();
   runDelayTestSilent(); // fire-and-forget: auto-test after profile switch
 })
 
@@ -804,195 +609,14 @@ watch(groupList, (list) => {
               <icon-tabler-arrows-sort v-else/>
             </el-icon>
           </el-tooltip>
-
-          <el-tooltip
-              :content="viewModeTooltip"
-              placement="top"
-          >
-            <el-icon @click="cycleViewMode" class="proxy-option-btn">
-              <icon-tabler-arrows-horizontal v-if="proxiesStore.viewMode === 'horizontal'"/>
-              <icon-tabler-arrows-vertical v-else-if="proxiesStore.viewMode === 'dropdown'"/>
-              <icon-tabler-list v-else/>
-            </el-icon>
-          </el-tooltip>
         </div>
       </el-space>
-
-      <div
-          class="dropdown"
-          v-if="proxiesStore.viewMode === 'dropdown' && menuStore.rule != 'direct' && groupList.length > 0"
-      >
-        <button
-            class="dropdown-btn"
-            @mouseenter="enterDropDown"
-            @mouseleave="hideDropdown"
-        >
-            <span class="dropdown-btn-content">
-            <span
-                v-if="groupIcons[proxiesStore.active]"
-                class="proxy-icon-wrapper proxy-icon-wrapper--dropdown"
-            >
-              <img
-                  :src="groupIcons[proxiesStore.active]"
-                  alt=""
-                  class="dropdown-item-icon"
-                  @error="handleIconError"
-              />
-            </span>
-            <span class="dropdown-item-label">{{ proxiesStore.active }}</span>
-          </span>
-        </button>
-        <ul
-            v-if="isDropdownOpen"
-            @mouseenter="enterDropDown"
-            @mouseleave="hideDropdown"
-            class="dropdown-list"
-        >
-          <li
-              v-for="item in groupList"
-              :key="item + '-gv'"
-              @click="setActive(item)"
-              class="dropdown-item"
-          >
-            <span class="dropdown-btn-content">
-              <span
-                  v-if="groupIcons[item]"
-                  class="proxy-icon-wrapper proxy-icon-wrapper--dropdown"
-              >
-                <img
-                    :src="groupIcons[item]"
-                    alt=""
-                    class="dropdown-item-icon"
-                    @error="handleIconError"
-                />
-              </span>
-              <span class="dropdown-item-label">{{ item }}</span>
-            </span>
-          </li>
-        </ul>
-      </div>
-
-      <div
-          class="button-container"
-          v-if="proxiesStore.viewMode === 'horizontal' && menuStore.rule != 'direct' && groupList.length > 0"
-      >
-        <el-icon v-if="!atStart" @click="scrollLeft" class="scroll-left">
-          <icon-tabler-chevron-left/>
-        </el-icon>
-        <div
-            @scroll="handleScroll"
-            @wheel.prevent="handleGroupWheel"
-            ref="proxyGroup"
-            class="proxy-group"
-        >
-          <button
-              :class="
-              proxiesStore.active == item
-                ? 'proxy-group-title proxy-group-title-select'
-                : 'proxy-group-title'
-            "
-              @click="setActive(item)"
-              v-for="item in groupList"
-              :key="item + '-g'"
-              :data-group="item"
-          >
-            <span class="proxy-group-content">
-              <span
-                  v-if="groupIcons[item]"
-                  class="proxy-icon-wrapper proxy-icon-wrapper--button"
-              >
-                <img
-                    :src="groupIcons[item]"
-                    alt=""
-                    class="proxy-group-icon"
-                    @error="handleIconError"
-                />
-              </span>
-              <span class="proxy-group-label">{{ item }}</span>
-            </span>
-          </button>
-        </div>
-        <el-icon v-if="!atEnd" class="scroll-right" @click="scrollRight">
-          <icon-tabler-chevron-right/>
-        </el-icon>
-      </div>
     </template>
 
-
     <template #bottom>
-      <div class="proxy-nodes" v-if="proxiesStore.viewMode !== 'full'">
-        <div
-            :class="
-            node['now']
-              ? 'proxy-nodes-card proxy-node-select'
-              : 'proxy-nodes-card'
-          "
-            v-for="node in nodeList"
-            @click="setProxy(node['now'], node['name'])"
-            :key="node['name']"
-        >
-          <div class="proxy-nodes-title">
-            <span class="proxy-node-name" :title="node['name']">
-              {{ node["displayName"] ?? node["name"] }}
-            </span>
-            <span v-if="node['origin']" class="proxy-origin" :title="node['origin']">
-              {{ node["origin"] }}
-            </span>
-          </div>
-          <div class="proxy-nodes-tags">
-            <span class="proxy-nodes-tags-left">
-              <el-tooltip :content="typeTooltip(node)" placement="top">
-                <el-icon class="proxy-type-icon">
-                  <component :is="typeIcon(node)"/>
-                </el-icon>
-              </el-tooltip>
-              <span v-if="serverDescription(node)" class="proxy-type-desc">{{ serverDescription(node) }}</span>
-              <template v-if="nestedGroupSelections[node['name']] && node['type']?.toLowerCase() !== 'smart' && node['type']?.toLowerCase() !== 'loadbalance'">
-                <span v-if="serverDescription(node)" class="proxy-selected-separator">•</span>
-                <span class="proxy-selected-name" :title="nestedGroupSelections[node['name']]">
-                  {{ nestedGroupSelections[node['name']] }}
-                </span>
-              </template>
-            </span>
-            <span class="proxy-nodes-tags-right">
-              <!-- Иконка ранга: прокси внутри Smart-группы -->
-              <template v-if="groupTypeMap[proxiesStore.active] === 'Smart'">
-                <el-tooltip v-if="getNodeWeightInfo(proxiesStore.active, node['name'])?.rank === 'MostUsed'" :content="t('proxies.smart.most-used-tip', { weight: getNodeWeightInfo(proxiesStore.active, node['name'])?.weight })" placement="top">
-                  <el-icon class="proxy-weight-icon"><icon-tabler-shield-filled/></el-icon>
-                </el-tooltip>
-                <el-tooltip v-else-if="getNodeWeightInfo(proxiesStore.active, node['name'])?.rank === 'OccasionalUsed'" :content="t('proxies.smart.occasional-used-tip', { weight: getNodeWeightInfo(proxiesStore.active, node['name'])?.weight })" placement="top">
-                  <el-icon class="proxy-weight-icon"><icon-tabler-shield-half/></el-icon>
-                </el-tooltip>
-                <el-tooltip v-else-if="getNodeWeightInfo(proxiesStore.active, node['name'])?.rank === 'RarelyUsed'" :content="t('proxies.smart.rarely-used-tip', { weight: getNodeWeightInfo(proxiesStore.active, node['name'])?.weight })" placement="top">
-                  <el-icon class="proxy-weight-icon"><icon-tabler-shield/></el-icon>
-                </el-tooltip>
-                <el-tooltip v-else :content="t('proxies.smart.no-data')" placement="top">
-                  <el-icon class="proxy-weight-icon"><icon-tabler-shield-question/></el-icon>
-                </el-tooltip>
-              </template>
-              <!-- Иконка сводки: сам прокси является Smart-группой -->
-              <template v-else-if="node['type'] === 'Smart'">
-                <el-tooltip v-if="!smartGroupWeights[node['name']]?.hasData" :content="t('proxies.smart.no-data')" placement="top">
-                  <el-icon class="proxy-weight-icon"><icon-tabler-shield-question/></el-icon>
-                </el-tooltip>
-                <el-tooltip v-else placement="top">
-                  <template #content>
-                    <div v-for="w in smartGroupWeights[node['name']].weights" :key="w.Name" class="weight-tooltip-row">
-                      {{ w.Name }}: {{ rankLabel(w.Rank) }} ({{ w.Weight }})
-                    </div>
-                  </template>
-                  <el-icon class="proxy-weight-icon"><icon-tabler-shield-check/></el-icon>
-                </el-tooltip>
-              </template>
-              <span :class="node['toClass']">{{ node["delay"] }} ms</span>
-            </span>
-          </div>
-        </div>
-      </div>
-
       <div
           class="full-view-groups"
-          v-else-if="menuStore.rule != 'direct' && groupList.length > 0"
+          v-if="menuStore.rule != 'direct' && groupList.length > 0"
       >
         <div
             class="full-view-group"
@@ -1161,80 +785,6 @@ watch(groupList, (list) => {
   pointer-events: none;
 }
 
-.button-container {
-  display: flex;
-  align-items: center;
-  width: 95%;
-  margin-left: 10px;
-  min-height: 50px;
-}
-
-.proxy-group {
-  display: flex;
-  gap: 10px;
-  margin: 12px 0 3px 0;
-  overflow-x: hidden;
-  scroll-behavior: smooth;
-}
-
-.scroll-left {
-  cursor: pointer;
-  border: none;
-  margin-right: 10px;
-}
-
-.scroll-right {
-  cursor: pointer;
-  border: none;
-  margin-left: 10px;
-}
-
-.scroll-left[hidden],
-.scroll-right[hidden] {
-  display: none;
-}
-
-.proxy-group-title {
-  background-color: transparent;
-  color: var(--text-color);
-  border: 2px solid var(--hr-color);
-  border-radius: 20px;
-  padding: 6px 10px;
-  font-size: 15px;
-  font-family: inherit;
-  text-align: center;
-  cursor: pointer;
-  box-shadow: var(--left-nav-shadow);
-  white-space: nowrap;
-}
-
-.proxy-group-title:hover,
-.proxy-group-title-select {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
-  border-color: var(--text-color);
-}
-
-.proxy-group-title-select:hover {
-  cursor: default;
-}
-
-.proxy-group-content {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.proxy-group-icon {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-}
-
-.proxy-icon-wrapper--button {
-  padding: 2px;
-}
-
 .proxy-nodes {
   display: flex;
   flex-wrap: wrap;
@@ -1246,16 +796,15 @@ watch(groupList, (list) => {
 }
 
 .proxy-nodes-card {
-  width: calc(33% - 41px);
-  max-width: 210px;
-  /* Без этого min-width остаётся `auto`, то есть min-content — а его задаёт имя
-     ноды с `white-space: nowrap`. В CSS min-width сильнее max-width, поэтому
-     длинное имя раздувало карточку за её же 210px здесь и за ширину дорожки
-     в сетке полного вида; ellipsis при этом не срабатывал, потому что внутри
-     переросшей карточки имени хватало места. */
+  /* Ширину задаёт дорожка сетки. min-width: 0 обязателен: иначе он остаётся
+     `auto`, то есть min-content по имени узла с `white-space: nowrap`, и длинное
+     имя распирает карточку за ширину дорожки, а ellipsis не срабатывает. */
   min-width: 0;
-  border: 2px solid var(--sub-card-border);
-  border-radius: 20px;
+  box-sizing: border-box;
+  /* Тот же край, что у карточки группы вокруг: рамка группы — один пиксель, и
+     двухпиксельная рамка вложенных карточек выглядела тяжелее контейнера. */
+  border: 1px solid var(--sub-card-border);
+  border-radius: 12px; /* концентрично: группа(20) - её отступ(8) */
   padding: 8px 12px;
   background: var(--sub-card-bg);
   display: flex;
@@ -1263,7 +812,6 @@ watch(groupList, (list) => {
   justify-content: space-between;
   line-height: 1.3;
   box-shadow: var(--left-nav-shadow);
-  margin-top: 3px;
   transition: background-color 0.15s, border-color 0.15s;
 }
 
@@ -1381,72 +929,6 @@ watch(groupList, (list) => {
   line-height: 1.6;
 }
 
-.toHidden {
-  display: none;
-}
-
-.dropdown {
-  position: relative;
-  display: inline-block;
-  width: 95%;
-  margin: 12px 10px 5px 10px;
-}
-
-.dropdown-btn {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
-  border: 2px solid var(--text-color);
-  color: var(--text-color);
-  font-family: inherit;
-  padding: 5px 10px;
-  cursor: pointer;
-  font-size: 15px;
-  outline: none;
-  border-radius: 20px;
-  min-width: 204px;
-  text-align: left;
-}
-
-.dropdown-btn:hover {
-  opacity: 0.8;
-}
-
-.dropdown-btn-content {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  justify-content: flex-start;
-  width: 100%;
-}
-
-.dropdown-list {
-  position: absolute;
-  background: var(--skin-bg-color);
-  border: 2px solid var(--text-color);
-  margin-top: 4px;
-  padding: 0;
-  list-style: none;
-  min-width: 200px;
-  z-index: 20;
-  border-radius: 20px;
-  font-size: 15px;
-  text-align: left;
-  max-height: calc(100vh - 230px);
-  overflow-y: auto;
-}
-
-.dropdown-item {
-  color: var(--text-color);
-  padding: 8px;
-  cursor: pointer;
-}
-
-.dropdown-item-icon {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-}
-
 .proxy-icon-wrapper {
   display: inline-flex;
   align-items: center;
@@ -1456,19 +938,6 @@ watch(groupList, (list) => {
   box-shadow: var(--left-nav-shadow);
   padding: 3px;
   line-height: 0;
-}
-
-.proxy-icon-wrapper--dropdown {
-  padding: 4px;
-}
-
-.dropdown-item-label {
-  display: inline-flex;
-  align-items: center;
-}
-
-.dropdown-item:hover {
-  background: var(--skin-hover-color);
 }
 
 .full-view-groups {
@@ -1614,21 +1083,5 @@ watch(groupList, (list) => {
   .full-view-nodes {
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   }
-}
-
-.full-view-nodes .proxy-nodes-card {
-  /* The grid owns sizing now; the inherited width/max-width would re-introduce
-     the 210px cap and with it the empty space on the right. margin-top would
-     add an uneven 3px to every row on top of the row gap. */
-  width: auto;
-  max-width: none;
-  margin-top: 0;
-  border-radius: 12px; /* concentric: group(20) - padding(8) = 12 */
-  box-sizing: border-box;
-  /* Тот же край, что у карточки группы вокруг: рамка группы в полном виде —
-     один пиксель, и двухпиксельная рамка вложенных карточек рядом с ней
-     выглядела тяжелее контейнера. В остальных режимах группировки карточка
-     осталась прежней. */
-  border-width: 1px;
 }
 </style>

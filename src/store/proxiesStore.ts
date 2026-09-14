@@ -1,13 +1,10 @@
 import {defineStore} from 'pinia';
 import {defaultPersist} from "@/types/persist";
 
-export type ProxyViewMode = 'horizontal' | 'dropdown' | 'full';
-
 export const useProxiesStore = defineStore('proxies', {
     state: () => ({
         isHide: false,
         isSort: false,
-        viewMode: 'full' as ProxyViewMode,
         active: '',
         now: "",
         groupExpansion: {} as Record<string, boolean>,
@@ -18,9 +15,6 @@ export const useProxiesStore = defineStore('proxies', {
         },
         setSort(isSort: boolean) {
             this.isSort = isSort;
-        },
-        setViewMode(viewMode: ProxyViewMode) {
-            this.viewMode = viewMode;
         },
         setActive(active: string) {
             this.active = active;
