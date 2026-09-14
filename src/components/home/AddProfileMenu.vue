@@ -2,9 +2,9 @@
 import {h} from 'vue';
 import {useI18n} from 'vue-i18n';
 import {NIcon} from 'naive-ui';
-import IconPencil from '~icons/mdi/pencil';
-import IconContentPaste from '~icons/mdi/content-paste';
-import IconFolderOpen from '~icons/mdi/folder-open';
+import IconPencil from '~icons/tabler/pencil';
+import IconContentPaste from '~icons/tabler/clipboard';
+import IconFolderOpen from '~icons/tabler/folder-open';
 
 const {t} = useI18n();
 

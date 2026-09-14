@@ -1,63 +1,67 @@
 <template>
   <div v-if="isWindows">
-    <el-tooltip
-        :content="$t('minus')"
-        placement="bottom">
+    <n-tooltip trigger="hover" placement="bottom">
+  <template #trigger>
       <span class="bar" @click="minus2tray">
-          <el-icon>
-              <icon-mdi-card-minus-outline/>
-          </el-icon>
+          <n-icon>
+              <icon-tabler-square-rounded-minus-2/>
+          </n-icon>
       </span>
-    </el-tooltip>
-    <el-tooltip
-        :content="$t('mini')"
-        placement="bottom">
+    </template>
+  {{ $t('minus') }}
+</n-tooltip>
+    <n-tooltip trigger="hover" placement="bottom">
+  <template #trigger>
       <span class="bar ncr-min" @click="minus">
-          <el-icon>
-              <icon-mdi-minus/>
-          </el-icon>
+          <n-icon>
+              <icon-tabler-minus/>
+          </n-icon>
       </span>
-    </el-tooltip>
-    <el-tooltip
-        v-if="isMaximized"
-        :content="$t('restore')"
-        placement="bottom">
+    </template>
+  {{ $t('mini') }}
+</n-tooltip>
+    <n-tooltip trigger="hover" placement="bottom" v-if="isMaximized">
+  <template #trigger>
       <span class="bar ncr-max" @click="max">
-          <el-icon>
-              <icon-mdi-window-restore/>
-          </el-icon>
+          <n-icon>
+              <icon-tabler-window-minimize/>
+          </n-icon>
       </span>
-    </el-tooltip>
-    <el-tooltip
-        v-else
-        :content="$t('max')"
-        placement="bottom">
+    </template>
+  {{ $t('restore') }}
+</n-tooltip>
+    <n-tooltip trigger="hover" placement="bottom" v-else>
+  <template #trigger>
       <span class="bar ncr-max" @click="max">
-          <el-icon>
-              <icon-mdi-window-maximize/>
-          </el-icon>
+          <n-icon>
+              <icon-tabler-window-maximize/>
+          </n-icon>
       </span>
-    </el-tooltip>
-    <el-tooltip
-        :content="$t('close')"
-        placement="bottom">
+    </template>
+  {{ $t('max') }}
+</n-tooltip>
+    <n-tooltip trigger="hover" placement="bottom">
+  <template #trigger>
       <span class="" @click="close">
-          <el-icon>
-              <icon-mdi-window-close/>
-          </el-icon>
+          <n-icon>
+              <icon-tabler-x/>
+          </n-icon>
       </span>
-    </el-tooltip>
+    </template>
+  {{ $t('close') }}
+</n-tooltip>
   </div>
   <div v-else>
-    <el-tooltip
-        :content="$t('minus')"
-        placement="left">
+    <n-tooltip trigger="hover" placement="left">
+  <template #trigger>
       <span class="" @click="minus2tray">
-          <el-icon>
-              <icon-mdi-card-minus-outline/>
-          </el-icon>
+          <n-icon>
+              <icon-tabler-square-rounded-minus-2/>
+          </n-icon>
       </span>
-    </el-tooltip>
+    </template>
+  {{ $t('minus') }}
+</n-tooltip>
   </div>
 </template>
 

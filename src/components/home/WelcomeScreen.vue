@@ -213,7 +213,7 @@ async function handleDrop(e: DragEvent) {
         <AddProfileMenu @add="openAddProfileDialog" @paste="handlePaste" @file="openFile">
           <button class="add-profile-button" :aria-label="t('onboarding.welcome.add-profile')">
             <n-icon :size="40">
-              <icon-mdi-plus-thick />
+              <icon-tabler-plus />
             </n-icon>
           </button>
         </AddProfileMenu>

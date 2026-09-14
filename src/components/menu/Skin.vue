@@ -3,7 +3,7 @@
        @mouseenter="showDropdown"
        @mouseleave="hideDropdown">
     <n-icon class="dropdown-button">
-      <icon-mdi-tshirt-crew-outline/>
+      <icon-tabler-shirt/>
     </n-icon>
     <div class="dropdown-content"
          v-show="isDropdownVisible"
@@ -23,7 +23,7 @@
                 :aria-label="t('bg.upload')"
                 @click.stop="triggerUpload(item)">
           <n-icon aria-hidden="true">
-            <icon-mdi-upload/>
+            <icon-tabler-upload/>
           </n-icon>
         </button>
       </div>

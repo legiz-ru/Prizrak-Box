@@ -244,6 +244,87 @@ const adjustSubtitleColor = (
     return subtitleBase;
 };
 
+// ======================== Плотность подложки ======================== //
+
+// Значения зеркалят tokens.css: приглушённый текст описаний в тёмной и в
+// светлой теме. Считаем по нему, а не по основному тексту, — он ближе к фону
+// и всегда является ограничивающим условием.
+const SCRIM_MUTED_ON_DARK = "#cbd5e1";
+const SCRIM_MUTED_ON_LIGHT = "#475569";
+const SCRIM_CARD_FILL = "#ffffff";      // --sub-card-bg
+const SCRIM_CARD_ALPHA = 0.1;
+const SCRIM_DARK = "#0b101a";           // --px-scrim-rgb на тёмной теме
+const SCRIM_LIGHT = "#ffffff";
+const SCRIM_TARGET_CONTRAST = 4.0;
+const SCRIM_MAX_ALPHA = 0.4;
+// Коэффициент яркости из --body-blur: плёнка над обоями гасит их ещё до того,
+// как поверх ляжет панель.
+const SCRIM_BODY_BRIGHTNESS_DARK = 0.95;
+const SCRIM_BODY_BRIGHTNESS_LIGHT = 0.75;
+
+/**
+ * Самый светлый (для белого текста) или самый тёмный (для чёрного) цвет
+ * палитры обоев. Именно локальное пятно ломает читаемость, а не средняя
+ * яркость картинки: обои могут быть тёмными в среднем и иметь белый участок.
+ */
+const worstRegionColor = (img: HTMLImageElement, useWhiteText: boolean): chroma.Color => {
+    const palette = colorThief.getPalette(img, DEFAULT_COLOR_COUNT);
+    let worst = palette[0];
+    for (const color of palette) {
+        const better = useWhiteText
+            ? getPerceivedLuminance(color) > getPerceivedLuminance(worst)
+            : getPerceivedLuminance(color) < getPerceivedLuminance(worst);
+        if (better) worst = color;
+    }
+    return chroma(worst as [number, number, number]);
+};
+
+/**
+ * Подбирает минимальную непрозрачность подложки, при которой текст на ней
+ * держит целевой контраст над худшим участком обоев. Ноль означает «этим
+ * обоям подложка не нужна» — блок тогда выглядит ровно как обычная карточка.
+ */
+const computeScrimAlpha = (
+    img: HTMLImageElement,
+    useWhiteText: boolean,
+    rightBg: chroma.Color,
+): number => {
+    const region = worstRegionColor(img, useWhiteText)
+        .set("hsl.l", `*${useWhiteText ? SCRIM_BODY_BRIGHTNESS_DARK : SCRIM_BODY_BRIGHTNESS_LIGHT}`);
+
+    // Обои → фон правой панели → заливка карточки → подложка.
+    const underCard = chroma.mix(
+        chroma.mix(region, rightBg, rightBg.alpha(), "rgb"),
+        SCRIM_CARD_FILL,
+        SCRIM_CARD_ALPHA,
+        "rgb",
+    );
+    const muted = useWhiteText ? SCRIM_MUTED_ON_DARK : SCRIM_MUTED_ON_LIGHT;
+    const text = useWhiteText ? "#ffffff" : "#000000";
+    const scrim = useWhiteText ? SCRIM_DARK : SCRIM_LIGHT;
+
+    const contrastAt = (alpha: number): number => {
+        const surface = chroma.mix(underCard, scrim, alpha, "rgb");
+        return Math.min(chroma.contrast(muted, surface), chroma.contrast(text, surface));
+    };
+
+    if (contrastAt(0) >= SCRIM_TARGET_CONTRAST) {
+        return 0;
+    }
+
+    let low = 0;
+    let high = SCRIM_MAX_ALPHA;
+    for (let i = 0; i < 24; i++) {
+        const mid = (low + high) / 2;
+        if (contrastAt(mid) >= SCRIM_TARGET_CONTRAST) {
+            high = mid;
+        } else {
+            low = mid;
+        }
+    }
+    return Math.round(high * 1000) / 1000;
+};
+
 // ======================== 主题应用主逻辑 ======================== //
 
 /**
@@ -276,12 +357,12 @@ export const changeTheme = (img: HTMLImageElement): boolean => {
         .alpha(useWhiteText ? ALPHA_WHITE_TEXT_BLEND : ALPHA_BLACK_TEXT_BLEND)
         .css();
 
-    const backgroundRightColor = chroma
+    const backgroundRight = chroma
         .mix(baseColor, selectedColor, MIX_BASE_SELECTED_RATIO_RIGHT)
         .set("hsl.s", `*${SATURATION_MULTIPLIER_RIGHT}`)
         .set("hsl.l", `*${LUMINANCE_MULTIPLIER_RIGHT}`)
-        .alpha(useWhiteText ? ALPHA_WHITE_TEXT_RIGHT : ALPHA_BLACK_TEXT_RIGHT)
-        .css();
+        .alpha(useWhiteText ? ALPHA_WHITE_TEXT_RIGHT : ALPHA_BLACK_TEXT_RIGHT);
+    const backgroundRightColor = backgroundRight.css();
 
     // ========= 副标题颜色更克制 =========
     const subtitleBase = adjustSubtitleColor(selectedColor, useWhiteText, h, textRGB, baseColor);
@@ -303,12 +384,20 @@ export const changeTheme = (img: HTMLImageElement): boolean => {
         "blend-color": backgroundBlendColor,
         "right-bg-color": backgroundRightColor,
         "body-blur-color": bodyBlurColor,
+        // Подложка под текстом: 0 для обоев, на которых и так всё читается.
+        "px-scrim-a": String(computeScrimAlpha(img, useWhiteText, backgroundRight)),
     });
 
     // Same accent, handed to Naive UI components as theme tokens instead of
     // CSS variables — see naiveTheme.ts for why the two mechanisms coexist.
+    // Naive UI parses these with `seemly`, which only understands classic
+    // comma rgb()/rgba() and #rrggbb/#rrggbbaa — not the modern
+    // "rgb(r g b / a)" syntax chroma's .css() emits for any alpha colour.
+    // hex('rgba') (#rrggbbaa) is the one format both chroma and seemly agree
+    // on, so that's what crosses this boundary; CSS variables elsewhere keep
+    // using .css() since real browsers parse either syntax natively.
     setNaiveAccentColors({
-        primary: selectedColor.css(),
+        primary: selectedColor.hex("rgba"),
         text: textColor,
     });
 

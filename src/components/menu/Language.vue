@@ -3,7 +3,7 @@
        @mouseenter="showDropdown"
        @mouseleave="hideDropdown">
     <n-icon class="dropdown-button">
-      <icon-mdi-translate/>
+      <icon-tabler-language/>
     </n-icon>
     <div class="dropdown-content"
          v-show="isDropdownVisible"

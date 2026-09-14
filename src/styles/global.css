@@ -20,6 +20,41 @@ input {
     text-transform: none;
 }
 
+/* Видимый фокус. --px-focus берётся из подзаголовочного цвета темы, который
+   уже держит измеренную дистанцию и до текста, и до фона. */
+:focus-visible {
+    outline: var(--px-focus-width) solid var(--px-focus);
+    outline-offset: 2px;
+    border-radius: var(--px-r-xs);
+}
+
+/* Мышиный фокус не подсвечиваем — только клавиатурный. */
+:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* Системная настройка «меньше движения». Анимации не выключаются совсем
+   (нулевая длительность ломает transitionend), а сокращаются до мгновенных. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* html/body держат line-height: 1 — на нём построены метрики бокового меню.
+   Читаемый интерлиньяж включается там, где есть текст: в правой панели и в
+   диалогах (Element Plus и Naive UI). */
+.right,
+.el-overlay-dialog .el-dialog,
+.n-modal {
+    line-height: var(--px-lh-body);
+}
+
 
 @font-face {
     font-family: "Nunito";
@@ -39,33 +74,35 @@ input {
 
 /* Задержка узла как читаемый чип, а не голый цветной текст: одна и та же
    форма для всех трёх состояний, меняется только оттенок — так пинг
-   считывается на глаз в сетке из десятков карточек. */
+   считывается на глаз в сетке из десятков карточек. Цвета — из общей
+   статусной палитры tokens.css (--px-ok/--px-warn/--px-danger), измеренной
+   на 4.5:1 против карточки в обеих темах, а не подобранные на глаз. */
 .toLow,
 .toMiddle,
 .toHigh {
     display: inline-flex;
     align-items: center;
     padding: 1px 8px;
-    border-radius: 999px;
-    font-size: 12px;
+    border-radius: var(--px-r-pill);
+    font-size: var(--px-fs-caption);
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
 
 .toLow {
-    color: #6be89a;
-    background: rgba(107, 232, 154, 0.14);
+    color: var(--px-ok);
+    background: color-mix(in srgb, var(--px-ok) 14%, transparent);
 }
 
 .toMiddle {
-    color: #f2c94c;
-    background: rgba(242, 201, 76, 0.14);
+    color: var(--px-warn);
+    background: color-mix(in srgb, var(--px-warn) 14%, transparent);
 }
 
 .toHigh {
-    color: #f2745c;
-    background: rgba(242, 116, 92, 0.16);
+    color: var(--px-danger);
+    background: color-mix(in srgb, var(--px-danger) 16%, transparent);
 }
 
 /* ECharts SVG text elements - ensure proper emoji rendering */

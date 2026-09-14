@@ -454,8 +454,8 @@ async function applySystemProxyMode(enable: boolean, notify: boolean) {
     >
       <span class="mode-left">
         <span class="mode-icon">
-          <icon-mdi-access-point-network-off v-if="!menuStore.proxy"/>
-          <icon-mdi-access-point-network v-else/>
+          <icon-tabler-access-point-off v-if="!menuStore.proxy"/>
+          <icon-tabler-access-point v-else/>
         </span>
         <span class="mode-label">
           {{ $t("proxy-switch") }}
@@ -476,8 +476,8 @@ async function applySystemProxyMode(enable: boolean, notify: boolean) {
     >
       <span class="mode-left">
         <span class="mode-icon">
-          <icon-mdi-help-network-outline v-if="!tunOn"/>
-          <icon-mdi-security-network v-else/>
+          <icon-tabler-shield-off v-if="!tunOn"/>
+          <icon-tabler-shield-lock v-else/>
         </span>
         <span class="mode-label mode-label--tun">
           {{ $t("tun-switch") }}

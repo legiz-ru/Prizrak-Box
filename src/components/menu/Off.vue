@@ -3,7 +3,7 @@
        @mouseenter="showDropdown"
        @mouseleave="hideDropdown">
     <n-icon @click="quit" class="dropdown-button">
-      <icon-mdi-power/>
+      <icon-tabler-power/>
     </n-icon>
     <div class="dropdown-content"
          v-show="isDropdownVisible"

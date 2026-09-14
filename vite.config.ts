@@ -55,7 +55,10 @@ export default defineConfig({
             resolvers: [
                 IconsResolver({
                     prefix: 'icon',
-                    enabledCollections: ["ep", "mdi", "proto"],
+                    // "tabler" is the icon set new screens are migrated to
+                    // (see beta02); "ep"/"mdi" stay enabled until every
+                    // screen still using them is migrated too.
+                    enabledCollections: ["tabler", "ep", "mdi", "proto"],
                     // "proto" is the local collection below; its files are not
                     // in an Iconify package, so the resolver needs to be told
                     // which names belong to it.

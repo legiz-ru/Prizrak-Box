@@ -205,7 +205,7 @@ async function addProfile() {
         <n-tooltip v-if="hasValue(profile?.renewUrl)" trigger="hover" placement="top">
           <template #trigger>
             <n-icon class="toolbar-icon" @click="goRenew" size="20">
-              <icon-mdi-credit-card-outline />
+              <icon-tabler-credit-card />
             </n-icon>
           </template>
           {{ t('profiles.renew') }}
@@ -215,7 +215,7 @@ async function addProfile() {
         <n-tooltip v-if="hasValue(profile?.home)" trigger="hover" placement="top">
           <template #trigger>
             <n-icon class="toolbar-icon" @click="goHome" size="20">
-              <icon-mdi-home-import-outline />
+              <icon-tabler-home-shield />
             </n-icon>
           </template>
           {{ t('profiles.home') }}
@@ -225,7 +225,7 @@ async function addProfile() {
         <n-tooltip v-if="hasValue(profile?.support)" trigger="hover" placement="top">
           <template #trigger>
             <n-icon class="toolbar-icon" @click="goSupport" size="20">
-              <icon-mdi-face-agent />
+              <icon-tabler-headset />
             </n-icon>
           </template>
           {{ t('profiles.support') }}
@@ -245,7 +245,7 @@ async function addProfile() {
         <n-tooltip trigger="hover" placement="top">
           <template #trigger>
             <n-icon class="toolbar-icon" @click="switchProfiles" size="20">
-              <icon-mdi-swap-horizontal />
+              <icon-tabler-arrows-left-right />
             </n-icon>
           </template>
           {{ t('onboarding.active-profile.switch-profiles') }}
@@ -260,7 +260,7 @@ async function addProfile() {
               @click="refreshProfile"
               size="20"
             >
-              <icon-mdi-refresh />
+              <icon-tabler-refresh />
             </n-icon>
           </template>
           {{ t('onboarding.active-profile.refresh-profile') }}
@@ -271,7 +271,7 @@ async function addProfile() {
           <template #trigger>
             <AddProfileMenu @add="openAddProfileDialog" @paste="handlePaste" @file="openFile">
               <n-icon class="toolbar-icon" size="20">
-                <icon-mdi-plus-thick />
+                <icon-tabler-plus />
               </n-icon>
             </AddProfileMenu>
           </template>

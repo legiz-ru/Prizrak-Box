@@ -153,7 +153,7 @@ const showRenewButton = computed(() => shouldShowRenewButton(activeProfile.value
         <div v-if="showRenewButton" class="renew-button-container">
           <n-button type="primary" class="renew-button" @click="goRenew">
             <template #icon>
-              <n-icon><icon-mdi-credit-card-outline/></n-icon>
+              <n-icon><icon-tabler-credit-card/></n-icon>
             </template>
             {{ t('profiles.renew') }}
           </n-button>

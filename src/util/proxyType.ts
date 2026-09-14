@@ -12,39 +12,39 @@
 //   - service types  Direct, Reject, Dns, ...
 //   - protocols      Vless, Trojan, Hysteria2, ...
 //
-// Icons are MDI except for the few protocols with a usable brand mark; see
+// Icons are Tabler except for the few protocols with a usable brand mark; see
 // src/assets/icons/proto/ATTRIBUTION.md.
 
-import IconGestureTap from '~icons/mdi/gesture-tap';
-import IconClockFast from '~icons/mdi/clock-fast';
-import IconBackupRestore from '~icons/mdi/backup-restore';
-import IconScaleBalance from '~icons/mdi/scale-balance';
-import IconTransitConnection from '~icons/mdi/transit-connection-variant';
-import IconBrain from '~icons/mdi/brain';
+import IconGestureTap from '~icons/tabler/hand-click';
+import IconClockFast from '~icons/tabler/clock-bolt';
+import IconBackupRestore from '~icons/tabler/restore';
+import IconScaleBalance from '~icons/tabler/scale';
+import IconTransitConnection from '~icons/tabler/route';
+import IconBrain from '~icons/tabler/brain';
 
-import IconArrowRightBold from '~icons/mdi/arrow-right-bold-outline';
-import IconCancel from '~icons/mdi/cancel';
-import IconCloseOctagon from '~icons/mdi/close-octagon-outline';
-import IconForward from '~icons/mdi/forward';
-import IconDebugStepOver from '~icons/mdi/debug-step-over';
-import IconSync from '~icons/mdi/sync';
-import IconDns from '~icons/mdi/dns-outline';
-import IconCog from '~icons/mdi/cog-outline';
+import IconArrowRightBold from '~icons/tabler/arrow-big-right';
+import IconCancel from '~icons/tabler/ban';
+import IconCloseOctagon from '~icons/tabler/octagon-off';
+import IconForward from '~icons/tabler/player-track-next';
+import IconDebugStepOver from '~icons/tabler/arrow-loop-right';
+import IconSync from '~icons/tabler/refresh';
+import IconDns from '~icons/tabler/server';
+import IconCog from '~icons/tabler/settings';
 
-import IconAirplane from '~icons/mdi/airplane';
-import IconAlphaV from '~icons/mdi/alpha-v-box-outline';
-import IconLightningBolt from '~icons/mdi/lightning-bolt-outline';
-import IconRocket from '~icons/mdi/rocket-launch-outline';
-import IconWeb from '~icons/mdi/web';
-import IconConsole from '~icons/mdi/console';
-import IconNetwork from '~icons/mdi/network-outline';
+import IconAirplane from '~icons/tabler/plane';
+import IconAlphaV from '~icons/tabler/square-letter-v';
+import IconLightningBolt from '~icons/tabler/bolt';
+import IconRocket from '~icons/tabler/rocket';
+import IconWeb from '~icons/tabler/world';
+import IconConsole from '~icons/tabler/terminal-2';
+import IconNetwork from '~icons/tabler/network';
 
-import IconDominoMask from '~icons/mdi/domino-mask';
-import IconSemanticWeb from '~icons/mdi/semantic-web';
+import IconDominoMask from '~icons/tabler/mask';
+import IconSemanticWeb from '~icons/tabler/world-www';
 
-import IconShieldLock from '~icons/mdi/shield-lock-outline';
-import IconSourceBranch from '~icons/mdi/source-branch';
-import IconHelpCircle from '~icons/mdi/help-circle-outline';
+import IconShieldLock from '~icons/tabler/shield-lock';
+import IconSourceBranch from '~icons/tabler/git-branch';
+import IconHelpCircle from '~icons/tabler/help-circle';
 
 import IconXray from '~icons/proto/xray';
 import IconTrojan from '~icons/proto/trojan';

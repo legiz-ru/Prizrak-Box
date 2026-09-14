@@ -14,8 +14,7 @@ const router = useRouter()
         @click="changeMenu('Home', router)"
     >
       <n-icon>
-        <icon-mdi-home v-if="menuStore.menu == 'Home'"/>
-        <icon-mdi-home-outline v-else/>
+        <icon-tabler-home/>
       </n-icon>
       <span class="nav-label">{{ $t('nav.home') }}</span>
     </div>
@@ -25,8 +24,7 @@ const router = useRouter()
         @click="changeMenu('Setting', router)"
     >
       <n-icon>
-        <icon-mdi-cog v-if="menuStore.menu == 'Setting'"/>
-        <icon-mdi-cog-outline v-else/>
+        <icon-tabler-settings/>
       </n-icon>
       <span class="nav-label">{{ $t('nav.setting') }}</span>
     </div>
@@ -36,8 +34,7 @@ const router = useRouter()
         @click="changeMenu('Proxies', router)"
     >
       <n-icon>
-        <icon-mdi-rocket-launch v-if="menuStore.menu == 'Proxies'"/>
-        <icon-mdi-rocket-launch-outline v-else/>
+        <icon-tabler-rocket/>
       </n-icon>
       <span class="nav-label">{{ $t('nav.proxies') }}</span>
     </div>
@@ -47,8 +44,7 @@ const router = useRouter()
         @click="changeMenu('Profiles', router)"
     >
       <n-icon>
-        <icon-mdi-account-cog v-if="menuStore.menu == 'Profiles'"/>
-        <icon-mdi-account-cog-outline v-else/>
+        <icon-tabler-user-cog/>
       </n-icon>
       <span class="nav-label">{{ $t('nav.profiles') }}</span>
     </div>
