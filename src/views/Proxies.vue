@@ -578,7 +578,7 @@ watch(groupList, (list) => {
                 :class="{ 'proxy-option-btn--testing': bulkTestRunning }"
             >
               <icon-tabler-loader-2 v-if="bulkTestRunning"/>
-              <icon-tabler-gauge v-else/>
+              <icon-tabler-bolt v-else/>
             </el-icon>
           </el-tooltip>
 
@@ -653,7 +653,7 @@ watch(groupList, (list) => {
                     @click.stop="testGroupDelay(group)"
                 >
                   <icon-tabler-loader-2 v-if="groupLatencyTesting[group]"/>
-                  <icon-tabler-gauge v-else/>
+                  <icon-tabler-bolt v-else/>
                 </el-icon>
               </el-tooltip>
               <el-icon class="full-view-toggle">
