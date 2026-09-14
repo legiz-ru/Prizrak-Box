@@ -6,10 +6,11 @@
  * list keep reading the variables they already read and render exactly as
  * before. This file only adds the vocabulary the redesigned screens use.
  *
- * Two tokens are written at runtime by src/util/theme.ts, which derives them
- * from the wallpaper: --px-accent (the selection colour) and --px-scrim-a
- * (how opaque a content substrate must be for text to stay readable on that
- * particular wallpaper — 0 on dark ones, so they look untouched).
+ * Two values come from the wallpaper at runtime, written by src/util/theme.ts:
+ * --left-item-selected-bg (the selection colour, aliased here as --px-accent)
+ * and --px-scrim-a (how opaque a content substrate must be for text to stay
+ * readable on that particular wallpaper — 0 on dark ones, so they look
+ * untouched).
  */
 
 :root {
@@ -91,6 +92,12 @@
        looks exactly like today's --sub-card-bg. */
     --px-scrim-rgb: 11, 16, 26;
     --px-scrim-a: 0;
+
+    /* ---- Accent ----
+       Цвет выбора, который theme.ts достаёт из обоев: им залит активный пункт
+       бокового меню, включённые тумблеры и выбранная карточка. Имя нужно,
+       чтобы «акцент» в стилях не читался как «фон пункта меню». */
+    --px-accent: var(--left-item-selected-bg);
 
     /* ---- Focus ----
        --top-hr-color is the theme-derived subtitle colour, kept at a

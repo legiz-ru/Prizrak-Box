@@ -1516,11 +1516,10 @@ watch(() => webStore.dProfile, async (pList) => {
 
 /* Карточки раскладываются сеткой, как узлы в полном виде раздела прокси:
    auto-fill сохраняет ширину колонки независимо от числа карточек, а 1fr
-   раздаёт остаток, поэтому ряд всегда заканчивается вровень с правым краем.
-   Минимум колонки — прежние 245px плюс треть, как и просили. */
+   раздаёт остаток, поэтому ряд всегда заканчивается вровень с правым краем. */
 :deep(.vdc-trans-group-container) {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(326px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(266px, 1fr));
   align-items: start;
 }
 
@@ -1534,21 +1533,35 @@ watch(() => webStore.dProfile, async (pList) => {
   min-width: 0;
 }
 
+/* Три яруса — шапка, статистика, подвал — держит сама карточка: одни поля по
+   периметру и один gap между ярусами вместо трёх наборов собственных отступов
+   у каждого блока, которые раньше складывались по-разному сверху и снизу. */
 .sub-card {
-  padding: var(--px-space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--px-space-2);
+  padding: var(--px-space-3) var(--px-space-4);
   border: 1px solid var(--sub-card-border);
   border-radius: var(--px-r-lg);
   background: var(--sub-card-bg);
   color: var(--text-color);
   box-shadow: var(--px-elev-1);
+  cursor: pointer;
   transition: background-color var(--px-dur) var(--px-ease),
   border-color var(--px-dur) var(--px-ease);
 }
 
-.sub-card:hover, .sub-card-select {
-  background-color: var(--left-item-selected-bg);
-  border-color: var(--text-color);
-  cursor: pointer;
+/* Наведение и выбор перестали выглядеть одинаково: раньше обе заливали
+   карточку цветом выбора, и наведённая карточка была неотличима от активной.
+   Теперь наведение подсвечивает только рамку, заливка означает выбор. */
+.sub-card:hover {
+  border-color: var(--px-accent);
+}
+
+.sub-card-select {
+  background-color: var(--px-accent);
+  border-color: var(--px-accent);
+  box-shadow: var(--px-elev-2);
 }
 
 .sub-card-select:hover {
@@ -1564,14 +1577,21 @@ watch(() => webStore.dProfile, async (pList) => {
   cursor: grab;
 }
 
+/* Иконки действий живут в цвете темы: приглушать их прозрачностью нельзя —
+   на карточке это читается как серый, отличный от остального текста.
+   Наведение показывает тем же приёмом, что и остальные иконки приложения. */
+.ops {
+  color: var(--text-color);
+}
+
 .ops:hover {
   cursor: pointer;
+  color: var(--hr-color);
 }
 
 .card-header {
   align-items: center;
   gap: var(--px-space-2);
-  padding: var(--px-space-1) var(--px-space-2) 0;
 }
 
 .profile-name {
@@ -1579,7 +1599,7 @@ watch(() => webStore.dProfile, async (pList) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--px-space-2);
   min-width: 0;
   font-weight: 600;
 }
@@ -1601,17 +1621,18 @@ watch(() => webStore.dProfile, async (pList) => {
 .stats {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: var(--px-space-2) var(--px-space-2) 0;
+  gap: var(--px-space-1);
   font-size: var(--px-fs-small);
   color: var(--text-color);
+  /* Фиксированная высота: карточки с разным числом заполненных строк не
+     должны прыгать по высоте внутри одного ряда. */
   min-height: 90px;
 }
 
 .stat-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--px-space-2);
 }
 
 .stat-label {
@@ -1619,16 +1640,19 @@ watch(() => webStore.dProfile, async (pList) => {
   color: var(--text-color);
 }
 
+/* Цифры в колонку: без табличных знаков объём и дата в соседних карточках
+   стоят на разной ширине и правый край дрожит. */
 .stat-value {
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
 .bottom-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 10px;
-  margin-bottom: 4px;
+  gap: var(--px-space-2);
+  min-width: 0;
   color: var(--text-color);
 }
 
@@ -1644,8 +1668,8 @@ watch(() => webStore.dProfile, async (pList) => {
 .profile-select-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 4px;
+  gap: var(--px-space-2);
+  padding: 2px var(--px-space-1);
   border: none;
   background: transparent;
   color: var(--text-color);
@@ -1658,28 +1682,23 @@ watch(() => webStore.dProfile, async (pList) => {
   background: rgba(255, 255, 255, 0.08);
 }
 
-.profile-select-icon {
-  color: var(--text-color);
-  opacity: 0.85;
-}
-
+.profile-select-icon,
 .profile-select-order-icon {
   color: var(--text-color);
-  opacity: 0.9;
 }
 
-.profile-select-btn.is-selected .profile-select-icon,
-.profile-select-btn.is-selected .profile-select-order-icon {
-  opacity: 1;
-}
-
+/* Перенос — страховка для самой насыщенной карточки: пять необязательных
+   действий плюс правка и удаление в узкой колонке иначе вылезают за край. */
 .bottom-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: var(--px-space-2);
 }
 .stat-icon {
   color: var(--text-color);
+  flex-shrink: 0;
 }
 
 .announce-dialog-content {
