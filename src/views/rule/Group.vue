@@ -382,7 +382,10 @@ const switchTemplate = async () => {
   color: #cccccc;
 }
 
+/* Было color: black — эта панель поиска всегда лежит на тёмном фоне ace
+   (monokai, независимо от темы приложения), и чёрная иконка при наведении
+   пропадала на нём совсем. */
 :deep(.ace_button:hover) {
-  color: black;
+  color: #ffffff;
 }
 </style>

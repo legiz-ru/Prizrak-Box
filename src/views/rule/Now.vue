@@ -134,14 +134,8 @@ watch(() => webStore.fProfile, async () => {
   margin-top: 6px;
 }
 
-.search :deep(.custom-input) {
-  border-radius: 999px;
-  padding-left: 16px;
-}
-
-.search :deep(.clear-button) {
-  right: 14px;
-}
+/* Радиус, отступ и позиция кнопки очистки — теперь значения по умолчанию
+   в MySimpleInput.vue самого поля, а не переопределение здесь. */
 
 /* .px-table (tokens.css) — общий стол для правил/провайдеров: шапка,
    строки через разделитель, слабая зебра через nth-child(even), скроллбар

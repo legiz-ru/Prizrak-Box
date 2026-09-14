@@ -140,16 +140,17 @@ function cancel() {
   align-items: center;
   justify-content: center;
   min-width: 140px;
-  height: 32px;
-  padding: 0 16px;
-  border: 1.5px solid var(--el-border-color);
-  border-radius: 999px;
+  height: var(--px-control-h);
+  padding: 0 var(--px-space-4);
+  /* Было 1.5px — такой толщины рамки нигде в приложении больше нет. */
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--px-r-pill);
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--px-fs-body);
   background: transparent;
   color: var(--el-text-color-primary);
   user-select: none;
-  transition: border-color 0.2s, color 0.2s;
+  transition: border-color var(--px-dur) var(--px-ease), color var(--px-dur) var(--px-ease);
 }
 
 .hotkey-trigger:hover {
@@ -162,16 +163,18 @@ function cancel() {
   align-items: center;
   justify-content: center;
   height: 56px;
+  /* Пунктир — намеренно другой язык, чем сплошные рамки остального
+     приложения: это зона записи, а не статичная карточка. */
   border: 2px dashed var(--el-border-color);
-  border-radius: 20px;
+  border-radius: var(--px-r-lg);
   cursor: pointer;
-  font-size: 20px;
+  font-size: var(--px-fs-title);
   font-weight: 600;
   outline: none;
   background: transparent;
   color: var(--el-text-color-primary);
   user-select: none;
-  transition: border-color 0.2s, color 0.2s;
+  transition: border-color var(--px-dur) var(--px-ease), color var(--px-dur) var(--px-ease);
 }
 
 .hotkey-area:focus,

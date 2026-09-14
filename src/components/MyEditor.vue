@@ -47,11 +47,12 @@ const onContentChange = () => {
 <template>
   <div class="group">
     <el-space class="op">
-      <el-button
+      <button
+          class="px-btn"
           :disabled="disabled"
           @click="save(yamlContent)">
         {{ t("save") }}
-      </el-button>
+      </button>
     </el-space>
 
     <VAceEditor
@@ -68,8 +69,6 @@ const onContentChange = () => {
 
 <style scoped>
 .group {
-  width: 95%;
-  margin-left: 10px;
   margin-top: 5px;
 }
 
@@ -77,32 +76,28 @@ const onContentChange = () => {
   margin-top: 8px;
 }
 
-:deep(.el-button) {
-  padding: 2px 10px;
-  --el-button-bg-color: transparent;
-  --el-button-text-color: var(--text-color);
-  --el-button-hover-text-color: var(--left-item-selected-bg);
-  --el-button-hover-bg-color: var(--text-color);
-}
-
 .st {
   color: var(--text-color);
 }
 
 .editor {
-  margin-top: 25px;
+  /* Тот же зазор тулбар→контент, что у вкладок правил (var(--px-space-5)). */
+  margin-top: var(--px-space-5);
 }
 
+/* Тот же край, что у редактора шаблона в разделе "Настройки ядра → Unified
+   rule grouping": 1px var(--sub-card-border), а не собственная рамка 2px
+   var(--text-color). */
 :deep(.ace_editor) {
-  border: 2px solid var(--text-color);
-  border-radius: 20px;
+  border: 1px solid var(--sub-card-border);
+  border-radius: var(--px-r-lg);
   font: 15px "Twemoji", "Monaco", "Menlo", "Ubuntu Mono", "Consolas",
   "Source Code Pro", "source-code-pro", monospace;
 }
 
 :deep(.ace_gutter) {
-  border-top-left-radius: 8px;
-  border-bottom-left-radius: 8px;
+  border-top-left-radius: var(--px-r-lg);
+  border-bottom-left-radius: var(--px-r-lg);
 }
 
 :deep(.ace_search.right) {
@@ -128,7 +123,10 @@ const onContentChange = () => {
   color: #cccccc;
 }
 
+/* Было color: black — эта панель поиска всегда лежит на тёмном фоне ace
+   (monokai, независимо от темы приложения), и чёрная иконка при наведении
+   пропадала на нём совсем. */
 :deep(.ace_button:hover) {
-  color: black;
+  color: #ffffff;
 }
 </style>

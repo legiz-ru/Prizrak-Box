@@ -59,41 +59,47 @@ function clearInput() {
 }
 
 .custom-input {
-  width: 100%; /* 撑满宽度 */
-  /* 为清除按钮预留空间 */
-  padding: 8px 32px 8px 8px;
-  border: 2px solid var(--text-color); /* 边框 */
-  border-radius: 20px;
-  background-color: var(--left-nav-btn-bg); /* 背景透明 */
+  width: 100%;
+  /* Радиус, левый отступ и позиция кнопки очистки ниже — то, что раньше
+     каждый из четырёх потребителей (Now/Ignore/ConnectionTab/LogTab)
+     переопределял у себя одинаковыми `:deep()`-правилами; теперь это
+     значения по умолчанию, а не то, что подставляется четыре раза. */
+  padding: var(--px-space-2) 32px var(--px-space-2) var(--px-space-4);
+  border: 1px solid var(--sub-card-border);
+  border-radius: var(--px-r-pill);
+  background-color: var(--left-nav-btn-bg);
   color: var(--text-color);
-  font-size: 14px; /* 字体大小 */
-  box-sizing: border-box; /* 包含 padding 和边框 */
-  outline: none; /* 移除默认 outline */
-  transition: border-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out; /* 动态效果 */
+  font-size: var(--px-fs-body);
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color var(--px-dur) var(--px-ease), background-color var(--px-dur) var(--px-ease);
 }
 
 .custom-input:focus {
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: var(--left-nav-btn-hover-bg);
 }
 
 .custom-input::placeholder {
-  color: var(--placeholder-color); /* 占位符颜色稍微透明 */
+  color: var(--placeholder-color);
 }
 
 .clear-button {
   position: absolute;
   top: 50%;
-  right: 10px;
+  right: 14px;
   transform: translateY(-50%);
   background: none;
   border: none;
   color: var(--text-color);
-  font-size: 14px;
+  opacity: .7;
+  font-size: var(--px-fs-body);
   cursor: pointer;
   padding: 0;
+  transition: opacity var(--px-dur) var(--px-ease);
 }
 
 .clear-button:hover {
-  color: rgba(255, 255, 255, 0.8);
+  /* Было rgba(255,255,255,.8) буквально — не читалось на светлой теме. */
+  opacity: 1;
 }
 </style>

@@ -626,14 +626,8 @@ function closeAll() {
   margin-top: 12px;
 }
 
-.search :deep(.custom-input) {
-  border-radius: 999px;
-  padding-left: 16px;
-}
-
-.search :deep(.clear-button) {
-  right: 14px;
-}
+/* Радиус, отступ и позиция кнопки очистки — теперь значения по умолчанию
+   в MySimpleInput.vue самого поля, а не переопределение здесь. */
 
 /* Кнопка и переключатель режима — общие .px-btn/.px-seg вместо своих копий
    (та же пара, что была у Group.vue/Providers.vue/Setting.vue). */

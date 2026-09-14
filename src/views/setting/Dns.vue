@@ -34,11 +34,11 @@ const save = async function (yamlContent: any) {
 <template>
   <MyLayout>
     <template #top>
-      <el-space class="space">
-        <div class="title">
+      <div class="px-page-head">
+        <div class="px-page-title">
           {{ $t("dns.title") }}
         </div>
-      </el-space>
+      </div>
     </template>
     <template #bottom>
       <MyEditor :load="load" :save="save"></MyEditor>
@@ -46,14 +46,3 @@ const save = async function (yamlContent: any) {
   </MyLayout>
 </template>
 
-<style scoped>
-.space {
-  margin-top: 20px;
-}
-
-.title {
-  font-size: 32px;
-  font-weight: bold;
-  margin-left: 10px;
-}
-</style>

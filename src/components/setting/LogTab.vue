@@ -58,14 +58,8 @@ function filterData() {
   margin-top: 0;
 }
 
-.search :deep(.custom-input) {
-  border-radius: 999px;
-  padding-left: 16px;
-}
-
-.search :deep(.clear-button) {
-  right: 14px;
-}
+/* Радиус, отступ и позиция кнопки очистки — теперь значения по умолчанию
+   в MySimpleInput.vue самого поля, а не переопределение здесь. */
 
 /* Тот же край, что у стола правил и вкладки Соединения: 1px
    var(--sub-card-border), а не собственная рамка 2px var(--text-color). */
