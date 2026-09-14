@@ -1,6 +1,13 @@
-# nfpm config for the Wails build's Linux .deb / .rpm packages.
+# nfpm config for the Wails build's Linux packages (.deb / .rpm / Arch .tar.zst).
 # Arch/version come from the environment (set by CI). Run from the repo root:
-#   PKG_ARCH=amd64 PKG_VERSION=1.0.1 nfpm pkg -p deb -f src-wails/build/linux/nfpm.yaml -t out.deb
+#   PKG_ARCH=amd64 PKG_VERSION=1.0.1 nfpm pkg -p deb       -f src-wails/build/linux/nfpm.yaml -t out.deb
+#   PKG_ARCH=amd64 PKG_VERSION=1.0.1 nfpm pkg -p rpm       -f src-wails/build/linux/nfpm.yaml -t out.rpm
+#   PKG_ARCH=amd64 PKG_VERSION=1.0.1 nfpm pkg -p archlinux -f src-wails/build/linux/nfpm.yaml -t out.tar.zst
+#
+# The package name is deliberately the same as the Electron build's, so installing
+# one replaces the other: both shells are the same application and share the data
+# directory, and /usr/bin/prizrak-box plus the desktop entry can only belong to one
+# of them.
 name: prizrak-box
 arch: ${PKG_ARCH}
 version: ${PKG_VERSION}
@@ -26,19 +33,50 @@ contents:
     dst: /usr/share/icons/hicolor/512x512/apps/prizrak-box.png
   - src: src-wails/build/linux/prizrak-box.desktop
     dst: /usr/share/applications/prizrak-box.desktop
+  # Shipped as a package file rather than copied in postinstall, so the package
+  # manager owns it and removes it on uninstall.
+  - src: src-wails/build/linux/com.legiz-ru.prizrak-box.policy
+    dst: /usr/share/polkit-1/actions/com.legiz-ru.prizrak-box.policy
   - src: /usr/lib/prizrak-box/prizrak-box-wails
     dst: /usr/bin/prizrak-box
     type: symlink
 
 scripts:
   postinstall: src-wails/build/linux/postinstall.sh
+  preremove: src-wails/build/linux/preremove.sh
+
+archlinux:
+  packager: legiz-ru <legiz-ru@users.noreply.github.com>
+  scripts:
+    # pacman runs post_upgrade instead of post_install when upgrading, and nfpm
+    # maps the generic postinstall only to post_install. Without this the systemd
+    # unit would never be refreshed on an upgrade — which matters whenever the
+    # unit's own contents change (capabilities, umask, runtime directory).
+    postupgrade: src-wails/build/linux/postinstall.sh
 
 overrides:
+  # Hard dependencies are only the libraries the app cannot start without — the
+  # GTK4/WebKitGTK stack the Wails v3 shell links against. polkit and xdg-utils
+  # are recommended instead: without them the app still runs, it just cannot
+  # install the TUN service or open links/folders, and making them mandatory would
+  # render the package uninstallable on systems that ship neither.
   deb:
     depends:
       - libgtk-4-1
       - libwebkitgtk-6.0-4
+    recommends:
+      - polkitd | policykit-1
+      - xdg-utils
   rpm:
     depends:
       - gtk4
       - webkitgtk6.0
+    recommends:
+      - polkit
+      - xdg-utils
+  archlinux:
+    depends:
+      - gtk4
+      - webkit2gtk-6.0
+      - polkit
+      - xdg-utils

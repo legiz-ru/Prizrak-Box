@@ -153,6 +153,6 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 )
 
-replace github.com/metacubex/mihomo => github.com/legiz-ru/moshen v1.19.30-smart-muxcool-moshen.0.20260909162212-b67482c33675
+replace github.com/metacubex/mihomo => github.com/legiz-ru/moshen v1.19.30-smart-moshen-jesus
 
-replace github.com/metacubex/utls => github.com/metacubex/utls v0.0.0-20260726054410-2aa631698733
+replace github.com/metacubex/utls => github.com/legiz-ru/prizrak-utls v0.0.0-20260910220934-80ad70380fe8

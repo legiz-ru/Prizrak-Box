@@ -28,6 +28,7 @@ func (p *program) Start(s service.Service) error {
 }
 
 func (p *program) run() {
+	relaxUmask()
 	log.Println("[Service] Starting IPC server...")
 	if err := p.server.Start(); err != nil {
 		log.Printf("[Service] Failed to start IPC server: %v", err)
@@ -38,6 +39,11 @@ func (p *program) Stop(s service.Service) error {
 	log.Println("[Service] Stopping...")
 	if p.server != nil {
 		p.server.Stop()
+		// Stops px AND restores the data directory's ownership: px ran as root,
+		// so without this the user's config/profiles stay root-owned and the
+		// unprivileged px of the next non-TUN session cannot write them.
+		p.server.ShutdownPx()
+		return nil
 	}
 	manager.StopPx()
 	return nil
@@ -69,6 +75,12 @@ func main() {
 
 	prg := &program{
 		server: ipc.NewServer(),
+	}
+	if *standalone {
+		// Debug runs execute px straight from the repo, which is not an
+		// installed, root-owned location, so the path validation that protects
+		// the installed service would reject it.
+		prg.server = ipc.NewStandaloneServer()
 	}
 
 	s, err := service.New(prg, svcConfig)

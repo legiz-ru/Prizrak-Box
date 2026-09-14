@@ -153,6 +153,15 @@ func main() {
 			// profile (see locate.WebviewDataDir).
 			WebviewUserDataPath: locate.WebviewDataDir(),
 		},
+		Linux: application.LinuxOptions{
+			// GTK derives the window's WM_CLASS from g_get_prgname(), which
+			// defaults to the executable name (prizrak-box-wails). The installed
+			// desktop entry declares StartupWMClass=Prizrak-Box, and while the
+			// two disagree the shell cannot match the window to the .desktop
+			// file: the taskbar/dock shows a generic icon instead of the app's
+			// and treats the window as a separate, unlaunchable application.
+			ProgramName: "Prizrak-Box",
+		},
 		SingleInstance: &application.SingleInstanceOptions{
 			UniqueID: "com.legiz-ru.prizrak-box",
 			OnSecondInstanceLaunch: func(data application.SecondInstanceData) {
@@ -199,6 +208,21 @@ func main() {
 		winOpts.BackgroundColour = application.NewRGB(17, 17, 17)
 	} else {
 		winOpts.BackgroundColour = application.NewRGB(242, 242, 242)
+	}
+	// Linux/GTK4: never force hardware acceleration on the webview. Wails' own
+	// LinuxWindow doc still carries the Wails v2 wording ("if options.Linux is
+	// nil … defaults to WebviewGpuPolicyNever"), but in v3 Linux is a struct by
+	// value, so leaving it unset means the zero value — WebviewGpuPolicyAlways
+	// (iota 0) — and the GTK4 backend then hard-sets
+	// WEBKIT_HARDWARE_ACCELERATION_POLICY_ALWAYS. On machines without a working
+	// GL/EGL stack (VMs, headless-ish setups, some NVIDIA configurations) that
+	// renders a blank window with no error (wailsapp/wails#2977), which is
+	// indistinguishable from the app failing to start.
+	winOpts.Linux = application.LinuxWindow{
+		WebviewGpuPolicy: application.WebviewGpuPolicyNever,
+		// The GTK window (and its taskbar/alt-tab entry) takes its icon from
+		// here; the app-level Icon covers the tray, not the window.
+		Icon: appIcon,
 	}
 	if runtime.GOOS == "darwin" {
 		// macOS keeps the native hidden-inset title bar (traffic lights).
@@ -277,6 +301,20 @@ func main() {
 			win.EmitEvent("px:be:maximized", true)
 		})
 		win.OnWindowEvent(events.Windows.WindowUnMaximise, func(_ *application.WindowEvent) {
+			win.EmitEvent("px:be:maximized", false)
+		})
+	}
+	// Linux emits the same transitions as common events (derived from GTK window
+	// state changes), and they are needed for the same reason: the window is
+	// frameless with a web titlebar, so a maximise the window manager performs
+	// itself — keyboard shortcut, titlebar double-click, tiling — never passes
+	// through MyTitleBar.vue's click handler and would leave its button showing
+	// the wrong icon.
+	if runtime.GOOS == "linux" {
+		win.OnWindowEvent(events.Common.WindowMaximise, func(_ *application.WindowEvent) {
+			win.EmitEvent("px:be:maximized", true)
+		})
+		win.OnWindowEvent(events.Common.WindowUnMaximise, func(_ *application.WindowEvent) {
 			win.EmitEvent("px:be:maximized", false)
 		})
 	}
@@ -389,7 +427,16 @@ func main() {
 		// import UI surfaced. The tray's "Show" item and the global hotkey both
 		// reveal the window. Mirrors src-electron/main.ts startMinimized.
 		u, hasDeep := findSchemeURL(os.Args[1:])
-		if hasDeep || !locate.StartMinimized() {
+		// Staying hidden is only safe while something can host the tray icon.
+		// Wails' Linux tray is a StatusNotifierItem and stock GNOME hosts none
+		// (it needs the AppIndicator extension), reporting no error — so
+		// honouring "start minimized" there would leave a running app with no
+		// window and no tray to restore it from.
+		trayReachable := services.TrayHostAvailable()
+		if hasDeep || !locate.StartMinimized() || !trayReachable {
+			if !trayReachable && locate.StartMinimized() {
+				app.Logger.Warn("no system tray host on this session; showing the window instead of starting minimized")
+			}
 			win.Show()
 		}
 		if hasDeep {

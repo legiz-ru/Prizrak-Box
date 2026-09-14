@@ -1254,9 +1254,101 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
 
+  # ── Wails Linux (TEST channel) — deb + rpm + Arch package via nfpm ──
+  build_linux_wails:
+    needs: [setup]
+    if: github.event_name == 'release' || inputs.build_linux == true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          # A native runner, not cross-compilation: the Wails shell links against
+          # GTK4/WebKitGTK through cgo, and cross-building that would need a full
+          # arm64 sysroot for both libraries.
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - uses: actions/setup-go@v6
+        with: { go-version: '1.26', check-latest: true }
+      - name: Set Version
+        run: echo "VERSION=${{ needs.setup.outputs.version }}" >> $GITHUB_ENV
+      - name: Sync VERSION to package.json
+        run: node build/sync-version.js
+      - name: Install GTK4 + WebKitGTK build dependencies
+        run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev
+      - name: Refresh geo/model data
+        run: |
+          wget -qO src-go/internal/em/Model.bin        --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model.bin
+          wget -qO src-go/internal/em/geoip.metadb     --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
+          wget -qO src-go/internal/em/GeoSite.dat      --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          wget -qO src-go/internal/em/BundleMRS.7z     --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
+          wget -qO src-go/internal/em/GeoLite2-ASN.mmdb --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
+      - name: Build frontend
+        run: |
+          npm install --no-audit --no-fund
+          npx vite build --outDir src-wails/frontend/dist --emptyOutDir
+      - name: Build px + px-service
+        env: { GOARCH: '${{ matrix.arch }}' }
+        run: |
+          (cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags="-s -w -X github.com/legiz-ru/prizrak-box/api.Version=${{ env.VERSION }}" -o px .)
+          (cd src-service && CGO_ENABLED=0 go build -ldflags="-s -w" -o px-service .)
+      - name: Build Wails app
+        env: { CGO_ENABLED: '1' }
+        run: |
+          cd src-wails
+          go build -trimpath -ldflags="-s -w" -o bin/prizrak-box-wails .
+      - name: Package deb + rpm + Arch (nfpm)
+        run: |
+          set -e
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
+          NFPM="$(go env GOPATH)/bin/nfpm"
+          export PKG_ARCH='${{ matrix.arch }}'
+          # package.json carries the version without the leading "v", which is what
+          # deb/rpm/pacman versioning requires.
+          export PKG_VERSION="$(node -p "require('./package.json').version")"
+          CFG=src-wails/build/linux/nfpm.yaml
+          "$NFPM" pkg -p deb       -f "$CFG" -t "linux-${{ matrix.arch }}-wails.deb"
+          "$NFPM" pkg -p rpm       -f "$CFG" -t "linux-${{ matrix.arch }}-wails.rpm"
+          # A real pacman package (.PKGINFO with depends + install hooks), so
+          # `pacman -U` pulls the GTK4/WebKitGTK runtime in itself. It is published
+          # as a release asset only — nothing is pushed to the AUR.
+          "$NFPM" pkg -p archlinux -f "$CFG" -t "linux-${{ matrix.arch }}-aur-wails.tar.zst"
+      - name: Validate Release Assets
+        run: |
+          set -e
+          missing=0
+          for file in "linux-${{ matrix.arch }}-wails.deb" "linux-${{ matrix.arch }}-wails.rpm" "linux-${{ matrix.arch }}-aur-wails.tar.zst"; do
+            if [ ! -s "$file" ]; then
+              echo "Missing or empty Wails Linux artifact: $file" >&2
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || { ls -la; exit 1; }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wails-linux-${{ matrix.arch }}
+          path: |
+            linux-${{ matrix.arch }}-wails.deb
+            linux-${{ matrix.arch }}-wails.rpm
+            linux-${{ matrix.arch }}-aur-wails.tar.zst
+      - name: Cancel workflow on failure
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+
   # ── Release: upload artifacts and update release body ──
   release:
-    needs: [setup, build_android, build_windows, build_linux, build_macos, build_windows_wails, build_macos_wails, publish_aur]
+    needs: [setup, build_android, build_windows, build_linux, build_macos, build_windows_wails, build_macos_wails, build_linux_wails, publish_aur]
     # Run only if no build job failed; skipped jobs are tolerated (user may disable some platforms).
     # publish_aur is deliberately NOT checked: the AUR is a third-party service
     # whose outages must not block publishing the release artifacts.
@@ -1268,7 +1360,8 @@ jobs:
       needs.build_linux.result != 'failure' &&
       needs.build_macos.result != 'failure' &&
       needs.build_windows_wails.result != 'failure' &&
-      needs.build_macos_wails.result != 'failure'
+      needs.build_macos_wails.result != 'failure' &&
+      needs.build_linux_wails.result != 'failure'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -1368,6 +1461,19 @@ jobs:
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/linux-arm64.deb"><img src="https://img.shields.io/badge/DebPackage-arm64-FF9966.svg?logo=debian"></a><br>
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/linux-arm64.rpm"><img src="https://img.shields.io/badge/RpmPackage-arm64-F1B42F.svg?logo=redhat"></a><br>
                             <a href="https://aur.archlinux.org/packages/prizrak-box-bin"><img src="https://img.shields.io/aur/version/prizrak-box-bin?logo=archlinux"></a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" align="center"><strong>Linux Wails TEST</strong></td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/linux-amd64-wails.deb"><img src="https://img.shields.io/badge/DebPackage-x64-FF9966.svg?logo=debian"></a>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/linux-amd64-wails.rpm"><img src="https://img.shields.io/badge/RpmPackage-x64-F1B42F.svg?logo=redhat"></a>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/linux-amd64-aur-wails.tar.zst"><img src="https://img.shields.io/badge/ArchPackage-x64-1793D1.svg?logo=archlinux"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/linux-arm64-wails.deb"><img src="https://img.shields.io/badge/DebPackage-arm64-FF9966.svg?logo=debian"></a>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/linux-arm64-wails.rpm"><img src="https://img.shields.io/badge/RpmPackage-arm64-F1B42F.svg?logo=redhat"></a>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/linux-arm64-aur-wails.tar.zst"><img src="https://img.shields.io/badge/ArchPackage-arm64-1793D1.svg?logo=archlinux"></a>
                         </td>
                     </tr>
                 </tbody>

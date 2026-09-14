@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+    "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+    "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!--
+  polkit action for the TUN helper. Without it, pkexec shows a generic
+  "Authentication is required to run <path> as the super user" prompt and refuses
+  to run at all in some desktop configurations; with it the user sees what the app
+  is asking for, and allow_gui lets the prompt appear for a GUI-launched process.
+
+  exec.path must match where the package installs px-service. The packages ship
+  this file straight to /usr/share/polkit-1/actions/, so it is tracked by the
+  package manager and removed on uninstall.
+-->
+<policyconfig>
+  <action id="com.legiz-ru.prizrak-box.service">
+    <description>Manage the Prizrak-Box TUN service</description>
+    <description xml:lang="ru">Управление TUN-сервисом Prizrak-Box</description>
+    <message>Authentication is required to install or remove the Prizrak-Box TUN service</message>
+    <message xml:lang="ru">Для установки или удаления TUN-сервиса Prizrak-Box требуется аутентификация</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <!-- _keep: installing the service and immediately starting px through it
+           are two elevated steps of one user action; without it the user is
+           asked twice in a row. -->
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/prizrak-box/px-service</annotate>
+    <annotate key="org.freedesktop.policykit.exec.allow_gui">TRUE</annotate>
+  </action>
+</policyconfig>

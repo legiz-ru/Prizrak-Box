@@ -13,3 +13,7 @@ import (
 func hideWindow(cmd *exec.Cmd) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 }
+
+// detachProcess is a no-op on Windows: the relaunch there goes through
+// `cmd /c … start`, which already hands the new process off to the shell.
+func detachProcess(_ *exec.Cmd) {}

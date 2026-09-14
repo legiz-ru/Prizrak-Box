@@ -5,7 +5,7 @@ name: Build Wails (PoC)
 # time from the same sources as the Electron workflow.
 #
 # Artifacts (per architecture):
-#   Linux   amd64/arm64  -> .deb + .rpm (nfpm)            [native arm64 runner]
+#   Linux   amd64/arm64  -> .deb + .rpm + Arch .tar.zst (nfpm) [native arm64 runner]
 #   macOS   amd64/arm64  -> .app .zip + .dmg (signed if secrets present)
 #   Windows amd64/arm64  -> .msi (same WiX installer as Electron) + portable .zip
 
@@ -67,19 +67,25 @@ jobs:
         run: |
           cd src-wails
           CGO_ENABLED=1 go build -trimpath -o bin/prizrak-box-wails .
-      - name: Package .deb + .rpm (nfpm)
+      - name: Package .deb + .rpm + Arch (nfpm)
         run: |
+          set -e
           go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
+          NFPM="$(go env GOPATH)/bin/nfpm"
           export PKG_ARCH='${{ matrix.arch }}'
           export PKG_VERSION="$(node -p "require('./package.json').version")"
-          "$(go env GOPATH)/bin/nfpm" pkg -p deb -f src-wails/build/linux/nfpm.yaml -t "prizrak-box-linux-${{ matrix.arch }}.deb"
-          "$(go env GOPATH)/bin/nfpm" pkg -p rpm -f src-wails/build/linux/nfpm.yaml -t "prizrak-box-linux-${{ matrix.arch }}.rpm"
+          CFG=src-wails/build/linux/nfpm.yaml
+          # Same names and formats as the release workflow's build_linux_wails job.
+          "$NFPM" pkg -p deb       -f "$CFG" -t "linux-${{ matrix.arch }}-wails.deb"
+          "$NFPM" pkg -p rpm       -f "$CFG" -t "linux-${{ matrix.arch }}-wails.rpm"
+          "$NFPM" pkg -p archlinux -f "$CFG" -t "linux-${{ matrix.arch }}-aur-wails.tar.zst"
       - uses: actions/upload-artifact@v4
         with:
           name: wails-linux-${{ matrix.arch }}
           path: |
-            prizrak-box-linux-${{ matrix.arch }}.deb
-            prizrak-box-linux-${{ matrix.arch }}.rpm
+            linux-${{ matrix.arch }}-wails.deb
+            linux-${{ matrix.arch }}-wails.rpm
+            linux-${{ matrix.arch }}-aur-wails.tar.zst
 
   # ───────────────────────────── macOS ─────────────────────────────
   macos:

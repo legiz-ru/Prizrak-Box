@@ -157,6 +157,7 @@ func relaunchApp() {
 			cmd = exec.Command("cmd", "/c", "ping 127.0.0.1 -n 6 >nul & start \"\" \""+exe+"\"")
 		} else {
 			cmd = exec.Command("sh", "-c", "sleep 5; exec \""+exe+"\"")
+			detachProcess(cmd)
 		}
 		_ = cmd.Start()
 	}

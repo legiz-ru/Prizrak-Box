@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -41,16 +42,40 @@ func runElevated(path string, prompt string, args ...string) error {
 		return exec.Command("osascript", "-e", script).Run()
 
 	default: // linux and friends
-		if p, err := exec.LookPath("pkexec"); err == nil {
-			cmd := exec.Command(p, append([]string{path}, args...)...)
-			if err := cmd.Run(); err == nil {
+		// pkexec first (the packages ship a polkit action for it), then the
+		// graphical su wrappers older desktops still use. Plain `sudo` is
+		// deliberately NOT in this list: with no terminal it can only succeed on a
+		// passwordless configuration and otherwise hangs waiting for a password
+		// nobody can type. `sudo -A` is tried instead, and only when an askpass
+		// helper is actually configured.
+		var lastErr error
+		tried := false
+		for _, helper := range []string{"pkexec", "gksudo", "kdesudo"} {
+			p, err := exec.LookPath(helper)
+			if err != nil {
+				continue
+			}
+			tried = true
+			if err := exec.Command(p, append([]string{path}, args...)...).Run(); err == nil {
 				return nil
+			} else {
+				lastErr = fmt.Errorf("%s: %w", helper, err)
 			}
 		}
-		if p, err := exec.LookPath("sudo"); err == nil {
-			return exec.Command(p, append([]string{path}, args...)...).Run()
+		if askpass := os.Getenv("SUDO_ASKPASS"); askpass != "" {
+			if p, err := exec.LookPath("sudo"); err == nil {
+				tried = true
+				if err := exec.Command(p, append([]string{"-A", path}, args...)...).Run(); err == nil {
+					return nil
+				} else {
+					lastErr = fmt.Errorf("sudo -A: %w", err)
+				}
+			}
 		}
-		return fmt.Errorf("no elevation helper found (pkexec/sudo)")
+		if !tried {
+			return fmt.Errorf("no graphical elevation helper found (pkexec/gksudo/kdesudo)")
+		}
+		return lastErr
 	}
 }
 

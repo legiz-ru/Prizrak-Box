@@ -24,7 +24,11 @@ After=network.target
 
 [Service]
 Type=simple
-UMask=0077
+# 0022, not 0077: px runs as root under this service and writes into the user's
+# data directory. The service hands those files back to the user afterwards, but
+# with a 0077 umask everything created in between is mode 0600 and unreadable to
+# them.
+UMask=0022
 ExecStart=%s
 Restart=on-failure
 RestartSec=5s
@@ -32,9 +36,14 @@ StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=prizrak-box
 
+# /run/prizrak-box, where the IPC socket lives. systemd creates it on start and
+# removes it on stop.
+RuntimeDirectory=prizrak-box
+RuntimeDirectoryMode=0755
+
 # Minimal capability set for TUN mode
-CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW CAP_NET_BIND_SERVICE CAP_DAC_READ_SEARCH CAP_DAC_OVERRIDE
-AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW CAP_NET_BIND_SERVICE CAP_DAC_READ_SEARCH CAP_DAC_OVERRIDE
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW CAP_NET_BIND_SERVICE CAP_DAC_READ_SEARCH CAP_DAC_OVERRIDE CAP_CHOWN CAP_FOWNER
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW CAP_NET_BIND_SERVICE CAP_DAC_READ_SEARCH CAP_DAC_OVERRIDE CAP_CHOWN CAP_FOWNER
 
 # Capability explanations:
 # CAP_NET_ADMIN: Network management (TUN device, routing table)
@@ -42,6 +51,9 @@ AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW CAP_NET_BIND_SERVICE CAP_DAC_READ_
 # CAP_NET_BIND_SERVICE: Bind privileged ports (< 1024)
 # CAP_DAC_READ_SEARCH: Bypass file read permissions (config files)
 # CAP_DAC_OVERRIDE: Bypass file write permissions (log files)
+# CAP_CHOWN, CAP_FOWNER: Give the data directory back to the desktop user after
+#   root-px has written to it (without these the chown silently fails and the
+#   user's config/profiles stay root-owned)
 
 [Install]
 WantedBy=multi-user.target

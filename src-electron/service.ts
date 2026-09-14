@@ -8,7 +8,18 @@ import {storeGet, storeSet} from "./store";
 
 // Путь к сокету/пайпу
 const WINDOWS_PIPE_NAME = '\\\\.\\pipe\\prizrak-box-service';
-const UNIX_SOCKET_PATH = '/tmp/prizrak-box-service.sock';
+// Socket paths in the order px-service prefers them (src-service/ipc/listen_unix.go).
+// The service moved its socket out of the world-writable /tmp into the runtime
+// directory; the old path is still tried because the service is a separate binary
+// with its own lifecycle, so an older service may still be the one running.
+const UNIX_SOCKET_PATHS = [
+    process.platform === 'darwin' ? '/var/run/prizrak-box/service.sock' : '/run/prizrak-box/service.sock',
+    '/tmp/prizrak-box-service.sock',
+];
+
+function socketCandidates(): string[] {
+    return process.platform === 'win32' ? [WINDOWS_PIPE_NAME] : UNIX_SOCKET_PATHS;
+}
 
 // Путь к сервису
 const isDev = !app.isPackaged;
@@ -45,9 +56,20 @@ export interface ServiceStatus {
  * Отправляет IPC запрос к сервису
  */
 async function sendIPCRequest(request: IPCRequest, timeout: number = 5000): Promise<IPCResponse> {
-    return new Promise((resolve, reject) => {
-        const socketPath = process.platform === 'win32' ? WINDOWS_PIPE_NAME : UNIX_SOCKET_PATH;
+    const candidates = socketCandidates();
+    let lastError: unknown = new Error('no service socket available');
+    for (const socketPath of candidates) {
+        try {
+            return await sendIPCRequestTo(socketPath, request, timeout);
+        } catch (e) {
+            lastError = e;
+        }
+    }
+    throw lastError;
+}
 
+async function sendIPCRequestTo(socketPath: string, request: IPCRequest, timeout: number): Promise<IPCResponse> {
+    return new Promise((resolve, reject) => {
         const client = net.createConnection(socketPath, () => {
             const requestStr = JSON.stringify(request) + '\n';
             client.write(requestStr);
