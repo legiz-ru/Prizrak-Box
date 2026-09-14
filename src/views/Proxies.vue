@@ -566,8 +566,8 @@ watch(groupList, (list) => {
 <template>
   <MyLayout>
     <template #top>
-      <el-space class="space">
-        <div class="title">
+      <div class="px-page-head">
+        <div class="px-page-title">
           {{ $t("proxies.title") }}
         </div>
         <div class="proxy-option">
@@ -610,7 +610,7 @@ watch(groupList, (list) => {
             </el-icon>
           </el-tooltip>
         </div>
-      </el-space>
+      </div>
     </template>
 
     <template #bottom>
@@ -754,24 +754,15 @@ watch(groupList, (list) => {
   padding-bottom: 0;
 }
 
-.space {
-  margin-top: 15px;
-}
-
-.title {
-  font-size: 32px;
-  font-weight: bold;
-  margin-left: 10px;
-}
-
+/* Заголовок и панель значков раскладывает .px-page-head (gap на общем
+   родителе) — своего отступа между ними .proxy-option больше не носит. */
 .proxy-option {
-  margin-left: 10px;
   font-size: 30px;
-  padding-top: 10px;
+  padding-top: var(--px-space-3);
 }
 
 .proxy-option-btn {
-  margin-right: 15px;
+  margin-right: var(--px-space-4);
 }
 
 .proxy-option-btn:hover {

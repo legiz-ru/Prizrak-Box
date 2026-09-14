@@ -38,11 +38,14 @@ const ruleSubComponents: Record<string, any> = {
 <template>
   <MyLayout>
     <template #top>
+      <div class="px-page-head">
+        <div class="px-page-title">{{ t('nav.setting') }}</div>
+      </div>
       <div class="setting-tabs-wrap">
-        <div class="pill-toggle">
+        <div class="px-seg">
           <el-tooltip :content="t('setting.tab.app')" placement="bottom" :show-after="300">
             <button
-              :class="['pill-toggle__btn', { 'is-active': settingTab === 'app' }]"
+              :class="['px-seg__btn', 'px-seg__btn--icon', { 'is-active': settingTab === 'app' }]"
               @click="settingTab = 'app'"
             >
               <el-icon size="19">
@@ -54,7 +57,7 @@ const ruleSubComponents: Record<string, any> = {
 
           <el-tooltip :content="t('setting.tab.core')" placement="bottom" :show-after="300">
             <button
-              :class="['pill-toggle__btn', 'pill-toggle__btn--core', { 'is-active': settingTab === 'core' }]"
+              :class="['px-seg__btn', 'px-seg__btn--icon', 'px-seg__btn--core', { 'is-active': settingTab === 'core' }]"
               @click="settingTab = 'core'"
             >
               <svg class="core-svg" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -70,7 +73,7 @@ const ruleSubComponents: Record<string, any> = {
 
           <el-tooltip :content="t('sec-nav.rule')" placement="bottom" :show-after="300">
             <button
-              :class="['pill-toggle__btn', { 'is-active': settingTab === 'rule' }]"
+              :class="['px-seg__btn', 'px-seg__btn--icon', { 'is-active': settingTab === 'rule' }]"
               @click="settingTab = 'rule'"
             >
               <el-icon size="19">
@@ -81,7 +84,7 @@ const ruleSubComponents: Record<string, any> = {
 
           <el-tooltip :content="t('sec-nav.conn')" placement="bottom" :show-after="300">
             <button
-              :class="['pill-toggle__btn', { 'is-active': settingTab === 'connection' }]"
+              :class="['px-seg__btn', 'px-seg__btn--icon', { 'is-active': settingTab === 'connection' }]"
               @click="settingTab = 'connection'"
             >
               <el-icon size="19">
@@ -92,7 +95,7 @@ const ruleSubComponents: Record<string, any> = {
 
           <el-tooltip :content="t('sec-nav.log')" placement="bottom" :show-after="300">
             <button
-              :class="['pill-toggle__btn', { 'is-active': settingTab === 'log' }]"
+              :class="['px-seg__btn', 'px-seg__btn--icon', { 'is-active': settingTab === 'log' }]"
               @click="settingTab = 'log'"
             >
               <el-icon size="19">
@@ -106,11 +109,11 @@ const ruleSubComponents: Record<string, any> = {
         <!-- Active/Closed toggle: shown when connection tab is open and mode is list or process -->
         <div
             v-if="settingTab === 'connection' && (connectionStore.viewMode === 'list' || connectionStore.viewMode === 'process')"
-            class="pill-toggle"
+            class="px-seg"
         >
           <el-tooltip :content="t('connections.active')" placement="bottom" :show-after="300">
             <button
-                :class="['pill-toggle__btn', { 'is-active': !connectionStore.showClosed }]"
+                :class="['px-seg__btn', 'px-seg__btn--icon', { 'is-active': !connectionStore.showClosed }]"
                 type="button"
                 @click="connectionStore.setShowClosed(false)"
             >
@@ -119,7 +122,7 @@ const ruleSubComponents: Record<string, any> = {
           </el-tooltip>
           <el-tooltip :content="t('connections.closed')" placement="bottom" :show-after="300">
             <button
-                :class="['pill-toggle__btn', { 'is-active': connectionStore.showClosed }]"
+                :class="['px-seg__btn', 'px-seg__btn--icon', { 'is-active': connectionStore.showClosed }]"
                 type="button"
                 @click="connectionStore.setShowClosed(true)"
             >
@@ -131,11 +134,11 @@ const ruleSubComponents: Record<string, any> = {
         <!-- Providers view toggle: shown only when rule → Providers is active -->
         <div
             v-if="settingTab === 'rule' && ruleSubTab === 'Providers'"
-            class="pill-toggle providers-view-toggle"
+            class="px-seg providers-view-toggle"
         >
           <el-tooltip :content="t('rule.providers.viewCards')" placement="bottom" :show-after="300">
             <button
-                :class="['pill-toggle__btn', { 'is-active': providersView === 'cards' }]"
+                :class="['px-seg__btn', 'px-seg__btn--icon', { 'is-active': providersView === 'cards' }]"
                 type="button"
                 @click="providersView = 'cards'"
             >
@@ -144,7 +147,7 @@ const ruleSubComponents: Record<string, any> = {
           </el-tooltip>
           <el-tooltip :content="t('rule.providers.viewTable')" placement="bottom" :show-after="300">
             <button
-                :class="['pill-toggle__btn', { 'is-active': providersView === 'table' }]"
+                :class="['px-seg__btn', 'px-seg__btn--icon', { 'is-active': providersView === 'table' }]"
                 type="button"
                 @click="providersView = 'table'"
             >
@@ -158,14 +161,14 @@ const ruleSubComponents: Record<string, any> = {
     <template #bottom>
       <!-- Rule sub-tab navigation -->
       <div v-if="settingTab === 'rule'" class="rule-nav">
-        <div class="pill-toggle pill-toggle--text">
-          <button :class="['pill-toggle__btn', 'pill-toggle__btn--text', { 'is-active': ruleSubTab === 'Now' }]"
+        <div class="px-seg">
+          <button :class="['px-seg__btn', { 'is-active': ruleSubTab === 'Now' }]"
                   @click="ruleSubTab = 'Now'">{{ $t('rule.now.title') }}</button>
-          <button :class="['pill-toggle__btn', 'pill-toggle__btn--text', { 'is-active': ruleSubTab === 'Group' }]"
+          <button :class="['px-seg__btn', { 'is-active': ruleSubTab === 'Group' }]"
                   @click="ruleSubTab = 'Group'">{{ $t('rule.group.title') }}</button>
-          <button :class="['pill-toggle__btn', 'pill-toggle__btn--text', { 'is-active': ruleSubTab === 'Providers' }]"
+          <button :class="['px-seg__btn', { 'is-active': ruleSubTab === 'Providers' }]"
                   @click="ruleSubTab = 'Providers'">{{ $t('rule.providers.title') }}</button>
-          <button :class="['pill-toggle__btn', 'pill-toggle__btn--text', { 'is-active': ruleSubTab === 'Ignore' }]"
+          <button :class="['px-seg__btn', { 'is-active': ruleSubTab === 'Ignore' }]"
                   @click="ruleSubTab = 'Ignore'">{{ $t('rule.ignore.title') }}</button>
         </div>
       </div>
@@ -180,57 +183,24 @@ const ruleSubComponents: Record<string, any> = {
 </template>
 
 <style scoped>
+/* Заголовок раздела — тот же .px-page-head, что у Прокси и Профилей, здесь
+   с единственным ребёнком: правее заголовка на этом экране ничего нет, эта
+   роль у переключателя разделов строкой ниже. */
 .setting-tabs-wrap {
-  margin-top: 20px;
-  margin-left: 10px;
+  margin-top: var(--px-space-3);
   display: flex;
   align-items: center;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: var(--px-space-3);
 }
 
 .log-level-select-wrap {
   margin-top: 0;
 }
 
-.pill-toggle {
-  display: inline-flex;
-  border-radius: 999px;
-  background-color: var(--left-nav-btn-bg);
-  box-shadow: var(--left-nav-shadow);
-  padding: 4px;
-  gap: 2px;
-}
-
-.pill-toggle:hover {
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-.pill-toggle__btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-color);
-  cursor: pointer;
-  padding: 0;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-  flex-shrink: 0;
-}
-
-.pill-toggle__btn:hover {
-  background-color: var(--left-nav-btn-hover-bg);
-}
-
-.pill-toggle__btn.is-active {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-/* Core SVG icon */
+/* Раньше это был собственный .pill-toggle — визуально совпадающая, но
+   отдельная от .px-seg копия ровно того же сегмент-контрола, каким уже
+   переключается Tun Stack в настройках ядра. Теперь один источник стиля. */
 .core-svg {
   width: 19px;
   height: 19px;
@@ -238,22 +208,8 @@ const ruleSubComponents: Record<string, any> = {
   color: var(--text-color);
 }
 
-/* Rule sub-tab text toggle */
 .rule-nav {
-  margin-top: 10px;
-  margin-bottom: 16px;
-  width: 95%;
-}
-
-.pill-toggle--text {
-  gap: 4px;
-}
-
-.pill-toggle__btn--text {
-  width: auto;
-  height: auto;
-  font-size: 14px;
-  padding: 6px 12px;
-  white-space: nowrap;
+  margin-top: var(--px-space-2);
+  margin-bottom: var(--px-space-4);
 }
 </style>

@@ -39,7 +39,7 @@ const upFromTop = function (distance: number) {
 .top {
   height: var(--layout-top-height);
   flex-shrink: 0;
-  padding-left: 18px;
+  padding-left: var(--px-pane-pad-x);
 }
 
 .bottom {
@@ -50,8 +50,8 @@ const upFromTop = function (distance: number) {
   padding-top: 10px;
   padding-bottom: 20px;
   overscroll-behavior: none;
-  padding-left: 18px;
-  padding-right: 18px;
+  padding-left: var(--px-pane-pad-x);
+  padding-right: var(--px-pane-pad-x);
   display: flex;
   flex-direction: column;
 }

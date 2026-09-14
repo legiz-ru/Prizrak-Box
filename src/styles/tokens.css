@@ -190,6 +190,25 @@
     color: var(--px-text-muted);
 }
 
+/* Page-level title: "Proxies", "Profiles", "Settings" — the big heading at
+   the top of a top-level section. Three near-identical copies of this used
+   to carry their own `margin-left: 10px` on top of the 18px inset MyLayout's
+   panel already gives the content below, so the title sat 10px further right
+   than everything under it. One class, no extra margin: the panel's own
+   padding is the only left inset now. */
+.px-page-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--px-space-4);
+    margin-top: var(--px-space-4);
+}
+
+.px-page-title {
+    font-size: var(--px-fs-display);
+    font-weight: bold;
+}
+
 /* Numeric cells. */
 .px-num {
     font-family: var(--px-font-num);

@@ -906,8 +906,8 @@ watch(() => webStore.dProfile, async (pList) => {
 <template>
   <MyLayout>
     <template #top>
-        <el-space class="space">
-          <div class="title">
+        <div class="px-page-head">
+          <div class="px-page-title">
             {{ $t('profiles.title') }}
           </div>
           <div class="profile-option">
@@ -960,8 +960,7 @@ watch(() => webStore.dProfile, async (pList) => {
             </el-icon>
           </el-tooltip>
         </div>
-      </el-space>
-
+      </div>
     </template>
 
     <template #bottom>
@@ -970,7 +969,6 @@ watch(() => webStore.dProfile, async (pList) => {
           @getData="sendOrder"
           :gap="15"
           :draggable="canDrag"
-          style="margin-left: 10px;width: 95%;"
       >
         <template v-slot:VDC="{data,index}">
           <div
@@ -1477,24 +1475,15 @@ watch(() => webStore.dProfile, async (pList) => {
 </template>
 
 <style scoped>
-.space {
-  margin-top: 15px;
-}
-
-.title {
-  font-size: 32px;
-  font-weight: bold;
-  margin-left: 10px;
-}
-
+/* Заголовок и панель значков раскладывает .px-page-head (gap на общем
+   родителе) — своего отступа между ними .profile-option больше не носит. */
 .profile-option {
-  margin-left: 10px;
   font-size: 30px;
-  padding-top: 10px;
+  padding-top: var(--px-space-3);
 }
 
 .profile-option-btn {
-  margin-right: 15px;
+  margin-right: var(--px-space-4);
 }
 
 .profile-option-btn:hover {
