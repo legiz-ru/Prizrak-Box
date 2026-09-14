@@ -6,6 +6,7 @@ import { Profile } from '@/types/profile';
 import createApi from '@/api';
 import { pError, pSuccess } from '@/util/pLoad';
 import { useWebStore } from '@/store/webStore';
+import AddProfileMenu from './AddProfileMenu.vue';
 
 const { t } = useI18n();
 const { proxy } = getCurrentInstance()!;
@@ -209,34 +210,13 @@ async function handleDrop(e: DragEvent) {
       <p class="welcome-subtitle">{{ t('onboarding.welcome.subtitle') }}</p>
 
       <div class="add-profile-button-container">
-        <!-- Dropdown меню -->
-        <el-dropdown trigger="click" @command="(cmd) => {
-          if (cmd === 'add') openAddProfileDialog();
-          else if (cmd === 'paste') handlePaste();
-          else if (cmd === 'file') openFile();
-        }">
+        <AddProfileMenu @add="openAddProfileDialog" @paste="handlePaste" @file="openFile">
           <button class="add-profile-button" :aria-label="t('onboarding.welcome.add-profile')">
-            <el-icon :size="40">
+            <n-icon :size="40">
               <icon-mdi-plus-thick />
-            </el-icon>
+            </n-icon>
           </button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="add">
-                <el-icon><icon-mdi-pencil /></el-icon>
-                {{ t('profiles.add') }}
-              </el-dropdown-item>
-              <el-dropdown-item command="paste">
-                <el-icon><icon-mdi-content-paste /></el-icon>
-                {{ t('profiles.paste') }}
-              </el-dropdown-item>
-              <el-dropdown-item command="file">
-                <el-icon><icon-mdi-folder-open /></el-icon>
-                {{ t('profiles.open') }}
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+        </AddProfileMenu>
 
         <div class="add-profile-label">{{ t('onboarding.welcome.add-profile') }}</div>
       </div>
@@ -244,41 +224,41 @@ async function handleDrop(e: DragEvent) {
   </div>
 
   <!-- Модальное окно добавления профиля -->
-  <el-dialog
-    v-model="addFormVisible"
+  <n-modal
+    v-model:show="addFormVisible"
+    preset="card"
     :title="t('profiles.add')"
-    width="520"
-    draggable
-    center
+    :bordered="false"
+    style="width: 520px"
   >
-    <el-form :model="addForm">
-      <el-form-item>
-        <el-input
+    <n-form :model="addForm">
+      <n-form-item :show-label="false">
+        <n-input
           :rows="3"
           type="textarea"
           autocapitalize="off"
           autocomplete="off"
           spellcheck="false"
           :placeholder="t('profiles.placeholder')"
-          v-model="addForm.content"
+          v-model:value="addForm.content"
         />
-      </el-form-item>
-    </el-form>
+      </n-form-item>
+    </n-form>
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="addFormVisible = false">
+        <n-button @click="addFormVisible = false">
           {{ t('cancel') }}
-        </el-button>
-        <el-button
+        </n-button>
+        <n-button
           type="primary"
           @click="addProfile"
           :loading="isAdding"
         >
           {{ t('confirm') }}
-        </el-button>
+        </n-button>
       </div>
     </template>
-  </el-dialog>
+  </n-modal>
 </template>
 
 <style scoped>
@@ -351,8 +331,9 @@ async function handleDrop(e: DragEvent) {
   font-weight: 500;
 }
 
-:deep(.el-dropdown-menu__item:hover) {
-  background-color: var(--left-item-selected-bg);
-  color: var(--text-color);
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 </style>

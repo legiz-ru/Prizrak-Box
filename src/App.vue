@@ -1,4 +1,5 @@
 <template>
+  <n-config-provider :theme="naiveTheme" :theme-overrides="naiveThemeOverrides">
   <div class="cBody"
        :style="{ backgroundImage: currentBackground }"
        key="prizrak-box-body"
@@ -43,12 +44,14 @@
     <HwidMaxDevicesDialog/>
     <SubscriptionAlertModal/>
   </div>
+  </n-config-provider>
 </template>
 
 
 <script setup lang="ts">
 import {useMenuStore} from "@/store/menuStore";
 import {preloadBackgroundImage, changeTheme} from "@/util/theme";
+import {naiveTheme, naiveThemeOverrides, setNaiveDarkBg} from "@/util/naiveTheme";
 import {getCachedBg, setCachedBg, clearCachedBg} from "@/util/bgCache";
 import {getCachedLogo, setCachedLogo, clearCachedLogo} from "@/util/logoCache";
 import DeepLinkImportOverlay from "@/components/DeepLinkImportOverlay.vue";
@@ -166,6 +169,7 @@ const currentBackground = ref("linear-gradient(to bottom, #434343, #000000)");
 const changeBg = (bg: string, useWhite: boolean) => {
   currentBackground.value = bg;
   menuStore.setUseWhite(useWhite);
+  setNaiveDarkBg(useWhite);
   // Persist dark/light for the Wails shell: it paints the native window
   // background in a matching colour before the webview renders, so the first
   // frame doesn't flash a mismatched black/white rectangle. useWhite (white

@@ -9,6 +9,7 @@ import { Profile } from '@/types/profile';
 import createApi from '@/api';
 import { useHwidStatusStore } from '@/store/hwidStatusStore';
 import { parseHwidFromError } from '@/api/profiles';
+import AddProfileMenu from './AddProfileMenu.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -194,16 +195,6 @@ async function addProfile() {
   }
 }
 
-// Обработка команды из dropdown
-function handleDropdownCommand(command: string) {
-  if (command === 'add') {
-    openAddProfileDialog();
-  } else if (command === 'paste') {
-    handlePaste();
-  } else if (command === 'file') {
-    openFile();
-  }
-}
 </script>
 
 <template>
@@ -211,37 +202,34 @@ function handleDropdownCommand(command: string) {
     <div class="toolbar-content">
       <div class="toolbar-section toolbar-left">
         <!-- Иконка продления подписки -->
-        <el-tooltip
-          v-if="hasValue(profile?.renewUrl)"
-          :content="t('profiles.renew')"
-          placement="top"
-        >
-          <el-icon class="toolbar-icon" @click="goRenew" size="20">
-            <icon-mdi-credit-card-outline />
-          </el-icon>
-        </el-tooltip>
+        <n-tooltip v-if="hasValue(profile?.renewUrl)" trigger="hover" placement="top">
+          <template #trigger>
+            <n-icon class="toolbar-icon" @click="goRenew" size="20">
+              <icon-mdi-credit-card-outline />
+            </n-icon>
+          </template>
+          {{ t('profiles.renew') }}
+        </n-tooltip>
 
         <!-- Иконка домашней страницы -->
-        <el-tooltip
-          v-if="hasValue(profile?.home)"
-          :content="t('profiles.home')"
-          placement="top"
-        >
-          <el-icon class="toolbar-icon" @click="goHome" size="20">
-            <icon-mdi-home-import-outline />
-          </el-icon>
-        </el-tooltip>
+        <n-tooltip v-if="hasValue(profile?.home)" trigger="hover" placement="top">
+          <template #trigger>
+            <n-icon class="toolbar-icon" @click="goHome" size="20">
+              <icon-mdi-home-import-outline />
+            </n-icon>
+          </template>
+          {{ t('profiles.home') }}
+        </n-tooltip>
 
         <!-- Иконка поддержки -->
-        <el-tooltip
-          v-if="hasValue(profile?.support)"
-          :content="t('profiles.support')"
-          placement="top"
-        >
-          <el-icon class="toolbar-icon" @click="goSupport" size="20">
-            <icon-mdi-face-agent />
-          </el-icon>
-        </el-tooltip>
+        <n-tooltip v-if="hasValue(profile?.support)" trigger="hover" placement="top">
+          <template #trigger>
+            <n-icon class="toolbar-icon" @click="goSupport" size="20">
+              <icon-mdi-face-agent />
+            </n-icon>
+          </template>
+          {{ t('profiles.support') }}
+        </n-tooltip>
       </div>
 
       <div class="toolbar-section toolbar-center">
@@ -254,97 +242,81 @@ function handleDropdownCommand(command: string) {
 
       <div class="toolbar-section toolbar-right">
         <!-- Переключить профили -->
-        <el-tooltip
-          :content="t('onboarding.active-profile.switch-profiles')"
-          placement="top"
-        >
-          <el-icon class="toolbar-icon" @click="switchProfiles" size="20">
-            <icon-mdi-swap-horizontal />
-          </el-icon>
-        </el-tooltip>
+        <n-tooltip trigger="hover" placement="top">
+          <template #trigger>
+            <n-icon class="toolbar-icon" @click="switchProfiles" size="20">
+              <icon-mdi-swap-horizontal />
+            </n-icon>
+          </template>
+          {{ t('onboarding.active-profile.switch-profiles') }}
+        </n-tooltip>
 
         <!-- Обновить профиль -->
-        <el-tooltip
-          :content="t('onboarding.active-profile.refresh-profile')"
-          placement="top"
-        >
-          <el-icon
-            class="toolbar-icon"
-            :class="{ 'rotating': isRefreshing }"
-            @click="refreshProfile"
-            size="20"
-          >
-            <icon-mdi-refresh />
-          </el-icon>
-        </el-tooltip>
+        <n-tooltip trigger="hover" placement="top">
+          <template #trigger>
+            <n-icon
+              class="toolbar-icon"
+              :class="{ 'rotating': isRefreshing }"
+              @click="refreshProfile"
+              size="20"
+            >
+              <icon-mdi-refresh />
+            </n-icon>
+          </template>
+          {{ t('onboarding.active-profile.refresh-profile') }}
+        </n-tooltip>
 
         <!-- Добавить профиль -->
-        <el-tooltip
-          :content="t('profiles.add')"
-          placement="top"
-        >
-          <el-dropdown trigger="click" @command="handleDropdownCommand">
-            <el-icon class="toolbar-icon" size="20">
-              <icon-mdi-plus-thick />
-            </el-icon>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="add">
-                  <el-icon><icon-mdi-pencil /></el-icon>
-                  {{ t('profiles.add') }}
-                </el-dropdown-item>
-                <el-dropdown-item command="paste">
-                  <el-icon><icon-mdi-content-paste /></el-icon>
-                  {{ t('profiles.paste') }}
-                </el-dropdown-item>
-                <el-dropdown-item command="file">
-                  <el-icon><icon-mdi-folder-open /></el-icon>
-                  {{ t('profiles.open') }}
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </el-tooltip>
+        <n-tooltip trigger="hover" placement="top">
+          <template #trigger>
+            <AddProfileMenu @add="openAddProfileDialog" @paste="handlePaste" @file="openFile">
+              <n-icon class="toolbar-icon" size="20">
+                <icon-mdi-plus-thick />
+              </n-icon>
+            </AddProfileMenu>
+          </template>
+          {{ t('profiles.add') }}
+        </n-tooltip>
       </div>
     </div>
   </div>
 
   <!-- Модальное окно добавления профиля -->
-  <el-dialog
-    v-model="addFormVisible"
+  <n-modal
+    v-model:show="addFormVisible"
+    preset="card"
     :title="t('profiles.add')"
-    width="520"
-    draggable
-    center
+    :bordered="false"
+    style="width: 520px"
   >
-    <el-form :model="addForm">
-      <el-form-item>
-        <el-input
+    <n-form :model="addForm">
+      <n-form-item :show-label="false">
+        <n-input
           :rows="3"
           type="textarea"
           autocapitalize="off"
           autocomplete="off"
           spellcheck="false"
           :placeholder="t('profiles.placeholder')"
-          v-model="addForm.content"
+          v-model:value="addForm.content"
         />
-      </el-form-item>
-    </el-form>
+      </n-form-item>
+    </n-form>
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="addFormVisible = false">
+        <n-button @click="addFormVisible = false">
           {{ t('cancel') }}
-        </el-button>
-        <el-button
+        </n-button>
+        <n-button
           type="primary"
           @click="addProfile"
           :loading="isAdding"
         >
           {{ t('confirm') }}
-        </el-button>
+        </n-button>
       </div>
     </template>
-  </el-dialog>
+  </n-modal>
 </template>
 
 <style scoped>
@@ -419,5 +391,11 @@ function handleDropdownCommand(command: string) {
   white-space: nowrap;
   min-width: 0;
   flex-shrink: 1;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 </style>

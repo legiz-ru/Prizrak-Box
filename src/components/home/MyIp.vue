@@ -190,22 +190,24 @@ onMounted(async () => {
         <div class="box box1">
           <div class="title title-left">
             {{ $t('home.ip.title') }}
-            <el-tooltip
-                :content="$t('home.ip.service-tip')"
-                placement="top">
-              <el-icon size="18" class="ipServiceInfo">
-                <icon-mdi-information-outline/>
-              </el-icon>
-            </el-tooltip>
-            <el-tooltip
-                :content="$t('refresh')"
-                placement="top">
-              <el-icon size="18"
-                       @click="getIpInfo(false)"
-                       class="refreshIp">
-                <icon-mdi-refresh/>
-              </el-icon>
-            </el-tooltip>
+            <n-tooltip trigger="hover" placement="top">
+              <template #trigger>
+                <n-icon size="18" class="ipServiceInfo">
+                  <icon-mdi-information-outline/>
+                </n-icon>
+              </template>
+              {{ $t('home.ip.service-tip') }}
+            </n-tooltip>
+            <n-tooltip trigger="hover" placement="top">
+              <template #trigger>
+                <n-icon size="18"
+                        @click="getIpInfo(false)"
+                        class="refreshIp">
+                  <icon-mdi-refresh/>
+                </n-icon>
+              </template>
+              {{ $t('refresh') }}
+            </n-tooltip>
           </div>
           <hr/>
           <ul class="info-list info-list-left">
@@ -436,7 +438,7 @@ onMounted(async () => {
 }
 
 .info-link:focus-visible {
-  outline: 2px solid var(--el-color-primary);
+  outline: 2px solid var(--left-item-selected-bg);
   outline-offset: 2px;
 }
 </style>

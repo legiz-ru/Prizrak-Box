@@ -12,6 +12,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     ActiveProfile: typeof import('./components/home/ActiveProfile.vue')['default']
+    AddProfileMenu: typeof import('./components/home/AddProfileMenu.vue')['default']
     AnnounceText: typeof import('./components/home/AnnounceText.vue')['default']
     ConnectionTab: typeof import('./components/setting/ConnectionTab.vue')['default']
     ConnectionTopology: typeof import('./components/topology/ConnectionTopology.vue')['default']
@@ -180,6 +181,15 @@ declare module 'vue' {
     MySimpleInput: typeof import('./components/MySimpleInput.vue')['default']
     MyTitleBar: typeof import('./components/MyTitleBar.vue')['default']
     MyTun: typeof import('./components/setting/MyTun.vue')['default']
+    NButton: typeof import('naive-ui')['NButton']
+    NConfigProvider: typeof import('naive-ui')['NConfigProvider']
+    NDropdown: typeof import('naive-ui')['NDropdown']
+    NForm: typeof import('naive-ui')['NForm']
+    NFormItem: typeof import('naive-ui')['NFormItem']
+    NIcon: typeof import('naive-ui')['NIcon']
+    NInput: typeof import('naive-ui')['NInput']
+    NModal: typeof import('naive-ui')['NModal']
+    NTooltip: typeof import('naive-ui')['NTooltip']
     Off: typeof import('./components/menu/Off.vue')['default']
     ProfileStats: typeof import('./components/home/ProfileStats.vue')['default']
     ProfileToolbar: typeof import('./components/home/ProfileToolbar.vue')['default']

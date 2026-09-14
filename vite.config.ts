@@ -5,7 +5,7 @@ import IconsResolver from "unplugin-icons/resolver";
 import {FileSystemIconLoader} from 'unplugin-icons/loaders';
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
-import {ElementPlusResolver} from 'unplugin-vue-components/resolvers'
+import {ElementPlusResolver, NaiveUiResolver} from 'unplugin-vue-components/resolvers'
 import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite'
 import path from 'path'
 
@@ -61,7 +61,8 @@ export default defineConfig({
                     // which names belong to it.
                     customCollections: ["proto"],
                 }),
-                ElementPlusResolver()
+                ElementPlusResolver(),
+                NaiveUiResolver(),
             ],
             dts: path.resolve(pathSrc, 'components.d.ts'),
         }),

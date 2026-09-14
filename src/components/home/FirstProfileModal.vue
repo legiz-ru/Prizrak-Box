@@ -42,15 +42,16 @@ function closeModal() {
 </script>
 
 <template>
-  <el-dialog
+  <n-modal
     v-if="hasContent"
-    v-model="localVisible"
+    v-model:show="localVisible"
+    preset="card"
     :title="t('onboarding.first-profile-info.title')"
-    width="520"
-    center
-    :close-on-click-modal="false"
-    :close-on-press-escape="false"
-    :show-close="false"
+    :bordered="false"
+    :closable="false"
+    :mask-closable="false"
+    :close-on-esc="false"
+    style="width: 520px"
   >
     <div class="modal-content">
       <p>{{ message }}</p>
@@ -58,17 +59,17 @@ function closeModal() {
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button
+        <n-button
           type="primary"
           size="large"
           @click="closeModal"
           class="ok-btn"
         >
           {{ t('onboarding.first-profile-info.ok') }}
-        </el-button>
+        </n-button>
       </div>
     </template>
-  </el-dialog>
+  </n-modal>
 </template>
 
 <style scoped>
@@ -76,8 +77,13 @@ function closeModal() {
   padding: 10px 0;
   font-size: 16px;
   line-height: 1.6;
-  color: var(--el-text-color-primary);
+  color: var(--text-color);
   text-align: center;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: center;
 }
 
 .ok-btn {

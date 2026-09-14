@@ -1,5 +1,6 @@
 import ColorThief from "colorthief";
 import chroma from "chroma-js";
+import {setNaiveAccentColors} from "./naiveTheme";
 
 const colorThief = new ColorThief();
 
@@ -302,6 +303,13 @@ export const changeTheme = (img: HTMLImageElement): boolean => {
         "blend-color": backgroundBlendColor,
         "right-bg-color": backgroundRightColor,
         "body-blur-color": bodyBlurColor,
+    });
+
+    // Same accent, handed to Naive UI components as theme tokens instead of
+    // CSS variables — see naiveTheme.ts for why the two mechanisms coexist.
+    setNaiveAccentColors({
+        primary: selectedColor.css(),
+        text: textColor,
     });
 
     return useWhiteText;

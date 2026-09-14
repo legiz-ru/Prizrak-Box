@@ -95,36 +95,36 @@ const shouldShowStats = computed(() => visibleCount.value > 0);
   <div v-if="shouldShowStats" class="profile-stats" :data-count="visibleCount">
     <!-- Использованный трафик -->
     <div v-if="hasValue(profile?.used)" class="stat-item">
-      <el-icon class="stat-icon" size="18">
+      <n-icon class="stat-icon" size="18">
         <icon-mdi-chart-timeline-variant />
-      </el-icon>
+      </n-icon>
       <span class="stat-label">{{ t('onboarding.active-profile.stats.used') }}</span>
       <span class="stat-value">{{ formatTrafficValue(profile.used) }}</span>
     </div>
 
     <!-- Доступный трафик -->
     <div v-if="hasValue(profile?.available)" class="stat-item">
-      <el-icon class="stat-icon" size="18">
+      <n-icon class="stat-icon" size="18">
         <icon-mdi-database-check />
-      </el-icon>
+      </n-icon>
       <span class="stat-label">{{ t('onboarding.active-profile.stats.available') }}</span>
       <span class="stat-value">{{ formatTrafficValue(profile.available) }}</span>
     </div>
 
     <!-- Дата истечения -->
     <div v-if="hasValue(profile?.expire)" class="stat-item">
-      <el-icon class="stat-icon" size="18">
+      <n-icon class="stat-icon" size="18">
         <icon-mdi-calendar-alert />
-      </el-icon>
+      </n-icon>
       <span class="stat-label">{{ t('onboarding.active-profile.stats.expire') }}</span>
       <span class="stat-value">{{ formatDateValue(profile.expire) }}</span>
     </div>
 
     <!-- Дата обновления -->
     <div v-if="hasValue(profile?.update)" class="stat-item">
-      <el-icon class="stat-icon" size="18">
+      <n-icon class="stat-icon" size="18">
         <icon-mdi-update />
-      </el-icon>
+      </n-icon>
       <span class="stat-label">{{ t('onboarding.active-profile.stats.update') }}</span>
       <span class="stat-value">{{ formatDateValue(profile.update) }}</span>
     </div>

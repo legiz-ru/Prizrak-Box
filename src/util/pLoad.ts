@@ -1,4 +1,5 @@
-import {ElLoading, ElMessage} from "element-plus";
+import {ElLoading} from "element-plus";
+import {naiveMessage} from "@/util/naiveTheme";
 
 function translateErrorSegment(key: string, fallback: string): string {
     const translator = (window as any)?.pxTranslate;
@@ -63,27 +64,13 @@ export async function copy(textToCopy: any, t: any) {
 }
 
 export function pSuccess(msg: any) {
-    ElMessage({
-        message: msg,
-        type: "success",
-        grouping: true
-    });
+    naiveMessage().success(String(msg));
 }
 
 export function pError(msg: any) {
-    ElMessage({
-        message: normalizeErrorMessage(msg),
-        type: "error",
-        duration: 5000,
-        grouping: true
-    });
+    naiveMessage().error(normalizeErrorMessage(msg), {duration: 5000});
 }
 
 export function pWarning(msg: any) {
-    ElMessage({
-        message: msg,
-        type: "warning",
-        duration: 5000,
-        grouping: true
-    });
+    naiveMessage().warning(String(msg), {duration: 5000});
 }
