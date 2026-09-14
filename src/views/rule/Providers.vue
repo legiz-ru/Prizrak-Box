@@ -210,7 +210,7 @@ watch(() => webStore.fProfile, async () => {
       <!-- Action buttons only; view toggle moved to Rule.vue / Setting.vue top bar -->
       <button
           :disabled="loading"
-          :class="['pill-btn', {loading}]"
+          :class="['px-btn', {loading}]"
           type="button"
           @click="refreshProviders"
       >
@@ -219,7 +219,7 @@ watch(() => webStore.fProfile, async () => {
       </button>
       <button
           :disabled="!providers.length || updatingAll"
-          :class="['pill-btn', {loading: updatingAll, disabled: !providers.length && !updatingAll}]"
+          :class="['px-btn', {loading: updatingAll, disabled: !providers.length && !updatingAll}]"
           type="button"
           @click="updateAllProviders"
       >
@@ -297,20 +297,20 @@ watch(() => webStore.fProfile, async () => {
     </div>
 
     <!-- Table view -->
-    <div v-else class="table-wrap">
-      <div class="table-header">
+    <div v-else class="px-surface px-table providers-table">
+      <div class="px-table__head">
         <div class="col-icon"></div>
         <div class="col-icon"></div>
-        <div class="col-tags">{{ $t('rule.now.type') }}</div>
-        <div class="col-name">{{ $t('rule.providers.name') }}</div>
+        <div>{{ $t('rule.now.type') }}</div>
+        <div>{{ $t('rule.providers.name') }}</div>
         <div class="col-count">{{ $t('rule.providers.ruleCountShort') }}</div>
         <div class="col-date">{{ $t('rule.providers.updatedAt') }}</div>
       </div>
-      <div class="table-body">
+      <div class="px-table__body">
         <div
-            v-for="(provider, i) in providers"
+            v-for="provider in providers"
             :key="provider.name"
-            :class="['table-row', { 'table-row--alt': i % 2 === 1 }]"
+            class="px-table__row"
         >
           <div class="col-icon">
             <el-tooltip :content="$t('rule.providers.viewRules')" placement="top">
@@ -330,13 +330,13 @@ watch(() => webStore.fProfile, async () => {
               </el-icon>
             </el-tooltip>
           </div>
-          <div class="col-tags">
+          <div class="px-table__cell col-tags">
             <el-tag v-if="provider.vehicleType" size="small" type="info" class="provider-tag">{{ provider.vehicleType }}</el-tag>
             <el-tag v-if="provider.behavior" size="small" type="success" class="provider-tag">{{ provider.behavior }}</el-tag>
           </div>
-          <div class="col-name" :title="provider.name">{{ provider.name }}</div>
-          <div class="col-count">{{ provider.ruleCount ?? 0 }}</div>
-          <div class="col-date">{{ formatUpdatedAt(provider.updatedAt) }}</div>
+          <div class="px-table__cell col-name" :title="provider.name">{{ provider.name }}</div>
+          <div class="px-table__cell col-count">{{ provider.ruleCount ?? 0 }}</div>
+          <div class="px-table__cell col-date">{{ formatUpdatedAt(provider.updatedAt) }}</div>
         </div>
       </div>
     </div>
@@ -418,32 +418,11 @@ watch(() => webStore.fProfile, async () => {
   gap: 10px;
 }
 
-/* Action buttons — same pill-btn as Group.vue */
-.pill-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: none;
-  border-radius: 999px;
-  background-color: var(--left-nav-btn-bg);
-  color: var(--text-color);
-  padding: 9px 18px;
-  font-size: 15px;
-  cursor: pointer;
-  box-shadow: var(--left-nav-shadow);
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.pill-btn:hover,
-.pill-btn.loading {
+/* Кнопки тулбара — общий .px-btn вместо своей копии .pill-btn (та же, что
+   раньше была у Group.vue/Ignore.vue). */
+.px-btn.loading {
   background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-.pill-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  box-shadow: none;
+  box-shadow: var(--px-elev-2);
 }
 
 .btn-icon {
@@ -463,13 +442,16 @@ watch(() => webStore.fProfile, async () => {
   margin-top: 20px;
 }
 
+/* 1px, не 2px — тот же край, что у карточек узлов/групп в разделе Прокси и
+   у профилей: там уже 1px var(--sub-card-border), эта карточка одна
+   осталась вдвое толще. */
 .provider-card {
   padding: 8px 10px;
-  border: 2px solid var(--sub-card-border);
-  border-radius: 20px;
+  border: 1px solid var(--sub-card-border);
+  border-radius: var(--px-r-lg);
   background: var(--sub-card-bg);
   color: var(--text-color);
-  box-shadow: var(--left-nav-shadow);
+  box-shadow: var(--px-elev-1);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -477,7 +459,7 @@ watch(() => webStore.fProfile, async () => {
 
 .provider-card:hover {
   background-color: var(--left-item-selected-bg);
-  border: 2px solid var(--text-color);
+  border-color: var(--text-color);
 }
 
 .card-header {
@@ -568,93 +550,39 @@ watch(() => webStore.fProfile, async () => {
 .path-row { align-items: flex-start; }
 .path-text { word-break: break-all; }
 
-/* ── Table view — same style as Now.vue ── */
-.table-wrap {
-  border: 2px solid var(--text-color);
-  border-radius: 20px;
-  overflow: hidden;
+/* ── Table view ── .px-table (tokens.css) — тот же общий стол, что и в
+   разделе "Действующие правила": шапка, зебра, скроллбар — одним классом
+   вместо параллельной копии .table-wrap/.table-row/... с рамкой 2px
+   var(--text-color) вместо 1px var(--sub-card-border). */
+.providers-table {
+  grid-template-columns: 28px 28px 140px minmax(0, 1fr) 90px 175px;
   margin-top: 20px;
   flex: 1;
-  display: flex;
-  flex-direction: column;
   min-height: 0;
 }
 
-.table-header {
-  display: flex;
-  align-items: center;
-  padding: 8px 10px 8px 16px;
-  border-bottom: 1px solid var(--text-color);
-  font-weight: bold;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.table-body {
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
-}
-
-.table-body::-webkit-scrollbar { width: 5px; }
-.table-body::-webkit-scrollbar-track { background: transparent; }
-.table-body::-webkit-scrollbar-thumb { background: var(--scrollbar-bg); border-radius: 2px; }
-.table-body::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover-bg); box-shadow: var(--scrollbar-hover-shadow); }
-
-.table-row {
-  display: flex;
-  align-items: center;
-  padding: 7px 10px 7px 16px;
-  border-bottom: 1px solid var(--sub-card-border);
-  gap: 4px;
-  color: var(--text-color);
-  line-height: 1.4;
-}
-
-.table-row--alt {
-  background-color: var(--rule-list-bg);
-}
-
-.table-row:hover {
-  background-color: var(--rule-list-hover);
-}
-
-/* Column widths */
 .col-icon {
-  width: 28px;
-  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .col-tags {
-  width: 140px;
-  flex-shrink: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
   align-items: center;
+  gap: 4px;
 }
 
 .col-name {
-  flex: 1;
-  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   font-weight: 500;
 }
 
-.col-count {
-  width: 90px;
-  flex-shrink: 0;
-  text-align: right;
-}
-
+.col-count,
 .col-date {
-  width: 175px;
-  flex-shrink: 0;
   text-align: right;
 }
 
@@ -688,31 +616,27 @@ watch(() => webStore.fProfile, async () => {
   to { transform: rotate(360deg); }
 }
 
-/* ── Dialog ── */
-:deep(.provider-rules-dialog) {
-  background: #f7f7f9;
-  border: 1px solid #d5d8df;
-  color: #252b36;
-}
+/* ── Dialog ──
+   Диалог сам по себе уже тёмный — фон/паддинги берёт из общего моста
+   Element Plus (elementplus.css), а не из :deep(.provider-rules-dialog)
+   ниже, который здесь стоял: класс достаётся el-dialog, но диалог
+   телепортируется в document.body, и это правило ни разу не применялось
+   (проверено — на живом диалоге он всегда рендерился в цветах моста, а не
+   в этих #f7f7f9/#d5d8df/#252b36). Убрано как мёртвое.
 
-:deep(.provider-rules-dialog .el-dialog__header) {
-  margin-right: 0;
-  padding-bottom: 10px;
-}
-
-:deep(.provider-rules-dialog .el-dialog__body) {
-  padding-top: 4px;
-}
-
+   Строка поиска внутри — другое дело: она лежит в слоте #header, который
+   Vue рендерит с сохранённым скоупом даже через телепорт, поэтому эти
+   классы реально применялись и красили светлую панель поверх тёмного
+   диалога — заголовок провайдера при этом тёмным текстом на тёмном фоне
+   не читался вовсе. */
 :deep(.header-search-input .el-input__wrapper) {
-  background: #ffffff;
-  box-shadow: 0 0 0 1px #d7dce6 inset;
-  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
 }
 
-:deep(.header-search-input .el-input__inner) { color: #252b36; }
-:deep(.header-search-input .el-input__inner::placeholder) { color: #9aa3b2; }
-:deep(.header-search-input .el-input__prefix-inner) { color: #7f8794; }
+:deep(.header-search-input .el-input__inner) { color: var(--text-color); }
+:deep(.header-search-input .el-input__inner::placeholder) { color: var(--placeholder-color); }
+:deep(.header-search-input .el-input__prefix-inner) { color: var(--text-color); opacity: .6; }
 
 .dialog-header {
   display: flex;
@@ -724,43 +648,46 @@ watch(() => webStore.fProfile, async () => {
 .dialog-title {
   flex: 0 1 auto;
   max-width: 170px;
-  font-size: 16px;
+  font-size: var(--px-fs-lead);
   font-weight: 700;
-  color: #202532;
+  color: var(--text-color);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
+/* Была светлая панель (#eef1f6 фон, тёмный текст) поверх тёмного диалога —
+   заголовок провайдера рядом читался с трудом. Теперь тот же край, что
+   и у полей ввода в приложении (MySimpleInput). */
 .header-search {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--px-space-2);
   min-width: 0;
-  background: #eef1f6;
-  border: 1px solid #d7dce6;
-  border-radius: 12px;
-  padding: 6px 8px;
+  background: var(--left-nav-btn-bg);
+  border: 1px solid var(--sub-card-border);
+  border-radius: var(--px-r-sm);
+  padding: var(--px-space-1) var(--px-space-2);
 }
 
 .header-search-input { flex: 1; min-width: 0; }
 
 .match-badge {
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: var(--px-fs-small);
   font-weight: 600;
   min-width: 28px;
   text-align: center;
-  padding: 3px 8px;
-  border-radius: 8px;
-  background: #ffffff;
-  border: 1px solid #d7dce6;
-  color: #252b36;
+  padding: 3px var(--px-space-2);
+  border-radius: var(--px-r-xs);
+  background: var(--left-nav-btn-bg);
+  border: 1px solid var(--sub-card-border);
+  color: var(--text-color);
   white-space: nowrap;
 }
 
-.match-badge.zero { color: #e06c75; }
+.match-badge.zero { color: var(--px-danger); }
 
 .nav-buttons { display: flex; gap: 2px; flex-shrink: 0; }
 
@@ -768,18 +695,18 @@ watch(() => webStore.fProfile, async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ffffff;
-  border: 1px solid #d7dce6;
-  border-radius: 8px;
-  color: #252b36;
+  background: var(--left-nav-btn-bg);
+  border: 1px solid var(--sub-card-border);
+  border-radius: var(--px-r-xs);
+  color: var(--text-color);
   cursor: pointer;
   width: 32px;
   height: 28px;
   line-height: 1;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition: background var(--px-dur) var(--px-ease), border-color var(--px-dur) var(--px-ease);
 }
 
-.nav-btn:hover { background: #e8edf7; border-color: #bcc6d8; }
+.nav-btn:hover { background: var(--left-nav-btn-hover-bg); border-color: var(--text-color); }
 .nav-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .dialog-close-btn {
@@ -789,15 +716,16 @@ watch(() => webStore.fProfile, async () => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: #ffffff;
-  border: 1px solid #d7dce6;
-  border-radius: 8px;
-  color: #646c78;
+  background: var(--left-nav-btn-bg);
+  border: 1px solid var(--sub-card-border);
+  border-radius: var(--px-r-xs);
+  color: var(--text-color);
+  opacity: .8;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition: background var(--px-dur) var(--px-ease), border-color var(--px-dur) var(--px-ease), opacity var(--px-dur) var(--px-ease);
 }
 
-.dialog-close-btn:hover { background: #e8edf7; border-color: #bcc6d8; color: #252b36; }
+.dialog-close-btn:hover { background: var(--left-nav-btn-hover-bg); border-color: var(--text-color); opacity: 1; }
 
 .provider-content-body {
   display: flex;
@@ -809,11 +737,11 @@ watch(() => webStore.fProfile, async () => {
 .content-editor {
   width: 100%;
   height: 500px;
-  border: 2px solid var(--text-color);
-  border-radius: 12px;
+  border: 1px solid var(--sub-card-border);
+  border-radius: var(--px-r-md);
   font: 13px "Monaco", "Menlo", "Ubuntu Mono", "Consolas", "Source Code Pro", monospace;
 }
 
-:deep(.ace_editor) { border-radius: 12px; }
-:deep(.ace_gutter) { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
+:deep(.ace_editor) { border-radius: var(--px-r-md); }
+:deep(.ace_gutter) { border-top-left-radius: var(--px-r-md); border-bottom-left-radius: var(--px-r-md); }
 </style>

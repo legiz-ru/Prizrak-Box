@@ -43,7 +43,7 @@ async function savaIgnore() {
 <template>
   <div class="ignore">
     <el-space class="op">
-      <button class="pill-btn" @click="savaIgnore">{{ $t('save') }}</button>
+      <button class="px-btn" @click="savaIgnore">{{ $t('save') }}</button>
       <el-divider direction="vertical" border-style="dashed"/>
       <el-text class="st">{{ $t('rule.ignore.tip') }}</el-text>
       <el-tooltip
@@ -88,23 +88,6 @@ async function savaIgnore() {
   margin-top: 6px;
 }
 
-.pill-btn {
-  border: none;
-  border-radius: 999px;
-  background-color: var(--left-nav-btn-bg);
-  color: var(--text-color);
-  padding: 9px 18px;
-  font-size: 15px;
-  cursor: pointer;
-  box-shadow: var(--left-nav-shadow);
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.pill-btn:hover {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
 .st {
   color: var(--text-color);
 }
@@ -120,7 +103,8 @@ async function savaIgnore() {
 }
 
 .content {
-  margin-top: 25px;
+  /* Тот же зазор тулбар→контент, что у карточек и стола провайдеров (var(--px-space-5), 20px) — здесь раньше был свой 25px. */
+  margin-top: var(--px-space-5);
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -128,14 +112,16 @@ async function savaIgnore() {
 }
 
 .custom-textarea {
-  background-color: transparent; /* 背景透明 */
-  border: 2px solid var(--text-color); /* 边界为 2px 的白色 */
+  background-color: transparent;
+  /* Тот же край, что у стола правил в "Now" и редактора шаблонов в "Group":
+     1px var(--sub-card-border), а не собственная рамка 2px var(--text-color). */
+  border: 1px solid var(--sub-card-border);
   color: var(--text-color);
-  padding: 8px 8px 8px 16px; /* 内间距，确保内容不贴边 */
-  border-radius: 20px;
-  font-size: 16px; /* 字体大小 */
-  resize: none; /* 禁止调整大小（可选） */
-  outline: none; /* 去掉点击时的默认高亮框 */
+  padding: var(--px-space-2) var(--px-space-2) var(--px-space-2) var(--px-space-4);
+  border-radius: var(--px-r-lg);
+  font-size: var(--px-fs-lead);
+  resize: none;
+  outline: none;
   width: 100%;
   box-sizing: border-box;
   flex: 1;
@@ -143,10 +129,13 @@ async function savaIgnore() {
 }
 
 .custom-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.6); /* 占位符文字颜色，设置为白色半透明 */
+  /* Было rgba(255,255,255,.6) буквально — на светлой подложке (светлый фон,
+     тёмный текст) белый плейсхолдер не виден. --placeholder-color уже
+     переключается с темой сам. */
+  color: var(--placeholder-color);
 }
 
-.custom-textarea:focus {
-  box-shadow: var(--right-box-shadow); /* 焦点时添加阴影效果（可选） */
-}
+/* :focus-visible уже стилизован глобально (global.css); свой :focus здесь
+   красил тенью var(--right-box-shadow) — ещё один независимый источник тени
+   ради одного поля, вместо общего кольца фокуса. */
 </style>

@@ -90,28 +90,22 @@ watch(() => webStore.fProfile, async () => {
         class="search"
     ></MySimpleInput>
 
-    <div class="content">
-      <el-row class="title">
-        <el-col :span="5">
-          {{ $t('rule.now.type') }}
-        </el-col>
-        <el-col :span="14">
-          {{ $t('rule.now.payload') }}
-        </el-col>
-        <el-col :span="5">
-          {{ $t('rule.now.proxy') }}
-        </el-col>
-      </el-row>
-      <div class="info-list" @scroll="handleScroll">
-        <el-row
-            :class="i%2 == 1? 'info info-s' : 'info'"
+    <div class="px-surface px-table rule-table">
+      <div class="px-table__head">
+        <div>{{ $t('rule.now.type') }}</div>
+        <div>{{ $t('rule.now.payload') }}</div>
+        <div>{{ $t('rule.now.proxy') }}</div>
+      </div>
+      <div class="px-table__body" @scroll="handleScroll">
+        <div
+            class="px-table__row"
             v-for="(item, i) in paginatedData"
             :key="i"
         >
-          <el-col :span="5">{{ item.type }}</el-col>
-          <el-col :span="14">{{ item.payload }}</el-col>
-          <el-col :span="5">{{ item.proxy }}</el-col>
-        </el-row>
+          <div class="px-table__cell">{{ item.type }}</div>
+          <div class="px-table__cell">{{ item.payload }}</div>
+          <div class="px-table__cell">{{ item.proxy }}</div>
+        </div>
       </div>
     </div>
 
@@ -149,62 +143,17 @@ watch(() => webStore.fProfile, async () => {
   right: 14px;
 }
 
-.content {
-  border: 2px solid var(--text-color);
-  border-radius: 20px;
-  overflow: hidden;
-  margin-top: 25px;
+/* .px-table (tokens.css) — общий стол для правил/провайдеров: шапка,
+   строки через разделитель, слабая зебра через nth-child(even), скроллбар
+   на тех же токенах. Раньше это была рамка 2px var(--text-color) — вдвое
+   толще и другого цвета, чем 1px var(--sub-card-border), которым обведена
+   любая другая карточка/панель в приложении. */
+.rule-table {
+  grid-template-columns: 5fr 14fr 5fr;
+  /* Тот же зазор тулбар→контент, что у карточек и стола провайдеров
+     (var(--px-space-5), 20px) — здесь раньше был свой 25px. */
+  margin-top: var(--px-space-5);
   flex: 1;
-  display: flex;
-  flex-direction: column;
   min-height: 0;
 }
-
-.title {
-  border-bottom: 1px solid var(--text-color);
-  padding: 8px 10px 8px 16px;
-  font-weight: bold;
-}
-
-.info-list {
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0;
-}
-
-.info {
-  border-bottom: 1px solid var(--sub-card-border);
-  padding: 8px 10px 8px 16px;
-}
-
-.info-s {
-  border-bottom: 1px solid var(--sub-card-border);
-  padding: 8px 10px 8px 16px;
-  background-color: var(--rule-list-bg); /* 深灰色，透明度为50% */
-}
-
-.info:hover {
-  background-color: var(--rule-list-hover);
-}
-
-.info-list::-webkit-scrollbar {
-  width: 5px;
-  padding-bottom: 20px;
-}
-
-.info-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.info-list::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-bg);
-  border-radius: 2px;
-  transition: background 0.3s ease, box-shadow 0.3s ease;
-}
-
-.info-list::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-hover-bg);
-  box-shadow: var(--scrollbar-hover-shadow);
-}
-
 </style>

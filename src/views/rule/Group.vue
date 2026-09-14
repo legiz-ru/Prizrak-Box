@@ -227,19 +227,19 @@ const switchTemplate = async () => {
         />
       </el-select>
       <el-divider direction="vertical" border-style="dashed"/>
-      <button class="pill-btn" @click="saveTemplate">{{ t("save") }}</button>
-      <button class="pill-btn" @click="addVisible=true;addForm.content=''">{{ t("add") }}</button>
-      <button class="pill-btn pill-btn--danger" @click="deleteTemplate" v-if="canDelete">{{ t("delete") }}</button>
+      <button class="px-btn" @click="saveTemplate">{{ t("save") }}</button>
+      <button class="px-btn" @click="addVisible=true;addForm.content=''">{{ t("add") }}</button>
+      <button class="px-btn px-btn--danger" @click="deleteTemplate" v-if="canDelete">{{ t("delete") }}</button>
       <el-divider direction="vertical" border-style="dashed"/>
-      <div class="pill-toggle">
+      <div class="px-seg">
         <button
-            :class="['pill-toggle__btn', { 'is-active': !now.selected }]"
+            :class="['px-seg__btn', { 'is-active': !now.selected }]"
             :disabled="!now.id"
             type="button"
             @click="if (now.selected) { now.selected = false; switchTemplate() }"
         >{{ t("off") }}</button>
         <button
-            :class="['pill-toggle__btn', { 'is-active': now.selected }]"
+            :class="['px-seg__btn', { 'is-active': now.selected }]"
             :disabled="!now.id"
             type="button"
             @click="if (!now.selected) { now.selected = true; switchTemplate() }"
@@ -314,17 +314,18 @@ const switchTemplate = async () => {
   flex-shrink: 0;
 }
 
+/* 32px — рост общих контролов (.px-btn рядом), а не свои 38px. */
 :deep(.el-select__wrapper) {
-  height: 38px;
-  border-radius: 999px;
+  height: var(--px-control-h);
+  border-radius: var(--px-r-pill);
   background: var(--left-nav-btn-bg);
-  box-shadow: var(--left-nav-shadow);
+  box-shadow: var(--px-elev-1);
   border: none;
-  padding: 0 12px 0 16px;
+  padding: 0 var(--px-space-3) 0 var(--px-space-4);
 }
 
 :deep(.el-select__wrapper:hover) {
-  box-shadow: var(--left-nav-hover-shadow);
+  box-shadow: var(--px-elev-2);
 }
 
 :deep(.el-select__placeholder),
@@ -337,87 +338,25 @@ const switchTemplate = async () => {
   opacity: 0.6;
 }
 
-.pill-toggle {
-  display: inline-flex;
-  border-radius: 999px;
-  background-color: var(--left-nav-btn-bg);
-  box-shadow: var(--left-nav-shadow);
-  padding: 4px;
-  gap: 2px;
-}
-
-.pill-toggle:hover {
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-.pill-toggle__btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 32px;
-  width: auto;
-  padding: 0 14px;
-  font-size: 15px;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-color);
-  cursor: pointer;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-  white-space: nowrap;
-}
-
-.pill-toggle__btn:hover {
-  background-color: var(--left-nav-btn-hover-bg);
-}
-
-.pill-toggle__btn.is-active {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-.pill-toggle__btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.pill-btn {
-  border: none;
-  border-radius: 999px;
-  background-color: var(--left-nav-btn-bg);
-  color: var(--text-color);
-  padding: 9px 18px;
-  font-size: 15px;
-  cursor: pointer;
-  box-shadow: var(--left-nav-shadow);
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.pill-btn:hover {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-.pill-btn--danger:hover {
-  background-color: #f56c6c;
-}
-
 .editor {
-  margin-top: 25px;
+  /* Тот же зазор тулбар→контент, что у карточек и стола провайдеров (var(--px-space-5), 20px) — здесь раньше был свой 25px. */
+  margin-top: var(--px-space-5);
   flex: 1;
   min-height: 200px;
 }
 
+/* Тот же край, что у стола правил в "Now": 1px var(--sub-card-border),
+   а не собственная рамка 2px var(--text-color). */
 :deep(.ace_editor) {
-  border: 2px solid var(--text-color);
-  border-radius: 20px;
+  border: 1px solid var(--sub-card-border);
+  border-radius: var(--px-r-lg);
   font: 15px "Twemoji", "Monaco", "Menlo", "Ubuntu Mono", "Consolas",
   "Source Code Pro", "source-code-pro", monospace;
 }
 
 :deep(.ace_gutter) {
-  border-top-left-radius: 20px;
-  border-bottom-left-radius: 20px;
+  border-top-left-radius: var(--px-r-lg);
+  border-bottom-left-radius: var(--px-r-lg);
 }
 
 :deep(.ace_search.right) {
