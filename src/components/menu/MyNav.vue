@@ -45,6 +45,8 @@ function toggleCollapsed() {
         :collapsed="menuStore.navCollapsed"
         :collapsed-width="56"
         :collapsed-icon-size="20"
+        :indent="18"
+        :root-indent="18"
         @update:value="handleUpdateValue"
     />
     <n-tooltip trigger="hover" placement="right">
@@ -71,14 +73,38 @@ function toggleCollapsed() {
   gap: 8px;
 }
 
+/* :collapsed-width only matters to n-layout-sider, which resizes its own box
+   to match — a bare n-menu never shrinks itself, so without this the "icon
+   only" state still rendered at the full 172px item width with the icon
+   pinned to the left and the label's now-empty space just sitting there. */
+.nav--collapsed {
+  align-items: center;
+}
+
+.nav--collapsed :deep(.n-menu) {
+  width: 56px;
+}
+
 .nav :deep(.n-menu-item) {
   margin-bottom: 8px;
 }
 
+/* Naive paints hover/selected as a separately-inset, actually-rounded
+   ::before layer (inset: 0 8px) — mismatched against a plain background
+   painted on this element (radius 0, edge-to-edge), which left sharp
+   corners and their box-shadow peeking out from behind the rounded
+   highlight. Rounding this element itself and pulling the ::before out to
+   the same edges (inset: 0 below) makes both layers occupy the exact same
+   box, so there is only ever one pill shape on screen. */
 .nav :deep(.n-menu-item-content) {
+  border-radius: 999px;
   box-shadow: var(--left-nav-shadow);
   background-color: var(--left-nav-btn-bg);
   transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nav :deep(.n-menu-item-content::before) {
+  inset: 0 !important;
 }
 
 .nav :deep(.n-menu-item-content:hover),
