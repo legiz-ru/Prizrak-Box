@@ -174,18 +174,19 @@ const showRenewButton = computed(() => shouldShowRenewButton(activeProfile.value
   padding-top: 15px;
   padding-bottom: 0;
   position: relative;
-  gap: 16px;
+  gap: var(--px-space-4);
   --home-card-width: 95%;
   box-sizing: border-box;
   overflow-x: hidden;
 }
 
+/* Без своего margin-left/right — MyLayout уже даёт панели 18px слева и
+   справа; этот блок раньше добавлял ещё 10px поверх, и Home начинался на
+   28px, пока остальные разделы после правки выровнялись на 18px. */
 .home-cards {
-  margin-left: 10px;
-  margin-right: 10px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--px-space-4);
   flex: 1 1 auto;
   min-height: 0;
 }

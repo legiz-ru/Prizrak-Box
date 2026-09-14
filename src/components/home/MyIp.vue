@@ -318,12 +318,15 @@ onMounted(async () => {
   min-width: 0;
 }
 
+/* Радиус и тень были не --left-nav-shadow (её несёт каждая карточка в
+   приложении), а собственный --right-box-shadow — другой профиль тени
+   ради одного этого блока. Теперь общий. */
 .box {
-  padding: 12px 20px;
-  border-radius: 20px;
+  padding: var(--px-space-3) var(--px-space-5);
+  border-radius: var(--px-r-lg);
   background: var(--sub-card-bg);
   border: 1px solid var(--sub-card-border);
-  box-shadow: var(--right-box-shadow);
+  box-shadow: var(--px-elev-1);
   text-align: left;
   box-sizing: border-box;
 }
@@ -338,10 +341,10 @@ onMounted(async () => {
 .title {
   position: relative;
   font-weight: 500;
-  font-size: 16px;
+  font-size: var(--px-fs-lead);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--px-space-2);
 }
 
 .title-left {
@@ -435,8 +438,7 @@ onMounted(async () => {
   height: 0.9em;
 }
 
-.info-link:focus-visible {
-  outline: 2px solid var(--el-color-primary);
-  outline-offset: 2px;
-}
+/* :focus-visible уже стилизован глобально (global.css) — своя копия здесь
+   красила кольцо в цвет акцента вместо --px-focus, каким фокус отмечен
+   везде остальные. */
 </style>
