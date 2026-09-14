@@ -1520,12 +1520,13 @@ watch(groupList, (list) => {
 
 .dropdown-list::-webkit-scrollbar-thumb {
   background: var(--scrollbar-bg);
-  border-radius: 2px;
+  border-radius: var(--px-r-pill);
 }
 
 .dropdown-item {
   color: var(--text-color);
   padding: var(--px-space-2) var(--px-space-3);
+  /* То же правило: радиус списка (--px-r-md) минус его отступ (--px-space-1). */
   border-radius: var(--px-r-sm);
   cursor: pointer;
   transition: background-color var(--px-dur-fast) var(--px-ease);
@@ -1537,11 +1538,14 @@ watch(groupList, (list) => {
   object-fit: contain;
 }
 
+/* Подложка иконки группы. Бокс 24-38px, и прежние 12px на нём означали не
+   «скругление 12», а полный круг — намерение записано явно, чтобы радиус не
+   зависел от размера иконки, которую пришлёт панель. */
 .proxy-icon-wrapper {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: var(--px-r-pill);
   background-color: var(--left-nav-btn-active-bg);
   box-shadow: var(--left-nav-shadow);
   padding: 3px;
@@ -1625,7 +1629,6 @@ watch(groupList, (list) => {
 
 .proxy-icon-wrapper--full {
   padding: 5px;
-  border-radius: 12px;
 }
 
 .full-view-text {
@@ -1714,7 +1717,10 @@ watch(groupList, (list) => {
 }
 
 .full-view-nodes .proxy-nodes-card {
-  border-radius: var(--px-r-sm); /* concentric: group(20) - padding(8) */
+  /* Радиус группы минус её внутренний отступ — иначе углы карточки и группы
+     не концентричны и между ними остаётся серп. Здесь было --px-r-sm (10px),
+     хотя правило даёт 12px. */
+  border-radius: var(--px-r-nested);
   box-sizing: border-box;
 }
 </style>
