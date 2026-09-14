@@ -994,7 +994,10 @@ watch(groupList, (list) => {
 
 .full-view-info {
   display: flex;
-  align-items: center;
+  /* flex-start, not center: with the "Selected: X" subtitle under the title,
+     centering pinned the icon halfway between the two lines instead of level
+     with the title text. */
+  align-items: flex-start;
   gap: 12px;
 }
 

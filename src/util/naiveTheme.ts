@@ -96,9 +96,18 @@ export const naiveThemeOverrides = computed<GlobalThemeOverrides>(() => {
         },
         Card: {
             borderRadius: "20px",
+            // Plain in-page cards keep the translucent glass look: they sit on
+            // top of the app's own wallpaper-darkening backdrop, which is what
+            // makes a 10%-alpha fill readable in the first place.
             color: "var(--sub-card-bg)",
-            colorModal: "var(--sub-card-bg)",
-            colorPopover: "var(--sub-card-bg)",
+            // colorModal/colorPopover back floating chrome (dialogs, popovers)
+            // that renders with no such backdrop behind it — Naive's own modal
+            // mask is a fixed, non-adaptive rgba(0,0,0,.4), nowhere near enough
+            // to compensate on a bright photo wallpaper. --dropdown-list-bg is
+            // solid (no alpha) and already proven readable for exactly this
+            // kind of floating surface.
+            colorModal: "var(--dropdown-list-bg)",
+            colorPopover: "var(--dropdown-list-bg)",
             colorEmbedded: "var(--sub-card-bg)",
             textColor: "var(--text-color)",
             titleTextColor: "var(--text-color)",
@@ -106,7 +115,7 @@ export const naiveThemeOverrides = computed<GlobalThemeOverrides>(() => {
             actionColor: "var(--sub-card-bg)",
         },
         Modal: {
-            color: "var(--sub-card-bg)",
+            color: "var(--dropdown-list-bg)",
             textColor: "var(--text-color)",
         },
         Popover: {
