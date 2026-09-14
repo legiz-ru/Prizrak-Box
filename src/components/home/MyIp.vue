@@ -324,7 +324,12 @@ onMounted(async () => {
 .box {
   padding: var(--px-space-3) var(--px-space-5);
   border-radius: var(--px-r-lg);
-  background: var(--sub-card-bg);
+  /* Та же подложка, что у .px-surface — без неё рамка терялась на светлом
+     участке обоев, как раньше терялась рамка карточки профиля рядом. */
+  background:
+    linear-gradient(rgba(var(--px-scrim-rgb), var(--px-scrim-a)),
+    rgba(var(--px-scrim-rgb), var(--px-scrim-a))),
+    var(--sub-card-bg);
   border: 1px solid var(--sub-card-border);
   box-shadow: var(--px-elev-1);
   text-align: left;

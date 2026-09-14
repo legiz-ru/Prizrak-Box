@@ -63,8 +63,15 @@ function filterData() {
 
 /* Тот же край, что у стола правил и вкладки Соединения: 1px
    var(--sub-card-border), а не собственная рамка 2px var(--text-color). */
+/* Та же подложка, что несёт .px-surface — скрим поверх штатной заливки,
+   а не голая рамка без фона под ней (на светлом участке обоев такая рамка
+   терялась, как раньше терялась и рамка карточки профиля на Home). */
 .content {
   border: 1px solid var(--sub-card-border);
+  background:
+    linear-gradient(rgba(var(--px-scrim-rgb), var(--px-scrim-a)),
+    rgba(var(--px-scrim-rgb), var(--px-scrim-a))),
+    var(--sub-card-bg);
   border-radius: var(--px-r-lg);
   margin-top: var(--px-space-5);
   overflow: hidden;

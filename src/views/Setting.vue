@@ -40,8 +40,7 @@ const ruleSubComponents: Record<string, any> = {
     <template #top>
       <div class="px-page-head">
         <div class="px-page-title">{{ t('nav.setting') }}</div>
-      </div>
-      <div class="setting-tabs-wrap">
+        <div class="setting-tabs-wrap">
         <div class="px-seg">
           <el-tooltip :content="t('setting.tab.app')" placement="bottom" :show-after="300">
             <button
@@ -155,6 +154,7 @@ const ruleSubComponents: Record<string, any> = {
             </button>
           </el-tooltip>
         </div>
+        </div>
       </div>
     </template>
 
@@ -186,8 +186,9 @@ const ruleSubComponents: Record<string, any> = {
 /* Заголовок раздела — тот же .px-page-head, что у Прокси и Профилей, здесь
    с единственным ребёнком: правее заголовка на этом экране ничего нет, эта
    роль у переключателя разделов строкой ниже. */
+/* Теперь в одной строке с заголовком (.px-page-head) — свой отступ сверху
+   сдвигал бы переключатель вниз относительно текста "Настройки". */
 .setting-tabs-wrap {
-  margin-top: var(--px-space-3);
   display: flex;
   align-items: center;
   flex-wrap: wrap;

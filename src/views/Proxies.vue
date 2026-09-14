@@ -806,10 +806,14 @@ watch(groupList, (list) => {
   transition: background-color 0.15s, border-color 0.15s;
 }
 
+/* Только цвет рамки, не толщина: при box-sizing: border-box и высоте auto
+   рамка 1px→2px на наведении добавляла карточке 2px реальной высоты — сетка
+   перестраивалась, и с ней «гулял» отступ между узлами при движении курсора
+   по группе. Заливка фона уже достаточно ясно показывает состояние. */
 .proxy-nodes-card:hover,
 .proxy-node-select {
   background-color: var(--left-item-selected-bg);
-  border: 2px solid var(--text-color);
+  border-color: var(--text-color);
   cursor: pointer;
 }
 

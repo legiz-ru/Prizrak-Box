@@ -631,10 +631,16 @@ function closeAll() {
 
 /* Кнопка и переключатель режима — общие .px-btn/.px-seg вместо своих копий
    (та же пара, что была у Group.vue/Providers.vue/Setting.vue). */
+/* Та же подложка, что несёт .px-surface (и через него — разделы настроек
+   приложения/ядра): скрим поверх штатной заливки, а не голая рамка без
+   фона под ней — на светлом участке обоев без него рамка терялась, как
+   раньше терялась и рамка карточки профиля на Home. */
 .content {
-  /* Тот же край, что у стола правил и карточек: 1px var(--sub-card-border),
-     а не собственная рамка 2px var(--text-color). */
   border: 1px solid var(--sub-card-border);
+  background:
+    linear-gradient(rgba(var(--px-scrim-rgb), var(--px-scrim-a)),
+    rgba(var(--px-scrim-rgb), var(--px-scrim-a))),
+    var(--sub-card-bg);
   margin-top: var(--px-space-5);
   border-radius: var(--px-r-lg);
   overflow: hidden;

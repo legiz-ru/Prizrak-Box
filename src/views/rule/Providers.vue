@@ -449,7 +449,12 @@ watch(() => webStore.fProfile, async () => {
   padding: 8px 10px;
   border: 1px solid var(--sub-card-border);
   border-radius: var(--px-r-lg);
-  background: var(--sub-card-bg);
+  /* Та же подложка, что у .px-surface — без неё рамка терялась на светлом
+     участке обоев, как раньше терялась рамка карточки профиля на Home. */
+  background:
+    linear-gradient(rgba(var(--px-scrim-rgb), var(--px-scrim-a)),
+    rgba(var(--px-scrim-rgb), var(--px-scrim-a))),
+    var(--sub-card-bg);
   color: var(--text-color);
   box-shadow: var(--px-elev-1);
   display: flex;

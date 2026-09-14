@@ -195,7 +195,15 @@ const showRenewButton = computed(() => shouldShowRenewButton(activeProfile.value
   width: 100%;
   padding: 12px 0;
   border-radius: 20px;
-  background: var(--sub-card-bg);
+  /* Подложка поверх штатной заливки — та же, что несут карточки в разделах
+     Прокси/Настройки: на тёмных обоях плотность нулевая, карточка выглядит
+     ровно как раньше. На светлом участке обоев рамка карточки (1px,
+     полупрозрачная) раньше терялась — её было не видно на подложке без
+     этого слоя. */
+  background:
+    linear-gradient(rgba(var(--px-scrim-rgb), var(--px-scrim-a)),
+    rgba(var(--px-scrim-rgb), var(--px-scrim-a))),
+    var(--sub-card-bg);
   border: 1px solid var(--sub-card-border);
   box-shadow: var(--right-box-shadow);
   display: flex;
