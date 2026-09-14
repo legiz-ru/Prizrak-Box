@@ -40,7 +40,7 @@ watch(() => menuStore.useWhite, changeTheme);
 </script>
 
 <template>
-  <div class="bottom-text">
+  <div class="bottom-text" :class="{ 'bottom-text--collapsed': menuStore.navCollapsed }">
 
     <Off></Off>
     <Language></Language>
@@ -60,5 +60,14 @@ watch(() => menuStore.useWhite, changeTheme);
   gap: 16px;
   color: var(--text-color);
   font-size: 20px;
+}
+
+/* Collapsed sidebar: 185px of horizontal room shrinks to an icon column, so
+   Off/Language/Skin no longer fit side by side — stack them instead. */
+.bottom-text--collapsed {
+  flex-direction: column;
+  align-items: center;
+  width: 56px;
+  gap: 20px;
 }
 </style>

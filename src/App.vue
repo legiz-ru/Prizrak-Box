@@ -10,7 +10,7 @@
             class="top-icon"
             :style="topIconStyle"
         ></div>
-        <span class="top-title-text">{{ topTitle }}</span>
+        <span v-if="!menuStore.navCollapsed" class="top-title-text">{{ topTitle }}</span>
       </div>
       <div v-if="showUpdateBanner" class="update-banner">
         <div class="update-banner__content">
