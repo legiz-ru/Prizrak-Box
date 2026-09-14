@@ -24,6 +24,11 @@ import {useMenuStore} from "@/store/menuStore";
 import {Browser, Events} from "@/runtime";
 import {useUpdateStore} from "@/store/updateStore";
 import {storeToRefs} from "pinia";
+// Явные импорты: имя компонента в <component :is> задаётся строкой, а
+// авто-импорт иконок работает по вхождению тега в шаблон и такую строку не
+// видит — в dev_21 здесь висели несуществующие icon-mdi-*.
+import IconDeviceFloppy from "~icons/tabler/device-floppy";
+import IconPlus from "~icons/tabler/plus";
 import type {DashboardOption} from "@/util/dashboard";
 import {formatDashboardUrl as buildDashboardUrl, resolveDashboardOptions} from "@/util/dashboard";
 import {updateSystemProxy} from "@/util/systemProxy";
@@ -765,7 +770,7 @@ onMounted(async () => {
         <div class="dashboard-dialog__actions">
           <el-button type="primary" plain @click="submitCustomDashboardEntry">
             <component
-                :is="isEditingDashboard ? 'icon-mdi-content-save' : 'icon-mdi-plus'"
+                :is="isEditingDashboard ? IconDeviceFloppy : IconPlus"
                 class="dashboard-dialog__action-icon dashboard-dialog__action-icon--with-label"
             />
             {{ isEditingDashboard ? t('setting.dashboard.save') : t('setting.dashboard.add') }}

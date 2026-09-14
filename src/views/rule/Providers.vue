@@ -206,11 +206,11 @@ watch(() => webStore.fProfile, async () => {
 
 <template>
   <div class="rule-providers">
-    <div class="px-toolbar">
-      <!-- Action buttons only; the view toggle lives in Setting.vue's top bar -->
+    <div class="actions">
+      <!-- Action buttons only; view toggle moved to Rule.vue / Setting.vue top bar -->
       <button
           :disabled="loading"
-          :class="['px-btn', {loading}]"
+          :class="['pill-btn', {loading}]"
           type="button"
           @click="refreshProviders"
       >
@@ -219,7 +219,7 @@ watch(() => webStore.fProfile, async () => {
       </button>
       <button
           :disabled="!providers.length || updatingAll"
-          :class="['px-btn', 'px-btn--quiet', {loading: updatingAll}]"
+          :class="['pill-btn', {loading: updatingAll, disabled: !providers.length && !updatingAll}]"
           type="button"
           @click="updateAllProviders"
       >
@@ -403,7 +403,7 @@ watch(() => webStore.fProfile, async () => {
 .rule-providers {
   width: 100%;
   margin-left: 0;
-  margin-top: var(--px-space-2);
+  margin-top: 10px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -411,10 +411,39 @@ watch(() => webStore.fProfile, async () => {
 }
 
 /* ── Toolbar ── */
-/* Кнопка в состоянии загрузки подсвечена так же, как наведённая. */
-.px-btn.loading {
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Action buttons — same pill-btn as Group.vue */
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: 999px;
+  background-color: var(--left-nav-btn-bg);
+  color: var(--text-color);
+  padding: 9px 18px;
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: var(--left-nav-shadow);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pill-btn:hover,
+.pill-btn.loading {
   background-color: var(--left-item-selected-bg);
-  box-shadow: var(--px-elev-1);
+  box-shadow: var(--left-nav-hover-shadow);
+}
+
+.pill-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .btn-icon {
@@ -424,20 +453,20 @@ watch(() => webStore.fProfile, async () => {
 
 /* ── Cards view ── */
 .skeleton {
-  margin-top: var(--px-space-5);
+  margin-top: 20px;
 }
 
 .provider-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: var(--px-space-3);
-  margin-top: var(--px-space-1);
+  gap: 16px;
+  margin-top: 20px;
 }
 
 .provider-card {
-  padding: var(--px-space-2) var(--px-space-3);
-  border: 1px solid var(--sub-card-border);
-  border-radius: var(--px-r-lg);
+  padding: 8px 10px;
+  border: 2px solid var(--sub-card-border);
+  border-radius: 20px;
   background: var(--sub-card-bg);
   color: var(--text-color);
   box-shadow: var(--left-nav-shadow);
@@ -448,6 +477,7 @@ watch(() => webStore.fProfile, async () => {
 
 .provider-card:hover {
   background-color: var(--left-item-selected-bg);
+  border: 2px solid var(--text-color);
 }
 
 .card-header {
@@ -540,10 +570,10 @@ watch(() => webStore.fProfile, async () => {
 
 /* ── Table view — same style as Now.vue ── */
 .table-wrap {
-  border: 1px solid var(--sub-card-border);
-  border-radius: var(--px-r-lg);
+  border: 2px solid var(--text-color);
+  border-radius: 20px;
   overflow: hidden;
-  margin-top: var(--px-space-5);
+  margin-top: 20px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -554,7 +584,7 @@ watch(() => webStore.fProfile, async () => {
   display: flex;
   align-items: center;
   padding: 8px 10px 8px 16px;
-  border-bottom: 1px solid var(--sub-card-border);
+  border-bottom: 1px solid var(--text-color);
   font-weight: bold;
   gap: 4px;
   flex-shrink: 0;
@@ -779,7 +809,7 @@ watch(() => webStore.fProfile, async () => {
 .content-editor {
   width: 100%;
   height: 500px;
-  border: 1px solid var(--sub-card-border);
+  border: 2px solid var(--text-color);
   border-radius: 12px;
   font: 13px "Monaco", "Menlo", "Ubuntu Mono", "Consolas", "Source Code Pro", monospace;
 }

@@ -59,29 +59,21 @@ function clearInput() {
 }
 
 .custom-input {
-  width: 100%;
+  width: 100%; /* 撑满宽度 */
   /* 为清除按钮预留空间 */
-  padding: var(--px-space-2) var(--px-space-8) var(--px-space-2) var(--px-space-4);
-  /* Рамка в два пикселя цветом текста звучала громче самого поля; здесь тот
-     же край, что у карточек и кнопок. */
-  border: 1px solid var(--sub-card-border);
-  border-radius: var(--px-r-pill);
-  background-color: var(--left-nav-btn-bg);
+  padding: 8px 32px 8px 8px;
+  border: 2px solid var(--text-color); /* 边框 */
+  border-radius: 20px;
+  background-color: var(--left-nav-btn-bg); /* 背景透明 */
   color: var(--text-color);
-  font-size: var(--px-fs-body);
-  box-sizing: border-box;
-  outline: none;
-  transition: border-color var(--px-dur) var(--px-ease),
-  background-color var(--px-dur) var(--px-ease);
-}
-
-.custom-input:hover {
-  background-color: var(--left-nav-btn-hover-bg);
+  font-size: 14px; /* 字体大小 */
+  box-sizing: border-box; /* 包含 padding 和边框 */
+  outline: none; /* 移除默认 outline */
+  transition: border-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out; /* 动态效果 */
 }
 
 .custom-input:focus {
-  border-color: var(--text-color);
-  background-color: var(--left-nav-btn-hover-bg);
+  background-color: rgba(255, 255, 255, 0.06);
 }
 
 .custom-input::placeholder {

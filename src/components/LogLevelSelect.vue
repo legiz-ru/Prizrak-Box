@@ -48,14 +48,13 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
-/* Высота совпадает с переключателем разделов рядом: они стоят в одном ряду. */
 :deep(.el-select__wrapper) {
-  height: 44px;
-  border-radius: var(--px-r-pill);
+  height: 38px;
+  border-radius: 999px;
   background: var(--left-nav-btn-bg);
-  box-shadow: var(--px-elev-1);
+  box-shadow: var(--left-nav-shadow);
   border: none;
-  padding: 0 var(--px-space-3) 0 var(--px-space-4);
+  padding: 0 12px 0 16px;
 }
 
 :deep(.el-select__wrapper:hover) {
@@ -70,6 +69,6 @@ onMounted(async () => {
 
 :deep(.el-select__suffix .el-icon) {
   color: var(--text-color);
-  opacity: .6;
+  opacity: 0.6;
 }
 </style>

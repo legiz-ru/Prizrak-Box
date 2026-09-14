@@ -39,7 +39,7 @@ const upFromTop = function (distance: number) {
 .top {
   height: var(--layout-top-height);
   flex-shrink: 0;
-  padding-left: var(--px-pane-pad-x);
+  padding-left: 18px;
 }
 
 .bottom {
@@ -47,10 +47,11 @@ const upFromTop = function (distance: number) {
   overflow-y: auto;
   overflow-x: hidden;
   height: calc(100% - var(--layout-bottom-height));
-  /* Одни и те же поля для всех разделов: раньше каждый экран добавлял свои
-     margin-left: 10px и width: 95% поверх этих, и отступы не совпадали. */
-  padding: var(--px-space-3) var(--px-pane-pad-x) var(--px-space-5);
+  padding-top: 10px;
+  padding-bottom: 20px;
   overscroll-behavior: none;
+  padding-left: 18px;
+  padding-right: 18px;
   display: flex;
   flex-direction: column;
 }

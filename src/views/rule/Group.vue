@@ -217,7 +217,7 @@ const switchTemplate = async () => {
 
 <template>
   <div class="group">
-    <div class="px-toolbar">
+    <el-space class="op">
       <el-select v-model="now.id" @change="handleTemplateChange" class="template-select">
         <el-option
             v-for="item in tList"
@@ -226,35 +226,26 @@ const switchTemplate = async () => {
             :value="item.id"
         />
       </el-select>
-      <span class="px-toolbar__sep"></span>
-      <button class="px-btn" @click="saveTemplate">
-        <el-icon><icon-tabler-device-floppy/></el-icon>
-        {{ t("save") }}
-      </button>
-      <button class="px-btn px-btn--quiet" @click="addVisible=true;addForm.content=''">
-        <el-icon><icon-tabler-plus/></el-icon>
-        {{ t("add") }}
-      </button>
-      <button class="px-btn px-btn--danger" @click="deleteTemplate" v-if="canDelete">
-        <el-icon><icon-tabler-trash/></el-icon>
-        {{ t("delete") }}
-      </button>
-      <span class="px-toolbar__sep"></span>
-      <div class="px-seg">
+      <el-divider direction="vertical" border-style="dashed"/>
+      <button class="pill-btn" @click="saveTemplate">{{ t("save") }}</button>
+      <button class="pill-btn" @click="addVisible=true;addForm.content=''">{{ t("add") }}</button>
+      <button class="pill-btn pill-btn--danger" @click="deleteTemplate" v-if="canDelete">{{ t("delete") }}</button>
+      <el-divider direction="vertical" border-style="dashed"/>
+      <div class="pill-toggle">
         <button
-            :class="['px-seg__btn', { 'is-active': !now.selected }]"
+            :class="['pill-toggle__btn', { 'is-active': !now.selected }]"
             :disabled="!now.id"
             type="button"
             @click="if (now.selected) { now.selected = false; switchTemplate() }"
         >{{ t("off") }}</button>
         <button
-            :class="['px-seg__btn', { 'is-active': now.selected }]"
+            :class="['pill-toggle__btn', { 'is-active': now.selected }]"
             :disabled="!now.id"
             type="button"
             @click="if (!now.selected) { now.selected = true; switchTemplate() }"
         >{{ t("on") }}</button>
       </div>
-    </div>
+    </el-space>
 
     <VAceEditor
         v-model:value="yamlContent"
@@ -314,11 +305,6 @@ const switchTemplate = async () => {
   flex-direction: column;
 }
 
-.px-seg__btn:disabled {
-  opacity: .45;
-  cursor: not-allowed;
-}
-
 .op {
   margin-top: 2px;
 }
@@ -351,14 +337,70 @@ const switchTemplate = async () => {
   opacity: 0.6;
 }
 
+.pill-toggle {
+  display: inline-flex;
+  border-radius: 999px;
+  background-color: var(--left-nav-btn-bg);
+  box-shadow: var(--left-nav-shadow);
+  padding: 4px;
+  gap: 2px;
+}
 
+.pill-toggle:hover {
+  box-shadow: var(--left-nav-hover-shadow);
+}
 
+.pill-toggle__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  width: auto;
+  padding: 0 14px;
+  font-size: 15px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  white-space: nowrap;
+}
 
+.pill-toggle__btn:hover {
+  background-color: var(--left-nav-btn-hover-bg);
+}
 
+.pill-toggle__btn.is-active {
+  background-color: var(--left-item-selected-bg);
+  box-shadow: var(--left-nav-hover-shadow);
+}
 
+.pill-toggle__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
+.pill-btn {
+  border: none;
+  border-radius: 999px;
+  background-color: var(--left-nav-btn-bg);
+  color: var(--text-color);
+  padding: 9px 18px;
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: var(--left-nav-shadow);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
 
+.pill-btn:hover {
+  background-color: var(--left-item-selected-bg);
+  box-shadow: var(--left-nav-hover-shadow);
+}
 
+.pill-btn--danger:hover {
+  background-color: #f56c6c;
+}
 
 .editor {
   margin-top: 25px;
@@ -367,8 +409,8 @@ const switchTemplate = async () => {
 }
 
 :deep(.ace_editor) {
-  border: 1px solid var(--sub-card-border);
-  border-radius: var(--px-r-lg);
+  border: 2px solid var(--text-color);
+  border-radius: 20px;
   font: 15px "Twemoji", "Monaco", "Menlo", "Ubuntu Mono", "Consolas",
   "Source Code Pro", "source-code-pro", monospace;
 }

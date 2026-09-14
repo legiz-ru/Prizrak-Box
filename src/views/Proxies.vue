@@ -840,9 +840,6 @@ watch(groupList, (list) => {
               />
             </span>
             <span class="dropdown-item-label">{{ proxiesStore.active }}</span>
-            <el-icon class="dropdown-chevron" :class="{ 'dropdown-chevron--open': isDropdownOpen }">
-              <icon-tabler-chevron-down/>
-            </el-icon>
           </span>
         </button>
         <ul
@@ -856,7 +853,6 @@ watch(groupList, (list) => {
               :key="item + '-gv'"
               @click="setActive(item)"
               class="dropdown-item"
-              :class="{ 'dropdown-item--active': item === proxiesStore.active }"
           >
             <span class="dropdown-btn-content">
               <span
@@ -936,7 +932,6 @@ watch(groupList, (list) => {
             :key="node['name']"
         >
           <div class="proxy-nodes-title">
-            <icon-tabler-check v-if="node['now']" class="proxy-node-check"/>
             <span class="proxy-node-name" :title="node['name']">
               {{ node["displayName"] ?? node["name"] }}
             </span>
@@ -1136,22 +1131,23 @@ watch(groupList, (list) => {
 }
 
 .space {
-  margin-top: var(--px-space-4);
+  margin-top: 15px;
 }
 
 .title {
-  font-size: var(--px-fs-display);
+  font-size: 32px;
   font-weight: bold;
+  margin-left: 10px;
 }
 
 .proxy-option {
+  margin-left: 10px;
   font-size: 30px;
-  padding-top: var(--px-space-3);
-  margin-left: var(--px-space-3);
+  padding-top: 10px;
 }
 
 .proxy-option-btn {
-  margin-right: var(--px-space-4);
+  margin-right: 15px;
 }
 
 .proxy-option-btn:hover {
@@ -1165,54 +1161,32 @@ watch(groupList, (list) => {
   pointer-events: none;
 }
 
-/* Без min-height: высоту ряда задают отступы .proxy-group — те же, что у
-   .dropdown, поэтому шапка не прыгает при смене режима группировки. */
 .button-container {
   display: flex;
   align-items: center;
-  width: 100%;
+  width: 95%;
+  margin-left: 10px;
+  min-height: 50px;
 }
 
 .proxy-group {
   display: flex;
-  flex: 1;
-  min-width: 0;
-  gap: var(--px-space-2);
-  margin: var(--px-space-3) 0 var(--px-space-1);
+  gap: 10px;
+  margin: 12px 0 3px 0;
   overflow-x: hidden;
   scroll-behavior: smooth;
 }
 
-/* Стрелки прокрутки — та же круглая кнопка-иконка, что и в остальных
-   разделах: без рамки, подсветка по наведению. */
-.scroll-left,
-.scroll-right {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: var(--px-r-pill);
-  color: var(--text-color);
-  opacity: .72;
-  cursor: pointer;
-  transition: background-color var(--px-dur) var(--px-ease),
-  opacity var(--px-dur) var(--px-ease);
-}
-
-.scroll-left:hover,
-.scroll-right:hover {
-  background-color: var(--left-nav-btn-hover-bg);
-  opacity: 1;
-}
-
 .scroll-left {
-  margin-right: var(--px-space-2);
+  cursor: pointer;
+  border: none;
+  margin-right: 10px;
 }
 
 .scroll-right {
-  margin-left: var(--px-space-2);
+  cursor: pointer;
+  border: none;
+  margin-left: 10px;
 }
 
 .scroll-left[hidden],
@@ -1220,34 +1194,24 @@ watch(groupList, (list) => {
   display: none;
 }
 
-/* Пилюля группы — тот же контрол, что .px-btn: высота из общей шкалы,
-   рамка в один пиксель вместо двух и цвет рамки из карточек, а не --hr-color,
-   который делал из ряда групп забор из ярких обводок. */
 .proxy-group-title {
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-  height: var(--px-control-h);
-  padding: 0 var(--px-space-3);
-  background-color: var(--left-nav-btn-bg);
+  background-color: transparent;
   color: var(--text-color);
-  border: 1px solid var(--sub-card-border);
-  border-radius: var(--px-r-pill);
-  font-size: var(--px-fs-small);
-  font-weight: 600;
+  border: 2px solid var(--hr-color);
+  border-radius: 20px;
+  padding: 6px 10px;
+  font-size: 15px;
   font-family: inherit;
   text-align: center;
   cursor: pointer;
-  box-shadow: var(--px-elev-1);
+  box-shadow: var(--left-nav-shadow);
   white-space: nowrap;
-  transition: background-color var(--px-dur) var(--px-ease),
-  border-color var(--px-dur) var(--px-ease);
 }
 
 .proxy-group-title:hover,
 .proxy-group-title-select {
   background-color: var(--left-item-selected-bg);
-  box-shadow: var(--px-elev-2);
+  box-shadow: var(--left-nav-hover-shadow);
   border-color: var(--text-color);
 }
 
@@ -1258,7 +1222,7 @@ watch(groupList, (list) => {
 .proxy-group-content {
   display: inline-flex;
   align-items: center;
-  gap: var(--px-space-2);
+  gap: 6px;
 }
 
 .proxy-group-icon {
@@ -1272,53 +1236,41 @@ watch(groupList, (list) => {
 }
 
 .proxy-nodes {
-  /* Сетка, а не flex-wrap: 1fr раздаёт ровно остаток ширины, поэтому ряд
-     заканчивается вровень с правым краем панели, а не оставляет пустую полосу
-     справа от прежних `calc(33% - 41px)` + `max-width: 210px`. Та же раскладка,
-     что у узлов в полном виде, — режим группировки не меняет ширину карточек. */
-  display: grid;
-  /* minmax(0, …), а не голый 1fr: `1fr` разворачивается в `minmax(auto, 1fr)`,
-     и нижней границей дорожки становится min-content самой длинной карточки. */
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--px-space-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
   padding: 0;
   color: var(--text-color);
   margin-left: 0;
   width: 100%;
 }
 
-/* Дальше трёх колонок карточка растягивается за ~400px, поэтому с этой ширины
-   набираем столько ~260px колонок, сколько вмещает панель. auto-fill, а не
-   auto-fit: пустые дорожки сохраняются, и группа из двух узлов даёт карточки
-   такой же ширины, как группа из двадцати. */
-@media (min-width: 1400px) {
-  .proxy-nodes {
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  }
-}
-
 .proxy-nodes-card {
-  /* Ширину задаёт дорожка сетки. min-width: 0 обязателен: иначе он остаётся
-     `auto`, то есть min-content по имени узла с `white-space: nowrap`, и длинное
-     имя распирает карточку за ширину дорожки, а ellipsis не срабатывает. */
+  width: calc(33% - 41px);
+  max-width: 210px;
+  /* Без этого min-width остаётся `auto`, то есть min-content — а его задаёт имя
+     ноды с `white-space: nowrap`. В CSS min-width сильнее max-width, поэтому
+     длинное имя раздувало карточку за её же 210px здесь и за ширину дорожки
+     в сетке полного вида; ellipsis при этом не срабатывал, потому что внутри
+     переросшей карточки имени хватало места. */
   min-width: 0;
-  border: 1px solid var(--sub-card-border);
-  border-radius: var(--px-r-md);
-  padding: var(--px-space-2) var(--px-space-3);
+  border: 2px solid var(--sub-card-border);
+  border-radius: 20px;
+  padding: 8px 12px;
   background: var(--sub-card-bg);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   line-height: 1.3;
-  box-shadow: var(--px-elev-1);
-  transition: background-color var(--px-dur) var(--px-ease),
-  border-color var(--px-dur) var(--px-ease);
+  box-shadow: var(--left-nav-shadow);
+  margin-top: 3px;
+  transition: background-color 0.15s, border-color 0.15s;
 }
 
 .proxy-nodes-card:hover,
 .proxy-node-select {
   background-color: var(--left-item-selected-bg);
-  border-color: var(--text-color);
+  border: 2px solid var(--text-color);
   cursor: pointer;
 }
 
@@ -1327,13 +1279,14 @@ watch(groupList, (list) => {
 }
 
 .proxy-nodes-title {
-  font-size: var(--px-fs-body);
+  font-size: 14px;
   display: flex;
   align-items: center;
-  gap: var(--px-space-2);
+  gap: 6px;
   min-width: 0;
 }
 
+/* Галочка выбранного узла: не сжимается и идёт цветом текста. */
 .proxy-node-check {
   flex-shrink: 0;
   font-size: 15px;
@@ -1350,7 +1303,7 @@ watch(groupList, (list) => {
 .proxy-origin {
   font-size: 11px;
   padding: 1px 6px;
-  border-radius: var(--px-r-pill);
+  border-radius: 999px;
   border: 1px solid var(--text-color);
   opacity: 0.7;
   white-space: nowrap;
@@ -1358,9 +1311,9 @@ watch(groupList, (list) => {
 }
 
 .proxy-nodes-tags {
-  font-size: var(--px-fs-body);
+  font-size: 14px;
   display: flex;
-  margin-top: var(--px-space-2);
+  margin-top: 10px;
   justify-content: space-between;
 }
 
@@ -1368,7 +1321,7 @@ watch(groupList, (list) => {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: var(--px-space-1);
+  gap: 4px;
   overflow: hidden;
   min-width: 0;
 }
@@ -1395,7 +1348,7 @@ watch(groupList, (list) => {
 .proxy-nodes-tags-right {
   display: flex;
   align-items: center;
-  gap: var(--px-space-1);
+  gap: 4px;
   flex-shrink: 0;
 }
 
@@ -1435,101 +1388,57 @@ watch(groupList, (list) => {
 .dropdown {
   position: relative;
   display: inline-block;
-  width: 100%;
-  margin: var(--px-space-3) 0 var(--px-space-1);
+  width: 95%;
+  margin: 12px 10px 5px 10px;
 }
 
-/* Кнопка-селектор группы: высота и рамка те же, что у остальных контролов,
-   чтобы ряд совпадал по высоте с пилюлями горизонтального режима. Заливка
-   выбора остаётся — кнопка показывает активную группу. */
 .dropdown-btn {
-  display: inline-flex;
-  align-items: center;
-  height: var(--px-control-h);
-  min-width: 220px;
-  max-width: 100%;
-  padding: 0 var(--px-space-3);
   background-color: var(--left-item-selected-bg);
-  box-shadow: var(--px-elev-2);
-  border: 1px solid var(--text-color);
-  border-radius: var(--px-r-pill);
+  box-shadow: var(--left-nav-hover-shadow);
+  border: 2px solid var(--text-color);
   color: var(--text-color);
   font-family: inherit;
-  font-size: var(--px-fs-small);
-  font-weight: 600;
+  padding: 5px 10px;
   cursor: pointer;
+  font-size: 15px;
   outline: none;
+  border-radius: 20px;
+  min-width: 204px;
   text-align: left;
-  transition: background-color var(--px-dur) var(--px-ease);
 }
 
 .dropdown-btn:hover {
-  background-color: var(--left-nav-btn-hover-bg);
+  opacity: 0.8;
 }
 
 .dropdown-btn-content {
   display: inline-flex;
   align-items: center;
-  gap: var(--px-space-2);
+  gap: 8px;
   justify-content: flex-start;
   width: 100%;
-  min-width: 0;
-}
-
-/* Шеврон: у кнопки не было ни одного признака, что она раскрывает список.
-   Поворот вниз-вверх повторяет состояние списка. */
-.dropdown-chevron {
-  flex-shrink: 0;
-  margin-left: auto;
-  font-size: 14px;
-  opacity: .7;
-  transition: transform var(--px-dur) var(--px-ease);
-}
-
-.dropdown-chevron--open {
-  transform: rotate(180deg);
 }
 
 .dropdown-list {
   position: absolute;
-  background: var(--dropdown-list-bg);
-  border: 1px solid var(--sub-card-border);
-  box-shadow: var(--px-elev-2);
-  margin-top: var(--px-space-1);
-  padding: var(--px-space-1);
+  background: var(--skin-bg-color);
+  border: 2px solid var(--text-color);
+  margin-top: 4px;
+  padding: 0;
   list-style: none;
-  /* Та же ширина, что у кнопки: absolute-элемент ужимается по содержимому,
-     поэтому список задаёт нижнюю границу, а не собственную ширину. */
-  min-width: 220px;
-  box-sizing: border-box;
+  min-width: 200px;
   z-index: 20;
-  border-radius: var(--px-r-md);
-  font-size: var(--px-fs-small);
+  border-radius: 20px;
+  font-size: 15px;
   text-align: left;
   max-height: calc(100vh - 230px);
   overflow-y: auto;
 }
 
-.dropdown-list::-webkit-scrollbar {
-  width: 5px;
-}
-
-.dropdown-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.dropdown-list::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-bg);
-  border-radius: var(--px-r-pill);
-}
-
 .dropdown-item {
   color: var(--text-color);
-  padding: var(--px-space-2) var(--px-space-3);
-  /* То же правило: радиус списка (--px-r-md) минус его отступ (--px-space-1). */
-  border-radius: var(--px-r-sm);
+  padding: 8px;
   cursor: pointer;
-  transition: background-color var(--px-dur-fast) var(--px-ease);
 }
 
 .dropdown-item-icon {
@@ -1538,14 +1447,11 @@ watch(groupList, (list) => {
   object-fit: contain;
 }
 
-/* Подложка иконки группы. Бокс 24-38px, и прежние 12px на нём означали не
-   «скругление 12», а полный круг — намерение записано явно, чтобы радиус не
-   зависел от размера иконки, которую пришлёт панель. */
 .proxy-icon-wrapper {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--px-r-pill);
+  border-radius: 12px;
   background-color: var(--left-nav-btn-active-bg);
   box-shadow: var(--left-nav-shadow);
   padding: 3px;
@@ -1562,14 +1468,7 @@ watch(groupList, (list) => {
 }
 
 .dropdown-item:hover {
-  background: var(--left-nav-btn-hover-bg);
-}
-
-/* Активная группа отмечена и в списке — иначе при раскрытии непонятно,
-   на чём стоишь. */
-.dropdown-item--active {
-  background: var(--left-item-selected-bg);
-  font-weight: 600;
+  background: var(--skin-hover-color);
 }
 
 .full-view-groups {
@@ -1629,6 +1528,7 @@ watch(groupList, (list) => {
 
 .proxy-icon-wrapper--full {
   padding: 5px;
+  border-radius: 12px;
 }
 
 .full-view-text {
@@ -1717,10 +1617,18 @@ watch(groupList, (list) => {
 }
 
 .full-view-nodes .proxy-nodes-card {
-  /* Радиус группы минус её внутренний отступ — иначе углы карточки и группы
-     не концентричны и между ними остаётся серп. Здесь было --px-r-sm (10px),
-     хотя правило даёт 12px. */
-  border-radius: var(--px-r-nested);
+  /* The grid owns sizing now; the inherited width/max-width would re-introduce
+     the 210px cap and with it the empty space on the right. margin-top would
+     add an uneven 3px to every row on top of the row gap. */
+  width: auto;
+  max-width: none;
+  margin-top: 0;
+  border-radius: 12px; /* concentric: group(20) - padding(8) = 12 */
   box-sizing: border-box;
+  /* Тот же край, что у карточки группы вокруг: рамка группы в полном виде —
+     один пиксель, и двухпиксельная рамка вложенных карточек рядом с ней
+     выглядела тяжелее контейнера. В остальных режимах группировки карточка
+     осталась прежней. */
+  border-width: 1px;
 }
 </style>

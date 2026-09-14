@@ -145,7 +145,7 @@ function cancel() {
   border: 1.5px solid var(--el-border-color);
   border-radius: 999px;
   cursor: pointer;
-  font-size: var(--px-fs-body);
+  font-size: 14px;
   background: transparent;
   color: var(--el-text-color-primary);
   user-select: none;

@@ -9,6 +9,7 @@ import {pError, pWarning} from "@/util/pLoad";
 import {Events} from "@/runtime";
 import type {ProxyGroupInfo} from "@/api/proxies";
 import {useWebStore} from "@/store/webStore";
+import {proxyTypeIcon, proxyTypeTooltip} from "@/util/proxyType";
 
 // 获取当前 Vue 实例的 proxy 对象
 const {proxy} = getCurrentInstance()!;
@@ -92,6 +93,13 @@ async function loadProxies() {
 function getServerDescription(proxy: any): string | undefined {
   return proxy?.displayType !== proxy?.type ? proxy?.displayType : undefined;
 }
+
+// Type badge. The search list never showed the adapter type at all; the icon
+// adds it without spending horizontal space in an already narrow dropdown.
+// A node named by a known group is a group — groupList holds every group.
+const isGroupProxy = (p: any) => groupList.value.some((g) => g.name === p?.name);
+const typeIcon = (p: any) => proxyTypeIcon(p?.type, isGroupProxy(p));
+const typeTooltip = (p: any) => proxyTypeTooltip(p?.type, isGroupProxy(p), t);
 
 // Get latency color class
 function getLatencyColor(toClass: string): string {
@@ -266,20 +274,14 @@ watch(() => proxiesStore.now, (newNow) => {
       <div class="proxy-selector">
         <!-- Group Dropdown -->
         <div class="dropdown-wrapper">
-          <button
-              type="button"
-              class="dropdown-button"
-              :aria-expanded="isGroupDropdownOpen"
-              aria-haspopup="listbox"
-              @click="toggleGroupDropdown"
-          >
+          <div class="dropdown-button" @click="toggleGroupDropdown">
             <span class="dropdown-label"><span class="dropdown-label-text">{{ t('proxySelector.group') }}</span></span>
             <span class="dropdown-value">{{ selectedGroup }}</span>
-            <el-icon class="dropdown-icon">
+            <el-icon class="dropdown-icon" @click.stop="toggleGroupDropdown">
               <icon-tabler-chevron-down v-if="!isGroupDropdownOpen" />
               <icon-tabler-chevron-up v-else />
             </el-icon>
-          </button>
+          </div>
           <div v-if="isGroupDropdownOpen" class="dropdown-list">
             <div
                 v-for="group in groupList"
@@ -295,22 +297,16 @@ watch(() => proxiesStore.now, (newNow) => {
 
         <!-- Proxy Dropdown -->
         <div class="dropdown-wrapper">
-          <button
-              type="button"
-              class="dropdown-button"
-              :aria-expanded="isProxyDropdownOpen"
-              aria-haspopup="listbox"
-              @click="toggleProxyDropdown"
-          >
+          <div class="dropdown-button" @click="toggleProxyDropdown">
             <span class="dropdown-label"><span class="dropdown-label-text">{{ t('proxySelector.proxy') }}</span></span>
             <span class="dropdown-value">
               {{ (proxyList.find(p => p.now)?.displayName ?? proxyList.find(p => p.now)?.name ?? selectedProxy) || 'Не выбрано' }}
             </span>
-            <el-icon class="dropdown-icon">
+            <el-icon class="dropdown-icon" @click.stop="toggleProxyDropdown">
               <icon-tabler-chevron-down v-if="!isProxyDropdownOpen" />
               <icon-tabler-chevron-up v-else />
             </el-icon>
-          </button>
+          </div>
           <div v-if="isProxyDropdownOpen" class="dropdown-list">
             <div
                 v-for="proxyItem in proxyList"
@@ -320,6 +316,11 @@ watch(() => proxiesStore.now, (newNow) => {
                 @click="selectProxy(proxyItem)"
             >
               <div class="proxy-item-content">
+                <el-tooltip :content="typeTooltip(proxyItem)" placement="top">
+                  <el-icon class="proxy-type-icon">
+                    <component :is="typeIcon(proxyItem)"/>
+                  </el-icon>
+                </el-tooltip>
                 <span class="proxy-item-name">{{ proxyItem.displayName ?? proxyItem.name }}</span>
                 <el-tooltip
                     v-if="getServerDescription(proxyItem)"
@@ -344,14 +345,14 @@ watch(() => proxiesStore.now, (newNow) => {
 
 <style scoped>
 .search-container {
-  padding-top: var(--px-space-6);
+  padding-top: 25px;
   position: relative;
   -webkit-app-region: drag; /* Electron */
   --wails-draggable: drag;  /* Wails (frameless on Windows/Linux) */
 }
 
 .win {
-  padding-top: var(--px-space-4);
+  padding-top: 15px;
 }
 
 .no-drag {
@@ -367,13 +368,12 @@ watch(() => proxiesStore.now, (newNow) => {
   width: 100%;
 }
 
-/* Proxy Selector Container.
-   Без собственного margin-left: селекторы встают на ту же вертикаль, что и
-   заголовки и карточки разделов ниже. */
+/* Proxy Selector Container */
 .proxy-selector {
   display: flex;
   align-items: center;
-  gap: var(--px-space-3);
+  gap: 12px;
+  margin-left: 8px;
 }
 
 /* Dropdown Wrapper */
@@ -390,46 +390,42 @@ watch(() => proxiesStore.now, (newNow) => {
   position: relative;
   width: 100%;
   min-width: 0;
-  padding: var(--px-space-4) var(--px-space-3) var(--px-space-2);
+  padding: 14px 12px 8px 12px;
   border: 1px solid var(--dropdown-border-color);
   border-top-color: transparent;
-  border-radius: var(--px-r-md);
-  background-color: var(--left-nav-btn-bg);
+  border-radius: 20px;
+  background-color: var(--sub-card-bg);
   color: var(--text-color);
-  font-size: var(--px-fs-small);
+  font-size: 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--px-space-2);
-  transition: background-color var(--px-dur) var(--px-ease),
-  border-color var(--px-dur) var(--px-ease);
+  gap: 8px;
+  transition: all 0.2s ease;
   font-family: 'Twemoji', 'Nunito', 'Microsoft YaHei', '微软雅黑', sans-serif;
   font-variant-emoji: emoji;
   box-sizing: border-box;
-  text-align: left;
 }
 
 .dropdown-button:hover {
-  background-color: var(--left-nav-btn-hover-bg);
-  --dropdown-border-color: var(--text-color);
+  background-color: var(--skin-hover-color);
+  --dropdown-border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Outlined Label (врезанный в рамку) */
 .dropdown-label {
   position: absolute;
   top: 0;
-  left: var(--px-space-3);
-  right: var(--px-space-3);
+  left: 10px;
+  right: 10px;
   display: flex;
   align-items: center;
-  gap: var(--px-space-2);
+  gap: 8px;
   transform: translateY(-50%);
-  font-size: var(--px-fs-caption);
-  font-weight: 600;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: var(--px-text-muted);
+  font-size: 12px;
+  color: var(--text-color);
+  opacity: 0.6;
   font-family: 'Twemoji', 'Nunito', 'Microsoft YaHei', '微软雅黑', sans-serif;
   z-index: 1;
   pointer-events: none;
@@ -462,14 +458,14 @@ watch(() => proxiesStore.now, (newNow) => {
 /* Dropdown List */
 .dropdown-list {
   position: absolute;
-  top: calc(100% + var(--px-space-1));
+  top: calc(100% + 4px);
   left: 0;
   right: 0;
   width: 100%;
   max-height: 300px;
   overflow-y: auto;
-  border: 1px solid var(--sub-card-border);
-  border-radius: var(--px-r-md);
+  border: 1px solid var(--dropdown-border-color);
+  border-radius: 20px;
   background-color: var(--dropdown-list-bg);
   box-shadow: var(--skin-box-shadow);
   z-index: 9999;
@@ -504,18 +500,18 @@ watch(() => proxiesStore.now, (newNow) => {
 
 /* Dropdown Item */
 .dropdown-item {
-  padding: var(--px-space-2) var(--px-space-3);
+  padding: 10px 12px;
   cursor: pointer;
   color: var(--text-color);
-  font-size: var(--px-fs-small);
-  transition: background-color var(--px-dur) var(--px-ease);
+  font-size: 12px;
+  transition: background-color 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
 .dropdown-item:hover {
-  background-color: var(--left-nav-btn-hover-bg);
+  background-color: var(--skin-hover-color);
 }
 
 .dropdown-item-selected {
@@ -557,6 +553,20 @@ watch(() => proxiesStore.now, (newNow) => {
   color: var(--text-color);
   opacity: 0.6;
   flex-shrink: 0;
+}
+
+/* Тип узла. Те же метрики, что у info-иконки справа от имени, чтобы строка
+   читалась симметрично. */
+.proxy-type-icon {
+  font-size: 14px;
+  color: var(--text-color);
+  opacity: 0.6;
+  flex-shrink: 0;
+  cursor: help;
+}
+
+.proxy-type-icon:hover {
+  opacity: 1;
 }
 
 .proxy-info-icon:hover {

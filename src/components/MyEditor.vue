@@ -94,8 +94,8 @@ const onContentChange = () => {
 }
 
 :deep(.ace_editor) {
-  border: 1px solid var(--sub-card-border);
-  border-radius: var(--px-r-lg);
+  border: 2px solid var(--text-color);
+  border-radius: 20px;
   font: 15px "Twemoji", "Monaco", "Menlo", "Ubuntu Mono", "Consolas",
   "Source Code Pro", "source-code-pro", monospace;
 }

@@ -6,11 +6,9 @@
  * list keep reading the variables they already read and render exactly as
  * before. This file only adds the vocabulary the redesigned screens use.
  *
- * Two values come from the wallpaper at runtime, written by src/util/theme.ts:
- * --left-item-selected-bg (the selection colour, aliased here as --px-accent)
- * and --px-scrim-a (how opaque a content substrate must be for text to stay
- * readable on that particular wallpaper — 0 on dark ones, so they look
- * untouched).
+ * --px-scrim-a is written at runtime by src/util/theme.ts: how opaque a
+ * content substrate must be for text to stay readable on that particular
+ * wallpaper — 0 on dark ones, so they look untouched.
  */
 
 :root {
@@ -40,12 +38,6 @@
     --px-r-md: 14px;
     --px-r-lg: 20px;
     --px-r-pill: 999px;
-    /* Вложенный блок: радиус родителя минус его внутренний отступ. Равные
-       радиусы у вложенных углов расходятся — внутренний выглядит толще,
-       и между ним и рамкой родителя остаётся серп. --px-r-nested — готовая
-       пара для самого частого случая: блок с --px-r-lg и отступом
-       --px-space-2 (карточка узла внутри карточки группы). */
-    --px-r-nested: calc(var(--px-r-lg) - var(--px-space-2));
 
     /* ---- Typography ---- */
     --px-fs-caption: 12px;
@@ -92,12 +84,6 @@
        looks exactly like today's --sub-card-bg. */
     --px-scrim-rgb: 11, 16, 26;
     --px-scrim-a: 0;
-
-    /* ---- Accent ----
-       Цвет выбора, который theme.ts достаёт из обоев: им залит активный пункт
-       бокового меню, включённые тумблеры и выбранная карточка. Имя нужно,
-       чтобы «акцент» в стилях не читался как «фон пункта меню». */
-    --px-accent: var(--left-item-selected-bg);
 
     /* ---- Focus ----
        --top-hr-color is the theme-derived subtitle colour, kept at a

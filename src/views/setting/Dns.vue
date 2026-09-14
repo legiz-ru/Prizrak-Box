@@ -48,11 +48,12 @@ const save = async function (yamlContent: any) {
 
 <style scoped>
 .space {
-  margin-top: var(--px-space-5);
+  margin-top: 20px;
 }
 
 .title {
-  font-size: var(--px-fs-display);
+  font-size: 32px;
   font-weight: bold;
+  margin-left: 10px;
 }
 </style>

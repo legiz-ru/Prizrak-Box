@@ -90,23 +90,31 @@ watch(() => webStore.fProfile, async () => {
         class="search"
     ></MySimpleInput>
 
-    <div class="px-surface px-table rules-table">
-      <div class="px-table__head">
-        <span>{{ $t('rule.now.type') }}</span>
-        <span>{{ $t('rule.now.payload') }}</span>
-        <span>{{ $t('rule.now.proxy') }}</span>
-      </div>
-      <div class="px-table__body" @scroll="handleScroll">
-        <p v-if="paginatedData.length === 0" class="px-table__empty">
-          {{ $t('connections.noData') }}
-        </p>
-        <div class="px-table__row" v-for="(item, i) in paginatedData" :key="i">
-          <span class="px-table__cell rules-table__type">{{ item.type }}</span>
-          <span class="px-table__cell">{{ item.payload }}</span>
-          <span class="px-table__cell">{{ item.proxy }}</span>
-        </div>
+    <div class="content">
+      <el-row class="title">
+        <el-col :span="5">
+          {{ $t('rule.now.type') }}
+        </el-col>
+        <el-col :span="14">
+          {{ $t('rule.now.payload') }}
+        </el-col>
+        <el-col :span="5">
+          {{ $t('rule.now.proxy') }}
+        </el-col>
+      </el-row>
+      <div class="info-list" @scroll="handleScroll">
+        <el-row
+            :class="i%2 == 1? 'info info-s' : 'info'"
+            v-for="(item, i) in paginatedData"
+            :key="i"
+        >
+          <el-col :span="5">{{ item.type }}</el-col>
+          <el-col :span="14">{{ item.payload }}</el-col>
+          <el-col :span="5">{{ item.proxy }}</el-col>
+        </el-row>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -120,33 +128,83 @@ watch(() => webStore.fProfile, async () => {
 
 .now {
   width: 100%;
+  margin-left: 0;
+  margin-top: 5px;
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  gap: var(--px-space-3);
+}
+
+.search {
+  margin-top: 6px;
 }
 
 .search :deep(.custom-input) {
-  border-radius: var(--px-r-pill);
-  padding-left: var(--px-space-4);
+  border-radius: 999px;
+  padding-left: 16px;
 }
 
 .search :deep(.clear-button) {
   right: 14px;
 }
 
-/* Ширины колонок задаёт экран, механику строк — .px-table из tokens.css. */
-.rules-table {
-  grid-template-columns: 140px minmax(0, 1fr) 180px;
+.content {
+  border: 2px solid var(--text-color);
+  border-radius: 20px;
+  overflow: hidden;
+  margin-top: 25px;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
-/* Тип правила — короткий машинный идентификатор, моноширинный он читается
-   как столбец, а не как продолжение соседней ячейки. */
-.rules-table__type {
-  font-family: var(--px-font-num);
-  font-size: var(--px-fs-caption);
-  color: var(--px-text-muted);
+.title {
+  border-bottom: 1px solid var(--text-color);
+  padding: 8px 10px 8px 16px;
+  font-weight: bold;
 }
+
+.info-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.info {
+  border-bottom: 1px solid var(--sub-card-border);
+  padding: 8px 10px 8px 16px;
+}
+
+.info-s {
+  border-bottom: 1px solid var(--sub-card-border);
+  padding: 8px 10px 8px 16px;
+  background-color: var(--rule-list-bg); /* 深灰色，透明度为50% */
+}
+
+.info:hover {
+  background-color: var(--rule-list-hover);
+}
+
+.info-list::-webkit-scrollbar {
+  width: 5px;
+  padding-bottom: 20px;
+}
+
+.info-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.info-list::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-bg);
+  border-radius: 2px;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.info-list::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover-bg);
+  box-shadow: var(--scrollbar-hover-shadow);
+}
+
 </style>
