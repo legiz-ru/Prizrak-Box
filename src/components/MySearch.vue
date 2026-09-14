@@ -372,8 +372,8 @@ watch(() => proxiesStore.now, (newNow) => {
 .proxy-selector {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-left: 8px;
+  gap: var(--px-space-3);
+  margin-left: var(--px-space-2);
 }
 
 /* Dropdown Wrapper */
@@ -390,19 +390,21 @@ watch(() => proxiesStore.now, (newNow) => {
   position: relative;
   width: 100%;
   min-width: 0;
-  padding: 14px 12px 8px 12px;
+  /* 14px сверху — не 4/8-шкала, а зазор под подпись, врезанную в рамку;
+     остальное на токенах. */
+  padding: 14px var(--px-space-3) var(--px-space-2) var(--px-space-3);
   border: 1px solid var(--dropdown-border-color);
   border-top-color: transparent;
-  border-radius: 20px;
+  border-radius: var(--px-r-lg);
   background-color: var(--sub-card-bg);
   color: var(--text-color);
-  font-size: 12px;
+  font-size: var(--px-fs-caption);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  transition: all 0.2s ease;
+  gap: var(--px-space-2);
+  transition: all var(--px-dur) var(--px-ease);
   font-family: 'Twemoji', 'Nunito', 'Microsoft YaHei', '微软雅黑', sans-serif;
   font-variant-emoji: emoji;
   box-sizing: border-box;
@@ -410,7 +412,10 @@ watch(() => proxiesStore.now, (newNow) => {
 
 .dropdown-button:hover {
   background-color: var(--skin-hover-color);
-  --dropdown-border-color: rgba(255, 255, 255, 0.3);
+  /* Было rgba(255,255,255,.3) — на светлой подложке (light-фон, тёмный
+     текст) белая рамка на светлом фоне не видна. Как и у карточек прокси/
+     профиля, наведение подсвечивает рамку цветом текста. */
+  --dropdown-border-color: var(--text-color);
 }
 
 /* Outlined Label (врезанный в рамку) */
@@ -423,7 +428,7 @@ watch(() => proxiesStore.now, (newNow) => {
   align-items: center;
   gap: 8px;
   transform: translateY(-50%);
-  font-size: 12px;
+  font-size: var(--px-fs-caption);
   color: var(--text-color);
   opacity: 0.6;
   font-family: 'Twemoji', 'Nunito', 'Microsoft YaHei', '微软雅黑', sans-serif;
@@ -451,7 +456,7 @@ watch(() => proxiesStore.now, (newNow) => {
 }
 
 .dropdown-icon {
-  font-size: 14px;
+  font-size: var(--px-fs-body);
   flex-shrink: 0;
 }
 
@@ -465,7 +470,7 @@ watch(() => proxiesStore.now, (newNow) => {
   max-height: 300px;
   overflow-y: auto;
   border: 1px solid var(--dropdown-border-color);
-  border-radius: 20px;
+  border-radius: var(--px-r-lg);
   background-color: var(--dropdown-list-bg);
   box-shadow: var(--skin-box-shadow);
   z-index: 9999;
@@ -484,27 +489,32 @@ watch(() => proxiesStore.now, (newNow) => {
 }
 
 .dropdown-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  /* Было заглушено под rgba(255,255,255,.2) независимо от темы — тот же
+     скроллбар, что и в остальных списках приложения, теперь тот же токен. */
+  background: var(--scrollbar-bg);
+  /* Как и у остальных скроллбаров приложения (.px-table__body, .bottom в
+     MyLayout) — 2px буквально, а не токен: радиус здесь только чтобы
+     закруглить тонкую 4px полосу, не часть 4/8-шкалы отступов. */
   border-radius: 2px;
 }
 
 .dropdown-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--scrollbar-hover-bg);
 }
 
 /* Firefox */
 .dropdown-list {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: var(--scrollbar-bg) transparent;
 }
 
 /* Dropdown Item */
 .dropdown-item {
-  padding: 10px 12px;
+  padding: 10px var(--px-space-3);
   cursor: pointer;
   color: var(--text-color);
-  font-size: 12px;
-  transition: background-color 0.2s ease;
+  font-size: var(--px-fs-caption);
+  transition: background-color var(--px-dur) var(--px-ease);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -549,7 +559,7 @@ watch(() => proxiesStore.now, (newNow) => {
 }
 
 .proxy-info-icon {
-  font-size: 14px;
+  font-size: var(--px-fs-body);
   color: var(--text-color);
   opacity: 0.6;
   flex-shrink: 0;
@@ -558,7 +568,7 @@ watch(() => proxiesStore.now, (newNow) => {
 /* Тип узла. Те же метрики, что у info-иконки справа от имени, чтобы строка
    читалась симметрично. */
 .proxy-type-icon {
-  font-size: 14px;
+  font-size: var(--px-fs-body);
   color: var(--text-color);
   opacity: 0.6;
   flex-shrink: 0;
@@ -581,20 +591,23 @@ watch(() => proxiesStore.now, (newNow) => {
   flex-shrink: 0;
 }
 
+/* Тот же смысл, что у .toLow/.toMiddle/.toHigh в global.css (подсветка
+   задержки узла) — раньше свой отдельный набор цветов, не совпадающий
+   с тем, каким задержка красится в разделе Прокси. */
 .latency-low {
-  background-color: #52c41a; /* Green */
+  background-color: var(--px-ok);
 }
 
 .latency-medium {
-  background-color: #faad14; /* Orange */
+  background-color: var(--px-warn);
 }
 
 .latency-high {
-  background-color: #f5222d; /* Red */
+  background-color: var(--px-danger);
 }
 
 .latency-hidden {
-  background-color: #666; /* Gray for dead/unavailable */
+  background-color: var(--px-text-faint);
 }
 
 /* Title Bar */
