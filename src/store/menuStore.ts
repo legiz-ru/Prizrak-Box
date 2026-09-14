@@ -15,6 +15,7 @@ export const useMenuStore = defineStore('menu', {
         useWhite: true,
         settingTab: 'app',
         providersView: 'cards' as 'cards' | 'table',
+        navCollapsed: false,
     }),
     actions: {
         setMenu(menu: string) {
@@ -52,6 +53,9 @@ export const useMenuStore = defineStore('menu', {
         },
         setProvidersView(view: 'cards' | 'table') {
             this.providersView = view;
+        },
+        setNavCollapsed(navCollapsed: boolean) {
+            this.navCollapsed = navCollapsed;
         },
     },
     persist: defaultPersist,

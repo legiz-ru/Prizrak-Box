@@ -6,6 +6,8 @@ nav:
   setting: Настройки
   proxies: Прокси
   profiles: Профили
+  collapse: Свернуть меню
+  expand: Развернуть меню
 
 rules:
   rule: Правило

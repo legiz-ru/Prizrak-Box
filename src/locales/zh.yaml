@@ -6,6 +6,8 @@ nav:
   setting: 设置
   proxies: 代理
   profiles: 订阅
+  collapse: 收起菜单
+  expand: 展开菜单
 
 rules:
   rule: 规则

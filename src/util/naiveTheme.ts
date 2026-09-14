@@ -140,6 +140,25 @@ export const naiveThemeOverrides = computed<GlobalThemeOverrides>(() => {
         Form: {
             labelTextColor: "var(--text-color)",
         },
+        Menu: {
+            // Matches the pill-shaped nav-btn look the hand-rolled sidebar
+            // already used, so swapping to n-menu is a structural change only
+            // — nothing should look different at a glance.
+            borderRadius: "999px",
+            itemHeight: "42px",
+            color: "transparent",
+            itemColorHover: "var(--left-nav-btn-hover-bg)",
+            itemColorActive: "var(--left-item-selected-bg)",
+            itemColorActiveHover: "var(--left-item-selected-bg)",
+            itemTextColor: "var(--text-color)",
+            itemTextColorHover: "var(--text-color)",
+            itemTextColorActive: "var(--text-color)",
+            itemTextColorActiveHover: "var(--text-color)",
+            itemIconColor: "var(--text-color)",
+            itemIconColorHover: "var(--text-color)",
+            itemIconColorActive: "var(--text-color)",
+            itemIconColorActiveHover: "var(--text-color)",
+        },
     };
 });
 

@@ -6,6 +6,8 @@ nav:
   setting: Setting
   proxies: Proxies
   profiles: Profiles
+  collapse: Collapse menu
+  expand: Expand menu
 
 rules:
   rule: Rule
