@@ -50,8 +50,6 @@ function filterData() {
 
 <style scoped>
 .conn {
-  width: 95%;
-  margin-left: 10px;
   margin-top: 2px;
 }
 
@@ -69,12 +67,12 @@ function filterData() {
   right: 14px;
 }
 
+/* Тот же край, что у стола правил и вкладки Соединения: 1px
+   var(--sub-card-border), а не собственная рамка 2px var(--text-color). */
 .content {
-  border: 2px solid var(--text-color);
-  border-radius: 20px;
-  margin-top: 20px;
-  width: 95%;
-  margin-left: 10px;
+  border: 1px solid var(--sub-card-border);
+  border-radius: var(--px-r-lg);
+  margin-top: var(--px-space-5);
   overflow: hidden;
 }
 

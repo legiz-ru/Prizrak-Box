@@ -363,18 +363,18 @@ function closeAll() {
 <template>
   <div class="conn">
     <el-space class="op">
-      <button class="pill-btn" @click="closeAll">{{ $t('connections.close') }}</button>
-      <div class="pill-toggle">
+      <button class="px-btn" @click="closeAll">{{ $t('connections.close') }}</button>
+      <div class="px-seg">
         <button
-            :class="['pill-toggle__btn', { 'is-active': connectionStore.viewMode === 'list' }]"
+            :class="['px-seg__btn', { 'is-active': connectionStore.viewMode === 'list' }]"
             @click="connectionStore.viewMode = 'list'"
         >{{ $t('connections.list') }}</button>
         <button
-            :class="['pill-toggle__btn', { 'is-active': connectionStore.viewMode === 'topology' }]"
+            :class="['px-seg__btn', { 'is-active': connectionStore.viewMode === 'topology' }]"
             @click="connectionStore.viewMode = 'topology'"
         >{{ $t('connections.topology-view') }}</button>
         <button
-            :class="['pill-toggle__btn', { 'is-active': connectionStore.viewMode === 'process' }]"
+            :class="['px-seg__btn', { 'is-active': connectionStore.viewMode === 'process' }]"
             @click="connectionStore.viewMode = 'process'"
         >{{ $t('connections.process-view') }}</button>
       </div>
@@ -618,8 +618,6 @@ function closeAll() {
 
 <style scoped>
 .conn {
-  width: 95%;
-  margin-left: 10px;
   margin-top: 2px;
 }
 
@@ -637,64 +635,14 @@ function closeAll() {
   right: 14px;
 }
 
-.pill-btn {
-  border: none;
-  border-radius: 999px;
-  background-color: var(--left-nav-btn-bg);
-  color: var(--text-color);
-  padding: 9px 18px;
-  font-size: 14px;
-  cursor: pointer;
-  box-shadow: var(--left-nav-shadow);
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-  white-space: nowrap;
-}
-
-.pill-btn:hover {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-.pill-toggle {
-  display: inline-flex;
-  border-radius: 999px;
-  background-color: var(--left-nav-btn-bg);
-  box-shadow: var(--left-nav-shadow);
-  padding: 4px;
-  gap: 4px;
-}
-
-.pill-toggle:hover {
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-.pill-toggle__btn {
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-color);
-  cursor: pointer;
-  font-size: 14px;
-  padding: 5px 14px;
-  white-space: nowrap;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.pill-toggle__btn:hover {
-  background-color: var(--left-nav-btn-hover-bg);
-}
-
-.pill-toggle__btn.is-active {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
+/* Кнопка и переключатель режима — общие .px-btn/.px-seg вместо своих копий
+   (та же пара, что была у Group.vue/Providers.vue/Setting.vue). */
 .content {
-  border: 2px solid var(--text-color);
-  margin-top: 20px;
-  width: calc(95% - 10px);
-  margin-left: 10px;
-  border-radius: 20px;
+  /* Тот же край, что у стола правил и карточек: 1px var(--sub-card-border),
+     а не собственная рамка 2px var(--text-color). */
+  border: 1px solid var(--sub-card-border);
+  margin-top: var(--px-space-5);
+  border-radius: var(--px-r-lg);
   overflow: hidden;
 }
 
@@ -870,7 +818,10 @@ function closeAll() {
 .icon-btn:hover,
 .icon-btn:focus {
   color: var(--left-item-selected-bg);
-  background-color: rgba(255, 255, 255, 0.08);
+  /* Было rgba(255,255,255,.08) буквально — на светлой теме подсветка кнопки
+     почти не видна (светлое на светлом), а на тёмной чуть ярче, чем то же
+     наведение у всех остальных иконок-кнопок в приложении. */
+  background-color: var(--left-nav-btn-hover-bg);
   outline: none;
 }
 
@@ -912,7 +863,7 @@ function closeAll() {
 
 .log-dialog__action:hover,
 .log-dialog__action:focus-visible {
-  background-color: rgba(0, 0, 0, 0.08);
+  background-color: var(--left-nav-btn-hover-bg);
   color: var(--left-item-selected-bg);
 }
 
@@ -1053,7 +1004,7 @@ function closeAll() {
 }
 
 .process-row:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--left-nav-btn-hover-bg);
 }
 
 .process-item-inner {
@@ -1147,11 +1098,11 @@ function closeAll() {
   font-weight: 600;
   background-color: var(--left-bg-color);
   transition: background-color 0.15s ease;
-  border-radius: 20px 20px 0 0;
+  border-radius: var(--px-r-lg) var(--px-r-lg) 0 0;
 }
 
 .process-back-bar:hover {
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: var(--left-nav-btn-hover-bg);
 }
 
 .process-back-icon {

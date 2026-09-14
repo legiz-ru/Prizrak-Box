@@ -48,17 +48,19 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
+/* Этот селектор стоит в одной строке с переключателем разделов настроек
+   (.px-seg, 34px) — свои 38px делали его на глаз выше соседей. */
 :deep(.el-select__wrapper) {
-  height: 38px;
-  border-radius: 999px;
+  height: var(--px-control-h);
+  border-radius: var(--px-r-pill);
   background: var(--left-nav-btn-bg);
-  box-shadow: var(--left-nav-shadow);
+  box-shadow: var(--px-elev-1);
   border: none;
-  padding: 0 12px 0 16px;
+  padding: 0 var(--px-space-3) 0 var(--px-space-4);
 }
 
 :deep(.el-select__wrapper:hover) {
-  box-shadow: var(--left-nav-hover-shadow);
+  box-shadow: var(--px-elev-2);
 }
 
 :deep(.el-select__placeholder),
