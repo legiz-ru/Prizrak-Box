@@ -1484,24 +1484,43 @@ watch(() => webStore.dProfile, async (pList) => {
 }
 
 .title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   font-size: 32px;
-  font-weight: bold;
+  font-weight: 800;
+  letter-spacing: -0.01em;
   margin-left: 10px;
+}
+
+.title::before {
+  content: "";
+  width: 4px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--left-item-selected-bg);
+  flex-shrink: 0;
 }
 
 .profile-option {
   margin-left: 10px;
   font-size: 30px;
-  padding-top: 10px;
+  padding-top: 6px;
+  display: flex;
+  align-items: center;
 }
 
 .profile-option-btn {
-  margin-right: 15px;
+  margin-right: 6px;
+  padding: 6px;
+  border-radius: 999px;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .profile-option-btn:hover {
   cursor: pointer;
-  color: var(--hr-color);
+  color: var(--text-color);
+  background-color: var(--left-nav-btn-hover-bg);
 }
 
 .multi-profile-info {
