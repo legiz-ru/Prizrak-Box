@@ -41,6 +41,17 @@ export const naiveTheme = computed<GlobalTheme | null>(() => (isDarkBg.value ? d
 // hand-rolled overrides this app already applies to Element Plus
 // (see styles/global.css's .el-overlay-dialog rules) — kept here so the
 // same shape language carries over as screens move to Naive UI.
+//
+// Surface/text/border colours below are wired to the app's own
+// wallpaper-adaptive CSS variables (theme.ts's changeTheme(), applied via
+// document.documentElement.style.setProperty) rather than left on Naive's
+// static dark/light preset values. Passing a `var(...)` string here is fine:
+// Naive bakes it into the CSS it injects, so the browser re-resolves it live
+// whenever the underlying custom property changes — no re-render needed.
+// Without this, dialogs/dropdowns/inputs only had two fixed looks (Naive's
+// built-in dark or light palette) that didn't track the wallpaper the way
+// every hand-styled surface in the app already does, so a card/modal could
+// end up visibly mismatched against its background after a wallpaper change.
 export const naiveThemeOverrides = computed<GlobalThemeOverrides>(() => {
     const {primary, text} = accent.value;
     return {
@@ -59,18 +70,66 @@ export const naiveThemeOverrides = computed<GlobalThemeOverrides>(() => {
         },
         Input: {
             borderRadius: "999px",
+            color: "var(--search-input-bg)",
+            colorHover: "var(--search-input-bg)",
+            colorFocus: "var(--search-input-bg)",
+            textColor: "var(--text-color)",
+            placeholderColor: "var(--placeholder-color)",
+            border: "1px solid var(--sub-card-border)",
+            borderHover: "1px solid var(--text-color)",
+            borderFocus: "1px solid var(--text-color)",
+            caretColor: "var(--left-item-selected-bg)",
         },
         InternalSelection: {
             borderRadius: "999px",
+            color: "var(--search-input-bg)",
+            colorActive: "var(--search-input-bg)",
+            textColor: "var(--text-color)",
+            placeholderColor: "var(--placeholder-color)",
+            border: "1px solid var(--sub-card-border)",
+            borderHover: "1px solid var(--text-color)",
+            borderActive: "1px solid var(--text-color)",
+            borderFocus: "1px solid var(--text-color)",
         },
         Dialog: {
             borderRadius: "20px",
         },
         Card: {
             borderRadius: "20px",
+            color: "var(--sub-card-bg)",
+            colorModal: "var(--sub-card-bg)",
+            colorPopover: "var(--sub-card-bg)",
+            colorEmbedded: "var(--sub-card-bg)",
+            textColor: "var(--text-color)",
+            titleTextColor: "var(--text-color)",
+            borderColor: "var(--sub-card-border)",
+            actionColor: "var(--sub-card-bg)",
+        },
+        Modal: {
+            color: "var(--sub-card-bg)",
+            textColor: "var(--text-color)",
         },
         Popover: {
             borderRadius: "14px",
+            color: "var(--dropdown-list-bg)",
+            textColor: "var(--text-color)",
+            dividerColor: "var(--sub-card-border)",
+        },
+        Dropdown: {
+            color: "var(--dropdown-list-bg)",
+            dividerColor: "var(--sub-card-border)",
+            optionTextColor: "var(--text-color)",
+            optionTextColorHover: "var(--text-color)",
+            optionTextColorActive: "var(--text-color)",
+            optionColorHover: "var(--left-nav-btn-hover-bg)",
+            optionColorActive: "var(--left-item-selected-bg)",
+        },
+        Tooltip: {
+            color: "var(--skin-bg-color)",
+            textColor: "var(--text-color)",
+        },
+        Form: {
+            labelTextColor: "var(--text-color)",
         },
     };
 });
