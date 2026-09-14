@@ -2,9 +2,9 @@
   <div class="dropdown-container"
        @mouseenter="showDropdown"
        @mouseleave="hideDropdown">
-    <el-icon class="dropdown-button">
+    <n-icon class="dropdown-button">
       <icon-mdi-translate/>
-    </el-icon>
+    </n-icon>
     <div class="dropdown-content"
          v-show="isDropdownVisible"
          @mouseenter="cancelHide">

@@ -494,13 +494,13 @@ async function applySystemProxyMode(enable: boolean, notify: boolean) {
   </div>
 
   <!-- Диалог предложения установки сервиса -->
-  <el-dialog
-      v-model="showServiceDialog"
+  <n-modal
+      v-model:show="showServiceDialog"
+      preset="card"
       :title="$t('service.dialog-title')"
-      width="450px"
-      :close-on-click-modal="true"
-      :append-to-body="true"
-      :modal="true"
+      :bordered="false"
+      style="width: 450px"
+      :mask-closable="true"
       :z-index="9999"
   >
     <div class="service-dialog">
@@ -510,19 +510,19 @@ async function applySystemProxyMode(enable: boolean, notify: boolean) {
     </div>
     <template #footer>
       <div class="service-dialog__footer">
-        <el-button @click="closeServiceDialog">{{ $t('cancel') }}</el-button>
-        <el-button type="primary" @click="installServiceHandler">{{ $t('service.install-btn') }}</el-button>
+        <n-button @click="closeServiceDialog">{{ $t('cancel') }}</n-button>
+        <n-button type="primary" @click="installServiceHandler">{{ $t('service.install-btn') }}</n-button>
       </div>
     </template>
-  </el-dialog>
+  </n-modal>
 
-  <el-dialog
-      v-model="showAdminChoiceDialog"
+  <n-modal
+      v-model:show="showAdminChoiceDialog"
+      preset="card"
       :title="$t('service.admin-title')"
-      width="450px"
-      :close-on-click-modal="true"
-      :append-to-body="true"
-      :modal="true"
+      :bordered="false"
+      style="width: 450px"
+      :mask-closable="true"
       :z-index="9999"
   >
     <div class="service-dialog">
@@ -531,12 +531,12 @@ async function applySystemProxyMode(enable: boolean, notify: boolean) {
     </div>
     <template #footer>
       <div class="service-dialog__footer">
-        <el-button @click="closeAdminChoiceDialog">{{ $t('cancel') }}</el-button>
-        <el-button @click="runTunWithoutService">{{ $t('service.admin-run-btn') }}</el-button>
-        <el-button type="primary" @click="installServiceHandler">{{ $t('service.admin-install-btn') }}</el-button>
+        <n-button @click="closeAdminChoiceDialog">{{ $t('cancel') }}</n-button>
+        <n-button @click="runTunWithoutService">{{ $t('service.admin-run-btn') }}</n-button>
+        <n-button type="primary" @click="installServiceHandler">{{ $t('service.admin-install-btn') }}</n-button>
       </div>
     </template>
-  </el-dialog>
+  </n-modal>
 </template>
 
 <style scoped>
@@ -634,7 +634,7 @@ async function applySystemProxyMode(enable: boolean, notify: boolean) {
 </style>
 
 <style>
-/* Стили для диалога сервиса (не scoped, т.к. el-dialog рендерится вне компонента) */
+/* Стили для диалога сервиса (не scoped, т.к. n-modal рендерится вне компонента) */
 .service-dialog {
   padding: 10px 0;
 }

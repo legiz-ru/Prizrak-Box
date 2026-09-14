@@ -2,9 +2,9 @@
   <div class="dropdown-container"
        @mouseenter="showDropdown"
        @mouseleave="hideDropdown">
-    <el-icon @click="quit" class="dropdown-button">
+    <n-icon @click="quit" class="dropdown-button">
       <icon-mdi-power/>
-    </el-icon>
+    </n-icon>
     <div class="dropdown-content"
          v-show="isDropdownVisible"
          @mouseenter="cancelHide">

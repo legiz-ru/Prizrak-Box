@@ -873,6 +873,17 @@ onBeforeUnmount(() => {
 // Template列表
 let tList = reactive([]);
 
+const templateOptions = computed(() => {
+  const options: { label: string; value: string }[] = []
+  if (editForm.pxdTemplateUrl) {
+    options.push({label: t('profiles.edit.pxd-subscription'), value: 'pxd_subscription'})
+  }
+  for (const item of tList as any[]) {
+    options.push({label: getTemplateTitle(t, item.title), value: item.id})
+  }
+  return options
+})
+
 // vue 周期相关
 onMounted(async () => {
   const urlTraffic = webStore.wsUrl + "/profile/order?token=" + webStore.secret;
@@ -906,61 +917,66 @@ watch(() => webStore.dProfile, async (pList) => {
 <template>
   <MyLayout>
     <template #top>
-        <el-space class="space">
+        <n-space class="space">
           <div class="title">
             {{ $t('profiles.title') }}
           </div>
           <div class="profile-option">
-            <el-tooltip
-                :content="multiProfileEnabled ? t('profiles.multi-select.disable') : t('profiles.multi-select.enable')"
-                placement="top">
-              <el-icon
+            <n-tooltip trigger="hover" placement="top">
+  <template #trigger>
+              <n-icon
                   @click="toggleMultiProfile"
                   class="profile-option-btn">
                 <icon-mdi-checkbox-multiple-marked v-if="multiProfileEnabled"/>
                 <icon-mdi-checkbox-multiple-blank-outline v-else/>
-              </el-icon>
-            </el-tooltip>
-            <el-tooltip
-                :content="t('profiles.multi-select.info')"
-                placement="top">
-              <el-icon
+              </n-icon>
+            </template>
+  {{ multiProfileEnabled ? t('profiles.multi-select.disable') : t('profiles.multi-select.enable') }}
+</n-tooltip>
+            <n-tooltip trigger="hover" placement="top">
+  <template #trigger>
+              <n-icon
                   @click="showMultiProfileInfo"
                   class="profile-option-btn">
                 <icon-mdi-information-outline/>
-              </el-icon>
-            </el-tooltip>
-            <el-tooltip
-                :content="$t('profiles.add')"
-                placement="top">
-              <el-icon
+              </n-icon>
+            </template>
+  {{ t('profiles.multi-select.info') }}
+</n-tooltip>
+            <n-tooltip trigger="hover" placement="top">
+  <template #trigger>
+              <n-icon
                   @click="handleAdd"
                 class="profile-option-btn">
               <icon-mdi-plus-thick/>
-            </el-icon>
-          </el-tooltip>
+            </n-icon>
+          </template>
+  {{ $t('profiles.add') }}
+</n-tooltip>
 
-          <el-tooltip
-              :content="$t('profiles.paste')"
-              placement="top">
-            <el-icon
+          <n-tooltip trigger="hover" placement="top">
+  <template #trigger>
+            <n-icon
                 @click="handlePaste"
                 class="profile-option-btn">
               <icon-mdi-content-paste/>
-            </el-icon>
-          </el-tooltip>
+            </n-icon>
+          </template>
+  {{ $t('profiles.paste') }}
+</n-tooltip>
 
-          <el-tooltip
-              :content="$t('profiles.open')"
-              placement="top">
-            <el-icon
+          <n-tooltip trigger="hover" placement="top">
+  <template #trigger>
+            <n-icon
                 @click="openFile"
                 class="profile-option-btn">
               <icon-mdi-folder-open/>
-            </el-icon>
-          </el-tooltip>
+            </n-icon>
+          </template>
+  {{ $t('profiles.open') }}
+</n-tooltip>
         </div>
-      </el-space>
+      </n-space>
 
     </template>
 
@@ -978,56 +994,56 @@ watch(() => webStore.dProfile, async (pList) => {
               @click="switchProfile(data, true, true)"
           >
             <div class="row card-header">
-              <el-icon
+              <n-icon
                   @mouseenter.stop="mouseEnter"
                   @mouseleave.stop="mouseLeave"
                   @click.stop
                   size="22"
                   class="drag">
                 <icon-mdi-drag/>
-              </el-icon>
+              </n-icon>
               <div class="profile-name" :title="getProfileDisplayTitle(data)">
                 <span class="profile-name-text">{{ getProfileDisplayTitle(data) }}</span>
               </div>
               <div class="header-action">
-                <el-tooltip
-                    v-if="data.type == 1"
-                    :content="$t('refresh')"
-                    placement="top">
-                  <el-icon size="22"
+                <n-tooltip trigger="hover" placement="top" v-if="data.type == 1">
+  <template #trigger>
+                  <n-icon size="22"
                            class="ops"
                            @click.stop="refresh(data)">
                     <icon-mdi-refresh/>
-                  </el-icon>
-                </el-tooltip>
+                  </n-icon>
+                </template>
+  {{ $t('refresh') }}
+</n-tooltip>
               </div>
             </div>
             <div class="stats">
               <div class="stat-row" v-if="hasValue(data.used)">
-                <el-icon size="18" class="stat-icon">
+                <n-icon size="18" class="stat-icon">
                   <icon-mdi-chart-timeline-variant/>
-                </el-icon>
+                </n-icon>
                 <span class="stat-label">{{ $t('profiles.use') }}</span>
                 <span class="stat-value">{{ formatTrafficValue(data.used) }}</span>
               </div>
               <div class="stat-row" v-if="hasValue(data.available)">
-                <el-icon size="18" class="stat-icon">
+                <n-icon size="18" class="stat-icon">
                   <icon-mdi-database-check/>
-                </el-icon>
+                </n-icon>
                 <span class="stat-label">{{ $t('profiles.available') }}</span>
                 <span class="stat-value">{{ formatTrafficValue(data.available) }}</span>
               </div>
               <div class="stat-row" v-if="hasValue(data.expire)">
-                <el-icon size="18" class="stat-icon">
+                <n-icon size="18" class="stat-icon">
                   <icon-mdi-calendar-alert/>
-                </el-icon>
+                </n-icon>
                 <span class="stat-label">{{ $t('profiles.expire') }}</span>
                 <span class="stat-value">{{ formatDateValue(data.expire) }}</span>
               </div>
               <div class="stat-row" v-if="hasValue(data.update)">
-                <el-icon size="18" class="stat-icon">
+                <n-icon size="18" class="stat-icon">
                   <icon-mdi-update/>
-                </el-icon>
+                </n-icon>
                 <span class="stat-label">{{ $t('profiles.update') }}</span>
                 <span class="stat-value">{{ formatDateValue(data.update) }}</span>
               </div>
@@ -1040,11 +1056,11 @@ watch(() => webStore.dProfile, async (pList) => {
                     :class="{ 'is-selected': data.selected }"
                     @click.stop="switchProfile(data, !data.selected)"
                 >
-                  <el-icon class="profile-select-icon" size="18">
+                  <n-icon class="profile-select-icon" size="18">
                     <icon-mdi-check-circle v-if="data.selected"/>
                     <icon-mdi-circle-outline v-else/>
-                  </el-icon>
-                  <el-icon v-if="data.selected" class="profile-select-order-icon" size="18">
+                  </n-icon>
+                  <n-icon v-if="data.selected" class="profile-select-order-icon" size="18">
                     <icon-mdi-numeric-1-circle v-if="data.selectionOrder === 1"/>
                     <icon-mdi-numeric-2-circle v-else-if="data.selectionOrder === 2"/>
                     <icon-mdi-numeric-3-circle v-else-if="data.selectionOrder === 3"/>
@@ -1055,85 +1071,87 @@ watch(() => webStore.dProfile, async (pList) => {
                     <icon-mdi-numeric-8-circle v-else-if="data.selectionOrder === 8"/>
                     <icon-mdi-numeric-9-circle v-else-if="data.selectionOrder === 9"/>
                     <icon-mdi-numeric-10-circle v-else/>
-                  </el-icon>
+                  </n-icon>
                 </button>
               </div>
               <div class="bottom-actions">
-                <el-tooltip
-                    v-if="data.content && isHttpOrHttps(data.content)"
-                    :content="$t('profiles.tv-send')"
-                    placement="top">
-                  <el-icon
+                <n-tooltip trigger="hover" placement="top" v-if="data.content && isHttpOrHttps(data.content)">
+  <template #trigger>
+                  <n-icon
                       class="ops"
                       @click.stop="openTvDialog(data)"
                       size="20">
                     <icon-mdi-television-classic/>
-                  </el-icon>
-                </el-tooltip>
-                <el-tooltip
-                    v-if="data.announce"
-                    :content="$t('profiles.announce')"
-                    placement="top">
-                  <el-icon
+                  </n-icon>
+                </template>
+  {{ $t('profiles.tv-send') }}
+</n-tooltip>
+                <n-tooltip trigger="hover" placement="top" v-if="data.announce">
+  <template #trigger>
+                  <n-icon
                       class="ops"
                       @click.stop="showAnnounce(data)"
                       size="20">
                     <icon-mdi-bullhorn-variant-outline/>
-                  </el-icon>
-                </el-tooltip>
-                <el-tooltip
-                    v-if="data.renewUrl"
-                    :content="$t('profiles.renew')"
-                    placement="top">
-                  <el-icon
+                  </n-icon>
+                </template>
+  {{ $t('profiles.announce') }}
+</n-tooltip>
+                <n-tooltip trigger="hover" placement="top" v-if="data.renewUrl">
+  <template #trigger>
+                  <n-icon
                       class="ops"
                       @click.stop="goRenew(data)"
                       size="20">
                     <icon-mdi-credit-card-outline/>
-                  </el-icon>
-                </el-tooltip>
-                <el-tooltip
-                    v-if="data.support"
-                    :content="$t('profiles.support')"
-                    placement="top">
-                  <el-icon
+                  </n-icon>
+                </template>
+  {{ $t('profiles.renew') }}
+</n-tooltip>
+                <n-tooltip trigger="hover" placement="top" v-if="data.support">
+  <template #trigger>
+                  <n-icon
                       class="ops"
                       @click.stop="goSupport(data)"
                       size="20">
                     <icon-mdi-face-agent/>
-                  </el-icon>
-                </el-tooltip>
-                <el-tooltip
-                    v-if="data.home"
-                    :content="$t('profiles.home')"
-                    placement="top">
-                  <el-icon
+                  </n-icon>
+                </template>
+  {{ $t('profiles.support') }}
+</n-tooltip>
+                <n-tooltip trigger="hover" placement="top" v-if="data.home">
+  <template #trigger>
+                  <n-icon
                       class="ops"
                       @click.stop="goHome(data)"
                       size="20">
                     <icon-mdi-home-import-outline/>
-                  </el-icon>
-                </el-tooltip>
-                <el-tooltip
-                    :content="$t('edit')"
-                    placement="top">
-                  <el-icon
+                  </n-icon>
+                </template>
+  {{ $t('profiles.home') }}
+</n-tooltip>
+                <n-tooltip trigger="hover" placement="top">
+  <template #trigger>
+                  <n-icon
                       class="ops"
                       @click.stop="updateProfile(data)"
                       size="20">
                     <icon-mdi-square-edit-outline/>
-                  </el-icon>
-                </el-tooltip>
-                <el-tooltip
-                    :content="$t('delete')"
-                    placement="top">
-                  <el-icon
+                  </n-icon>
+                </template>
+  {{ $t('edit') }}
+</n-tooltip>
+                <n-tooltip trigger="hover" placement="top">
+  <template #trigger>
+                  <n-icon
                       class="ops"
                       @click.stop="deleteProfile(data,index)"
                       size="20">
                     <icon-mdi-trash-can/>
-                  </el-icon>
-                </el-tooltip>
+                  </n-icon>
+                </template>
+  {{ $t('delete') }}
+</n-tooltip>
               </div>
             </div>
           </div>
@@ -1143,242 +1161,226 @@ watch(() => webStore.dProfile, async (pList) => {
     </template>
   </MyLayout>
 
-  <el-dialog v-model="addFormVisible"
-             :title="t('profiles.add')"
-             width="520"
-             draggable
-             center
+  <n-modal v-model:show="addFormVisible"
+           preset="card"
+           :title="t('profiles.add')"
+           :bordered="false"
+           style="width: 520px"
   >
-    <el-form :model="addForm">
-      <el-form-item>
-        <el-input
+    <n-form :model="addForm">
+      <n-form-item>
+        <n-input
             :rows="3"
             type="textarea"
             autocapitalize="off"
             autocomplete="off"
             spellcheck="false"
             :placeholder="t('profiles.placeholder')"
-            v-model="addForm.content"
+            v-model:value="addForm.content"
         />
-      </el-form-item>
-      <el-form-item v-if="addForm.useAgeKey" class="age-key-field">
-        <el-input
+      </n-form-item>
+      <n-form-item v-if="addForm.useAgeKey" class="age-key-field">
+        <n-input
             autocapitalize="off"
             autocomplete="off"
             spellcheck="false"
             :placeholder="t('age.profile.keyPlaceholder')"
-            v-model="addForm.ageSecretKey"
+            v-model:value="addForm.ageSecretKey"
             clearable
         >
           <template #prefix>
-            <el-icon><icon-mdi-key-variant/></el-icon>
+            <n-icon><icon-mdi-key-variant/></n-icon>
           </template>
-        </el-input>
-      </el-form-item>
-    </el-form>
+        </n-input>
+      </n-form-item>
+    </n-form>
     <template #footer>
       <div class="dialog-footer dialog-footer--split">
-        <el-tooltip
-            :content="addForm.useAgeKey ? t('age.profile.toggleOn') : t('age.profile.toggleOff')"
-            placement="top"
-        >
+        <n-tooltip trigger="hover" placement="top">
+  <template #trigger>
           <div class="age-toggle-wrap" @click="addForm.useAgeKey = !addForm.useAgeKey">
-            <el-icon class="age-toggle-icon" :class="{ 'age-toggle-icon--active': addForm.useAgeKey }">
+            <n-icon class="age-toggle-icon" :class="{ 'age-toggle-icon--active': addForm.useAgeKey }">
               <icon-mdi-key-variant/>
-            </el-icon>
+            </n-icon>
             <div :class="['px-toggle', { 'is-on': addForm.useAgeKey }]">
               <div class="px-toggle__thumb"></div>
             </div>
           </div>
-        </el-tooltip>
+        </template>
+  {{ addForm.useAgeKey ? t('age.profile.toggleOn') : t('age.profile.toggleOff') }}
+</n-tooltip>
         <div class="dialog-footer__actions">
-          <el-button @click="addFormVisible = false">
+          <n-button @click="addFormVisible = false">
             {{ t('cancel') }}
-          </el-button>
-          <el-button
+          </n-button>
+          <n-button
               :loading="isNowAdd"
               type="primary"
               @click="add">
             {{ t('confirm') }}
-          </el-button>
+          </n-button>
         </div>
       </div>
     </template>
-  </el-dialog>
+  </n-modal>
 
-  <el-dialog v-model="editFormVisible"
-             :title="t('edit')"
-             width="520"
-             draggable
-             center
+  <n-modal v-model:show="editFormVisible"
+           preset="card"
+           :title="t('edit')"
+           :bordered="false"
+           style="width: 520px"
   >
-    <el-form
+    <n-form
         :model="editForm"
-        label-position="top"
+        label-placement="top"
     >
-      <el-form-item
+      <n-form-item
           v-if="editForm.renewUrl"
           :label="t('profiles.renew')"
           label-width="120"
           class="renew-subscription-field">
-        <el-button class="renew-subscription-btn" @click="goRenew(editForm)">
-          <el-icon><icon-mdi-credit-card-outline/></el-icon>
+        <n-button class="renew-subscription-btn" @click="goRenew(editForm)">
+          <n-icon><icon-mdi-credit-card-outline/></n-icon>
           {{ t('profiles.renew') }}
-        </el-button>
-      </el-form-item>
-      <el-form-item
+        </n-button>
+      </n-form-item>
+      <n-form-item
           :label="t('profiles.edit.title')"
           label-width="120">
-        <el-input
-            v-model="editForm.title"
+        <n-input
+            v-model:value="editForm.title"
             clearable
             autocapitalize="off"
             autocomplete="off"
             spellcheck="false"/>
-      </el-form-item>
-      <el-form-item
+      </n-form-item>
+      <n-form-item
           v-if="editForm.type == 1"
           :label="t('profiles.edit.url')"
           label-width="120">
-        <el-input
-            v-model="editForm.content"
+        <n-input
+            v-model:value="editForm.content"
             clearable
             autocapitalize="off"
             autocomplete="off"
             spellcheck="false"/>
-      </el-form-item>
-      <el-form-item
+      </n-form-item>
+      <n-form-item
           v-if="editForm.type == 1"
           :label="t('profiles.edit.update')"
           label-width="120">
-        <el-input
-            v-model="editForm.interval"
+        <n-input
+            v-model:value="editForm.interval"
             clearable
             autocapitalize="off"
             autocomplete="off"
             spellcheck="false">
-        </el-input>
-      </el-form-item>
-      <el-form-item
+        </n-input>
+      </n-form-item>
+      <n-form-item
           :label="t('profiles.edit.template')"
           label-width="120">
-        <el-select
-            v-model="editForm.template"
-            placeholder=""
+        <n-select
+            v-model:value="editForm.template"
+            :options="templateOptions"
             clearable
             :disabled="!!editForm.pxdTemplateUrl"
-        >
-          <el-option
-              v-if="editForm.pxdTemplateUrl"
-              key="pxd_subscription"
-              :label="t('profiles.edit.pxd-subscription')"
-              value="pxd_subscription"
-          />
-          <el-option
-              v-for="item in tList"
-              :key="item.id"
-              :label="getTemplateTitle(t,item.title)"
-              :value="item.id"
-          />
-        </el-select>
-      </el-form-item>
+        />
+      </n-form-item>
 
-      <el-form-item
+      <n-form-item
           v-if="editShowAgeKey"
           label="age-secret-key"
           label-width="120"
           class="age-key-field">
-        <el-input
-            v-model="editForm.ageSecretKey"
+        <n-input
+            v-model:value="editForm.ageSecretKey"
             clearable
             autocapitalize="off"
             autocomplete="off"
             spellcheck="false"
             :placeholder="t('age.profile.keyPlaceholder')">
           <template #prefix>
-            <el-icon><icon-mdi-key-variant/></el-icon>
+            <n-icon><icon-mdi-key-variant/></n-icon>
           </template>
-        </el-input>
-      </el-form-item>
+        </n-input>
+      </n-form-item>
 
-    </el-form>
+    </n-form>
     <template #footer>
       <div class="dialog-footer dialog-footer--split">
         <div class="dialog-footer__indicators">
-          <el-tooltip
-              v-if="editForm.hwidActive"
-              :content="t('hwid.active.tooltip')"
-              placement="top"
-          >
-            <el-icon class="hwid-active-icon">
+          <n-tooltip trigger="hover" placement="top" v-if="editForm.hwidActive">
+  <template #trigger>
+            <n-icon class="hwid-active-icon">
               <icon-mdi-shield-check />
-            </el-icon>
-          </el-tooltip>
-          <el-tooltip
-              v-if="editForm.notifyExpireDays?.length || editForm.notifyTrafficPercent?.length"
-              :content="t('subscriptionAlert.bellTooltip')"
-              placement="top"
-          >
-            <el-icon class="subscription-alert-icon" @click="showSubscriptionAlertInfo">
+            </n-icon>
+          </template>
+  {{ t('hwid.active.tooltip') }}
+</n-tooltip>
+          <n-tooltip trigger="hover" placement="top" v-if="editForm.notifyExpireDays?.length || editForm.notifyTrafficPercent?.length">
+  <template #trigger>
+            <n-icon class="subscription-alert-icon" @click="showSubscriptionAlertInfo">
               <icon-mdi-bell-outline/>
-            </el-icon>
-          </el-tooltip>
-          <el-tooltip
-              v-if="editForm.type == 1 || editHasAgeKey"
-              :content="editHasAgeKey ? t('age.profile.replaceHint') : t('age.profile.toggleOff')"
-              placement="top"
-          >
-            <el-icon
+            </n-icon>
+          </template>
+  {{ t('subscriptionAlert.bellTooltip') }}
+</n-tooltip>
+          <n-tooltip trigger="hover" placement="top" v-if="editForm.type == 1 || editHasAgeKey">
+  <template #trigger>
+            <n-icon
                 class="age-toggle-icon age-edit-icon"
                 :class="{ 'age-toggle-icon--active': editShowAgeKey }"
                 @click="editShowAgeKey = !editShowAgeKey">
               <icon-mdi-key-variant/>
-            </el-icon>
-          </el-tooltip>
+            </n-icon>
+          </template>
+  {{ editHasAgeKey ? t('age.profile.replaceHint') : t('age.profile.toggleOff') }}
+</n-tooltip>
         </div>
         <div class="dialog-footer__actions">
-          <el-button @click="editFormVisible = false">
+          <n-button @click="editFormVisible = false">
             {{ t('cancel') }}
-          </el-button>
-          <el-button
+          </n-button>
+          <n-button
               type="primary"
               :loading="isNowEdit"
               @click="saveUpdateProfile"
           >
             {{ t('confirm') }}
-          </el-button>
+          </n-button>
         </div>
       </div>
     </template>
-  </el-dialog>
+  </n-modal>
 
   <!-- Информация о настроенных продавцом напоминаниях (колокольчик в редакторе профиля) -->
-  <el-dialog
-      v-model="subscriptionAlertInfoVisible"
+  <n-modal
+      v-model:show="subscriptionAlertInfoVisible"
+      preset="card"
       :title="t('subscriptionAlert.infoTitle')"
-      width="460"
-      draggable
-      center
+      :bordered="false"
+      style="width: 460px"
   >
     <div class="subscription-alert-info">
       <p v-for="line in subscriptionAlertInfoLines" :key="line">{{ line }}</p>
     </div>
     <template #footer>
-      <el-button type="primary" @click="subscriptionAlertInfoVisible = false">
+      <n-button type="primary" @click="subscriptionAlertInfoVisible = false">
         {{ t('close') }}
-      </el-button>
+      </n-button>
     </template>
-  </el-dialog>
+  </n-modal>
 
-  <el-dialog
-      v-model="multiProfileInfoVisible"
+  <n-modal
+      v-model:show="multiProfileInfoVisible"
+      preset="card"
       :title="t('profiles.multi-select.title')"
-      width="520"
-      draggable
-      center
-      :close-on-click-modal="false"
-      :close-on-press-escape="false"
-      :show-close="false"
+      :bordered="false"
+      style="width: 520px"
+      :mask-closable="false"
+      :close-on-esc="false"
+      :closable="false"
     >
       <div class="multi-profile-info">
         <p>{{ t('profiles.multi-select.description') }}</p>
@@ -1389,68 +1391,68 @@ watch(() => webStore.dProfile, async (pList) => {
       </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="declineMultiProfileInfo">
+          <n-button @click="declineMultiProfileInfo">
             {{ t('profiles.multi-select.decline') }}
-          </el-button>
-          <el-button type="primary" @click="confirmMultiProfileInfo">
+          </n-button>
+          <n-button type="primary" @click="confirmMultiProfileInfo">
             {{ t('profiles.multi-select.accept') }}
-          </el-button>
+          </n-button>
         </div>
       </template>
-    </el-dialog>
+    </n-modal>
 
   <!-- TV Send Dialog -->
-  <el-dialog
-      v-model="tvDialogVisible"
+  <n-modal
+      v-model:show="tvDialogVisible"
+      preset="card"
       :title="t('profiles.tv-dialog.title')"
-      width="400"
-      draggable
-      center
+      :bordered="false"
+      style="width: 400px"
   >
     <div class="tv-dialog-content">
-      <el-alert
+      <n-alert
           :title="t('profiles.tv-dialog.warning')"
           type="warning"
           :closable="false"
           show-icon
           style="margin-bottom: 16px"
       />
-      <el-form label-position="top">
-        <el-form-item :label="t('profiles.tv-dialog.ip')">
-          <el-input
-              v-model="tvForm.ip"
+      <n-form label-placement="top">
+        <n-form-item :label="t('profiles.tv-dialog.ip')">
+          <n-input
+              v-model:value="tvForm.ip"
               placeholder="192.168.1.100"
               autocomplete="off"
               spellcheck="false"
           />
-        </el-form-item>
-        <el-form-item :label="t('profiles.tv-dialog.port')">
-          <el-input
-              v-model="tvForm.port"
+        </n-form-item>
+        <n-form-item :label="t('profiles.tv-dialog.port')">
+          <n-input
+              v-model:value="tvForm.port"
               placeholder="8080"
               autocomplete="off"
               spellcheck="false"
           />
-        </el-form-item>
-      </el-form>
+        </n-form-item>
+      </n-form>
     </div>
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="tvDialogVisible = false">{{ t('cancel') }}</el-button>
-        <el-button type="primary" :loading="tvIsSending" @click="submitToTv">
+        <n-button @click="tvDialogVisible = false">{{ t('cancel') }}</n-button>
+        <n-button type="primary" :loading="tvIsSending" @click="submitToTv">
           {{ t('profiles.tv-dialog.submit') }}
-        </el-button>
+        </n-button>
       </div>
     </template>
-  </el-dialog>
+  </n-modal>
 
   <!-- Announce Dialog -->
-  <el-dialog
-      v-model="announceDialogVisible"
+  <n-modal
+      v-model:show="announceDialogVisible"
+      preset="card"
       :title="t('profiles.announce')"
-      width="520"
-      draggable
-      center
+      :bordered="false"
+      style="width: 520px"
   >
     <div class="announce-dialog-content">
       <AnnounceText
@@ -1460,19 +1462,19 @@ watch(() => webStore.dProfile, async (pList) => {
     </div>
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="announceDialogVisible = false">
+        <n-button @click="announceDialogVisible = false">
           {{ t('close') }}
-        </el-button>
-        <el-button
+        </n-button>
+        <n-button
             v-if="announceDialogData.url"
             type="primary"
             @click="goAnnounceUrl"
         >
           {{ t('profiles.announce-url') }}
-        </el-button>
+        </n-button>
       </div>
     </template>
-  </el-dialog>
+  </n-modal>
 
 </template>
 
@@ -1506,7 +1508,7 @@ watch(() => webStore.dProfile, async (pList) => {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  color: var(--el-text-color-regular);
+  color: var(--text-color);
   line-height: 1.4;
 }
 
@@ -1669,7 +1671,7 @@ watch(() => webStore.dProfile, async (pList) => {
 .announce-dialog-content {
   padding: 20px;
   font-size: 14px;
-  color: var(--el-text-color-primary);
+  color: var(--text-color);
   text-align: center;
   line-height: 1.6;
   word-wrap: break-word;
@@ -1700,7 +1702,7 @@ watch(() => webStore.dProfile, async (pList) => {
 
 .hwid-active-icon {
   font-size: 20px;
-  color: var(--el-color-primary);
+  color: var(--left-item-selected-bg);
   opacity: 0.85;
 }
 
@@ -1713,12 +1715,13 @@ watch(() => webStore.dProfile, async (pList) => {
 
 .age-toggle-icon {
   font-size: 20px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-color);
+  opacity: 0.7;
   transition: color 0.2s;
 }
 
 .age-toggle-icon--active {
-  color: var(--el-color-primary);
+  color: var(--left-item-selected-bg);
 }
 
 .age-key-field {
@@ -1729,7 +1732,8 @@ watch(() => webStore.dProfile, async (pList) => {
    продавцом напоминания", а не переключатель состояния. */
 .subscription-alert-icon {
   font-size: 20px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-color);
+  opacity: 0.7;
   cursor: pointer;
 }
 

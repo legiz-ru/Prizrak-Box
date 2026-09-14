@@ -2,9 +2,9 @@
   <div class="dropdown-container"
        @mouseenter="showDropdown"
        @mouseleave="hideDropdown">
-    <el-icon class="dropdown-button">
+    <n-icon class="dropdown-button">
       <icon-mdi-tshirt-crew-outline/>
-    </el-icon>
+    </n-icon>
     <div class="dropdown-content"
          v-show="isDropdownVisible"
          @mouseenter="cancelHide">
@@ -22,9 +22,9 @@
                 :title="t('bg.upload')"
                 :aria-label="t('bg.upload')"
                 @click.stop="triggerUpload(item)">
-          <el-icon aria-hidden="true">
+          <n-icon aria-hidden="true">
             <icon-mdi-upload/>
-          </el-icon>
+          </n-icon>
         </button>
       </div>
     </div>
@@ -39,7 +39,7 @@
 <script setup lang="ts">
 import {onMounted, ref} from 'vue';
 import {useI18n} from 'vue-i18n';
-import {ElMessage} from 'element-plus';
+import {pError} from "@/util/pLoad";
 import {useMenuStore} from "@/store/menuStore";
 import {
   buildRendererUrl,
@@ -179,7 +179,7 @@ const handleFileChange = (event: Event) => {
   reader.onload = async () => {
     const result = reader.result;
     if (typeof result !== 'string') {
-      ElMessage.error(t('bg.upload-failed'));
+      pError(t('bg.upload-failed'));
       target.value = '';
       pendingThemeId.value = null;
       return;
@@ -226,11 +226,11 @@ const handleFileChange = (event: Event) => {
         localStorage.setItem(key, storageValue);
       } catch (error) {
         console.error('Failed to save custom background', error);
-        ElMessage.error(t('bg.storage-failed'));
+        pError(t('bg.storage-failed'));
       }
     } catch (error) {
       console.error('Failed to upload custom background', error);
-      ElMessage.error(t('bg.upload-failed'));
+      pError(t('bg.upload-failed'));
     } finally {
       target.value = '';
       pendingThemeId.value = null;
@@ -238,7 +238,7 @@ const handleFileChange = (event: Event) => {
   };
   reader.onerror = () => {
     console.error('Failed to read custom background file', reader.error);
-    ElMessage.error(t('bg.upload-failed'));
+    pError(t('bg.upload-failed'));
     target.value = '';
     pendingThemeId.value = null;
   };
@@ -327,7 +327,7 @@ onMounted(async () => {
   width: 100%;
 }
 
-.dropdown-upload .el-icon {
+.dropdown-upload .n-icon {
   font-size: 1em;
 }
 

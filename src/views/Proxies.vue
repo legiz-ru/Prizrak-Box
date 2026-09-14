@@ -761,62 +761,61 @@ watch(groupList, (list) => {
 <template>
   <MyLayout hr-show>
     <template #top>
-      <el-space class="space">
+      <n-space class="space">
         <div class="title">
           {{ $t("proxies.title") }}
         </div>
         <div class="proxy-option">
-          <el-tooltip :content="$t('proxies.test')" placement="top">
-            <el-icon
+          <n-tooltip trigger="hover" placement="top">
+  <template #trigger>
+            <n-icon
                 @click="testDelay"
                 class="proxy-option-btn"
                 :class="{ 'proxy-option-btn--testing': bulkTestRunning }"
             >
               <icon-ep-loading v-if="bulkTestRunning"/>
               <icon-mdi-speedometer v-else/>
-            </el-icon>
-          </el-tooltip>
+            </n-icon>
+          </template>
+  {{ $t('proxies.test') }}
+</n-tooltip>
 
-          <el-tooltip
-              :content="
-              proxiesStore.isHide
-                ? $t('proxies.hide-on')
-                : $t('proxies.hide-off')
-            "
-              placement="top"
-          >
-            <el-icon @click="setHide" class="proxy-option-btn">
+          <n-tooltip trigger="hover" placement="top">
+  <template #trigger>
+            <n-icon @click="setHide" class="proxy-option-btn">
               <icon-mdi-eye-off v-if="proxiesStore.isHide"/>
               <icon-mdi-eye v-else/>
-            </el-icon>
-          </el-tooltip>
+            </n-icon>
+          </template>
+  {{ proxiesStore.isHide
+                ? $t('proxies.hide-on')
+                : $t('proxies.hide-off') }}
+</n-tooltip>
 
-          <el-tooltip
-              :content="
-              proxiesStore.isSort
-                ? $t('proxies.sort-on')
-                : $t('proxies.sort-off')
-            "
-              placement="top"
-          >
-            <el-icon @click="setSort" class="proxy-option-btn">
+          <n-tooltip trigger="hover" placement="top">
+  <template #trigger>
+            <n-icon @click="setSort" class="proxy-option-btn">
               <icon-mdi-sort-ascending v-if="proxiesStore.isSort"/>
               <icon-mdi-sort v-else/>
-            </el-icon>
-          </el-tooltip>
+            </n-icon>
+          </template>
+  {{ proxiesStore.isSort
+                ? $t('proxies.sort-on')
+                : $t('proxies.sort-off') }}
+</n-tooltip>
 
-          <el-tooltip
-              :content="viewModeTooltip"
-              placement="top"
-          >
-            <el-icon @click="cycleViewMode" class="proxy-option-btn">
+          <n-tooltip trigger="hover" placement="top">
+  <template #trigger>
+            <n-icon @click="cycleViewMode" class="proxy-option-btn">
               <icon-mdi-arrow-expand-horizontal v-if="proxiesStore.viewMode === 'horizontal'"/>
               <icon-mdi-arrow-expand-vertical v-else-if="proxiesStore.viewMode === 'dropdown'"/>
               <icon-mdi-format-list-bulleted v-else/>
-            </el-icon>
-          </el-tooltip>
+            </n-icon>
+          </template>
+  {{ viewModeTooltip }}
+</n-tooltip>
         </div>
-      </el-space>
+      </n-space>
 
       <div
           class="dropdown"
@@ -876,9 +875,9 @@ watch(groupList, (list) => {
           class="button-container"
           v-if="proxiesStore.viewMode === 'horizontal' && menuStore.rule != 'direct' && groupList.length > 0"
       >
-        <el-icon v-if="!atStart" @click="scrollLeft" class="scroll-left">
+        <n-icon v-if="!atStart" @click="scrollLeft" class="scroll-left">
           <icon-mdi-arrow-expand-left/>
-        </el-icon>
+        </n-icon>
         <div
             @scroll="handleScroll"
             @wheel.prevent="handleGroupWheel"
@@ -912,9 +911,9 @@ watch(groupList, (list) => {
             </span>
           </button>
         </div>
-        <el-icon v-if="!atEnd" class="scroll-right" @click="scrollRight">
+        <n-icon v-if="!atEnd" class="scroll-right" @click="scrollRight">
           <icon-mdi-arrow-expand-right/>
-        </el-icon>
+        </n-icon>
       </div>
     </template>
 
@@ -941,11 +940,14 @@ watch(groupList, (list) => {
           </div>
           <div class="proxy-nodes-tags">
             <span class="proxy-nodes-tags-left">
-              <el-tooltip :content="typeTooltip(node)" placement="top">
-                <el-icon class="proxy-type-icon">
+              <n-tooltip trigger="hover" placement="top">
+  <template #trigger>
+                <n-icon class="proxy-type-icon">
                   <component :is="typeIcon(node)"/>
-                </el-icon>
-              </el-tooltip>
+                </n-icon>
+              </template>
+  {{ typeTooltip(node) }}
+</n-tooltip>
               <span v-if="serverDescription(node)" class="proxy-type-desc">{{ serverDescription(node) }}</span>
               <template v-if="nestedGroupSelections[node['name']] && node['type']?.toLowerCase() !== 'smart' && node['type']?.toLowerCase() !== 'loadbalance'">
                 <span v-if="serverDescription(node)" class="proxy-selected-separator">•</span>
@@ -957,32 +959,47 @@ watch(groupList, (list) => {
             <span class="proxy-nodes-tags-right">
               <!-- Иконка ранга: прокси внутри Smart-группы -->
               <template v-if="groupTypeMap[proxiesStore.active] === 'Smart'">
-                <el-tooltip v-if="getNodeWeightInfo(proxiesStore.active, node['name'])?.rank === 'MostUsed'" :content="t('proxies.smart.most-used-tip', { weight: getNodeWeightInfo(proxiesStore.active, node['name'])?.weight })" placement="top">
-                  <el-icon class="proxy-weight-icon"><icon-mdi-shield/></el-icon>
-                </el-tooltip>
-                <el-tooltip v-else-if="getNodeWeightInfo(proxiesStore.active, node['name'])?.rank === 'OccasionalUsed'" :content="t('proxies.smart.occasional-used-tip', { weight: getNodeWeightInfo(proxiesStore.active, node['name'])?.weight })" placement="top">
-                  <el-icon class="proxy-weight-icon"><icon-mdi-shield-half-full/></el-icon>
-                </el-tooltip>
-                <el-tooltip v-else-if="getNodeWeightInfo(proxiesStore.active, node['name'])?.rank === 'RarelyUsed'" :content="t('proxies.smart.rarely-used-tip', { weight: getNodeWeightInfo(proxiesStore.active, node['name'])?.weight })" placement="top">
-                  <el-icon class="proxy-weight-icon"><icon-mdi-shield-outline/></el-icon>
-                </el-tooltip>
-                <el-tooltip v-else :content="t('proxies.smart.no-data')" placement="top">
-                  <el-icon class="proxy-weight-icon"><icon-mdi-shield-sync-outline/></el-icon>
-                </el-tooltip>
+                <n-tooltip trigger="hover" placement="top" v-if="getNodeWeightInfo(proxiesStore.active, node['name'])?.rank === 'MostUsed'">
+  <template #trigger>
+                  <n-icon class="proxy-weight-icon"><icon-mdi-shield/></n-icon>
+                </template>
+  {{ t('proxies.smart.most-used-tip', { weight: getNodeWeightInfo(proxiesStore.active, node['name'])?.weight }) }}
+</n-tooltip>
+                <n-tooltip trigger="hover" placement="top" v-else-if="getNodeWeightInfo(proxiesStore.active, node['name'])?.rank === 'OccasionalUsed'">
+  <template #trigger>
+                  <n-icon class="proxy-weight-icon"><icon-mdi-shield-half-full/></n-icon>
+                </template>
+  {{ t('proxies.smart.occasional-used-tip', { weight: getNodeWeightInfo(proxiesStore.active, node['name'])?.weight }) }}
+</n-tooltip>
+                <n-tooltip trigger="hover" placement="top" v-else-if="getNodeWeightInfo(proxiesStore.active, node['name'])?.rank === 'RarelyUsed'">
+  <template #trigger>
+                  <n-icon class="proxy-weight-icon"><icon-mdi-shield-outline/></n-icon>
+                </template>
+  {{ t('proxies.smart.rarely-used-tip', { weight: getNodeWeightInfo(proxiesStore.active, node['name'])?.weight }) }}
+</n-tooltip>
+                <n-tooltip trigger="hover" placement="top" v-else>
+  <template #trigger>
+                  <n-icon class="proxy-weight-icon"><icon-mdi-shield-sync-outline/></n-icon>
+                </template>
+  {{ t('proxies.smart.no-data') }}
+</n-tooltip>
               </template>
               <!-- Иконка сводки: сам прокси является Smart-группой -->
               <template v-else-if="node['type'] === 'Smart'">
-                <el-tooltip v-if="!smartGroupWeights[node['name']]?.hasData" :content="t('proxies.smart.no-data')" placement="top">
-                  <el-icon class="proxy-weight-icon"><icon-mdi-shield-sync-outline/></el-icon>
-                </el-tooltip>
-                <el-tooltip v-else placement="top">
-                  <template #content>
-                    <div v-for="w in smartGroupWeights[node['name']].weights" :key="w.Name" class="weight-tooltip-row">
+                <n-tooltip trigger="hover" placement="top" v-if="!smartGroupWeights[node['name']]?.hasData">
+  <template #trigger>
+                  <n-icon class="proxy-weight-icon"><icon-mdi-shield-sync-outline/></n-icon>
+                </template>
+  {{ t('proxies.smart.no-data') }}
+</n-tooltip>
+                <n-tooltip v-else trigger="hover" placement="top">
+                  <template #trigger>
+                    <n-icon class="proxy-weight-icon"><icon-mdi-shield-check-outline/></n-icon>
+                  </template>
+                  <div v-for="w in smartGroupWeights[node['name']].weights" :key="w.Name" class="weight-tooltip-row">
                       {{ w.Name }}: {{ rankLabel(w.Rank) }} ({{ w.Weight }})
                     </div>
-                  </template>
-                  <el-icon class="proxy-weight-icon"><icon-mdi-shield-check-outline/></el-icon>
-                </el-tooltip>
+                </n-tooltip>
               </template>
               <span :class="node['toClass']">{{ node["delay"] }} ms</span>
             </span>
@@ -1022,20 +1039,23 @@ watch(groupList, (list) => {
               </div>
             </div>
             <div class="full-view-header-actions">
-              <el-tooltip :content="$t('proxies.test-group')" placement="top">
-                <el-icon
+              <n-tooltip trigger="hover" placement="top">
+  <template #trigger>
+                <n-icon
                     class="full-view-test-btn"
                     :class="{ 'full-view-test-btn--testing': groupLatencyTesting[group] }"
                     @click.stop="testGroupDelay(group)"
                 >
                   <icon-ep-loading v-if="groupLatencyTesting[group]"/>
                   <icon-mdi-speedometer v-else/>
-                </el-icon>
-              </el-tooltip>
-              <el-icon class="full-view-toggle">
+                </n-icon>
+              </template>
+  {{ $t('proxies.test-group') }}
+</n-tooltip>
+              <n-icon class="full-view-toggle">
                 <icon-ep-arrow-up v-if="expandedGroups[group]"/>
                 <icon-ep-arrow-down v-else/>
-              </el-icon>
+              </n-icon>
             </div>
           </div>
           <div class="full-view-content" v-show="expandedGroups[group]">
@@ -1063,11 +1083,14 @@ watch(groupList, (list) => {
                 </div>
                 <div class="proxy-nodes-tags">
                   <span class="proxy-nodes-tags-left">
-                    <el-tooltip :content="typeTooltip(node)" placement="top">
-                      <el-icon class="proxy-type-icon">
+                    <n-tooltip trigger="hover" placement="top">
+  <template #trigger>
+                      <n-icon class="proxy-type-icon">
                         <component :is="typeIcon(node)"/>
-                      </el-icon>
-                    </el-tooltip>
+                      </n-icon>
+                    </template>
+  {{ typeTooltip(node) }}
+</n-tooltip>
                     <span v-if="serverDescription(node)" class="proxy-type-desc">{{ serverDescription(node) }}</span>
                     <template v-if="nestedGroupSelections[node['name']] && node['type']?.toLowerCase() !== 'smart' && node['type']?.toLowerCase() !== 'loadbalance'">
                       <span v-if="serverDescription(node)" class="proxy-selected-separator">•</span>
@@ -1079,32 +1102,47 @@ watch(groupList, (list) => {
                   <span class="proxy-nodes-tags-right">
                     <!-- Иконка ранга: прокси внутри Smart-группы -->
                     <template v-if="groupTypeMap[group] === 'Smart'">
-                      <el-tooltip v-if="getNodeWeightInfo(group, node['name'])?.rank === 'MostUsed'" :content="t('proxies.smart.most-used-tip', { weight: getNodeWeightInfo(group, node['name'])?.weight })" placement="top">
-                        <el-icon class="proxy-weight-icon"><icon-mdi-shield/></el-icon>
-                      </el-tooltip>
-                      <el-tooltip v-else-if="getNodeWeightInfo(group, node['name'])?.rank === 'OccasionalUsed'" :content="t('proxies.smart.occasional-used-tip', { weight: getNodeWeightInfo(group, node['name'])?.weight })" placement="top">
-                        <el-icon class="proxy-weight-icon"><icon-mdi-shield-half-full/></el-icon>
-                      </el-tooltip>
-                      <el-tooltip v-else-if="getNodeWeightInfo(group, node['name'])?.rank === 'RarelyUsed'" :content="t('proxies.smart.rarely-used-tip', { weight: getNodeWeightInfo(group, node['name'])?.weight })" placement="top">
-                        <el-icon class="proxy-weight-icon"><icon-mdi-shield-outline/></el-icon>
-                      </el-tooltip>
-                      <el-tooltip v-else :content="t('proxies.smart.no-data')" placement="top">
-                        <el-icon class="proxy-weight-icon"><icon-mdi-shield-sync-outline/></el-icon>
-                      </el-tooltip>
+                      <n-tooltip trigger="hover" placement="top" v-if="getNodeWeightInfo(group, node['name'])?.rank === 'MostUsed'">
+  <template #trigger>
+                        <n-icon class="proxy-weight-icon"><icon-mdi-shield/></n-icon>
+                      </template>
+  {{ t('proxies.smart.most-used-tip', { weight: getNodeWeightInfo(group, node['name'])?.weight }) }}
+</n-tooltip>
+                      <n-tooltip trigger="hover" placement="top" v-else-if="getNodeWeightInfo(group, node['name'])?.rank === 'OccasionalUsed'">
+  <template #trigger>
+                        <n-icon class="proxy-weight-icon"><icon-mdi-shield-half-full/></n-icon>
+                      </template>
+  {{ t('proxies.smart.occasional-used-tip', { weight: getNodeWeightInfo(group, node['name'])?.weight }) }}
+</n-tooltip>
+                      <n-tooltip trigger="hover" placement="top" v-else-if="getNodeWeightInfo(group, node['name'])?.rank === 'RarelyUsed'">
+  <template #trigger>
+                        <n-icon class="proxy-weight-icon"><icon-mdi-shield-outline/></n-icon>
+                      </template>
+  {{ t('proxies.smart.rarely-used-tip', { weight: getNodeWeightInfo(group, node['name'])?.weight }) }}
+</n-tooltip>
+                      <n-tooltip trigger="hover" placement="top" v-else>
+  <template #trigger>
+                        <n-icon class="proxy-weight-icon"><icon-mdi-shield-sync-outline/></n-icon>
+                      </template>
+  {{ t('proxies.smart.no-data') }}
+</n-tooltip>
                     </template>
                     <!-- Иконка сводки: сам прокси является Smart-группой -->
                     <template v-else-if="node['type'] === 'Smart'">
-                      <el-tooltip v-if="!smartGroupWeights[node['name']]?.hasData" :content="t('proxies.smart.no-data')" placement="top">
-                        <el-icon class="proxy-weight-icon"><icon-mdi-shield-sync-outline/></el-icon>
-                      </el-tooltip>
-                      <el-tooltip v-else placement="top">
-                        <template #content>
-                          <div v-for="w in smartGroupWeights[node['name']].weights" :key="w.Name" class="weight-tooltip-row">
+                      <n-tooltip trigger="hover" placement="top" v-if="!smartGroupWeights[node['name']]?.hasData">
+  <template #trigger>
+                        <n-icon class="proxy-weight-icon"><icon-mdi-shield-sync-outline/></n-icon>
+                      </template>
+  {{ t('proxies.smart.no-data') }}
+</n-tooltip>
+                      <n-tooltip v-else trigger="hover" placement="top">
+                  <template #trigger>
+                    <n-icon class="proxy-weight-icon"><icon-mdi-shield-check-outline/></n-icon>
+                  </template>
+                  <div v-for="w in smartGroupWeights[node['name']].weights" :key="w.Name" class="weight-tooltip-row">
                             {{ w.Name }}: {{ rankLabel(w.Rank) }} ({{ w.Weight }})
                           </div>
-                        </template>
-                        <el-icon class="proxy-weight-icon"><icon-mdi-shield-check-outline/></el-icon>
-                      </el-tooltip>
+                </n-tooltip>
                     </template>
                     <span :class="node['toClass']">{{ node["delay"] }} ms</span>
                   </span>

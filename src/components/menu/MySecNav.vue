@@ -118,14 +118,14 @@ onMounted(() => {
         :class="menuStore.menu == 'Rule' ? 'nav-btn nav-btn-select' : 'nav-btn'"
         @click="changeMenu('Rule', router)"
     >
-      <el-text class="nav-text">
-        <el-icon>
+      <n-text class="nav-text">
+        <n-icon>
           <icon-mdi-source-branch/>
-        </el-icon>
+        </n-icon>
         <span class="nav-info"
         >{{ $t("sec-nav.rule") }} · {{ menuStore.ruleNum }}</span
         >
-      </el-text>
+      </n-text>
     </div>
 
     <div
@@ -134,24 +134,24 @@ onMounted(() => {
       "
         @click="changeMenu('Connection', router)"
     >
-      <el-text class="nav-text">
-        <el-icon>
+      <n-text class="nav-text">
+        <n-icon>
           <icon-mdi-lan-connect/>
-        </el-icon>
+        </n-icon>
         <span class="nav-info">{{ $t("sec-nav.conn") }} · {{ conn }}</span>
-      </el-text>
+      </n-text>
     </div>
 
     <div
         :class="menuStore.menu == 'Log' ? 'nav-btn nav-btn-select' : 'nav-btn'"
         @click="changeMenu('Log', router)"
     >
-      <el-text class="nav-text">
-        <el-icon>
+      <n-text class="nav-text">
+        <n-icon>
           <icon-mdi-text-box-outline/>
-        </el-icon>
+        </n-icon>
         <span class="nav-info">{{ $t("sec-nav.log") }}</span>
-      </el-text>
+      </n-text>
     </div>
   </div>
 </template>
