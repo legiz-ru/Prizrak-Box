@@ -256,6 +256,17 @@ func main() {
 	var quitting atomic.Bool
 	quit := func() {
 		quitting.Store(true)
+		// Nudge px to shut itself down (DisableProxy etc.) *before* the native
+		// window/webview teardown starts, not from inside it. See
+		// CoreService.ServiceShutdown for why that teardown path must stay
+		// fast: on Windows it runs synchronously on the same OS thread as the
+		// WM_CLOSE/WM_DESTROY handler and the WebView2 COM apartment, and
+		// blocking it for the several seconds px normally takes to exit was
+		// crashing the app with a native Fail Fast exception. This request is
+		// best-effort and fire-and-forget — px's own /pxAlive watchdog
+		// (src-go/api/job/alive.go) is what actually guarantees the cleanup
+		// runs, within ~3s, even if this never arrives.
+		go core.RequestExit()
 		app.Quit()
 	}
 
