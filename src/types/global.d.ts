@@ -12,7 +12,7 @@ declare module '@/api' {
 declare module '@vue/runtime-core' {
     export interface ComponentCustomProperties {
         $http: AxiosRequest; // 声明全局 $http 的类型
-        $t: (key: string) => string; // i18n
+        $t: (key: string, values?: Record<string, unknown>) => string; // i18n
     }
 }
 

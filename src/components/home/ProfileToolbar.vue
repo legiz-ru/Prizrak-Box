@@ -9,6 +9,9 @@ import { Profile } from '@/types/profile';
 import createApi from '@/api';
 import { useHwidStatusStore } from '@/store/hwidStatusStore';
 import { parseHwidFromError } from '@/api/profiles';
+import { profileDisplayTitle as displayTitleOf } from '@/util/profileView';
+import AddProfileDialog from '@/components/profile/AddProfileDialog.vue';
+import UiDropdown from '@/components/ui/UiDropdown.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -29,36 +32,11 @@ const emit = defineEmits<{
 
 const isRefreshing = ref(false);
 const addFormVisible = ref(false);
-const addForm = ref({
-  content: ''
-});
+const addInitial = ref('');
 const isAdding = ref(false);
 
 // Название профиля с поддержкой emoji
-const profileDisplayTitle = computed(() => {
-  const flagEmojiRegex = /([\u{1F1E6}-\u{1F1FF}]{2}|\u{1F3F3}|\u{1F3F4}|\u{1F6A9})/u;
-
-  const containsFlagEmoji = (value: any) => {
-    if (typeof value !== 'string') {
-      return false;
-    }
-    return flagEmojiRegex.test(value);
-  };
-
-  const title = typeof props.profile?.title === 'string' ? props.profile.title.trim() : '';
-  const headerTitle = typeof props.profile?.headerTitle === 'string' ? props.profile.headerTitle.trim() : '';
-
-  if (title) {
-    if (!headerTitle) {
-      return title;
-    }
-    if (containsFlagEmoji(title) || !containsFlagEmoji(headerTitle)) {
-      return title;
-    }
-  }
-
-  return headerTitle || title || '';
-});
+const profileDisplayTitle = computed(() => displayTitleOf(props.profile));
 
 // Проверка наличия значений
 function hasValue(value: any) {
@@ -103,7 +81,7 @@ function refreshProfile() {
 
 // Открыть диалог добавления профиля
 function openAddProfileDialog() {
-  addForm.value.content = '';
+  addInitial.value = '';
   addFormVisible.value = true;
 }
 
@@ -114,7 +92,7 @@ function handlePaste() {
     pWarning(t('onboarding.active-profile.clipboard-empty'));
     return;
   }
-  addForm.value.content = clipboardText;
+  addInitial.value = clipboardText;
   addFormVisible.value = true;
 }
 
@@ -124,14 +102,17 @@ function openFile() {
 }
 
 // Добавить профиль
-async function addProfile() {
-  if (!addForm.value.content || !addForm.value.content.trim()) {
+async function addProfile(form: { content: string; ageSecretKey: string }) {
+  if (!form.content || !form.content.trim()) {
     return;
   }
 
   isAdding.value = true;
   const p = new Profile();
-  p.content = addForm.value.content;
+  p.content = form.content;
+  if (form.ageSecretKey) {
+    p.ageSecretKey = form.ageSecretKey;
+  }
 
   try {
     const newProfiles = await api.addProfileFromInput(p);
@@ -176,7 +157,6 @@ async function addProfile() {
     }));
 
     pSuccess(t('drag.success'));
-    addForm.value.content = '';
     addFormVisible.value = false;
   } catch (e) {
     const hwid = parseHwidFromError(e);
@@ -194,230 +174,93 @@ async function addProfile() {
   }
 }
 
-// Обработка команды из dropdown
-function handleDropdownCommand(command: string) {
-  if (command === 'add') {
-    openAddProfileDialog();
-  } else if (command === 'paste') {
-    handlePaste();
-  } else if (command === 'file') {
-    openFile();
-  }
-}
 </script>
 
 <template>
   <div class="profile-toolbar">
-    <div class="toolbar-content">
-      <div class="toolbar-section toolbar-left">
-        <!-- Иконка продления подписки -->
-        <el-tooltip
-          v-if="hasValue(profile?.renewUrl)"
-          :content="t('profiles.renew')"
-          placement="top"
-        >
-          <el-icon class="toolbar-icon" @click="goRenew" size="20">
-            <icon-mdi-credit-card-outline />
-          </el-icon>
-        </el-tooltip>
+    <div class="toolbar-side">
+      <UiIconButton v-if="hasValue(profile?.renewUrl)" :size="28" :label="t('profiles.renew')" @click="goRenew">
+        <icon-tabler-credit-card width="15" height="15"/>
+      </UiIconButton>
+      <UiIconButton v-if="hasValue(profile?.home)" :size="28" :label="t('profiles.home')" @click="goHome">
+        <icon-tabler-home-shield width="15" height="15"/>
+      </UiIconButton>
+      <UiIconButton v-if="hasValue(profile?.support)" :size="28" :label="t('profiles.support')" @click="goSupport">
+        <icon-tabler-headphones width="15" height="15"/>
+      </UiIconButton>
+    </div>
 
-        <!-- Иконка домашней страницы -->
-        <el-tooltip
-          v-if="hasValue(profile?.home)"
-          :content="t('profiles.home')"
-          placement="top"
-        >
-          <el-icon class="toolbar-icon" @click="goHome" size="20">
-            <icon-mdi-home-import-outline />
-          </el-icon>
-        </el-tooltip>
+    <span class="profile-name ellipsis" v-tip="profileDisplayTitle">{{ profileDisplayTitle }}</span>
 
-        <!-- Иконка поддержки -->
-        <el-tooltip
-          v-if="hasValue(profile?.support)"
-          :content="t('profiles.support')"
-          placement="top"
-        >
-          <el-icon class="toolbar-icon" @click="goSupport" size="20">
-            <icon-mdi-face-agent />
-          </el-icon>
-        </el-tooltip>
-      </div>
-
-      <div class="toolbar-section toolbar-center">
-        <!-- Текст "Текущий профиль" -->
-        <span class="current-profile-label">{{ t('onboarding.active-profile.current-profile') }}</span>
-
-        <!-- Название профиля -->
-        <span class="profile-name" :title="profileDisplayTitle">{{ profileDisplayTitle }}</span>
-      </div>
-
-      <div class="toolbar-section toolbar-right">
-        <!-- Переключить профили -->
-        <el-tooltip
-          :content="t('onboarding.active-profile.switch-profiles')"
-          placement="top"
-        >
-          <el-icon class="toolbar-icon" @click="switchProfiles" size="20">
-            <icon-mdi-swap-horizontal />
-          </el-icon>
-        </el-tooltip>
-
-        <!-- Обновить профиль -->
-        <el-tooltip
-          :content="t('onboarding.active-profile.refresh-profile')"
-          placement="top"
-        >
-          <el-icon
-            class="toolbar-icon"
-            :class="{ 'rotating': isRefreshing }"
-            @click="refreshProfile"
-            size="20"
-          >
-            <icon-mdi-refresh />
-          </el-icon>
-        </el-tooltip>
-
-        <!-- Добавить профиль -->
-        <el-tooltip
-          :content="t('profiles.add')"
-          placement="top"
-        >
-          <el-dropdown trigger="click" @command="handleDropdownCommand">
-            <el-icon class="toolbar-icon" size="20">
-              <icon-mdi-plus-thick />
-            </el-icon>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="add">
-                  <el-icon><icon-mdi-pencil /></el-icon>
-                  {{ t('profiles.add') }}
-                </el-dropdown-item>
-                <el-dropdown-item command="paste">
-                  <el-icon><icon-mdi-content-paste /></el-icon>
-                  {{ t('profiles.paste') }}
-                </el-dropdown-item>
-                <el-dropdown-item command="file">
-                  <el-icon><icon-mdi-folder-open /></el-icon>
-                  {{ t('profiles.open') }}
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </el-tooltip>
-      </div>
+    <div class="toolbar-side toolbar-side--right">
+      <UiIconButton :size="28" :label="t('onboarding.active-profile.switch-profiles')" @click="switchProfiles">
+        <icon-tabler-arrows-left-right width="15" height="15"/>
+      </UiIconButton>
+      <UiIconButton :size="28" :label="t('onboarding.active-profile.refresh-profile')" :loading="isRefreshing" @click="refreshProfile">
+        <UiSpinner v-if="isRefreshing" :size="13"/>
+        <icon-tabler-refresh v-else width="15" height="15"/>
+      </UiIconButton>
+      <UiDropdown align="right" role="menu" :min-width="240">
+        <template #trigger="{ toggle, attrs }">
+          <UiIconButton v-bind="attrs" :size="28" :label="t('profiles.add')" @click="toggle">
+            <icon-tabler-plus width="15" height="15"/>
+          </UiIconButton>
+        </template>
+        <template #default="{ close }">
+          <button type="button" role="menuitem" data-dd-item class="px-dd-item add-item" @click="close(); openAddProfileDialog()">
+            <icon-tabler-pencil width="16" height="16"/>{{ t('profiles.add') }}
+          </button>
+          <button type="button" role="menuitem" data-dd-item class="px-dd-item add-item" @click="close(); handlePaste()">
+            <icon-tabler-clipboard width="16" height="16"/>{{ t('profiles.paste') }}
+          </button>
+          <button type="button" role="menuitem" data-dd-item class="px-dd-item add-item" @click="close(); openFile()">
+            <icon-tabler-folder-open width="16" height="16"/>{{ t('profiles.open') }}
+          </button>
+        </template>
+      </UiDropdown>
     </div>
   </div>
 
-  <!-- Модальное окно добавления профиля -->
-  <el-dialog
-    v-model="addFormVisible"
-    :title="t('profiles.add')"
-    width="520"
-    draggable
-    center
-  >
-    <el-form :model="addForm">
-      <el-form-item>
-        <el-input
-          :rows="3"
-          type="textarea"
-          autocapitalize="off"
-          autocomplete="off"
-          spellcheck="false"
-          :placeholder="t('profiles.placeholder')"
-          v-model="addForm.content"
-        />
-      </el-form-item>
-    </el-form>
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="addFormVisible = false">
-          {{ t('cancel') }}
-        </el-button>
-        <el-button
-          type="primary"
-          @click="addProfile"
-          :loading="isAdding"
-        >
-          {{ t('confirm') }}
-        </el-button>
-      </div>
-    </template>
-  </el-dialog>
+  <AddProfileDialog v-model="addFormVisible"
+                    :initial-content="addInitial"
+                    :loading="isAdding"
+                    @submit="addProfile"/>
 </template>
 
 <style scoped>
 .profile-toolbar {
-  width: 100%;
-  padding: 0 30px;
-  box-sizing: border-box;
-}
-
-.toolbar-content {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 16px;
-}
-
-.toolbar-section {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* Both sides reserve room for three buttons so the name stays centred. */
+.toolbar-side {
+  display: flex;
   gap: 4px;
-  flex: 0 1 auto;
-  min-width: 0;
+  flex: 0 0 92px;
 }
 
-.toolbar-center {
-  text-align: center;
-}
-
-.toolbar-icon {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.2s ease;
-  color: var(--text-color);
-}
-
-.toolbar-icon:hover {
-  background: var(--hr-color);
-}
-
-.toolbar-icon.rotating {
-  animation: rotate 1s linear infinite;
-}
-
-@keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.current-profile-label {
-  font-size: 12px;
-  color: var(--text-color);
-  opacity: 0.6;
-  margin-left: 2px;
+.toolbar-side--right {
+  justify-content: flex-end;
 }
 
 .profile-name {
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  flex: 1;
+}
+
+.add-item {
   font-weight: 600;
-  color: var(--text-color);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-  flex-shrink: 1;
+  padding: 9px 12px;
+  gap: 10px;
+}
+
+.add-item svg {
+  color: var(--text-2);
+  flex-shrink: 0;
 }
 </style>

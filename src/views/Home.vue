@@ -144,31 +144,28 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <MyLayout>
-    <template #bottom>
-      <!-- Состояние 0: Экран приветствия -->
-      <WelcomeScreen
-        v-if="currentState === 'welcome'"
-      />
+  <div class="px-page">
+    <!-- Состояние 0: Экран приветствия -->
+    <WelcomeScreen v-if="currentState === 'welcome'"/>
 
-      <!-- Состояние 1: Экран активного профиля -->
-      <ActiveProfile
-        v-else-if="currentState === 'active-profile'"
-        :profiles="profiles"
-      />
+    <!-- Состояние 1: Экран активного профиля -->
+    <div v-else class="home-body">
+      <ActiveProfile :profiles="profiles"/>
+    </div>
 
-      <!-- Модальное окно после добавления первого профиля -->
-      <FirstProfileModal
-        v-model:visible="showFirstProfileModal"
-      />
-    </template>
-  </MyLayout>
+    <!-- Модальное окно после добавления первого профиля -->
+    <FirstProfileModal v-model:visible="showFirstProfileModal"/>
+  </div>
 </template>
 
 <style scoped>
-:deep(.bottom) {
-  padding-bottom: 0;
-  overflow-y: hidden;
-  overflow-x: hidden;
+.home-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 24px 28px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 </style>

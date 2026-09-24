@@ -9,35 +9,38 @@ import (
 )
 
 type Profile struct {
-	Id                 string   `json:"id"`
-	Type               int      `json:"type"` // 1: 远程订阅 2：本地配置 3：爬取合并
-	Title              string   `json:"title,omitempty"`
-	HeaderTitle        string   `json:"headerTitle,omitempty"`
-	Order              string   `json:"order"`
-	Selected           bool     `json:"selected,omitempty"`
-	Primary            bool     `json:"primary,omitempty"`
-	SelectionOrder     int      `json:"selectionOrder,omitempty"`
-	Path               string   `json:"path"`
-	Content            string   `json:"content,omitempty"`
-	Used               *big.Int `json:"used,omitempty"`
-	Available          *big.Int `json:"available,omitempty"`
-	Total              *big.Int `json:"total,omitempty"`
-	Expire             string   `json:"expire,omitempty"`
-	Interval           string   `json:"interval,omitempty"`
-	Home               string   `json:"home,omitempty"`
-	Support            string   `json:"support,omitempty"`
-	Logo               string   `json:"logo,omitempty"`
-	Announce           string   `json:"announce,omitempty"`
-	AnnounceUrl        string   `json:"announceUrl,omitempty"`
-	Update             string   `json:"update,omitempty"`
-	Template           string   `json:"template,omitempty"`
-	PxdTemplateUrl     string   `json:"pxdTemplateUrl,omitempty"`
-	PxdTemplateScheme  string   `json:"pxdTemplateScheme,omitempty"`
-	HwidActive         bool     `json:"hwidActive,omitempty"`
-	AgeSecretKey       string   `json:"ageSecretKey,omitempty"`
-	FallbackUrl        string   `json:"fallbackUrl,omitempty"`
-	FallbackDomain     string   `json:"fallbackDomain,omitempty"`
-	GlobalModeDisabled bool     `json:"globalModeDisabled,omitempty"`
+	Id             string   `json:"id"`
+	Type           int      `json:"type"` // 1: 远程订阅 2：本地配置 3：爬取合并
+	Title          string   `json:"title,omitempty"`
+	HeaderTitle    string   `json:"headerTitle,omitempty"`
+	Order          string   `json:"order"`
+	Selected       bool     `json:"selected,omitempty"`
+	Primary        bool     `json:"primary,omitempty"`
+	SelectionOrder int      `json:"selectionOrder,omitempty"`
+	Path           string   `json:"path"`
+	Content        string   `json:"content,omitempty"`
+	Used           *big.Int `json:"used,omitempty"`
+	Available      *big.Int `json:"available,omitempty"`
+	Total          *big.Int `json:"total,omitempty"`
+	Expire         string   `json:"expire,omitempty"`
+	Interval       string   `json:"interval,omitempty"`
+	// IntervalFromHeader — Interval came from the provider's
+	// profile-update-interval header; the editor shows it read-only.
+	IntervalFromHeader bool   `json:"intervalFromHeader,omitempty"`
+	Home               string `json:"home,omitempty"`
+	Support            string `json:"support,omitempty"`
+	Logo               string `json:"logo,omitempty"`
+	Announce           string `json:"announce,omitempty"`
+	AnnounceUrl        string `json:"announceUrl,omitempty"`
+	Update             string `json:"update,omitempty"`
+	Template           string `json:"template,omitempty"`
+	PxdTemplateUrl     string `json:"pxdTemplateUrl,omitempty"`
+	PxdTemplateScheme  string `json:"pxdTemplateScheme,omitempty"`
+	HwidActive         bool   `json:"hwidActive,omitempty"`
+	AgeSecretKey       string `json:"ageSecretKey,omitempty"`
+	FallbackUrl        string `json:"fallbackUrl,omitempty"`
+	FallbackDomain     string `json:"fallbackDomain,omitempty"`
+	GlobalModeDisabled bool   `json:"globalModeDisabled,omitempty"`
 
 	// RenewUrl — subscription-renew-url. Absent header means every renew-related
 	// UI element (profile editor, toolbar/list icons, the renew button under the

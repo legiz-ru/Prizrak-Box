@@ -104,6 +104,7 @@ drag:
   success: Импорт успешно завершён
   error: Не удалось импортировать профиль
 
+  formats: .yaml, .yml или .age
 home:
   download: Загрузка
   upload: Отправка
@@ -267,6 +268,10 @@ proxies:
     protocol: "Используется протокол {type}"
     unknown: "Тип протокола не определён"
 
+  jump-to-group: Перейти к группе
+  collapse-all: Свернуть все
+  expand-all: Развернуть все
+  show-more: Показать ещё {n}
 profiles:
   title: Профили
   primary: Основной
@@ -285,6 +290,7 @@ profiles:
     question: Вы уверены, что хотите продолжить?
     accept: Да
     decline: Нет
+    pick: Выбрать для мультивыбора
   available: Доступно
   use: Использовано
   expire: Истекает
@@ -307,6 +313,7 @@ profiles:
     url-error: Неверный формат URL
     update-tip: Интервал обновления должен быть больше 0 и меньше 128
     success: Успешно изменено
+    interval-locked: Интервал задан подпиской (profile-update-interval) и не может быть изменён
   refresh:
     ing: Обновление...
     success: Успешно обновлено
@@ -332,6 +339,7 @@ profiles:
     success: Профиль успешно отправлен на Android TV
     error: Ошибка импорта профиля на устройство с Prizrak-Box Android TV
 
+  deleted-select-new: Профиль удалён, выберите новый активный профиль
 rule:
   title: Правило
   success: Успешно сохранено
@@ -596,3 +604,23 @@ ui:
   language: Язык
   window-controls: Управление окном
   not-selected: Не выбрано
+  decrease: Уменьшить
+  increase: Увеличить
+  hours-short: ч
+time:
+  just-now: только что
+  sec-ago: '{n} сек назад'
+  min-ago: '{n} мин назад'
+  hour-ago: '{n} ч назад'
+  today: сегодня
+  yesterday: вчера
+  days-ago: '{n} дн. назад'
+  weeks-ago: '{n} нед. назад'
+  months-ago: '{n} мес. назад'
+empty:
+  proxies:
+    title: Нет групп прокси
+    text: Выберите профиль или дождитесь загрузки конфигурации ядром.
+  profiles:
+    title: Нет профилей
+    text: Добавьте подписку, ссылку или файл конфигурации, чтобы начать.

@@ -104,6 +104,7 @@ drag:
   success: Import Success
   error: Failed to import profile
 
+  formats: .yaml, .yml or .age
 home:
   download: Download
   upload: Upload
@@ -267,6 +268,10 @@ proxies:
     protocol: "Uses the {type} protocol"
     unknown: "The protocol type could not be determined"
 
+  jump-to-group: Jump to group
+  collapse-all: Collapse all
+  expand-all: Expand all
+  show-more: Show {n} more
 profiles:
   title: Profiles
   primary: Primary
@@ -285,6 +290,7 @@ profiles:
     question: Are you sure you want to continue?
     accept: Yes
     decline: No
+    pick: Select for multi-profile
   available: Available
   use: Used
   expire: Expiration
@@ -307,6 +313,7 @@ profiles:
     url-error: Wrong URL format
     update-tip: The update interval must be greater than 0 and less than 128
     success: Edit Success
+    interval-locked: The interval is set by the subscription (profile-update-interval) and cannot be changed
   refresh:
     ing: Updating...
     success: Update Success
@@ -332,6 +339,7 @@ profiles:
     success: Profile successfully sent to Android TV
     error: Failed to import profile on Prizrak-Box Android TV device
 
+  deleted-select-new: Profile deleted, pick a new active profile
 rule:
   title: Rule
   success: Save success
@@ -596,3 +604,23 @@ ui:
   language: Language
   window-controls: Window controls
   not-selected: Not selected
+  decrease: Decrease
+  increase: Increase
+  hours-short: h
+time:
+  just-now: just now
+  sec-ago: '{n} s ago'
+  min-ago: '{n} min ago'
+  hour-ago: '{n} h ago'
+  today: today
+  yesterday: yesterday
+  days-ago: '{n} d ago'
+  weeks-ago: '{n} wk ago'
+  months-ago: '{n} mo ago'
+empty:
+  proxies:
+    title: No proxy groups
+    text: Select a profile or wait until the core loads the configuration.
+  profiles:
+    title: No profiles
+    text: Add a subscription, a link or a config file to get started.

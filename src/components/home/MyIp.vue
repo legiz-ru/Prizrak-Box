@@ -100,8 +100,19 @@ function goAsnInfo() {
 }
 
 
+const ipLoading = ref(false);
+
 // 获取 ip 信息
 async function getIpInfo(hide: boolean = true) {
+  ipLoading.value = true;
+  try {
+    await loadIpInfo(hide);
+  } finally {
+    ipLoading.value = false;
+  }
+}
+
+async function loadIpInfo(hide: boolean) {
   ipInfo.value = homeStore.ip;
   let md6: string
   try {
@@ -161,9 +172,13 @@ async function getIpInfoFallback(md6: string) {
   }
 }
 
+let timer: number | undefined;
+onBeforeUnmount(() => window.clearInterval(timer));
+
 onMounted(async () => {
   // 每秒更新
-  setInterval(updateTimer, 1000);
+  updateTimer();
+  timer = window.setInterval(updateTimer, 1000);
   // 获取版本
   version.value = await api.getVersion()
   // 获取端口
@@ -184,259 +199,133 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="ip-system-wrapper">
-    <div class="spark">
-      <div class="spark-col">
-        <div class="box box1">
-          <div class="title title-left">
-            {{ $t('home.ip.title') }}
-            <el-tooltip
-                :content="$t('home.ip.service-tip')"
-                placement="top">
-              <el-icon size="18" class="ipServiceInfo">
-                <icon-mdi-information-outline/>
-              </el-icon>
-            </el-tooltip>
-            <el-tooltip
-                :content="$t('refresh')"
-                placement="top">
-              <el-icon size="18"
-                       @click="getIpInfo(false)"
-                       class="refreshIp">
-                <icon-mdi-refresh/>
-              </el-icon>
-            </el-tooltip>
-          </div>
-          <hr/>
-          <ul class="info-list info-list-left">
-            <li class="info-item info-item--link">
-              <strong>{{ $t('home.ip.real') }} : </strong>
-              <span
-                  class="info-item-value"
-                  :class="{'info-item-value--link': Boolean(ipInfoLink)}"
-              >
-                {{ ipInfo['query'] }}
-                <a
-                    v-if="ipInfoLink"
-                    :href="ipInfoLink"
-                    class="info-link"
-                    :aria-label="$t('home.ip.real')"
-                    role="link"
-                    @click.prevent.stop="goIpInfo()"
-                    @keydown.enter.prevent.stop="goIpInfo()"
-                    @keydown.space.prevent.stop="goIpInfo()"
-                    tabindex="0"
-                >
-                  <icon-mdi-open-in-new/>
-                </a>
-              </span>
-            </li>
-            <li class="info-item"><strong>{{ $t('home.ip.city') }} : </strong>
-              {{ ipInfo['city'] }}
-            </li>
-            <li class="info-item"><strong>{{ $t('home.ip.country') }} : </strong>
-              {{ ipInfo['country'] }}
-            </li>
-            <li class="info-item"><strong>{{ $t('home.ip.isp') }} : </strong>
-              {{ ipInfo['isp'] }}
-            </li>
-            <li class="info-item info-item--link">
-              <strong>{{ $t('home.ip.asn') }} : </strong>
-              <span
-                  class="info-item-value"
-                  :class="{'info-item-value--link': Boolean(asnInfoLink)}"
-              >
-                {{ ipInfo['as'] }}
-                <a
-                    v-if="asnInfoLink"
-                    :href="asnInfoLink"
-                    class="info-link"
-                    :aria-label="$t('home.ip.asn')"
-                    role="link"
-                    @click.prevent.stop="goAsnInfo()"
-                    @keydown.enter.prevent.stop="goAsnInfo()"
-                    @keydown.space.prevent.stop="goAsnInfo()"
-                    tabindex="0"
-                >
-                  <icon-mdi-open-in-new/>
-                </a>
-              </span>
-            </li>
-            <li class="info-item"><strong>{{ $t('home.ip.time-zone') }} : </strong>
-              {{ ipInfo['timezone'] }}
-            </li>
-          </ul>
-        </div>
+  <div class="home-bottom">
+    <section class="px-card info-card" :aria-label="$t('home.ip.title')">
+      <div class="info-card__head">
+        <span class="info-card__title">{{ $t('home.ip.title') }}</span>
+        <span class="px-info" v-tip="$t('home.ip.service-tip')" tabindex="0" :aria-label="$t('home.ip.service-tip')">
+          <icon-tabler-info-circle width="14" height="14"/>
+        </span>
+        <UiIconButton class="info-card__refresh" :label="$t('refresh')" :size="22" :loading="ipLoading" @click="getIpInfo(false)">
+          <UiSpinner v-if="ipLoading" :size="12"/>
+          <icon-tabler-refresh v-else width="14" height="14"/>
+        </UiIconButton>
       </div>
+      <div class="px-divider info-card__divider"></div>
+      <ul class="info-list">
+        <li>
+          <strong>{{ $t('home.ip.real') }}:</strong>
+          <span class="ellipsis tabular">{{ ipInfo['query'] }}</span>
+          <button v-if="ipInfoLink" type="button" class="info-link" :aria-label="'ipinfo.io'" v-tip="'ipinfo.io'" @click="goIpInfo()">
+            <icon-tabler-external-link width="13" height="13"/>
+          </button>
+        </li>
+        <li><strong>{{ $t('home.ip.city') }}:</strong> <span class="ellipsis">{{ ipInfo['city'] }}</span></li>
+        <li><strong>{{ $t('home.ip.country') }}:</strong> <span class="ellipsis">{{ ipInfo['country'] }}</span></li>
+        <li><strong>{{ $t('home.ip.isp') }}:</strong> <span class="ellipsis" v-tip="ipInfo['isp']">{{ ipInfo['isp'] }}</span></li>
+        <li>
+          <strong>{{ $t('home.ip.asn') }}:</strong>
+          <span class="ellipsis">{{ ipInfo['as'] }}</span>
+          <button v-if="asnInfoLink" type="button" class="info-link" :aria-label="'ipinfo.io'" v-tip="'ipinfo.io'" @click="goAsnInfo()">
+            <icon-tabler-external-link width="13" height="13"/>
+          </button>
+        </li>
+        <li><strong>{{ $t('home.ip.time-zone') }}:</strong> <span class="ellipsis">{{ ipInfo['timezone'] }}</span></li>
+      </ul>
+    </section>
 
-      <div class="spark-col">
-        <div class="box box2">
-          <div class="title title-right">
-            {{ $t('home.system.title') }}
-          </div>
-          <hr/>
-          <ul class="info-list info-list-right">
-            <li class="info-item"><strong>{{ $t('home.system.os') }} : </strong> {{ homeStore.os }}</li>
-            <li class="info-item"><strong>{{ $t('home.system.runtime') }} : </strong>
-              {{ time }}
-            </li>
-            <li class="info-item"><strong>{{ $t('home.system.startup') }} : </strong> {{ settingStore.startup ? $t('on') : $t('off') }}</li>
-            <li class="info-item"><strong>{{ $t('home.system.admin') }} : </strong> {{ $t(admin) }}</li>
-            <li class="info-item"><strong>{{ $t('home.system.port') }} : </strong>
-              {{ port }}
-            </li>
-            <li class="info-item"><strong>{{ $t('home.system.version') }} : </strong>
-              {{ version }}
-            </li>
-          </ul>
-        </div>
-      </div>
-    </div>
+    <section class="px-card info-card" :aria-label="$t('home.system.title')">
+      <div class="info-card__title info-card__title--right">{{ $t('home.system.title') }}</div>
+      <div class="px-divider info-card__divider"></div>
+      <ul class="info-list info-list--right">
+        <li><strong>{{ $t('home.system.os') }}:</strong> <span class="ellipsis">{{ homeStore.os }}</span></li>
+        <li><strong>{{ $t('home.system.runtime') }}:</strong> <span class="tabular">{{ time }}</span></li>
+        <li><strong>{{ $t('home.system.startup') }}:</strong> {{ settingStore.startup ? $t('on') : $t('off') }}</li>
+        <li><strong>{{ $t('home.system.admin') }}:</strong> {{ $t(admin) }}</li>
+        <li><strong>{{ $t('home.system.port') }}:</strong> <span class="tabular">{{ port }}</span></li>
+        <li><strong>{{ $t('home.system.version') }}:</strong> <span class="ellipsis">{{ version }}</span></li>
+      </ul>
+    </section>
   </div>
 </template>
 
 <style scoped>
-.ip-system-wrapper {
-  width: 100%;
-  display: flex;
-  margin-top: auto;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-.spark {
-  width: 100%;
-  max-width: 100%;
-  margin-top: 0;
+.home-bottom {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 15px;
-  padding: 0;
+  gap: 14px;
+  margin-top: auto;
 }
 
-.spark-col {
+.info-card {
   min-width: 0;
 }
 
-.box {
-  padding: 12px 20px;
-  border-radius: 20px;
-  background: var(--sub-card-bg);
-  border: 1px solid var(--sub-card-border);
-  box-shadow: var(--right-box-shadow);
-  text-align: left;
-  box-sizing: border-box;
-}
-
-.box hr {
-  border: none;
-  height: 1px;
-  background-color: var(--hr-color);
-  margin: 10px 0;
-}
-
-.title {
-  position: relative;
-  font-weight: 500;
-  font-size: 16px;
+.info-card__head {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.title-left {
-  text-align: left;
-  justify-content: flex-start;
+.info-card__title {
+  font-size: 14px;
+  font-weight: 700;
 }
 
-.title-right {
+.info-card__title--right {
   text-align: right;
-  justify-content: flex-end;
+}
+
+.info-card__refresh {
+  margin-left: auto;
+}
+
+.info-card__divider {
+  margin: 10px 0;
 }
 
 .info-list {
   list-style: none;
-  padding: 0;
   margin: 0;
-}
-
-.info-list-left {
-  text-align: left;
-}
-
-.info-list-right {
-  text-align: right;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--text-2);
 }
 
 .info-list li {
-  font-size: 18px;
-  margin: 8px 0;
-  line-height: 20px;
-}
-
-.info-item--link {
-  position: static;
-  padding-right: 0;
-}
-
-.info-item-value {
-  position: relative;
-  display: inline-block;
-}
-
-.info-item-value--link .info-link {
-  position: absolute;
-  top: 50%;
-  left: calc(100% + 6px);
-  transform: translateY(-50%);
-}
-
-.refreshIp {
-  cursor: pointer;
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 4px;
+  min-width: 0;
 }
 
-.refreshIp:hover {
-  cursor: pointer;
-  opacity: 0.8;
+.info-list strong {
+  color: var(--text);
+  font-weight: 600;
+  flex-shrink: 0;
 }
 
-.ipServiceInfo {
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ipServiceInfo:hover {
-  cursor: pointer;
-  opacity: 0.8;
+.info-list--right li {
+  justify-content: flex-end;
+  text-align: right;
 }
 
 .info-link {
-  margin-left: 6px;
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1em;
-  height: 1em;
-  color: inherit;
+  padding: 2px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-3);
   cursor: pointer;
-  text-decoration: none;
-  vertical-align: text-bottom;
-  line-height: 1;
+  flex-shrink: 0;
 }
 
-.info-link :deep(svg) {
-  display: block;
-  width: 0.9em;
-  height: 0.9em;
-}
-
-.info-link:focus-visible {
-  outline: 2px solid var(--el-color-primary);
-  outline-offset: 2px;
+.info-link:hover {
+  color: var(--accent);
+  background: var(--hover-bg);
 }
 </style>

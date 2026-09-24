@@ -12,6 +12,16 @@ import {useWebStore} from "@/store/webStore";
 import {WS} from "@/util/ws";
 import {onBeforeRouteLeave} from "vue-router";
 import AnnounceText from "@/components/home/AnnounceText.vue";
+import AddProfileDialog from "@/components/profile/AddProfileDialog.vue";
+import {confirm} from "@/components/ui";
+import type {UiSelectOption} from "@/components/ui";
+import {formatDateValue, formatExact, formatTrafficValue, hasValue, profileDisplayTitle, relativeDate} from "@/util/profileView";
+import IconBell from "~icons/tabler/bell";
+import IconSpeakerphone from "~icons/tabler/speakerphone";
+import IconCopyCheck from "~icons/tabler/copy-check";
+import IconDeviceTv from "~icons/tabler/device-tv";
+import IconUserCog from "~icons/tabler/user-cog";
+import IconPlus from "~icons/tabler/plus";
 import {useHwidStatusStore} from "@/store/hwidStatusStore";
 import {parseHwidFromError} from "@/api/profiles";
 
@@ -32,22 +42,18 @@ const hwidStatusStore = useHwidStatusStore();
 // 头部几个按钮操作
 const addFormVisible = ref(false)
 const isNowAdd = ref(false)
-const addForm = reactive({
-  content: '',
-  useAgeKey: false,
-  ageSecretKey: '',
-})
+const addInitial = ref('')
 
-async function add() {
-  if (!addForm.content) {
+async function add(form: { content: string; ageSecretKey: string }) {
+  if (!form.content) {
     return
   }
 
   isNowAdd.value = true
   const p = new Profile()
-  p.content = addForm.content
-  if (addForm.useAgeKey && addForm.ageSecretKey.trim()) {
-    p.ageSecretKey = addForm.ageSecretKey.trim()
+  p.content = form.content
+  if (form.ageSecretKey) {
+    p.ageSecretKey = form.ageSecretKey
   }
   try {
     const pList = await api.addProfileFromInput(p)
@@ -55,9 +61,7 @@ async function add() {
       pList.forEach(item => profiles.push(item))
     }
     sendOrder(profiles)
-    addForm.content = ""
-    addForm.useAgeKey = false
-    addForm.ageSecretKey = ""
+    pSuccess(t('drag.success'))
     addFormVisible.value = false
   } catch (e) {
     const hwid = parseHwidFromError(e)
@@ -75,14 +79,12 @@ async function add() {
 }
 
 function handleAdd() {
-  addForm.content = ""
-  addForm.useAgeKey = false
-  addForm.ageSecretKey = ""
+  addInitial.value = ""
   addFormVisible.value = true
 }
 
 function handlePaste() {
-  addForm.content = Clipboard.Text()
+  addInitial.value = Clipboard.Text()
   addFormVisible.value = true
 }
 
@@ -90,91 +92,7 @@ function openFile() {
   webStore.dnd = true
 }
 
-function hasValue(value: any) {
-  return value !== undefined && value !== null && value !== ''
-}
-
-function formatTrafficValue(value: any) {
-  if (!hasValue(value)) {
-    return ''
-  }
-  const num = Number(value)
-  if (Number.isFinite(num)) {
-    return prettyBytes(num)
-  }
-  return String(value)
-}
-
-function formatDateValue(value: any) {
-  if (!hasValue(value)) {
-    return ''
-  }
-
-  if (typeof value === 'string') {
-    const trimmed = value.trim()
-    const match = trimmed.match(/^(\d{4})[-/.](\d{2})[-/.](\d{2})$/)
-    if (match) {
-      return `${match[3]}.${match[2]}.${match[1]}`
-    }
-
-    const parsed = Date.parse(trimmed)
-    if (!Number.isNaN(parsed)) {
-      const date = new Date(parsed)
-      const day = String(date.getDate()).padStart(2, '0')
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const year = date.getFullYear()
-      return `${day}.${month}.${year}`
-    }
-
-    return trimmed
-  }
-
-  if (typeof value === 'number') {
-    const timestamp = value > 1e12 ? value : value * 1000
-    const date = new Date(timestamp)
-    if (!Number.isNaN(date.getTime())) {
-      const day = String(date.getDate()).padStart(2, '0')
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const year = date.getFullYear()
-      return `${day}.${month}.${year}`
-    }
-  }
-
-  if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    const day = String(value.getDate()).padStart(2, '0')
-    const month = String(value.getMonth() + 1).padStart(2, '0')
-    const year = value.getFullYear()
-    return `${day}.${month}.${year}`
-  }
-
-  return String(value)
-}
-
-// 列表显示
-const flagEmojiRegex = /([\u{1F1E6}-\u{1F1FF}]{2}|\u{1F3F3}|\u{1F3F4}|\u{1F6A9})/u
-
-function containsFlagEmoji(value: any) {
-  if (typeof value !== 'string') {
-    return false
-  }
-  return flagEmojiRegex.test(value)
-}
-
-function getProfileDisplayTitle(profile: any) {
-  const title = typeof profile?.title === 'string' ? profile.title.trim() : ''
-  const headerTitle = typeof profile?.headerTitle === 'string' ? profile.headerTitle.trim() : ''
-
-  if (title) {
-    if (!headerTitle) {
-      return title
-    }
-    if (containsFlagEmoji(title) || !containsFlagEmoji(headerTitle)) {
-      return title
-    }
-  }
-
-  return headerTitle || title || ''
-}
+const getProfileDisplayTitle = profileDisplayTitle
 
 let profiles = reactive<any[]>([])
 
@@ -201,12 +119,6 @@ const applyProfileList = (list: any[]) => {
   }
   ensurePrimaryFirst()
   applySelectionOrder()
-  if (multiProfileEnabled.value && !settingStore.multiProfileHintShown) {
-    const selectedProfiles = profiles.filter(profile => profile['selected'])
-    if (selectedProfiles.length > 1) {
-      multiProfileInfoVisible.value = true
-    }
-  }
   if (!multiProfileEnabled.value && !isSwitchingProfile.value) {
     const selectedProfiles = profiles.filter(profile => profile['selected'])
     if (selectedProfiles.length > 1) {
@@ -408,12 +320,6 @@ async function switchProfile(data: any, desired?: boolean, exclusive = false) {
         }
         ensurePrimaryFirst()
         applySelectionOrder()
-        if (multiProfileEnabled.value && !settingStore.multiProfileHintShown) {
-          const selectedProfiles = profiles.filter(profile => profile['selected'])
-          if (selectedProfiles.length > 1) {
-            multiProfileInfoVisible.value = true
-          }
-        }
 
         const activeProfile = profiles.find(profile => profile['primary'])
             ?? profiles.find(profile => profile['selected'])
@@ -486,8 +392,9 @@ const toggleMultiProfile = async () => {
     return
   }
 
-  const selectedCount = profiles.filter(profile => profile['selected']).length
-  if (selectedCount > 1 && !settingStore.multiProfileHintShown) {
+  // Accepted product change: the warning shows the first time multi-select is
+  // turned on (until answered "Yes"), and on demand via the (i) button.
+  if (!settingStore.multiProfileHintShown) {
     multiProfileInfoVisible.value = true
   }
 }
@@ -611,8 +518,10 @@ function openTvDialog(data: any) {
   tvDialogVisible.value = true
 }
 
+const tvWarning = computed(() => t('profiles.tv-dialog.warning').replace(/^\s*⚠️\s*/u, ''))
+
 async function submitToTv() {
-  if (!tvForm.ip || !tvForm.port) {
+  if (!tvForm.ip.trim() || !tvForm.port.trim()) {
     pError(t('profiles.tv-dialog.ip') + ' / ' + t('profiles.tv-dialog.port'))
     return
   }
@@ -712,6 +621,30 @@ function updateProfile(data: any) {
   editFormVisible.value = true
 }
 
+const intervalLocked = computed(() => !!editForm.intervalFromHeader)
+const intervalInvalid = computed(() => editForm.type == 1 && !intervalLocked.value && !validateField(editForm.interval))
+
+function stepInterval(delta: number) {
+  if (intervalLocked.value) return
+  const current = parseInt(String(editForm.interval ?? ''), 10)
+  const base = Number.isFinite(current) ? current : (delta > 0 ? 0 : 2)
+  editForm.interval = String(Math.min(127, Math.max(1, base + delta)))
+}
+
+function onIntervalInput(e: Event) {
+  if (intervalLocked.value) return
+  editForm.interval = (e.target as HTMLInputElement).value.replace(/[^0-9]/g, '').slice(0, 3)
+}
+
+const templateOptions = computed<UiSelectOption<string>[]>(() => {
+  const list: UiSelectOption<string>[] = []
+  if (editForm.pxdTemplateUrl) {
+    list.push({value: 'pxd_subscription', label: t('profiles.edit.pxd-subscription')})
+  }
+  tList.value.forEach((item: any) => list.push({value: item.id, label: getTemplateTitle(t, item.title)}))
+  return list
+})
+
 function validateField(value: any) {
   // 如果为空，则通过校验
   if (value === "" || value === null || value === undefined) {
@@ -757,8 +690,11 @@ async function saveUpdateProfile() {
   }
 
   isNowEdit.value = true
-  await api.updateProfile(editForm)
-  isNowEdit.value = false
+  try {
+    await api.updateProfile(editForm)
+  } finally {
+    isNowEdit.value = false
+  }
   // 更新当前页面的值
   Object.assign(editFormD, editForm)
   editFormVisible.value = false
@@ -772,6 +708,18 @@ async function saveUpdateProfile() {
   api.getRuleNum().then((res) => {
     menuStore.setRuleNum(res);
   });
+}
+
+// Accepted product change: deleting asks for confirmation first.
+async function askDeleteProfile(data: any, index: any) {
+  const ok = await confirm({
+    title: t('confirm.delete-profile.title'),
+    text: t('confirm.delete-profile.text', {name: getProfileDisplayTitle(data)}),
+    okLabel: t('confirm.delete-profile.ok'),
+  })
+  if (ok) {
+    await deleteProfile(data, index)
+  }
 }
 
 // 删除配置
@@ -796,7 +744,7 @@ async function deleteProfile(data: any, index: any) {
       window.dispatchEvent(new CustomEvent('profile-changed'))
     }
     if (isSelected) {
-      pWarning('Удаление прошло, выберите новый активный профиль')
+      pWarning(t('profiles.deleted-select-new'))
     }
   } catch (e) {
     if (e['message']) {
@@ -871,7 +819,10 @@ onBeforeUnmount(() => {
 })
 
 // Template列表
-let tList = reactive([]);
+const tList = ref<any[]>([]);
+
+// Skeleton cards until the first list arrives (unless the cache already has one).
+const firstLoad = ref(true);
 
 // vue 周期相关
 onMounted(async () => {
@@ -884,12 +835,17 @@ onMounted(async () => {
     applyProfileList(webStore.profileList);
   }
 
-  await getProfileList()
-  tList = await api.getTemplateList();
-  tList.unshift({
-    title: 'm0',
-    id: 'm0'
-  });
+  try {
+    await getProfileList()
+  } finally {
+    firstLoad.value = false
+  }
+  try {
+    const templates = await api.getTemplateList();
+    tList.value = [{title: 'm0', id: 'm0'}, ...(Array.isArray(templates) ? templates : [])];
+  } catch (e) {
+    tList.value = [{title: 'm0', id: 'm0'}];
+  }
 
   window.addEventListener('deeplink-profile-imported', handleProfilesImported as EventListener);
   Events.On("profiles", handleProfilesEvent)
@@ -904,849 +860,570 @@ watch(() => webStore.dProfile, async (pList) => {
 </script>
 
 <template>
-  <MyLayout>
-    <template #top>
-        <el-space class="space">
-          <div class="title">
-            {{ $t('profiles.title') }}
-          </div>
-          <div class="profile-option">
-            <el-tooltip
-                :content="multiProfileEnabled ? t('profiles.multi-select.disable') : t('profiles.multi-select.enable')"
-                placement="top">
-              <el-icon
-                  @click="toggleMultiProfile"
-                  class="profile-option-btn">
-                <icon-mdi-checkbox-multiple-marked v-if="multiProfileEnabled"/>
-                <icon-mdi-checkbox-multiple-blank-outline v-else/>
-              </el-icon>
-            </el-tooltip>
-            <el-tooltip
-                :content="t('profiles.multi-select.info')"
-                placement="top">
-              <el-icon
-                  @click="showMultiProfileInfo"
-                  class="profile-option-btn">
-                <icon-mdi-information-outline/>
-              </el-icon>
-            </el-tooltip>
-            <el-tooltip
-                :content="$t('profiles.add')"
-                placement="top">
-              <el-icon
-                  @click="handleAdd"
-                class="profile-option-btn">
-              <icon-mdi-plus-thick/>
-            </el-icon>
-          </el-tooltip>
+  <div class="px-page">
+    <div class="px-page-head profiles-head">
+      <h1 class="px-page-title">{{ $t('profiles.title') }}</h1>
+      <div class="profiles-tools">
+        <UiIconButton :label="multiProfileEnabled ? t('profiles.multi-select.disable') : t('profiles.multi-select.enable')"
+                      :active="multiProfileEnabled"
+                      :pressed="multiProfileEnabled"
+                      @click="toggleMultiProfile">
+          <icon-tabler-checkbox v-if="multiProfileEnabled" width="17" height="17"/>
+          <icon-tabler-square v-else width="17" height="17"/>
+        </UiIconButton>
+        <UiIconButton :label="t('profiles.multi-select.info')" @click="showMultiProfileInfo">
+          <icon-tabler-info-circle width="17" height="17"/>
+        </UiIconButton>
+        <span class="px-vdivider"></span>
+        <UiIconButton :label="$t('profiles.add')" @click="handleAdd">
+          <icon-tabler-plus width="17" height="17"/>
+        </UiIconButton>
+        <UiIconButton :label="$t('profiles.paste')" @click="handlePaste">
+          <icon-tabler-clipboard width="17" height="17"/>
+        </UiIconButton>
+        <UiIconButton :label="$t('profiles.open')" @click="openFile">
+          <icon-tabler-folder-open width="17" height="17"/>
+        </UiIconButton>
+      </div>
+    </div>
 
-          <el-tooltip
-              :content="$t('profiles.paste')"
-              placement="top">
-            <el-icon
-                @click="handlePaste"
-                class="profile-option-btn">
-              <icon-mdi-content-paste/>
-            </el-icon>
-          </el-tooltip>
-
-          <el-tooltip
-              :content="$t('profiles.open')"
-              placement="top">
-            <el-icon
-                @click="openFile"
-                class="profile-option-btn">
-              <icon-mdi-folder-open/>
-            </el-icon>
-          </el-tooltip>
-        </div>
-      </el-space>
-
-    </template>
-
-    <template #bottom>
+    <div class="px-page-body">
+      <div v-if="firstLoad && profiles.length === 0" class="profiles-grid">
+        <UiSkeleton :count="3" :min-height="200"/>
+      </div>
+      <UiEmpty v-else-if="profiles.length === 0"
+               :icon="IconUserCog"
+               :title="t('empty.profiles.title')"
+               :text="t('empty.profiles.text')"
+               :action-label="t('profiles.add')"
+               :action-icon="IconPlus"
+               @action="handleAdd"/>
       <VDContainer
+          v-else
+          class="profiles-vdc"
           :data="profiles"
           @getData="sendOrder"
-          :gap="15"
+          :gap="14"
           :draggable="canDrag"
-          style="margin-left: 10px;width: 95%;"
       >
         <template v-slot:VDC="{data,index}">
           <div
-              :class="data.selected?'sub-card sub-card-select':'sub-card'"
+              class="profile-card"
+              :class="{ 'is-selected': data.selected }"
+              role="button"
+              tabindex="0"
+              :aria-pressed="data.selected ? 'true' : 'false'"
+              :aria-label="getProfileDisplayTitle(data)"
               @click="switchProfile(data, true, true)"
           >
-            <div class="row card-header">
-              <el-icon
-                  @mouseenter.stop="mouseEnter"
-                  @mouseleave.stop="mouseLeave"
-                  @click.stop
-                  size="22"
-                  class="drag">
-                <icon-mdi-drag/>
-              </el-icon>
-              <div class="profile-name" :title="getProfileDisplayTitle(data)">
-                <span class="profile-name-text">{{ getProfileDisplayTitle(data) }}</span>
-              </div>
-              <div class="header-action">
-                <el-tooltip
-                    v-if="data.type == 1"
-                    :content="$t('refresh')"
-                    placement="top">
-                  <el-icon size="22"
-                           class="ops"
-                           @click.stop="refresh(data)">
-                    <icon-mdi-refresh/>
-                  </el-icon>
-                </el-tooltip>
-              </div>
+            <div class="card-head">
+              <span class="card-grip"
+                    aria-hidden="true"
+                    @mouseenter.stop="mouseEnter"
+                    @mouseleave.stop="mouseLeave"
+                    @click.stop>
+                <icon-tabler-grip-vertical width="16" height="16"/>
+              </span>
+              <span class="card-title ellipsis" v-tip="getProfileDisplayTitle(data)">{{ getProfileDisplayTitle(data) }}</span>
+              <UiIconButton v-if="data.type == 1" :size="26" :label="$t('refresh')" @click.stop="refresh(data)">
+                <icon-tabler-refresh width="15" height="15"/>
+              </UiIconButton>
             </div>
-            <div class="stats">
-              <div class="stat-row" v-if="hasValue(data.used)">
-                <el-icon size="18" class="stat-icon">
-                  <icon-mdi-chart-timeline-variant/>
-                </el-icon>
-                <span class="stat-label">{{ $t('profiles.use') }}</span>
-                <span class="stat-value">{{ formatTrafficValue(data.used) }}</span>
+            <div class="px-divider card-divider"></div>
+            <div class="card-stats">
+              <div v-if="hasValue(data.used)" class="stat-row">
+                <span class="stat-label"><icon-tabler-activity width="14" height="14"/>{{ $t('profiles.use') }}</span>
+                <span class="stat-value tabular">{{ formatTrafficValue(data.used) }}</span>
               </div>
-              <div class="stat-row" v-if="hasValue(data.available)">
-                <el-icon size="18" class="stat-icon">
-                  <icon-mdi-database-check/>
-                </el-icon>
-                <span class="stat-label">{{ $t('profiles.available') }}</span>
-                <span class="stat-value">{{ formatTrafficValue(data.available) }}</span>
+              <div v-if="hasValue(data.available)" class="stat-row">
+                <span class="stat-label"><icon-tabler-database width="14" height="14"/>{{ $t('profiles.available') }}</span>
+                <span class="stat-value tabular">{{ formatTrafficValue(data.available) }}</span>
               </div>
-              <div class="stat-row" v-if="hasValue(data.expire)">
-                <el-icon size="18" class="stat-icon">
-                  <icon-mdi-calendar-alert/>
-                </el-icon>
-                <span class="stat-label">{{ $t('profiles.expire') }}</span>
+              <div v-if="hasValue(data.expire)" class="stat-row">
+                <span class="stat-label"><icon-tabler-calendar-due width="14" height="14"/>{{ $t('profiles.expire') }}</span>
                 <span class="stat-value">{{ formatDateValue(data.expire) }}</span>
               </div>
-              <div class="stat-row" v-if="hasValue(data.update)">
-                <el-icon size="18" class="stat-icon">
-                  <icon-mdi-update/>
-                </el-icon>
-                <span class="stat-label">{{ $t('profiles.update') }}</span>
-                <span class="stat-value">{{ formatDateValue(data.update) }}</span>
+              <div v-if="hasValue(data.update)" class="stat-row">
+                <span class="stat-label"><icon-tabler-clock-check width="14" height="14"/>{{ $t('profiles.update') }}</span>
+                <span class="stat-value" v-tip="formatExact(data.update)">{{ relativeDate(t, data.update) }}</span>
               </div>
             </div>
-              <div class="bottom-row" :class="{ 'multi-disabled': !multiProfileEnabled }">
-              <div class="profile-select" v-if="multiProfileEnabled">
-                <button
-                    type="button"
-                    class="profile-select-btn"
-                    :class="{ 'is-selected': data.selected }"
-                    @click.stop="switchProfile(data, !data.selected)"
-                >
-                  <el-icon class="profile-select-icon" size="18">
-                    <icon-mdi-check-circle v-if="data.selected"/>
-                    <icon-mdi-circle-outline v-else/>
-                  </el-icon>
-                  <el-icon v-if="data.selected" class="profile-select-order-icon" size="18">
-                    <icon-mdi-numeric-1-circle v-if="data.selectionOrder === 1"/>
-                    <icon-mdi-numeric-2-circle v-else-if="data.selectionOrder === 2"/>
-                    <icon-mdi-numeric-3-circle v-else-if="data.selectionOrder === 3"/>
-                    <icon-mdi-numeric-4-circle v-else-if="data.selectionOrder === 4"/>
-                    <icon-mdi-numeric-5-circle v-else-if="data.selectionOrder === 5"/>
-                    <icon-mdi-numeric-6-circle v-else-if="data.selectionOrder === 6"/>
-                    <icon-mdi-numeric-7-circle v-else-if="data.selectionOrder === 7"/>
-                    <icon-mdi-numeric-8-circle v-else-if="data.selectionOrder === 8"/>
-                    <icon-mdi-numeric-9-circle v-else-if="data.selectionOrder === 9"/>
-                    <icon-mdi-numeric-10-circle v-else/>
-                  </el-icon>
-                </button>
-              </div>
-              <div class="bottom-actions">
-                <el-tooltip
-                    v-if="data.content && isHttpOrHttps(data.content)"
-                    :content="$t('profiles.tv-send')"
-                    placement="top">
-                  <el-icon
-                      class="ops"
-                      @click.stop="openTvDialog(data)"
-                      size="20">
-                    <icon-mdi-television-classic/>
-                  </el-icon>
-                </el-tooltip>
-                <el-tooltip
-                    v-if="data.announce"
-                    :content="$t('profiles.announce')"
-                    placement="top">
-                  <el-icon
-                      class="ops"
-                      @click.stop="showAnnounce(data)"
-                      size="20">
-                    <icon-mdi-bullhorn-variant-outline/>
-                  </el-icon>
-                </el-tooltip>
-                <el-tooltip
-                    v-if="data.renewUrl"
-                    :content="$t('profiles.renew')"
-                    placement="top">
-                  <el-icon
-                      class="ops"
-                      @click.stop="goRenew(data)"
-                      size="20">
-                    <icon-mdi-credit-card-outline/>
-                  </el-icon>
-                </el-tooltip>
-                <el-tooltip
-                    v-if="data.support"
-                    :content="$t('profiles.support')"
-                    placement="top">
-                  <el-icon
-                      class="ops"
-                      @click.stop="goSupport(data)"
-                      size="20">
-                    <icon-mdi-face-agent/>
-                  </el-icon>
-                </el-tooltip>
-                <el-tooltip
-                    v-if="data.home"
-                    :content="$t('profiles.home')"
-                    placement="top">
-                  <el-icon
-                      class="ops"
-                      @click.stop="goHome(data)"
-                      size="20">
-                    <icon-mdi-home-import-outline/>
-                  </el-icon>
-                </el-tooltip>
-                <el-tooltip
-                    :content="$t('edit')"
-                    placement="top">
-                  <el-icon
-                      class="ops"
-                      @click.stop="updateProfile(data)"
-                      size="20">
-                    <icon-mdi-square-edit-outline/>
-                  </el-icon>
-                </el-tooltip>
-                <el-tooltip
-                    :content="$t('delete')"
-                    placement="top">
-                  <el-icon
-                      class="ops"
-                      @click.stop="deleteProfile(data,index)"
-                      size="20">
-                    <icon-mdi-trash-can/>
-                  </el-icon>
-                </el-tooltip>
+            <div class="card-bottom">
+              <button v-if="multiProfileEnabled"
+                      type="button"
+                      class="card-select"
+                      :class="{ 'is-selected': data.selected }"
+                      :aria-pressed="data.selected ? 'true' : 'false'"
+                      :aria-label="t('profiles.multi-select.pick')"
+                      v-tip="t('profiles.multi-select.pick')"
+                      @click.stop="switchProfile(data, !data.selected)">
+                <icon-tabler-circle-check v-if="data.selected" width="18" height="18"/>
+                <icon-tabler-circle v-else width="18" height="18"/>
+                <span v-if="data.selected && data.selectionOrder" class="card-order tabular">{{ data.selectionOrder }}</span>
+              </button>
+              <span class="card-spacer"></span>
+              <div class="card-actions">
+                <UiIconButton v-if="data.content && isHttpOrHttps(data.content)" :size="26" :label="$t('profiles.tv-send')" @click.stop="openTvDialog(data)">
+                  <icon-tabler-device-tv width="14" height="14"/>
+                </UiIconButton>
+                <UiIconButton v-if="data.announce" :size="26" :label="$t('profiles.announce')" @click.stop="showAnnounce(data)">
+                  <icon-tabler-speakerphone width="14" height="14"/>
+                </UiIconButton>
+                <UiIconButton v-if="data.renewUrl" :size="26" :label="$t('profiles.renew')" @click.stop="goRenew(data)">
+                  <icon-tabler-credit-card width="14" height="14"/>
+                </UiIconButton>
+                <UiIconButton v-if="data.support" :size="26" :label="$t('profiles.support')" @click.stop="goSupport(data)">
+                  <icon-tabler-headphones width="14" height="14"/>
+                </UiIconButton>
+                <UiIconButton v-if="data.home" :size="26" :label="$t('profiles.home')" @click.stop="goHome(data)">
+                  <icon-tabler-home-link width="14" height="14"/>
+                </UiIconButton>
+                <UiIconButton :size="26" :label="$t('edit')" @click.stop="updateProfile(data)">
+                  <icon-tabler-edit width="14" height="14"/>
+                </UiIconButton>
+                <UiIconButton :size="26" danger :label="$t('delete')" @click.stop="askDeleteProfile(data, index)">
+                  <icon-tabler-trash width="14" height="14"/>
+                </UiIconButton>
               </div>
             </div>
           </div>
         </template>
       </VDContainer>
+    </div>
+  </div>
 
-    </template>
-  </MyLayout>
+  <AddProfileDialog v-model="addFormVisible"
+                    :initial-content="addInitial"
+                    :loading="isNowAdd"
+                    @submit="add"/>
 
-  <el-dialog v-model="addFormVisible"
-             :title="t('profiles.add')"
-             width="520"
-             draggable
-             center
-  >
-    <el-form :model="addForm">
-      <el-form-item>
-        <el-input
-            :rows="3"
-            type="textarea"
-            autocapitalize="off"
-            autocomplete="off"
-            spellcheck="false"
-            :placeholder="t('profiles.placeholder')"
-            v-model="addForm.content"
-        />
-      </el-form-item>
-      <el-form-item v-if="addForm.useAgeKey" class="age-key-field">
-        <el-input
-            autocapitalize="off"
-            autocomplete="off"
-            spellcheck="false"
-            :placeholder="t('age.profile.keyPlaceholder')"
-            v-model="addForm.ageSecretKey"
-            clearable
-        >
-          <template #prefix>
-            <el-icon><icon-mdi-key-variant/></el-icon>
-          </template>
-        </el-input>
-      </el-form-item>
-    </el-form>
-    <template #footer>
-      <div class="dialog-footer dialog-footer--split">
-        <el-tooltip
-            :content="addForm.useAgeKey ? t('age.profile.toggleOn') : t('age.profile.toggleOff')"
-            placement="top"
-        >
-          <div class="age-toggle-wrap" @click="addForm.useAgeKey = !addForm.useAgeKey">
-            <el-icon class="age-toggle-icon" :class="{ 'age-toggle-icon--active': addForm.useAgeKey }">
-              <icon-mdi-key-variant/>
-            </el-icon>
-            <div :class="['px-toggle', { 'is-on': addForm.useAgeKey }]">
-              <div class="px-toggle__thumb"></div>
-            </div>
-          </div>
-        </el-tooltip>
-        <div class="dialog-footer__actions">
-          <el-button @click="addFormVisible = false">
-            {{ t('cancel') }}
-          </el-button>
-          <el-button
-              :loading="isNowAdd"
-              type="primary"
-              @click="add">
-            {{ t('confirm') }}
-          </el-button>
+  <!-- Edit -->
+  <UiModal v-model="editFormVisible" :title="t('edit')" divided>
+    <button v-if="editForm.renewUrl" type="button" class="px-btn px-btn--soft px-btn--block" @click="goRenew(editForm)">
+      <icon-tabler-credit-card width="15" height="15"/>
+      {{ t('profiles.renew') }}
+    </button>
+    <label class="px-field">
+      <span class="px-field__label">{{ t('profiles.edit.title') }}</span>
+      <input v-model="editForm.title" class="px-input" autocapitalize="off" autocomplete="off" spellcheck="false">
+    </label>
+    <template v-if="editForm.type == 1">
+      <label class="px-field">
+        <span class="px-field__label">{{ t('profiles.edit.url') }}</span>
+        <input v-model="editForm.content" class="px-input" autocapitalize="off" autocomplete="off" spellcheck="false">
+      </label>
+      <div class="px-field">
+        <span class="px-field__label" id="edit-interval-label">
+          {{ t('profiles.edit.update') }}
+          <span v-if="intervalLocked" class="px-info" v-tip="t('profiles.edit.interval-locked')">
+            <icon-tabler-lock width="13" height="13"/>
+          </span>
+        </span>
+        <div class="stepper" :class="{ 'is-locked': intervalLocked }" role="group" aria-labelledby="edit-interval-label">
+          <button type="button" class="stepper__btn" :disabled="intervalLocked" :aria-label="t('ui.decrease')" v-tip="t('ui.decrease')" @click="stepInterval(-1)">
+            <icon-tabler-minus width="14" height="14"/>
+          </button>
+          <input :value="editForm.interval"
+                 class="stepper__input tabular"
+                 inputmode="numeric"
+                 :disabled="intervalLocked"
+                 aria-labelledby="edit-interval-label"
+                 @input="onIntervalInput">
+          <span class="stepper__unit">{{ t('ui.hours-short') }}</span>
+          <button type="button" class="stepper__btn" :disabled="intervalLocked" :aria-label="t('ui.increase')" v-tip="t('ui.increase')" @click="stepInterval(1)">
+            <icon-tabler-plus width="14" height="14"/>
+          </button>
         </div>
+        <span v-if="intervalLocked" class="px-field__hint">{{ t('profiles.edit.interval-locked') }}</span>
+        <span v-else-if="intervalInvalid" class="px-field__error" role="alert">{{ t('profiles.edit.update-tip') }}</span>
       </div>
     </template>
-  </el-dialog>
-
-  <el-dialog v-model="editFormVisible"
-             :title="t('edit')"
-             width="520"
-             draggable
-             center
-  >
-    <el-form
-        :model="editForm"
-        label-position="top"
-    >
-      <el-form-item
-          v-if="editForm.renewUrl"
-          :label="t('profiles.renew')"
-          label-width="120"
-          class="renew-subscription-field">
-        <el-button class="renew-subscription-btn" @click="goRenew(editForm)">
-          <el-icon><icon-mdi-credit-card-outline/></el-icon>
-          {{ t('profiles.renew') }}
-        </el-button>
-      </el-form-item>
-      <el-form-item
-          :label="t('profiles.edit.title')"
-          label-width="120">
-        <el-input
-            v-model="editForm.title"
-            clearable
-            autocapitalize="off"
-            autocomplete="off"
-            spellcheck="false"/>
-      </el-form-item>
-      <el-form-item
-          v-if="editForm.type == 1"
-          :label="t('profiles.edit.url')"
-          label-width="120">
-        <el-input
-            v-model="editForm.content"
-            clearable
-            autocapitalize="off"
-            autocomplete="off"
-            spellcheck="false"/>
-      </el-form-item>
-      <el-form-item
-          v-if="editForm.type == 1"
-          :label="t('profiles.edit.update')"
-          label-width="120">
-        <el-input
-            v-model="editForm.interval"
-            clearable
-            autocapitalize="off"
-            autocomplete="off"
-            spellcheck="false">
-        </el-input>
-      </el-form-item>
-      <el-form-item
-          :label="t('profiles.edit.template')"
-          label-width="120">
-        <el-select
-            v-model="editForm.template"
-            placeholder=""
-            clearable
-            :disabled="!!editForm.pxdTemplateUrl"
-        >
-          <el-option
-              v-if="editForm.pxdTemplateUrl"
-              key="pxd_subscription"
-              :label="t('profiles.edit.pxd-subscription')"
-              value="pxd_subscription"
-          />
-          <el-option
-              v-for="item in tList"
-              :key="item.id"
-              :label="getTemplateTitle(t,item.title)"
-              :value="item.id"
-          />
-        </el-select>
-      </el-form-item>
-
-      <el-form-item
-          v-if="editShowAgeKey"
-          label="age-secret-key"
-          label-width="120"
-          class="age-key-field">
-        <el-input
-            v-model="editForm.ageSecretKey"
-            clearable
-            autocapitalize="off"
-            autocomplete="off"
-            spellcheck="false"
-            :placeholder="t('age.profile.keyPlaceholder')">
-          <template #prefix>
-            <el-icon><icon-mdi-key-variant/></el-icon>
-          </template>
-        </el-input>
-      </el-form-item>
-
-    </el-form>
-    <template #footer>
-      <div class="dialog-footer dialog-footer--split">
-        <div class="dialog-footer__indicators">
-          <el-tooltip
-              v-if="editForm.hwidActive"
-              :content="t('hwid.active.tooltip')"
-              placement="top"
-          >
-            <el-icon class="hwid-active-icon">
-              <icon-mdi-shield-check />
-            </el-icon>
-          </el-tooltip>
-          <el-tooltip
-              v-if="editForm.notifyExpireDays?.length || editForm.notifyTrafficPercent?.length"
-              :content="t('subscriptionAlert.bellTooltip')"
-              placement="top"
-          >
-            <el-icon class="subscription-alert-icon" @click="showSubscriptionAlertInfo">
-              <icon-mdi-bell-outline/>
-            </el-icon>
-          </el-tooltip>
-          <el-tooltip
-              v-if="editForm.type == 1 || editHasAgeKey"
-              :content="editHasAgeKey ? t('age.profile.replaceHint') : t('age.profile.toggleOff')"
-              placement="top"
-          >
-            <el-icon
-                class="age-toggle-icon age-edit-icon"
-                :class="{ 'age-toggle-icon--active': editShowAgeKey }"
-                @click="editShowAgeKey = !editShowAgeKey">
-              <icon-mdi-key-variant/>
-            </el-icon>
-          </el-tooltip>
-        </div>
-        <div class="dialog-footer__actions">
-          <el-button @click="editFormVisible = false">
-            {{ t('cancel') }}
-          </el-button>
-          <el-button
-              type="primary"
-              :loading="isNowEdit"
-              @click="saveUpdateProfile"
-          >
-            {{ t('confirm') }}
-          </el-button>
-        </div>
-      </div>
+    <div class="px-field">
+      <span class="px-field__label">{{ t('profiles.edit.template') }}</span>
+      <UiSelect v-model="editForm.template"
+                :options="templateOptions"
+                placement="top"
+                :aria-label="t('profiles.edit.template')"
+                :disabled="!!editForm.pxdTemplateUrl"/>
+    </div>
+    <label v-if="editShowAgeKey" class="px-field">
+      <span class="px-field__label">age-secret-key</span>
+      <input v-model="editForm.ageSecretKey"
+             class="px-input"
+             autocapitalize="off"
+             autocomplete="off"
+             spellcheck="false"
+             :placeholder="t('age.profile.keyPlaceholder')">
+    </label>
+    <template #footer-left>
+      <span v-if="editForm.hwidActive" class="edit-indicator edit-indicator--accent" v-tip="t('hwid.active.tooltip')" tabindex="0" :aria-label="t('hwid.active.tooltip')">
+        <icon-tabler-shield-check width="18" height="18"/>
+      </span>
+      <UiIconButton v-if="editForm.notifyExpireDays?.length || editForm.notifyTrafficPercent?.length"
+                    class="edit-bell"
+                    :size="30"
+                    :label="t('subscriptionAlert.bellTooltip')"
+                    @click="showSubscriptionAlertInfo">
+        <icon-tabler-bell width="18" height="18"/>
+      </UiIconButton>
+      <UiIconButton v-if="editForm.type == 1 || editHasAgeKey"
+                    :size="30"
+                    :active="editShowAgeKey"
+                    :pressed="editShowAgeKey"
+                    :label="editHasAgeKey ? t('age.profile.replaceHint') : t('age.profile.toggleOff')"
+                    @click="editShowAgeKey = !editShowAgeKey">
+        <icon-tabler-key width="18" height="18"/>
+      </UiIconButton>
     </template>
-  </el-dialog>
+    <template #footer>
+      <button type="button" class="px-btn" @click="editFormVisible = false">{{ t('cancel') }}</button>
+      <button type="button" class="px-btn px-btn--primary" :disabled="isNowEdit" @click="saveUpdateProfile">
+        <UiSpinner v-if="isNowEdit"/>
+        {{ t('save') }}
+      </button>
+    </template>
+  </UiModal>
 
-  <!-- Информация о настроенных продавцом напоминаниях (колокольчик в редакторе профиля) -->
-  <el-dialog
-      v-model="subscriptionAlertInfoVisible"
-      :title="t('subscriptionAlert.infoTitle')"
-      width="460"
-      draggable
-      center
-  >
-    <div class="subscription-alert-info">
-      <p v-for="line in subscriptionAlertInfoLines" :key="line">{{ line }}</p>
+  <!-- Subscription reminders configured by the seller (bell in the editor) -->
+  <UiModal v-model="subscriptionAlertInfoVisible"
+           :title="t('subscriptionAlert.infoTitle')"
+           :icon="IconBell"
+           tone="warning"
+           :width="460"
+           :z-index="70">
+    <template v-for="(line, i) in subscriptionAlertInfoLines" :key="line">
+      <span v-if="i === 0" class="info-line">{{ line }}</span>
+      <span v-else-if="line === t('subscriptionAlert.infoDisabledLocally')" class="info-line info-line--warn">{{ line }}</span>
+      <span v-else class="info-line info-line--row tabular">{{ line }}</span>
+    </template>
+    <template #footer>
+      <button type="button" class="px-btn px-btn--primary" @click="subscriptionAlertInfoVisible = false">{{ t('close') }}</button>
+    </template>
+  </UiModal>
+
+  <!-- Multi-profile warning: must be answered, Esc/overlay do nothing -->
+  <UiModal v-model="multiProfileInfoVisible"
+           :title="t('profiles.multi-select.title')"
+           :icon="IconCopyCheck"
+           tone="warning"
+           :width="520"
+           :close-on-esc="false"
+           :close-on-overlay="false"
+           :show-close="false">
+    <span class="info-line">{{ t('profiles.multi-select.description') }}</span>
+    <span class="info-line">{{ t('profiles.multi-select.description-secondary') }}</span>
+    <span class="info-line">{{ t('profiles.multi-select.description-tertiary') }}</span>
+    <div class="px-alert px-alert--warning">
+      <icon-tabler-alert-triangle width="16" height="16"/>
+      <span style="font-weight:600">{{ t('profiles.multi-select.description-warning') }}</span>
+    </div>
+    <span class="multi-question">{{ t('profiles.multi-select.question') }}</span>
+    <template #footer>
+      <button type="button" class="px-btn" @click="declineMultiProfileInfo">{{ t('profiles.multi-select.decline') }}</button>
+      <button type="button" class="px-btn px-btn--primary" @click="confirmMultiProfileInfo">{{ t('profiles.multi-select.accept') }}</button>
+    </template>
+  </UiModal>
+
+  <!-- TV -->
+  <UiModal v-model="tvDialogVisible" :title="t('profiles.tv-dialog.title')" :width="380" divided>
+    <div class="px-alert px-alert--warning">
+      <icon-tabler-alert-triangle width="17" height="17"/>
+      <span>{{ tvWarning }}</span>
+    </div>
+    <label class="px-field">
+      <span class="px-field__label">{{ t('profiles.tv-dialog.ip') }}</span>
+      <input v-model="tvForm.ip" class="px-input" placeholder="192.168.1.100" autocomplete="off" spellcheck="false">
+    </label>
+    <label class="px-field">
+      <span class="px-field__label">{{ t('profiles.tv-dialog.port') }}</span>
+      <input v-model="tvForm.port" class="px-input" placeholder="8080" inputmode="numeric" autocomplete="off" spellcheck="false">
+    </label>
+    <template #footer>
+      <button type="button" class="px-btn" @click="tvDialogVisible = false">{{ t('cancel') }}</button>
+      <button type="button" class="px-btn px-btn--primary" :disabled="tvIsSending" @click="submitToTv">
+        <UiSpinner v-if="tvIsSending"/>
+        <icon-tabler-device-tv v-else width="15" height="15"/>
+        {{ t('profiles.tv-dialog.submit') }}
+      </button>
+    </template>
+  </UiModal>
+
+  <!-- Announce -->
+  <UiModal v-model="announceDialogVisible" :title="t('profiles.announce')" :icon="IconSpeakerphone" :width="520">
+    <div class="announce-box">
+      <AnnounceText :text="announceDialogData.text" :url="announceDialogData.url"/>
     </div>
     <template #footer>
-      <el-button type="primary" @click="subscriptionAlertInfoVisible = false">
-        {{ t('close') }}
-      </el-button>
+      <button type="button" class="px-btn" @click="announceDialogVisible = false">{{ t('close') }}</button>
+      <button v-if="announceDialogData.url" type="button" class="px-btn px-btn--primary" @click="goAnnounceUrl">
+        <icon-tabler-external-link width="15" height="15"/>
+        {{ t('profiles.announce-url') }}
+      </button>
     </template>
-  </el-dialog>
-
-  <el-dialog
-      v-model="multiProfileInfoVisible"
-      :title="t('profiles.multi-select.title')"
-      width="520"
-      draggable
-      center
-      :close-on-click-modal="false"
-      :close-on-press-escape="false"
-      :show-close="false"
-    >
-      <div class="multi-profile-info">
-        <p>{{ t('profiles.multi-select.description') }}</p>
-        <p>{{ t('profiles.multi-select.description-secondary') }}</p>
-        <p>{{ t('profiles.multi-select.description-tertiary') }}</p>
-        <p>{{ t('profiles.multi-select.description-warning') }}</p>
-        <p class="multi-profile-question">{{ t('profiles.multi-select.question') }}</p>
-      </div>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="declineMultiProfileInfo">
-            {{ t('profiles.multi-select.decline') }}
-          </el-button>
-          <el-button type="primary" @click="confirmMultiProfileInfo">
-            {{ t('profiles.multi-select.accept') }}
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
-
-  <!-- TV Send Dialog -->
-  <el-dialog
-      v-model="tvDialogVisible"
-      :title="t('profiles.tv-dialog.title')"
-      width="400"
-      draggable
-      center
-  >
-    <div class="tv-dialog-content">
-      <el-alert
-          :title="t('profiles.tv-dialog.warning')"
-          type="warning"
-          :closable="false"
-          show-icon
-          style="margin-bottom: 16px"
-      />
-      <el-form label-position="top">
-        <el-form-item :label="t('profiles.tv-dialog.ip')">
-          <el-input
-              v-model="tvForm.ip"
-              placeholder="192.168.1.100"
-              autocomplete="off"
-              spellcheck="false"
-          />
-        </el-form-item>
-        <el-form-item :label="t('profiles.tv-dialog.port')">
-          <el-input
-              v-model="tvForm.port"
-              placeholder="8080"
-              autocomplete="off"
-              spellcheck="false"
-          />
-        </el-form-item>
-      </el-form>
-    </div>
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="tvDialogVisible = false">{{ t('cancel') }}</el-button>
-        <el-button type="primary" :loading="tvIsSending" @click="submitToTv">
-          {{ t('profiles.tv-dialog.submit') }}
-        </el-button>
-      </div>
-    </template>
-  </el-dialog>
-
-  <!-- Announce Dialog -->
-  <el-dialog
-      v-model="announceDialogVisible"
-      :title="t('profiles.announce')"
-      width="520"
-      draggable
-      center
-  >
-    <div class="announce-dialog-content">
-      <AnnounceText
-          :text="announceDialogData.text"
-          :url="announceDialogData.url"
-      />
-    </div>
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="announceDialogVisible = false">
-          {{ t('close') }}
-        </el-button>
-        <el-button
-            v-if="announceDialogData.url"
-            type="primary"
-            @click="goAnnounceUrl"
-        >
-          {{ t('profiles.announce-url') }}
-        </el-button>
-      </div>
-    </template>
-  </el-dialog>
-
+  </UiModal>
 </template>
 
 <style scoped>
-.space {
-  margin-top: 15px;
-}
-
-.title {
-  font-size: 32px;
-  font-weight: bold;
-  margin-left: 10px;
-}
-
-.profile-option {
-  margin-left: 10px;
-  font-size: 30px;
-  padding-top: 10px;
-}
-
-.profile-option-btn {
-  margin-right: 15px;
-}
-
-.profile-option-btn:hover {
-  cursor: pointer;
-  color: var(--hr-color);
-}
-
-.multi-profile-info {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  color: var(--el-text-color-regular);
-  line-height: 1.4;
-}
-
-.multi-profile-question {
-  font-weight: 600;
-}
-
-:deep(.vdc-item-container) {
-  width: calc(33% - 10px);
-  max-width: 245px;
-}
-
-.sub-card {
-  padding: 5px 8px 5px 5px;
-  border: 2px solid var(--sub-card-border);
-  border-radius: 20px;
-  background: var(--sub-card-bg);
-  color: var(--text-color);
-  box-shadow: var(--left-nav-shadow);
-  margin-top: 5px;
-}
-
-.sub-card:hover, .sub-card-select {
-  background-color: var(--left-item-selected-bg);
-  border: 2px solid var(--text-color);
-  cursor: pointer;
-}
-
-.sub-card-select:hover {
-  cursor: default;
-}
-
-.sub-card .row {
-  display: flex;
+.profiles-head {
   justify-content: space-between;
 }
 
-.sub-card .row .drag:hover {
-  cursor: grab;
-}
-
-.ops:hover {
-  cursor: pointer;
-}
-
-.card-header {
-  align-items: center;
-  gap: 8px;
-  padding: 4px 6px 0 6px;
-}
-
-.profile-name {
-  flex: 1;
+.profiles-tools {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 6px;
+}
+
+.profiles-grid,
+.profiles-vdc :deep(.vdc-trans-group-container) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.profiles-vdc :deep(.vdc-item-container) {
   min-width: 0;
-  font-weight: 600;
 }
 
-.profile-name-text {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
-.header-action {
-  min-width: 24px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.stats {
+.profile-card {
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px 6px 0 6px;
-  font-size: 13px;
-  color: var(--text-color);
-  min-height: 90px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  background: var(--input-bg);
+  color: var(--text);
+  transition: border-color .15s, background .15s;
+}
+
+.profile-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+}
+
+.profile-card.is-selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--input-bg));
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.card-grip {
+  display: flex;
+  color: var(--text-3);
+  cursor: grab;
+  flex-shrink: 0;
+}
+
+.card-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.card-divider {
+  margin: 10px 0;
+}
+
+/* Rows disappear when the value is missing, but the block keeps the height of
+   four rows so every card in the grid lines up. */
+.card-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-2);
+  min-height: 92px;
 }
 
 .stat-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
 }
 
 .stat-label {
-  flex: 1;
-  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stat-label svg {
+  flex-shrink: 0;
 }
 
 .stat-value {
-  font-weight: 500;
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.bottom-row {
+.card-bottom {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 4px;
   margin-top: 10px;
-  margin-bottom: 4px;
-  color: var(--text-color);
 }
 
-.bottom-row.multi-disabled {
+.card-spacer {
+  flex: 1;
+}
+
+.card-actions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
   justify-content: flex-end;
 }
 
-.profile-select {
+.card-select {
   display: flex;
   align-items: center;
-}
-
-.profile-select-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 4px;
+  gap: 2px;
   border: none;
   background: transparent;
-  color: var(--text-color);
+  color: var(--text-3);
+  cursor: pointer;
+  padding: 2px;
   border-radius: 999px;
-  transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 
-.profile-select-btn:hover {
-  cursor: pointer;
-  background: rgba(255, 255, 255, 0.08);
+.card-select.is-selected {
+  color: var(--accent);
 }
 
-.profile-select-icon {
-  color: var(--text-color);
-  opacity: 0.85;
+.card-order {
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.profile-select-order-icon {
-  color: var(--text-color);
-  opacity: 0.9;
-}
-
-.profile-select-btn.is-selected .profile-select-icon,
-.profile-select-btn.is-selected .profile-select-order-icon {
-  opacity: 1;
-}
-
-.bottom-actions {
+.stepper {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-.stat-icon {
-  color: var(--text-color);
+  gap: 4px;
+  width: 176px;
+  height: 38px;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
 }
 
-.announce-dialog-content {
-  padding: 20px;
+.stepper:focus-within {
+  border-color: var(--accent);
+}
+
+.stepper.is-locked {
+  opacity: .55;
+}
+
+.stepper__btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-2);
+  background: var(--panel-soft);
+  cursor: pointer;
+  padding: 0;
+}
+
+.stepper__btn:hover:not(:disabled) {
+  background: var(--hover-bg);
+  color: var(--text);
+}
+
+.stepper__btn:disabled {
+  cursor: not-allowed;
+}
+
+.stepper__input {
+  flex: 1;
+  min-width: 0;
+  width: 40px;
+  border: none;
+  background: transparent;
+  color: var(--text);
   font-size: 14px;
-  color: var(--el-text-color-primary);
+  font-weight: 600;
   text-align: center;
+  outline: none;
+}
+
+.stepper__unit {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.edit-indicator {
+  display: flex;
+  padding: 6px;
+}
+
+.edit-indicator--accent {
+  color: var(--accent);
+}
+
+.edit-bell {
+  color: var(--warning);
+}
+
+.info-line {
+  font-size: 13px;
+  color: var(--text-2);
   line-height: 1.6;
-  word-wrap: break-word;
-  white-space: pre-wrap;
+  text-wrap: pretty;
 }
 
-.dialog-footer--split {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
+.info-line--row {
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--panel-soft);
 }
 
-.dialog-footer__actions {
-  display: flex;
-  gap: 8px;
+.info-line--warn {
+  color: var(--warning);
+  font-weight: 600;
 }
 
-.dialog-footer__indicators {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.multi-question {
+  font-size: 14px;
+  font-weight: 700;
 }
 
-.age-edit-icon {
-  cursor: pointer;
-}
-
-.hwid-active-icon {
-  font-size: 20px;
-  color: var(--el-color-primary);
-  opacity: 0.85;
-}
-
-.age-toggle-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.age-toggle-icon {
-  font-size: 20px;
-  color: var(--el-text-color-secondary);
-  transition: color 0.2s;
-}
-
-.age-toggle-icon--active {
-  color: var(--el-color-primary);
-}
-
-.age-key-field {
-  margin-bottom: 0;
-}
-
-/* Нейтральный цвет, не акцентный — это индикатор "у профиля есть настроенные
-   продавцом напоминания", а не переключатель состояния. */
-.subscription-alert-icon {
-  font-size: 20px;
-  color: var(--el-text-color-secondary);
-  cursor: pointer;
-}
-
-.subscription-alert-info p {
-  margin: 0 0 12px;
-  line-height: 1.5;
-}
-
-.subscription-alert-info p:last-child {
-  margin-bottom: 0;
-}
-
-.renew-subscription-field {
-  margin-bottom: 12px;
-}
-
-.renew-subscription-btn {
-  width: 100%;
+.announce-box {
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--panel-soft);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
 }
 </style>

@@ -104,6 +104,7 @@ drag:
   success: 导入成功
   error: 导入失败
 
+  formats: .yaml、.yml 或 .age
 home:
   download: 下载
   upload: 上传
@@ -267,6 +268,10 @@ proxies:
     protocol: "使用 {type} 协议"
     unknown: "无法识别协议类型"
 
+  jump-to-group: 跳转到分组
+  collapse-all: 全部折叠
+  expand-all: 全部展开
+  show-more: 再显示 {n} 个
 profiles:
   title: 订阅
   primary: 主要
@@ -285,6 +290,7 @@ profiles:
     question: 确定要继续吗？
     accept: 是
     decline: 否
+    pick: 多选时选中
   available: 可用
   use: 已用
   expire: 到期时间
@@ -307,6 +313,7 @@ profiles:
     url-error: 地址格式错误
     update-tip: 更新间隔必须大于 0 且小于 128
     success: 编辑成功
+    interval-locked: 更新间隔由订阅（profile-update-interval）设定，无法修改
   refresh:
     ing: 更新中。。。
     success: 更新成功
@@ -332,6 +339,7 @@ profiles:
     success: 配置已成功发送到 Android TV
     error: 向 Prizrak-Box Android TV 设备导入配置失败
 
+  deleted-select-new: 配置已删除，请选择新的活动配置
 rule:
   title: 规则
   success: 保存成功
@@ -596,3 +604,23 @@ ui:
   language: 语言
   window-controls: 窗口控制
   not-selected: 未选择
+  decrease: 减少
+  increase: 增加
+  hours-short: 小时
+time:
+  just-now: 刚刚
+  sec-ago: '{n} 秒前'
+  min-ago: '{n} 分钟前'
+  hour-ago: '{n} 小时前'
+  today: 今天
+  yesterday: 昨天
+  days-ago: '{n} 天前'
+  weeks-ago: '{n} 周前'
+  months-ago: '{n} 个月前'
+empty:
+  proxies:
+    title: 没有代理分组
+    text: 请选择配置，或等待内核加载配置。
+  profiles:
+    title: 没有配置
+    text: 添加订阅、链接或配置文件以开始使用。
