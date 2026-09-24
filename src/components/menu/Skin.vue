@@ -1,50 +1,139 @@
 <template>
-  <div class="dropdown-container"
-       @mouseenter="showDropdown"
-       @mouseleave="hideDropdown">
-    <el-icon class="dropdown-button">
-      <icon-mdi-tshirt-crew-outline/>
-    </el-icon>
-    <div class="dropdown-content"
-         v-show="isDropdownVisible"
-         @mouseenter="cancelHide">
-      <div class="dropdown-item"
-           v-for="(item,index) in theme"
-           :key="index">
-        <button class="dropdown-label"
+  <button type="button"
+          class="side-round"
+          :aria-label="t('theme.label')"
+          v-tip="t('theme.label')"
+          @click="dialogOpen = true">
+    <icon-tabler-palette width="17" height="17"/>
+  </button>
+
+  <UiModal v-model="dialogOpen"
+           :width="580"
+           :z-index="65"
+           clear-overlay
+           :aria-label="t('theme.label')"
+           body-class="theme-body">
+    <template #header>
+      <icon-tabler-palette width="18" height="18" style="color:var(--accent);flex-shrink:0"/>
+      <span class="theme-title">{{ t('theme.label') }}</span>
+    </template>
+
+    <div class="theme-row">
+      <span class="theme-row__label">{{ t('theme.mode') }}</span>
+      <UiPillTabs v-model="menuStore.themePref"
+                  :options="modeOptions"
+                  size="md"
+                  stretch
+                  class="theme-mode"
+                  :aria-label="t('theme.mode')"/>
+    </div>
+
+    <div class="px-divider"></div>
+
+    <div class="theme-row">
+      <div class="theme-row__text">
+        <span class="theme-row__title">{{ t('theme.use-image') }}</span>
+        <span class="theme-row__desc">{{ t('theme.use-image-desc') }}</span>
+      </div>
+      <UiSwitch v-model="menuStore.useBgImage" :aria-label="t('theme.use-image')"/>
+    </div>
+
+    <template v-if="menuStore.useBgImage">
+      <div class="theme-tiles" role="radiogroup" :aria-label="t('theme.use-image')">
+        <div v-for="item in tiles"
+             :key="item.id"
+             role="radio"
+             tabindex="0"
+             class="theme-tile"
+             :class="{ 'is-on': menuStore.bgTheme === item.id, 'is-custom-empty': item.custom && !item.thumb }"
+             :style="item.thumb ? { backgroundImage: `url('${item.thumb}')` } : undefined"
+             :aria-checked="menuStore.bgTheme === item.id ? 'true' : 'false'"
+             :aria-label="item.label"
+             v-tip="item.label"
+             @click="changeBackground(item.option)"
+             @keydown.enter.prevent="changeBackground(item.option)"
+             @keydown.space.prevent="changeBackground(item.option)">
+          <icon-tabler-photo-plus v-if="!item.thumb && item.custom" class="theme-tile__icon" width="18" height="18"/>
+          <icon-tabler-dice-5 v-else-if="!item.thumb" class="theme-tile__icon" width="18" height="18"/>
+          <span class="theme-tile__label" :class="{ 'has-thumb': !!item.thumb }">{{ item.label }}</span>
+          <button v-if="item.custom"
+                  type="button"
+                  class="theme-tile__upload"
+                  :aria-label="t('bg.upload')"
+                  v-tip="t('bg.upload')"
+                  @click.stop="triggerUpload(item.option)">
+            <icon-tabler-upload width="13" height="13"/>
+          </button>
+        </div>
+      </div>
+      <span v-if="bgError" class="theme-error" role="alert">{{ bgError }}</span>
+
+      <div class="theme-sliders">
+        <label class="theme-slider">
+          <span>{{ t('theme.transparency') }}</span>
+          <input v-model.number="menuStore.uiTrans" type="range" min="5" max="85" step="1">
+          <span class="theme-slider__val tabular">{{ menuStore.uiTrans }}%</span>
+        </label>
+        <label class="theme-slider">
+          <span>{{ t('theme.blur') }}</span>
+          <input v-model.number="menuStore.uiBlur" type="range" min="0" max="30" step="1">
+          <span class="theme-slider__val tabular">{{ menuStore.uiBlur }} px</span>
+        </label>
+        <label class="theme-slider">
+          <span>{{ t('theme.dim') }}</span>
+          <input v-model.number="menuStore.bgDim" type="range" min="0" max="80" step="1">
+          <span class="theme-slider__val tabular">{{ menuStore.bgDim }}%</span>
+        </label>
+      </div>
+
+      <div class="theme-accent-note">
+        <span class="theme-accent-chip"></span>
+        <span>{{ imageTheme ? t('theme.accent-from-image') : t('theme.accent-fallback') }}</span>
+      </div>
+    </template>
+
+    <div v-else class="theme-row">
+      <span class="theme-row__label">{{ t('theme.accent') }}</span>
+      <div class="theme-swatches" role="radiogroup" :aria-label="t('theme.accent')">
+        <button v-for="color in swatches"
+                :key="color"
                 type="button"
-                @click="changeBackground(item)">
-          {{ t("bg." + item.id) }}
-        </button>
-        <button v-if="supportsUpload(item.id)"
-                class="dropdown-upload"
-                type="button"
-                :title="t('bg.upload')"
-                :aria-label="t('bg.upload')"
-                @click.stop="triggerUpload(item)">
-          <el-icon aria-hidden="true">
-            <icon-mdi-upload/>
-          </el-icon>
-        </button>
+                role="radio"
+                class="theme-swatch"
+                :class="{ 'is-on': menuStore.accent === color }"
+                :style="{ background: color }"
+                :aria-checked="menuStore.accent === color ? 'true' : 'false'"
+                :aria-label="color"
+                @click="menuStore.accent = color"></button>
       </div>
     </div>
+
     <input ref="fileInput"
            class="file-input"
            type="file"
            accept="image/*"
            @change="handleFileChange"/>
-  </div>
+
+    <template #footer>
+      <button type="button" class="px-btn px-btn--pill" @click="resetTheme">{{ t('theme.reset') }}</button>
+      <button type="button" class="px-btn px-btn--primary px-btn--pill" @click="dialogOpen = false">{{ t('theme.done') }}</button>
+    </template>
+  </UiModal>
 </template>
 
 <script setup lang="ts">
-import {onMounted, ref} from 'vue';
 import {useI18n} from 'vue-i18n';
-import {ElMessage} from 'element-plus';
 import {useMenuStore} from "@/store/menuStore";
+import {imageTheme} from "@/composables/useAppTheme";
+import type {UiPillOption} from "@/components/ui";
+import IconCircleHalf from "~icons/tabler/circle-half-2";
+import IconSun from "~icons/tabler/sun";
+import IconMoon from "~icons/tabler/moon";
 import {
   buildRendererUrl,
   createStorageValue,
   ensureRelativeStorageValue,
+  extractUrlFromCssValue,
   getRendererOrigin,
   getRelativeUserImagePath,
   normalizeCustomBackground,
@@ -57,13 +146,42 @@ interface ThemeOption {
   rand?: boolean;
 }
 
+const MAX_UPLOAD_BYTES = 1024 * 1024;
 const uploadableThemeIds = new Set(['custom']);
-
 const supportsUpload = (id: string) => uploadableThemeIds.has(id);
+const swatches = ['#5b67e8', '#1f9e7a', '#c9484f', '#c98a2e', '#2f7fbf'];
 
 const rendererOrigin = getRendererOrigin();
-
 const customBackgroundApiUrl = buildRendererUrl('/api/custom-background', rendererOrigin);
+
+// 存储背景主题
+const menuStore = useMenuStore()
+
+// 国际化
+const {t} = useI18n();
+
+const dialogOpen = ref(false);
+const bgError = ref('');
+
+const modeOptions = computed<UiPillOption<'auto' | 'light' | 'dark'>[]>(() => [
+  {value: 'auto', label: t('theme.auto'), icon: IconCircleHalf, tip: t('theme.auto-tip')},
+  {value: 'light', label: t('theme.light'), icon: IconSun},
+  {value: 'dark', label: t('theme.dark'), icon: IconMoon},
+]);
+
+const getCustomBackgroundKey = (id: string) => `custom-bg-${id}`;
+const customVersion = ref(0);
+
+const readStoredCustom = (themeId: string) => {
+  void customVersion.value;
+  try {
+    const stored = localStorage.getItem(getCustomBackgroundKey(themeId));
+    const normalized = normalizeCustomBackground(stored, rendererOrigin);
+    return normalized ? extractUrlFromCssValue(normalized.cssValue) : null;
+  } catch {
+    return null;
+  }
+};
 
 const applyStoredCustomBackground = (themeId: string) => {
   const key = getCustomBackgroundKey(themeId);
@@ -86,35 +204,8 @@ const applyStoredCustomBackground = (themeId: string) => {
   }
 
   menuStore.setBackground(normalized.storageValue);
+  menuStore.bgTheme = themeId;
   return true;
-};
-
-// 存储背景主题
-const menuStore = useMenuStore()
-
-// 国际化
-const {t} = useI18n();
-
-// 下拉框
-const isDropdownVisible = ref(false);
-let hideTimeout: any;
-
-// 显示下拉框
-const showDropdown = () => {
-  clearTimeout(hideTimeout);
-  isDropdownVisible.value = true;
-};
-
-// 隐藏下拉框（带延迟）
-const hideDropdown = () => {
-  hideTimeout = setTimeout(() => {
-    isDropdownVisible.value = false;
-  }, 200); // 延迟200ms隐藏
-};
-
-// 鼠标进入下拉框内容时取消隐藏
-const cancelHide = () => {
-  clearTimeout(hideTimeout);
 };
 
 // 获取随机元素
@@ -123,8 +214,29 @@ function getRandom(arr: any[]) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+// Local (bundled) images get a thumbnail; random remote sources don't, since
+// each request returns a different picture.
+const thumbOf = (item: ThemeOption): string | null => {
+  if (supportsUpload(item.id)) return readStoredCustom(item.id);
+  if (item.rand) return null;
+  const first = Array.isArray(item.bg) ? item.bg[0] : item.bg;
+  if (!first) return null;
+  const url = extractUrlFromCssValue(first) ?? first;
+  return url.startsWith('http') ? null : url;
+};
+
+const theme = ref<ThemeOption[]>([]);
+const tiles = computed(() => theme.value.map(option => ({
+  id: option.id,
+  option,
+  label: t('bg.' + option.id),
+  custom: supportsUpload(option.id),
+  thumb: thumbOf(option),
+})));
+
 // 切换背景
 const changeBackground = (item: ThemeOption) => {
+  bgError.value = '';
   if (supportsUpload(item.id)) {
     if (applyStoredCustomBackground(item.id)) {
       return;
@@ -149,13 +261,16 @@ const changeBackground = (item: ThemeOption) => {
     return;
   }
   menuStore.setBackground(url);
+  menuStore.bgTheme = item.id;
 };
 
-const theme = ref<ThemeOption[]>([]);
+const resetTheme = () => {
+  bgError.value = '';
+  menuStore.resetThemeTweaks();
+};
+
 const fileInput = ref<HTMLInputElement | null>(null);
 const pendingThemeId = ref<string | null>(null);
-
-const getCustomBackgroundKey = (id: string) => `custom-bg-${id}`;
 
 const triggerUpload = (item: ThemeOption) => {
   pendingThemeId.value = item.id;
@@ -165,23 +280,27 @@ const triggerUpload = (item: ThemeOption) => {
 const handleFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
-  if (!file) {
-    target.value = '';
-    return;
-  }
   const themeId = pendingThemeId.value;
-  if (!themeId) {
+  const reset = () => {
     target.value = '';
     pendingThemeId.value = null;
+  };
+  if (!file || !themeId) {
+    reset();
     return;
   }
+  if (file.size > MAX_UPLOAD_BYTES) {
+    bgError.value = t('bg.too-large');
+    reset();
+    return;
+  }
+  bgError.value = '';
   const reader = new FileReader();
   reader.onload = async () => {
     const result = reader.result;
     if (typeof result !== 'string') {
-      ElMessage.error(t('bg.upload-failed'));
-      target.value = '';
-      pendingThemeId.value = null;
+      bgError.value = t('bg.upload-failed');
+      reset();
       return;
     }
 
@@ -196,7 +315,7 @@ const handleFileChange = (event: Event) => {
       }
     }
 
-    const previousPath = getRelativeUserImagePath(normalizedPrevious ?? previousValue ?? null);
+    const previousPath = getRelativeUserImagePath(normalizedPrevious ?? previousValue ?? null, rendererOrigin);
 
     try {
       const response = await fetch(customBackgroundApiUrl, {
@@ -214,7 +333,7 @@ const handleFileChange = (event: Event) => {
         throw new Error(`Upload failed with status ${response.status}`);
       }
 
-      const data = await response.json() as {url?: string};
+      const data = await response.json() as { url?: string };
       if (!data.url) {
         throw new Error('Missing url in response');
       }
@@ -222,28 +341,29 @@ const handleFileChange = (event: Event) => {
       const relativePath = normalizeResponsePath(data.url);
       const storageValue = createStorageValue(relativePath);
       menuStore.setBackground(storageValue);
+      menuStore.bgTheme = themeId;
       try {
         localStorage.setItem(key, storageValue);
+        customVersion.value++;
       } catch (error) {
         console.error('Failed to save custom background', error);
-        ElMessage.error(t('bg.storage-failed'));
+        bgError.value = t('bg.storage-failed');
       }
     } catch (error) {
       console.error('Failed to upload custom background', error);
-      ElMessage.error(t('bg.upload-failed'));
+      bgError.value = t('bg.upload-failed');
     } finally {
-      target.value = '';
-      pendingThemeId.value = null;
+      reset();
     }
   };
   reader.onerror = () => {
     console.error('Failed to read custom background file', reader.error);
-    ElMessage.error(t('bg.upload-failed'));
-    target.value = '';
-    pendingThemeId.value = null;
+    bgError.value = t('bg.upload-failed');
+    reset();
   };
   reader.readAsDataURL(file);
 };
+
 onMounted(async () => {
   try {
     const response = await fetch("/json/theme.json");
@@ -252,89 +372,205 @@ onMounted(async () => {
     console.error("获取 JSON 失败", error);
   }
 });
-
 </script>
 
 <style scoped>
-.dropdown-container {
-  position: relative;
-  display: inline-block;
+.theme-title {
+  font-size: 16px;
+  font-weight: 700;
+  flex: 1;
 }
 
-.dropdown-button {
-  margin-left: 20px;
-  font-size: 20px;
-  color: var(--text-color);
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
+:deep(.theme-body) {
+  gap: 18px;
+  padding: 6px 22px 18px;
 }
 
-.dropdown-content {
-  font-size: 14px;
-  min-width: 80px;
-  position: absolute;
-  bottom: 32px;
-  margin-left: 30px;
-  transform: translateX(-50%);
-  background-color: var(--skin-bg-color);
-  color: var(--text-color);
-  padding: 10px;
-  border-radius: 5px;
-  box-shadow: var(--skin-box-shadow);
-  text-align: center;
-  z-index: 1;
-  transition: all 0.3s ease;
+.theme-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-.dropdown-item {
+.theme-row__label {
+  font-size: 13px;
+  font-weight: 600;
+  width: 170px;
+}
+
+.theme-mode {
+  width: 340px;
+  max-width: 100%;
+}
+
+.theme-row__text {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 4px;
+  gap: 2px;
 }
 
-.dropdown-label {
-  padding: 5px 10px;
-  border: none;
-  border-radius: 3px;
-  background: transparent;
-  font: inherit;
-  color: var(--text-color);
+.theme-row__title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.theme-row__desc {
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.45;
+}
+
+.theme-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.theme-tile {
+  position: relative;
+  height: 52px;
+  border-radius: 8px;
+  overflow: hidden;
   cursor: pointer;
-  transition: background-color 0.3s ease;
-  width: 100%;
-}
-
-.dropdown-label:hover,
-.dropdown-label:focus-visible {
-  background-color: var(--skin-hover-color);
-  outline: none;
-}
-
-.dropdown-upload {
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--panel-soft) center / cover no-repeat;
+  border: 1px solid var(--border);
+}
+
+.theme-tile.is-custom-empty {
+  border: 1.5px dashed var(--border);
+}
+
+.theme-tile.is-on {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.theme-tile__icon {
+  color: var(--text-2);
+  margin-bottom: 12px;
+}
+
+.theme-tile__label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px 6px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.theme-tile__label.has-thumb {
+  color: #fff;
+  background: linear-gradient(transparent, rgba(0, 0, 0, .65));
+}
+
+.theme-tile__upload {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
   border: none;
-  background: transparent;
-  color: var(--text-color);
-  font: inherit;
-  font-size: 16px;
+  background: rgba(0, 0, 0, .55);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  opacity: 0.8;
-  transition: opacity 0.3s ease;
+  padding: 0;
+}
+
+.theme-tile__upload:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.theme-error {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--error);
+  line-height: 1.4;
+}
+
+.theme-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--panel-soft);
+}
+
+.theme-slider {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.theme-slider input {
   width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
 }
 
-.dropdown-upload .el-icon {
-  font-size: 1em;
+.theme-slider__val {
+  font-size: 12px;
+  color: var(--text-2);
+  text-align: right;
 }
 
-.dropdown-upload:hover,
-.dropdown-upload:focus-visible {
-  opacity: 1;
-  outline: none;
+.theme-accent-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.45;
+}
+
+.theme-accent-chip {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--dialog-bg), 0 0 0 3px var(--border);
+}
+
+.theme-swatches {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.theme-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  box-shadow: 0 0 0 1px var(--border);
+  padding: 0;
+}
+
+.theme-swatch.is-on {
+  border-color: var(--text);
 }
 
 .file-input {

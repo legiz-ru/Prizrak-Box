@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import {useRouter} from "vue-router";
 import {useI18n} from "vue-i18n";
 import createApi from "@/api";
 import {useProxiesStore} from "@/store/proxiesStore";
@@ -10,6 +9,9 @@ import {Events} from "@/runtime";
 import type {ProxyGroupInfo} from "@/api/proxies";
 import {useWebStore} from "@/store/webStore";
 import {proxyTypeIcon, proxyTypeTooltip} from "@/util/proxyType";
+import {withFlag} from "@/util/flag";
+import {delayColor, delayLabel} from "@/util/delay";
+import UiDropdown from "@/components/ui/UiDropdown.vue";
 
 // 获取当前 Vue 实例的 proxy 对象
 const {proxy} = getCurrentInstance()!;
@@ -28,16 +30,12 @@ const proxyList = ref<any[]>([]);
 // immediately on mount, before any API call completes.
 const selectedGroup = ref(proxiesStore.active || '');
 const selectedProxy = ref(proxiesStore.now || '');
-const isGroupDropdownOpen = ref(false);
-const isProxyDropdownOpen = ref(false);
-
-const router = useRouter()
-
-const isWindows = ref(false)
+const groupDd = ref<InstanceType<typeof UiDropdown> | null>(null);
+const proxyDd = ref<InstanceType<typeof UiDropdown> | null>(null);
 
 // Load groups
 async function loadGroups() {
-  if (!webStore.fProfile || !webStore.fProfile['id']) {
+  if (!webStore.fProfile || !(webStore.fProfile as any)['id']) {
     groupList.value = [];
     selectedGroup.value = '';
     proxiesStore.setActive('');
@@ -61,7 +59,7 @@ async function loadGroups() {
 
 // Load proxies for selected group
 async function loadProxies() {
-  if (!webStore.fProfile || !webStore.fProfile['id']) {
+  if (!webStore.fProfile || !(webStore.fProfile as any)['id']) {
     proxyList.value = [];
     selectedProxy.value = '';
     proxiesStore.setNow('');
@@ -89,11 +87,6 @@ async function loadProxies() {
   }
 }
 
-// Get server description for info tooltip
-function getServerDescription(proxy: any): string | undefined {
-  return proxy?.displayType !== proxy?.type ? proxy?.displayType : undefined;
-}
-
 // Type badge. The search list never showed the adapter type at all; the icon
 // adds it without spending horizontal space in an already narrow dropdown.
 // A node named by a known group is a group — groupList holds every group.
@@ -101,33 +94,25 @@ const isGroupProxy = (p: any) => groupList.value.some((g) => g.name === p?.name)
 const typeIcon = (p: any) => proxyTypeIcon(p?.type, isGroupProxy(p));
 const typeTooltip = (p: any) => proxyTypeTooltip(p?.type, isGroupProxy(p), t);
 
-// Get latency color class
-function getLatencyColor(toClass: string): string {
-  if (toClass === 'toLow') return 'latency-low';
-  if (toClass === 'toMiddle') return 'latency-medium';
-  if (toClass === 'toHigh') return 'latency-high';
-  return 'latency-hidden';
-}
-
 // Handle group selection
 async function selectGroup(group: ProxyGroupInfo) {
   selectedGroup.value = group.name;
   proxiesStore.setActive(group.name);
-  isGroupDropdownOpen.value = false;
+  groupDd.value?.close();
   await loadProxies();
 }
 
 // Handle proxy selection
 async function selectProxy(proxy: any) {
   if (proxy.now) {
-    isProxyDropdownOpen.value = false;
+    proxyDd.value?.close();
     return;
   }
 
   const group = groupList.value.find(g => g.name === selectedGroup.value);
   if (group?.type !== 'Selector') {
     pWarning(t('proxies.auto-group-no-manual-select'));
-    isProxyDropdownOpen.value = false;
+    proxyDd.value?.close();
     return;
   }
 
@@ -139,7 +124,7 @@ async function selectProxy(proxy: any) {
     );
     selectedProxy.value = proxy.name;
     proxiesStore.setNow(proxy.name);
-    isProxyDropdownOpen.value = false;
+    proxyDd.value?.close();
 
     // Reload proxies to update 'now' status
     await loadProxies();
@@ -169,62 +154,40 @@ async function runDelayTestSilent() {
   }
 }
 
-// Toggle dropdowns
-async function toggleGroupDropdown() {
-  const nextOpen = !isGroupDropdownOpen.value;
-  if (nextOpen) {
-    await loadGroups();
-    isProxyDropdownOpen.value = false;
-    runDelayTestSilent(); // fire-and-forget: auto-test when group dropdown opens
-  }
-  isGroupDropdownOpen.value = nextOpen;
+// Opening a list refreshes it and fires a silent delay test (as in dev_21).
+async function onGroupOpen() {
+  await loadGroups();
+  runDelayTestSilent();
 }
 
-async function toggleProxyDropdown() {
-  const nextOpen = !isProxyDropdownOpen.value;
-  if (nextOpen) {
-    await loadProxies();
-    isGroupDropdownOpen.value = false;
-    runDelayTestSilent(); // fire-and-forget: auto-test when proxy dropdown opens
-  }
-  isProxyDropdownOpen.value = nextOpen;
+async function onProxyOpen() {
+  await loadProxies();
+  runDelayTestSilent();
 }
 
-// Close dropdowns when clicking outside
-function handleClickOutside(event: MouseEvent) {
-  const target = event.target as HTMLElement;
-  if (!target.closest('.header-content')) {
-    isGroupDropdownOpen.value = false;
-    isProxyDropdownOpen.value = false;
-  }
-}
+const currentGroup = computed(() => groupList.value.find(g => g.name === selectedGroup.value));
+const currentProxy = computed(() => proxyList.value.find(p => p.now));
+const currentProxyName = computed(() =>
+    withFlag((currentProxy.value?.displayName ?? currentProxy.value?.name ?? selectedProxy.value) || '') || t('ui.not-selected'));
 
 const handleProfileChanged = async () => {
   proxiesStore.setActive('');
   proxiesStore.setNow('');
-  isGroupDropdownOpen.value = false;
-  isProxyDropdownOpen.value = false;
+  groupDd.value?.close();
+  proxyDd.value?.close();
   await loadGroups();
   await loadProxies();
 };
 
 onMounted(async () => {
-  // @ts-ignore
-  if (window["pxShowBar"]) {
-    isWindows.value = true;
-  }
-
   // Load groups and proxies
   await loadGroups();
   await loadProxies();
 
-  // Add click outside handler
-  document.addEventListener('click', handleClickOutside);
   window.addEventListener('profile-changed', handleProfileChanged as EventListener);
 });
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside);
   window.removeEventListener('profile-changed', handleProfileChanged as EventListener);
 });
 
@@ -269,354 +232,170 @@ watch(() => proxiesStore.now, (newNow) => {
 </script>
 
 <template>
-  <div :class="isWindows?'search-container win':'search-container'">
-    <div class="header-content no-drag">
-      <div class="proxy-selector">
-        <!-- Group Dropdown -->
-        <div class="dropdown-wrapper">
-          <div class="dropdown-button" @click="toggleGroupDropdown">
-            <span class="dropdown-label"><span class="dropdown-label-text">{{ t('proxySelector.group') }}</span></span>
-            <span class="dropdown-value">{{ selectedGroup }}</span>
-            <el-icon class="dropdown-icon" @click.stop="toggleGroupDropdown">
-              <icon-ep-arrow-down v-if="!isGroupDropdownOpen" />
-              <icon-ep-arrow-up v-else />
-            </el-icon>
-          </div>
-          <div v-if="isGroupDropdownOpen" class="dropdown-list">
-            <div
-                v-for="group in groupList"
-                :key="group.name"
-                class="dropdown-item"
-                :class="{ 'dropdown-item-selected': group.name === selectedGroup }"
-                @click="selectGroup(group)"
-            >
-              <span class="dropdown-item-text">{{ group.name }}</span>
-            </div>
-          </div>
-        </div>
+  <div class="search-pill no-drag">
+    <UiDropdown ref="groupDd" :min-width="230" :max-width="320" @open="onGroupOpen">
+      <template #trigger="{ open, toggle, attrs }">
+        <button type="button"
+                v-bind="attrs"
+                class="search-seg"
+                :class="{ 'is-open': open }"
+                :aria-label="t('proxySelector.group') + ': ' + selectedGroup"
+                @click="toggle">
+          <img v-if="currentGroup?.icon" class="search-seg__img" :src="currentGroup.icon" alt="">
+          <span v-else class="search-seg__type" v-tip="typeTooltip({type: currentGroup?.type, name: selectedGroup})">
+            <component :is="proxyTypeIcon(currentGroup?.type, true)" width="15" height="15"/>
+          </span>
+          <span class="search-seg__label">{{ t('proxySelector.group') }}</span>
+          <span class="search-seg__value ellipsis" v-tip="withFlag(selectedGroup)">{{ withFlag(selectedGroup) || '—' }}</span>
+          <icon-tabler-chevron-down class="search-seg__chev" :class="{ 'is-open': open }" width="14" height="14"/>
+        </button>
+      </template>
+      <button v-for="group in groupList"
+              :key="group.name"
+              type="button"
+              role="option"
+              data-dd-item
+              class="px-dd-item"
+              :class="{ 'is-selected': group.name === selectedGroup }"
+              :aria-selected="group.name === selectedGroup ? 'true' : 'false'"
+              @click="selectGroup(group)">
+        <img v-if="group.icon" class="search-seg__img" :src="group.icon" alt="">
+        <span v-else class="search-seg__type" v-tip="typeTooltip(group)">
+          <component :is="proxyTypeIcon(group.type, true)" width="15" height="15"/>
+        </span>
+        <span class="ellipsis" style="flex:1" v-tip="withFlag(group.name)">{{ withFlag(group.name) }}</span>
+        <icon-tabler-check v-if="group.name === selectedGroup" width="14" height="14" class="search-check"/>
+      </button>
+    </UiDropdown>
 
-        <!-- Proxy Dropdown -->
-        <div class="dropdown-wrapper">
-          <div class="dropdown-button" @click="toggleProxyDropdown">
-            <span class="dropdown-label"><span class="dropdown-label-text">{{ t('proxySelector.proxy') }}</span></span>
-            <span class="dropdown-value">
-              {{ (proxyList.find(p => p.now)?.displayName ?? proxyList.find(p => p.now)?.name ?? selectedProxy) || 'Не выбрано' }}
-            </span>
-            <el-icon class="dropdown-icon" @click.stop="toggleProxyDropdown">
-              <icon-ep-arrow-down v-if="!isProxyDropdownOpen" />
-              <icon-ep-arrow-up v-else />
-            </el-icon>
-          </div>
-          <div v-if="isProxyDropdownOpen" class="dropdown-list">
-            <div
-                v-for="proxyItem in proxyList"
-                :key="proxyItem.name"
-                class="dropdown-item proxy-item"
-                :class="{ 'dropdown-item-selected': proxyItem.now }"
-                @click="selectProxy(proxyItem)"
-            >
-              <div class="proxy-item-content">
-                <el-tooltip :content="typeTooltip(proxyItem)" placement="top">
-                  <el-icon class="proxy-type-icon">
-                    <component :is="typeIcon(proxyItem)"/>
-                  </el-icon>
-                </el-tooltip>
-                <span class="proxy-item-name">{{ proxyItem.displayName ?? proxyItem.name }}</span>
-                <el-tooltip
-                    v-if="getServerDescription(proxyItem)"
-                    :content="getServerDescription(proxyItem)"
-                    placement="top"
-                >
-                  <el-icon class="proxy-info-icon">
-                    <icon-mdi-information-outline />
-                  </el-icon>
-                </el-tooltip>
-              </div>
-              <span :class="['latency-dot', getLatencyColor(proxyItem.toClass)]"></span>
-            </div>
-          </div>
-        </div>
-      </div>
+    <span class="search-sep"></span>
 
-      <MyTitleBar :class="isWindows?'minus-win':'minus'"></MyTitleBar>
-    </div>
+    <UiDropdown ref="proxyDd" :min-width="260" :max-width="340" @open="onProxyOpen">
+      <template #trigger="{ open, toggle, attrs }">
+        <button type="button"
+                v-bind="attrs"
+                class="search-seg"
+                :class="{ 'is-open': open }"
+                :aria-label="t('proxySelector.proxy') + ': ' + currentProxyName"
+                @click="toggle">
+          <icon-tabler-world class="search-seg__type" width="15" height="15"/>
+          <span class="search-seg__label">{{ t('proxySelector.proxy') }}</span>
+          <span class="search-seg__value ellipsis" v-tip="currentProxyName">{{ currentProxyName }}</span>
+          <span class="search-dot" :style="{ background: delayColor(currentProxy?.delay) }"></span>
+          <icon-tabler-chevron-down class="search-seg__chev" :class="{ 'is-open': open }" width="14" height="14"/>
+        </button>
+      </template>
+      <button v-for="proxyItem in proxyList"
+              :key="proxyItem.name"
+              type="button"
+              role="option"
+              data-dd-item
+              class="px-dd-item"
+              :class="{ 'is-selected': proxyItem.now }"
+              :aria-selected="proxyItem.now ? 'true' : 'false'"
+              @click="selectProxy(proxyItem)">
+        <span class="search-dot" :style="{ background: delayColor(proxyItem.delay) }"></span>
+        <span class="ellipsis" style="flex:1" v-tip="withFlag(proxyItem.displayName ?? proxyItem.name)">{{ withFlag(proxyItem.displayName ?? proxyItem.name) }}</span>
+        <span class="search-delay tabular" :style="{ color: delayColor(proxyItem.delay) }">{{ delayLabel(proxyItem.delay) }}</span>
+      </button>
+    </UiDropdown>
   </div>
 </template>
 
 <style scoped>
-.search-container {
-  padding-top: 25px;
-  position: relative;
-  -webkit-app-region: drag; /* Electron */
-  --wails-draggable: drag;  /* Wails (frameless on Windows/Linux) */
-}
-
-.win {
-  padding-top: 15px;
-}
-
-.no-drag {
-  -webkit-app-region: no-drag;
-  --wails-draggable: no-drag;
-}
-
-/* Header Content - одна линия */
-.header-content {
+.search-pill {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-
-/* Proxy Selector Container */
-.proxy-selector {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-left: 8px;
-}
-
-/* Dropdown Wrapper */
-.dropdown-wrapper {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  width: 200px;
-}
-
-/* Dropdown Button */
-.dropdown-button {
-  --dropdown-border-color: var(--sub-card-border);
-  position: relative;
-  width: 100%;
+  height: 38px;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 999px;
+  background: var(--side-bg);
+  backdrop-filter: var(--side-blur);
+  border: 1px solid var(--border);
   min-width: 0;
-  padding: 14px 12px 8px 12px;
-  border: 1px solid var(--dropdown-border-color);
-  border-top-color: transparent;
-  border-radius: 20px;
-  background-color: var(--sub-card-bg);
-  color: var(--text-color);
-  font-size: 12px;
+  max-width: 560px;
+}
+
+.search-pill > :deep(.px-dd) {
+  flex: 0 1 auto;
+}
+
+.search-seg {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 10px 0 12px;
+  border-radius: 999px;
+  border: none;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  transition: all 0.2s ease;
-  font-family: 'Twemoji', 'Nunito', 'Microsoft YaHei', '微软雅黑', sans-serif;
-  font-variant-emoji: emoji;
-  box-sizing: border-box;
-}
-
-.dropdown-button:hover {
-  background-color: var(--skin-hover-color);
-  --dropdown-border-color: rgba(255, 255, 255, 0.3);
-}
-
-/* Outlined Label (врезанный в рамку) */
-.dropdown-label {
-  position: absolute;
-  top: 0;
-  left: 10px;
-  right: 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transform: translateY(-50%);
-  font-size: 12px;
-  color: var(--text-color);
-  opacity: 0.6;
-  font-family: 'Twemoji', 'Nunito', 'Microsoft YaHei', '微软雅黑', sans-serif;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.dropdown-label::before,
-.dropdown-label::after {
-  content: "";
-  flex: 1;
-  border-top: 1px solid var(--dropdown-border-color);
-}
-
-.dropdown-label-text {
-  padding: 0 6px;
-  white-space: nowrap;
-}
-
-.dropdown-value {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.dropdown-icon {
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
-/* Dropdown List */
-.dropdown-list {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  width: 100%;
-  max-height: 300px;
-  overflow-y: auto;
-  border: 1px solid var(--dropdown-border-color);
-  border-radius: 20px;
-  background-color: var(--dropdown-list-bg);
-  box-shadow: var(--skin-box-shadow);
-  z-index: 9999;
-  font-family: 'Twemoji', 'Nunito', 'Microsoft YaHei', '微软雅黑', sans-serif;
-  font-variant-emoji: emoji;
-  box-sizing: border-box;
-}
-
-/* Тонкий скроллбар для индикации возможности прокрутки */
-.dropdown-list::-webkit-scrollbar {
-  width: 4px;
-}
-
-.dropdown-list::-webkit-scrollbar-track {
+  min-width: 0;
+  max-width: 250px;
+  color: var(--text);
   background: transparent;
 }
 
-.dropdown-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
+.search-seg:hover, .search-seg.is-open {
+  background: var(--hover-bg);
 }
 
-.dropdown-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+.search-seg__img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
-/* Firefox */
-.dropdown-list {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+.search-seg__type {
+  display: flex;
+  color: var(--text-2);
+  flex-shrink: 0;
 }
 
-/* Dropdown Item */
-.dropdown-item {
-  padding: 10px 12px;
-  cursor: pointer;
-  color: var(--text-color);
+.search-seg__label {
   font-size: 12px;
-  transition: background-color 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.dropdown-item:hover {
-  background-color: var(--skin-hover-color);
-}
-
-.dropdown-item-selected {
-  background-color: var(--left-item-selected-bg);
-}
-
-.dropdown-item-text {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Proxy Item */
-.proxy-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.proxy-item-content {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
-  min-width: 0;
-}
-
-.proxy-item-name {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.proxy-info-icon {
-  font-size: 14px;
-  color: var(--text-color);
-  opacity: 0.6;
+  color: var(--text-2);
   flex-shrink: 0;
 }
 
-/* Тип узла. Те же метрики, что у info-иконки справа от имени, чтобы строка
-   читалась симметрично. */
-.proxy-type-icon {
-  font-size: 14px;
-  color: var(--text-color);
-  opacity: 0.6;
+.search-seg__value {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.search-seg__chev {
   flex-shrink: 0;
-  cursor: help;
+  opacity: .7;
+  transition: transform .15s;
 }
 
-.proxy-type-icon:hover {
-  opacity: 1;
+.search-seg__chev.is-open {
+  transform: rotate(180deg);
 }
 
-.proxy-info-icon:hover {
-  opacity: 1;
+.search-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  flex-shrink: 0;
 }
 
-/* Latency Dot */
-.latency-dot {
+.search-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-.latency-low {
-  background-color: #52c41a; /* Green */
+.search-delay {
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
 }
 
-.latency-medium {
-  background-color: #faad14; /* Orange */
-}
-
-.latency-high {
-  background-color: #f5222d; /* Red */
-}
-
-.latency-hidden {
-  background-color: #666; /* Gray for dead/unavailable */
-}
-
-/* Title Bar */
-.minus {
-  margin-right: 25px;
-  margin-left: auto;
-  float: right;
-  font-size: 18px;
-  color: var(--text-color);
-  cursor: pointer;
-  -webkit-app-region: no-drag;
-  --wails-draggable: no-drag;
-}
-
-.minus-win {
-  margin-right: 12px;
-  margin-left: auto;
-  float: right;
-  font-size: 20px;
-  color: var(--text-color);
-  cursor: pointer;
-  -webkit-app-region: no-drag;
-  --wails-draggable: no-drag;
+.search-check {
+  flex-shrink: 0;
+  color: var(--accent);
 }
 </style>

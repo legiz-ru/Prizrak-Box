@@ -34,15 +34,53 @@ sec-nav:
   crawl: Crawl
 
 delete: Delete
-confirm: Confirm
+confirm:
+  label: Confirm
+  close-all:
+    title: Close all connections?
+    text: All active connections will be dropped. Apps will reconnect on their own.
+    ok: Close all
+  delete-template:
+    title: Delete the template?
+    text: The rule template will be deleted permanently.
+    ok: Delete
+  delete-dashboard:
+    title: Delete the dashboard?
+    text: “{name}” will be removed from custom dashboards.
+    ok: Delete
+  delete-profile:
+    title: Delete the profile?
+    text: “{name}” will be deleted permanently.
+    ok: Delete
 cancel: Cancel
 on: ON
 off: OFF
 refresh: Refresh
 add: Add
 edit: Edit
-quit: Quit
-theme: Theme
+quit:
+  label: Quit
+  confirm:
+    title: Quit Prizrak-Box?
+    text: The core will stop, and Proxy and TUN will be turned off.
+    ok: Quit
+theme:
+  label: Theme
+  mode: Mode
+  auto: Auto
+  auto-tip: Follows the background image, or the system theme when there is none
+  light: Light
+  dark: Dark
+  use-image: Background image
+  use-image-desc: A picture behind the interface. The accent colour is picked from it automatically.
+  transparency: Interface transparency
+  blur: Blur under panels
+  dim: Background dimming
+  accent: Accent
+  accent-from-image: The accent colour is picked from the image and adapts to the mode
+  accent-fallback: Could not read a colour from the image — the chosen accent is used
+  reset: Reset
+  done: Done
 mini: Minimize
 max: Maximize
 restore: Restore
@@ -188,7 +226,7 @@ updates:
 proxies:
   title: Proxies
   test: Latency Test
-  hide-on: Display bad nodes 
+  hide-on: Display bad nodes
   hide-off: Hide bad nodes
   sort-on: Sort by default
   sort-off: Sort by latency
@@ -312,7 +350,7 @@ rule:
     m3: by Davoyan
     reset: Reset
     test: Test
-    test-success : Test success
+    test-success: Test success
     save-ing: Saving...
     switch:
       ing: Switching...
@@ -552,3 +590,9 @@ age:
   file:
     title: Enter age-secret-key
     hint: Provide the secret key to decrypt the .age file
+ui:
+  nav-label: Main navigation
+  mode-label: Routing mode
+  language: Language
+  window-controls: Window controls
+  not-selected: Not selected

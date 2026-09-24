@@ -1,24 +1,37 @@
 <template>
-  <div class="dropdown-container"
-       @mouseenter="showDropdown"
-       @mouseleave="hideDropdown">
-    <el-icon class="dropdown-button">
-      <icon-mdi-translate/>
-    </el-icon>
-    <div class="dropdown-content"
-         v-show="isDropdownVisible"
-         @mouseenter="cancelHide">
-      <div class="dropdown-item" @click="changeLang('zh')">简体中文</div>
-      <div class="dropdown-item" @click="changeLang('en')">English</div>
-      <div class="dropdown-item" @click="changeLang('ru')">Русский</div>
-    </div>
-  </div>
+  <UiDropdown hover placement="top" :min-width="160">
+    <template #trigger="{ toggle, attrs }">
+      <button type="button"
+              class="side-round"
+              v-bind="attrs"
+              :aria-label="$t('ui.language')"
+              v-tip="$t('ui.language')"
+              @click="toggle">
+        <icon-tabler-language width="17" height="17"/>
+      </button>
+    </template>
+    <template #default="{ close }">
+      <button v-for="lang in languages"
+              :key="lang.id"
+              type="button"
+              role="option"
+              data-dd-item
+              class="px-dd-item"
+              :class="{ 'is-selected': menuStore.language === lang.id }"
+              :aria-selected="menuStore.language === lang.id ? 'true' : 'false'"
+              @click="changeLang(lang.id); close()">
+        <span style="flex:1;white-space:nowrap">{{ lang.name }}</span>
+        <icon-tabler-check v-if="menuStore.language === lang.id" width="14" height="14" style="color:var(--accent)"/>
+      </button>
+    </template>
+  </UiDropdown>
 </template>
 
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n';
 import {useMenuStore} from "@/store/menuStore";
 import {Events} from "@/runtime"
+import UiDropdown from "@/components/ui/UiDropdown.vue";
 
 // 存储语言
 const menuStore = useMenuStore()
@@ -26,27 +39,11 @@ const menuStore = useMenuStore()
 // 国际化
 const {locale, t} = useI18n();
 
-// 下拉框
-const isDropdownVisible = ref(false);
-let hideTimeout: any;
-
-// 显示下拉框
-const showDropdown = () => {
-  clearTimeout(hideTimeout);
-  isDropdownVisible.value = true;
-};
-
-// 隐藏下拉框（带延迟）
-const hideDropdown = () => {
-  hideTimeout = setTimeout(() => {
-    isDropdownVisible.value = false;
-  }, 200); // 延迟200ms隐藏
-};
-
-// 鼠标进入下拉框内容时取消隐藏
-const cancelHide = () => {
-  clearTimeout(hideTimeout);
-};
+const languages = [
+  {id: 'zh', name: '简体中文'},
+  {id: 'en', name: 'English'},
+  {id: 'ru', name: 'Русский'},
+]
 
 // tray 翻译id
 const trayMenuId = [
@@ -96,48 +93,3 @@ watch(() => menuStore.language, (lang) => {
   }
 }, { immediate: true })
 </script>
-
-<style scoped>
-.dropdown-container {
-  position: relative;
-  display: inline-block;
-}
-
-.dropdown-button {
-  margin-left: 20px;
-  font-size: 20px;
-  color: var(--text-color);
-  box-shadow: var(--skin-box-shadow);
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.dropdown-content {
-  font-size: 14px;
-  min-width: 80px;
-  position: absolute;
-  bottom: 32px;
-  margin-left: 30px;
-  transform: translateX(-50%);
-  background-color: var(--skin-bg-color);
-  color: var(--text-color);;
-  padding: 10px;
-  border-radius: 5px;
-  box-shadow: var(--skin-box-shadow);
-  text-align: center;
-  z-index: 1;
-  transition: all 0.3s ease;
-}
-
-.dropdown-item {
-  padding: 5px 10px;
-  border-radius: 3px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.dropdown-item:hover {
-  background-color: var(--skin-hover-color);
-}
-</style>

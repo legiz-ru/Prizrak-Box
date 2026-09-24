@@ -1,24 +1,39 @@
 <template>
-  <div class="dropdown-container"
-       @mouseenter="showDropdown"
-       @mouseleave="hideDropdown">
-    <el-icon @click="quit" class="dropdown-button">
-      <icon-mdi-power/>
-    </el-icon>
-    <div class="dropdown-content"
-         v-show="isDropdownVisible"
-         @mouseenter="cancelHide">
-      <div class="dropdown-item" @click="quit">
-        {{ t('quit') }}
-      </div>
-    </div>
-  </div>
+  <UiDropdown hover placement="top" align="right" role="menu">
+    <template #trigger="{ attrs }">
+      <button type="button"
+              class="side-round side-round--quit"
+              v-bind="attrs"
+              :aria-label="t('quit.label')"
+              v-tip="t('quit.label')"
+              @click="askQuit">
+        <icon-tabler-power width="17" height="17"/>
+      </button>
+    </template>
+    <template #default="{ close }">
+      <button type="button" role="menuitem" data-dd-item class="px-dd-item quit-item" @click="close(); askQuit()">
+        {{ t('quit.label') }}
+      </button>
+    </template>
+  </UiDropdown>
+
+  <UiNotice v-model="dialogOpen"
+            tone="error"
+            :icon="IconPower"
+            :title="t('quit.confirm.title')">
+    <span>{{ t('quit.confirm.text') }}</span>
+    <template #actions>
+      <button type="button" class="px-btn" @click="dialogOpen = false">{{ t('cancel') }}</button>
+      <button type="button" class="px-btn px-btn--danger" @click="dialogOpen = false; quit()">{{ t('quit.confirm.ok') }}</button>
+    </template>
+  </UiNotice>
 </template>
 
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n';
 import {Events} from "@/runtime";
 import createApi from "@/api";
+import IconPower from "~icons/tabler/power";
 
 // 国际化
 const {t} = useI18n();
@@ -27,26 +42,11 @@ const {t} = useI18n();
 const {proxy} = getCurrentInstance()!;
 const api = createApi(proxy);
 
-// 下拉框
-const isDropdownVisible = ref(false);
-let hideTimeout: any;
-
-// 显示下拉框
-const showDropdown = () => {
-  clearTimeout(hideTimeout);
-  isDropdownVisible.value = true;
-};
-
-// 隐藏下拉框（带延迟）
-const hideDropdown = () => {
-  hideTimeout = setTimeout(() => {
-    isDropdownVisible.value = false;
-  }, 200); // 延迟200ms隐藏
-};
-
-// 鼠标进入下拉框内容时取消隐藏
-const cancelHide = () => {
-  clearTimeout(hideTimeout);
+// Quitting stops the core, so the in-app button asks first (accepted product
+// change). The tray's "Quit" (readyToQuit) still exits directly.
+const dialogOpen = ref(false);
+const askQuit = () => {
+  dialogOpen.value = true;
 };
 
 // 退出
@@ -62,48 +62,17 @@ const quit = () => {
 
 // 监听准备退出
 onMounted(() => Events.On("readyToQuit", quit))
-
 </script>
 
 <style scoped>
-.dropdown-container {
-  position: relative;
-  display: inline-block;
+.side-round--quit:hover {
+  background: var(--error) !important;
+  color: #fff !important;
 }
 
-.dropdown-button {
-  margin-left: 0;
-  font-size: 20px;
-  color: var(--text-color);
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.dropdown-content {
-  font-size: 14px;
-  min-width: 50px;
-  position: absolute;
-  bottom: 32px;
-  margin-left: 30px;
-  transform: translateX(-50%);
-  background-color: var(--skin-bg-color);
-  color: var(--text-color);;
-  padding: 10px;
-  border-radius: 5px;
-  text-align: left;
-  z-index: 1;
-  transition: all 0.3s ease;
-}
-
-.dropdown-item {
-  padding: 5px 10px;
-  border-radius: 3px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.dropdown-item:hover {
-  background-color: var(--skin-hover-color);
+.quit-item {
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 7px 14px;
 }
 </style>

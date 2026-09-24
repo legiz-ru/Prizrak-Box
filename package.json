@@ -5,6 +5,8 @@
   "description": "A Simple Mihomo GUI",
   "main": ".vite/build/main.js",
   "scripts": {
+    "build": "vue-tsc --noEmit -p tsconfig.app.json && vite build",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.app.json",
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
@@ -37,6 +39,7 @@
     "@eslint/js": "^9.25.1",
     "@iconify-json/ep": "^1.2.2",
     "@iconify-json/mdi": "^1.2.3",
+    "@iconify-json/tabler": "^1.2.40",
     "@types/chroma-js": "^3.1.1",
     "@types/express": "^5.0.1",
     "@typescript-eslint/eslint-plugin": "^8.46.4",
@@ -52,7 +55,8 @@
     "unplugin-auto-import": "20.2.0",
     "unplugin-icons": "22.5.0",
     "unplugin-vue-components": "30.0.0",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vue-tsc": "^3.3.11"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",

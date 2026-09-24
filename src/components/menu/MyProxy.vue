@@ -10,6 +10,7 @@ import {useHomeStore} from "@/store/homeStore";
 import {updateSystemProxy} from "@/util/systemProxy";
 import {restartBackendAndSync, waitBackendReady} from "@/util/backendConn";
 import {notifyServiceStatusChanged, TUN_FORCE_OFF_EVENT} from "@/util/serviceEvents";
+import IconShieldLock from "~icons/tabler/shield-lock";
 
 // 使用store
 const menuStore = useMenuStore();
@@ -446,104 +447,67 @@ async function applySystemProxyMode(enable: boolean, notify: boolean) {
 </script>
 
 <template>
-  <div class="mode-switches">
+  <div class="mode-switches no-drag">
     <button
         type="button"
         :class="['mode-button', { 'is-active': menuStore.proxy }]"
+        :aria-pressed="menuStore.proxy ? 'true' : 'false'"
         @click="proxySwitch"
     >
       <span class="mode-left">
-        <span class="mode-icon">
-          <icon-mdi-access-point-network-off v-if="!menuStore.proxy"/>
-          <icon-mdi-access-point-network v-else/>
-        </span>
-        <span class="mode-label">
-          {{ $t("proxy-switch") }}
-        </span>
+        <icon-tabler-access-point width="18" height="18"/>
+        <span class="mode-label">{{ $t("proxy-switch") }}</span>
       </span>
-      <span
-          class="mode-indicator"
-          :class="{ 'is-visible': menuStore.proxy }"
-          aria-hidden="true"
-      >
-        <span class="mode-indicator__pulse"></span>
-      </span>
+      <span class="mode-dot" :class="{ 'is-on': menuStore.proxy }" aria-hidden="true"></span>
     </button>
     <button
         type="button"
         :class="['mode-button', { 'is-active': tunOn }]"
+        :aria-pressed="tunOn ? 'true' : 'false'"
         @click="tunSwitch"
     >
       <span class="mode-left">
-        <span class="mode-icon">
-          <icon-mdi-help-network-outline v-if="!tunOn"/>
-          <icon-mdi-security-network v-else/>
-        </span>
-        <span class="mode-label mode-label--tun">
-          {{ $t("tun-switch") }}
-        </span>
+        <icon-tabler-shield-lock v-if="tunOn" width="18" height="18"/>
+        <icon-tabler-shield v-else width="18" height="18"/>
+        <span class="mode-label mode-label--tun">{{ $t("tun-switch") }}</span>
       </span>
-      <span
-          class="mode-indicator"
-          :class="{ 'is-visible': tunOn }"
-          aria-hidden="true"
-      >
-        <span class="mode-indicator__pulse"></span>
-      </span>
+      <span class="mode-dot" :class="{ 'is-on': tunOn }" aria-hidden="true"></span>
     </button>
   </div>
 
-  <!-- Диалог предложения установки сервиса -->
-  <el-dialog
-      v-model="showServiceDialog"
-      :title="$t('service.dialog-title')"
-      width="450px"
-      :close-on-click-modal="true"
-      :append-to-body="true"
-      :modal="true"
-      :z-index="9999"
-  >
-    <div class="service-dialog">
-      <p class="service-dialog__message">{{ $t('service.dialog-message') }}</p>
-      <p class="service-dialog__description">{{ $t('service.dialog-description') }}</p>
-      <p class="service-dialog__description">{{ $t('service.dialog-restart-admin') }}</p>
-    </div>
+  <!-- TUN without privileges: offer to install the service -->
+  <UiModal v-model="showServiceDialog"
+           :title="$t('service.dialog-title')"
+           :icon="IconShieldLock"
+           :width="450"
+           :z-index="70">
+    <span class="service-dialog__message">{{ $t('service.dialog-message') }}</span>
+    <span class="service-dialog__description">{{ $t('service.dialog-description') }}</span>
+    <span class="service-dialog__description">{{ $t('service.dialog-restart-admin') }}</span>
     <template #footer>
-      <div class="service-dialog__footer">
-        <el-button @click="closeServiceDialog">{{ $t('cancel') }}</el-button>
-        <el-button type="primary" @click="installServiceHandler">{{ $t('service.install-btn') }}</el-button>
-      </div>
+      <button type="button" class="px-btn" @click="closeServiceDialog">{{ $t('cancel') }}</button>
+      <button type="button" class="px-btn px-btn--primary" @click="installServiceHandler">{{ $t('service.install-btn') }}</button>
     </template>
-  </el-dialog>
+  </UiModal>
 
-  <el-dialog
-      v-model="showAdminChoiceDialog"
-      :title="$t('service.admin-title')"
-      width="450px"
-      :close-on-click-modal="true"
-      :append-to-body="true"
-      :modal="true"
-      :z-index="9999"
-  >
-    <div class="service-dialog">
-      <p class="service-dialog__message">{{ $t('service.admin-message') }}</p>
-      <p class="service-dialog__description">{{ $t('service.admin-description') }}</p>
-    </div>
+  <!-- Running as admin: start TUN right away or install the service -->
+  <UiModal v-model="showAdminChoiceDialog"
+           :title="$t('service.admin-title')"
+           :icon="IconShieldLock"
+           :width="450"
+           :z-index="70">
+    <span class="service-dialog__message">{{ $t('service.admin-message') }}</span>
+    <span class="service-dialog__description">{{ $t('service.admin-description') }}</span>
     <template #footer>
-      <div class="service-dialog__footer">
-        <el-button @click="closeAdminChoiceDialog">{{ $t('cancel') }}</el-button>
-        <el-button @click="runTunWithoutService">{{ $t('service.admin-run-btn') }}</el-button>
-        <el-button type="primary" @click="installServiceHandler">{{ $t('service.admin-install-btn') }}</el-button>
-      </div>
+      <button type="button" class="px-btn" @click="closeAdminChoiceDialog">{{ $t('cancel') }}</button>
+      <button type="button" class="px-btn" @click="runTunWithoutService">{{ $t('service.admin-run-btn') }}</button>
+      <button type="button" class="px-btn px-btn--primary" @click="installServiceHandler">{{ $t('service.admin-install-btn') }}</button>
     </template>
-  </el-dialog>
+  </UiModal>
 </template>
 
 <style scoped>
 .mode-switches {
-  margin-left: 22px;
-  margin-top: 23px;
-  width: 185px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -553,107 +517,66 @@ async function applySystemProxyMode(enable: boolean, notify: boolean) {
   width: 100%;
   border: none;
   border-radius: 999px;
-  background-color: var(--left-nav-btn-bg);
-  box-shadow: var(--left-nav-shadow);
   padding: 10px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: var(--left-nav-text);
   cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  background: var(--side-bg);
+  backdrop-filter: var(--side-blur);
+  color: var(--text);
+  transition: background .15s;
 }
 
 .mode-button:hover {
-  background-color: var(--left-nav-btn-hover-bg);
-  box-shadow: var(--left-nav-hover-shadow);
+  background: var(--hover-bg);
 }
 
-.mode-button.is-active {
-  background-color: var(--left-item-selected-bg);
+.mode-button.is-active,
+.mode-button.is-active:hover {
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .mode-left {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 16px;
+  min-width: 0;
 }
 
-.mode-icon {
-  display: inline-flex;
-  font-size: 18px;
+.mode-label {
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .mode-label--tun {
   text-transform: uppercase;
 }
 
-.mode-indicator {
-  position: relative;
-  width: 10px;
-  height: 10px;
+.mode-dot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: currentColor;
+  background: var(--on-accent);
   opacity: 0;
-  visibility: hidden;
-  transform: scale(0.5);
-  transition: all 0.3s ease;
   flex-shrink: 0;
 }
 
-.mode-indicator.is-visible {
+.mode-dot.is-on {
   opacity: 1;
-  visibility: visible;
-  transform: scale(1);
-  box-shadow:
-    0 0 0 2px color-mix(in srgb, currentColor 20%, transparent),
-    0 0 6px 1px currentColor,
-    0 0 12px 3px color-mix(in srgb, currentColor 50%, transparent);
-}
-
-.mode-indicator__pulse {
-  position: absolute;
-  inset: -3px;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    color-mix(in srgb, currentColor 60%, transparent) 0%,
-    transparent 70%
-  );
-  animation: pulse-indicator 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse-indicator {
-  0% { transform: scale(0.8); opacity: 0.2; }
-  50% { transform: scale(1.3); opacity: 0.8; }
-  100% { transform: scale(0.8); opacity: 0.2; }
-}
-</style>
-
-<style>
-/* Стили для диалога сервиса (не scoped, т.к. el-dialog рендерится вне компонента) */
-.service-dialog {
-  padding: 10px 0;
+  animation: px-mode-pulse 1.8s ease-out infinite;
 }
 
 .service-dialog__message {
-  font-size: 16px;
-  margin-bottom: 12px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .service-dialog__description {
-  font-size: 14px;
-  opacity: 0.8;
+  font-size: 13px;
+  color: var(--text-2);
   line-height: 1.6;
-}
-
-.service-dialog__footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
 }
 </style>

@@ -1,10 +1,11 @@
 <template>
-  <div v-if="!hideModeSwitch" class="rule-pill">
+  <div v-if="!hideModeSwitch" class="rule-pill no-drag" role="group" :aria-label="$t('ui.mode-label')">
     <button
         v-for="opt in options"
         :key="opt.value"
         type="button"
         :class="['rule-pill__btn', { 'is-active': menuStore.rule === opt.value }]"
+        :aria-pressed="menuStore.rule === opt.value ? 'true' : 'false'"
         @click="menuStore.rule = opt.value"
     >
       {{ opt.label }}
@@ -90,42 +91,36 @@ watch(
 
 <style scoped>
 .rule-pill {
-  margin-left: 22px;
-  margin-top: 23px;
-  width: 185px;
-  box-sizing: border-box;
   display: flex;
+  background: var(--side-bg);
+  backdrop-filter: var(--side-blur);
   border-radius: 999px;
-  background-color: var(--left-nav-btn-bg);
-  box-shadow: var(--left-nav-shadow);
-  padding: 4px;
-  gap: 4px;
-}
-
-.rule-pill:hover {
-  box-shadow: var(--left-nav-hover-shadow);
+  padding: 3px;
+  gap: 2px;
 }
 
 .rule-pill__btn {
   flex: 1;
+  min-width: 0;
+  padding: 7px 4px;
   border: none;
   border-radius: 999px;
   background: transparent;
-  color: var(--left-nav-text);
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 13px;
-  padding: 7px 4px;
   white-space: nowrap;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .rule-pill__btn:hover {
-  background-color: var(--left-nav-btn-hover-bg);
+  color: var(--text);
 }
 
 .rule-pill__btn.is-active {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
-  color: var(--text-color);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 </style>

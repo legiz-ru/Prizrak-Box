@@ -10,10 +10,10 @@ export const useWebStore = defineStore('web', {
         host: '127.0.0.1', // 默认值
         port: '9686',       // 默认端口
         secret: 'Y8IUaPeFLTRvsrdf2mUJkLMBuphVZRE5',         // 默认密钥
-        logs: [],         // 日志
+        logs: [] as any[],         // 日志
         dnd: false,         // 拖拽显示
-        dProfile: [],         // 传输文件 拖拽添加文件用
-        fProfile: {}, // 更新profile 配置切换用
+        dProfile: [] as any[],         // 传输文件 拖拽添加文件用
+        fProfile: {} as Record<string, any>, // 更新profile 配置切换用
         profileList: [] as any[], // кэш списка профилей для мгновенного показа при навигации
         customDashboards: [] as CustomDashboard[],
     }),

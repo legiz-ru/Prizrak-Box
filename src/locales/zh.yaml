@@ -34,15 +34,53 @@ sec-nav:
   crawl: 爬取
 
 delete: 删除
-confirm: 确定
+confirm:
+  label: 确定
+  close-all:
+    title: 关闭所有连接？
+    text: 所有活动连接都将断开，应用会自动重新连接。
+    ok: 全部关闭
+  delete-template:
+    title: 删除模板？
+    text: 规则模板将被永久删除。
+    ok: 删除
+  delete-dashboard:
+    title: 删除面板？
+    text: “{name}”将从自定义面板中移除。
+    ok: 删除
+  delete-profile:
+    title: 删除配置？
+    text: “{name}”将被永久删除。
+    ok: 删除
 cancel: 取消
 on: 开启
 off: 关闭
 refresh: 刷新
 add: 添加
 edit: 编辑
-quit: 退出
-theme: 主题
+quit:
+  label: 退出
+  confirm:
+    title: 退出 Prizrak-Box？
+    text: 内核将停止，代理和 TUN 将被关闭。
+    ok: 退出
+theme:
+  label: 主题
+  mode: 模式
+  auto: 自动
+  auto-tip: 根据背景图片选择，没有背景时跟随系统主题
+  light: 浅色
+  dark: 深色
+  use-image: 背景图片
+  use-image-desc: 界面后方的图片，强调色会根据它自动选取。
+  transparency: 界面透明度
+  blur: 面板下方模糊
+  dim: 背景暗化
+  accent: 强调色
+  accent-from-image: 强调色取自图片并随模式自动调整
+  accent-fallback: 无法从图片中取色 — 使用所选强调色
+  reset: 重置
+  done: 完成
 mini: 最小化
 max: 最大化
 restore: 还原
@@ -552,3 +590,9 @@ age:
   file:
     title: 输入 age-secret-key
     hint: 请提供私钥以解密 .age 文件
+ui:
+  nav-label: 主导航
+  mode-label: 路由模式
+  language: 语言
+  window-controls: 窗口控制
+  not-selected: 未选择

@@ -1,63 +1,27 @@
 <template>
-  <div v-if="isWindows">
-    <el-tooltip
-        :content="$t('minus')"
-        placement="bottom">
-      <span class="bar" @click="minus2tray">
-          <el-icon>
-              <icon-mdi-card-minus-outline/>
-          </el-icon>
-      </span>
-    </el-tooltip>
-    <el-tooltip
-        :content="$t('mini')"
-        placement="bottom">
-      <span class="bar ncr-min" @click="minus">
-          <el-icon>
-              <icon-mdi-minus/>
-          </el-icon>
-      </span>
-    </el-tooltip>
-    <el-tooltip
-        v-if="isMaximized"
-        :content="$t('restore')"
-        placement="bottom">
-      <span class="bar ncr-max" @click="max">
-          <el-icon>
-              <icon-mdi-window-restore/>
-          </el-icon>
-      </span>
-    </el-tooltip>
-    <el-tooltip
-        v-else
-        :content="$t('max')"
-        placement="bottom">
-      <span class="bar ncr-max" @click="max">
-          <el-icon>
-              <icon-mdi-window-maximize/>
-          </el-icon>
-      </span>
-    </el-tooltip>
-    <el-tooltip
-        :content="$t('close')"
-        placement="bottom">
-      <span class="" @click="close">
-          <el-icon>
-              <icon-mdi-window-close/>
-          </el-icon>
-      </span>
-    </el-tooltip>
-  </div>
-  <div v-else>
-    <el-tooltip
-        :content="$t('minus')"
-        placement="left">
-      <span class="" @click="minus2tray">
-          <el-icon>
-              <icon-mdi-card-minus-outline/>
-          </el-icon>
-      </span>
-    </el-tooltip>
+  <div class="titlebar no-drag" role="toolbar" :aria-label="$t('ui.window-controls')">
+    <button type="button" class="titlebar__btn" :aria-label="$t('minus')" v-tip="$t('minus')" @click="minus2tray">
+      <icon-tabler-layout-bottombar-collapse width="18" height="18" stroke-width="1.8"/>
+    </button>
+    <template v-if="isWindows">
+      <span class="titlebar__sep"></span>
+      <button type="button" class="titlebar__btn ncr-min" :aria-label="$t('mini')" v-tip="$t('mini')" @click="minus">
+        <icon-tabler-minus width="18" height="18" stroke-width="1.8"/>
+      </button>
+      <span class="titlebar__sep"></span>
+      <button type="button"
+              class="titlebar__btn ncr-max"
+              :aria-label="isMaximized ? $t('restore') : $t('max')"
+              v-tip="isMaximized ? $t('restore') : $t('max')"
+              @click="max">
+        <icon-tabler-copy v-if="isMaximized" width="18" height="18" stroke-width="1.8"/>
+        <icon-tabler-square v-else width="18" height="18" stroke-width="1.8"/>
+      </button>
+      <span class="titlebar__sep"></span>
+      <button type="button" class="titlebar__btn titlebar__btn--close" :aria-label="$t('close')" v-tip="$t('close')" @click="close">
+        <icon-tabler-x width="18" height="18" stroke-width="1.8"/>
+      </button>
+    </template>
   </div>
 </template>
 
@@ -101,8 +65,49 @@ function minus2tray() {
 </script>
 
 <style scoped>
-.bar {
-  margin-right: 15px;
+.titlebar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  flex-shrink: 0;
+  height: 38px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--side-bg);
+  backdrop-filter: var(--side-blur);
+  border: 1px solid var(--border);
+}
+
+.titlebar__btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-2);
+  cursor: pointer;
+  padding: 0;
+}
+
+.titlebar__btn:hover {
+  background: var(--hover-bg);
+  color: var(--text);
+}
+
+.titlebar__btn--close:hover {
+  background: var(--error);
+  color: #fff;
+}
+
+.titlebar__sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  flex-shrink: 0;
 }
 
 /* Native non-client regions (Wails v3 + WebView2CompositionHosting on
