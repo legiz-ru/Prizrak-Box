@@ -364,10 +364,38 @@ const handleFileChange = (event: Event) => {
   reader.readAsDataURL(file);
 };
 
+// Which theme tile a stored background belongs to. bgTheme is new in this
+// design, so settings carried over from older versions only have `background`;
+// derive the tile from it instead of highlighting "default".
+const plainUrl = (value: string) => (extractUrlFromCssValue(value) ?? value).replace(/[&?]date=\d+$/, '');
+
+const themeIdFor = (background: string): string | null => {
+  const storageValue = normalizeCustomBackground(background, rendererOrigin)?.storageValue ?? background;
+  if (getRelativeUserImagePath(storageValue, rendererOrigin)) {
+    return theme.value.find(item => supportsUpload(item.id))?.id ?? null;
+  }
+  const url = plainUrl(storageValue);
+  const match = theme.value.find(item => {
+    if (supportsUpload(item.id) || !item.bg) return false;
+    const list = Array.isArray(item.bg) ? item.bg : [item.bg];
+    return list.some(bg => plainUrl(bg) === url);
+  });
+  return match?.id ?? null;
+};
+
+const syncThemeId = () => {
+  if (!theme.value.length) return;
+  const id = themeIdFor(menuStore.background);
+  if (id && id !== menuStore.bgTheme) {
+    menuStore.bgTheme = id;
+  }
+};
+
 onMounted(async () => {
   try {
     const response = await fetch("/json/theme.json");
     theme.value = await response.json() as ThemeOption[];
+    syncThemeId();
   } catch (error) {
     console.error("获取 JSON 失败", error);
   }

@@ -172,7 +172,9 @@ const dismissUpdateNotification = () => {
 };
 
 // 当前背景
-const currentBackground = ref("url('/images/default.jpg')");
+// Empty until the stored background has loaded, so an upgraded install never
+// flashes the default picture before its own one.
+const currentBackground = ref("none");
 
 // 切换背景: the image itself plus its analysis (accent, light/dark for "auto").
 const changeBg = (bg: string, theme: ImageTheme | null) => {
