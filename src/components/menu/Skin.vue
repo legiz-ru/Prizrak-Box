@@ -45,17 +45,15 @@
              role="radio"
              tabindex="0"
              class="theme-tile"
-             :class="{ 'is-on': menuStore.bgTheme === item.id, 'is-custom-empty': item.custom && !item.thumb }"
-             :style="item.thumb ? { backgroundImage: `url('${item.thumb}')` } : undefined"
+             :class="{ 'is-on': menuStore.bgTheme === item.id, 'is-custom-empty': item.custom && !item.uploaded }"
              :aria-checked="menuStore.bgTheme === item.id ? 'true' : 'false'"
              :aria-label="item.label"
              v-tip="item.label"
              @click="changeBackground(item.option)"
              @keydown.enter.prevent="changeBackground(item.option)"
              @keydown.space.prevent="changeBackground(item.option)">
-          <icon-tabler-photo-plus v-if="!item.thumb && item.custom" class="theme-tile__icon" width="18" height="18"/>
-          <icon-tabler-dice-5 v-else-if="!item.thumb" class="theme-tile__icon" width="18" height="18"/>
-          <span class="theme-tile__label" :class="{ 'has-thumb': !!item.thumb }">{{ item.label }}</span>
+          <component :is="item.icon" class="theme-tile__icon" width="18" height="18"/>
+          <span class="theme-tile__label">{{ item.label }}</span>
           <button v-if="item.custom"
                   type="button"
                   class="theme-tile__upload"
@@ -129,6 +127,21 @@ import type {UiPillOption} from "@/components/ui";
 import IconCircleHalf from "~icons/tabler/circle-half-2";
 import IconSun from "~icons/tabler/sun";
 import IconMoon from "~icons/tabler/moon";
+import IconWaveSine from "~icons/tabler/wave-sine";
+import IconAnchor from "~icons/tabler/anchor";
+import IconColorSwatch from "~icons/tabler/color-swatch";
+import IconBeach from "~icons/tabler/beach";
+import IconWoman from "~icons/tabler/woman";
+import IconStars from "~icons/tabler/stars";
+import IconGhost2 from "~icons/tabler/ghost-2";
+import IconSparkles from "~icons/tabler/sparkles";
+import IconDeviceGamepad2 from "~icons/tabler/device-gamepad-2";
+import IconTrain from "~icons/tabler/train";
+import IconDice5 from "~icons/tabler/dice-5";
+import IconPhoto from "~icons/tabler/photo";
+import IconPhotoPlus from "~icons/tabler/photo-plus";
+import IconPhotoCheck from "~icons/tabler/photo-check";
+import type {Component} from "vue";
 import {
   buildRendererUrl,
   createStorageValue,
@@ -214,25 +227,39 @@ function getRandom(arr: any[]) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// Local (bundled) images get a thumbnail; random remote sources don't, since
-// each request returns a different picture.
-const thumbOf = (item: ThemeOption): string | null => {
-  if (supportsUpload(item.id)) return readStoredCustom(item.id);
-  if (item.rand) return null;
-  const first = Array.isArray(item.bg) ? item.bg[0] : item.bg;
-  if (!first) return null;
-  const url = extractUrlFromCssValue(first) ?? first;
-  return url.startsWith('http') ? null : url;
+// Tiles show a themed icon instead of an image preview.
+const themeIcons: Record<string, Component> = {
+  default: IconWaveSine,
+  harbor: IconAnchor,
+  gradient: IconColorSwatch,
+  sea: IconBeach,
+  women: IconWoman,
+  stars: IconStars,
+  handle: IconGhost2,
+  comics: IconSparkles,
+  game: IconDeviceGamepad2,
+  rails: IconTrain,
+  random: IconDice5,
+};
+
+const iconOf = (id: string, uploaded: boolean): Component => {
+  if (supportsUpload(id)) return uploaded ? IconPhotoCheck : IconPhotoPlus;
+  return themeIcons[id] ?? IconPhoto;
 };
 
 const theme = ref<ThemeOption[]>([]);
-const tiles = computed(() => theme.value.map(option => ({
-  id: option.id,
-  option,
-  label: t('bg.' + option.id),
-  custom: supportsUpload(option.id),
-  thumb: thumbOf(option),
-})));
+const tiles = computed(() => theme.value.map(option => {
+  const custom = supportsUpload(option.id);
+  const uploaded = custom && !!readStoredCustom(option.id);
+  return {
+    id: option.id,
+    option,
+    label: t('bg.' + option.id),
+    custom,
+    uploaded,
+    icon: markRaw(iconOf(option.id, uploaded)),
+  };
+}));
 
 // 切换背景
 const changeBackground = (item: ThemeOption) => {
@@ -466,7 +493,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--panel-soft) center / cover no-repeat;
+  background: var(--panel-soft);
   border: 1px solid var(--border);
 }
 
@@ -481,6 +508,14 @@ onMounted(async () => {
 .theme-tile__icon {
   color: var(--text-2);
   margin-bottom: 12px;
+}
+
+.theme-tile:hover .theme-tile__icon {
+  color: var(--text);
+}
+
+.theme-tile.is-on .theme-tile__icon {
+  color: var(--accent);
 }
 
 .theme-tile__label {
@@ -499,11 +534,6 @@ onMounted(async () => {
   color: var(--text);
 }
 
-.theme-tile__label.has-thumb {
-  color: #fff;
-  background: linear-gradient(transparent, rgba(0, 0, 0, .65));
-}
-
 .theme-tile__upload {
   position: absolute;
   top: 4px;
@@ -512,8 +542,8 @@ onMounted(async () => {
   height: 22px;
   border-radius: 8px;
   border: none;
-  background: rgba(0, 0, 0, .55);
-  color: #fff;
+  background: var(--hover-bg);
+  color: var(--text-2);
   display: flex;
   align-items: center;
   justify-content: center;
