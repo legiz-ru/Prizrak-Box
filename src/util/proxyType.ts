@@ -12,7 +12,8 @@
 //   - service types  Direct, Reject, Dns, ...
 //   - protocols      Vless, Trojan, Hysteria2, ...
 //
-// Icons are Tabler (@iconify-json/tabler).
+// Icons are Tabler except for the protocols with a usable brand mark; see
+// src/assets/icons/proto/ATTRIBUTION.md.
 
 import IconPointer from '~icons/tabler/pointer';
 import IconClock from '~icons/tabler/clock';
@@ -38,6 +39,16 @@ import IconWorld from '~icons/tabler/world';
 import IconTerminal from '~icons/tabler/terminal-2';
 import IconNetwork from '~icons/tabler/network';
 import IconMask from '~icons/tabler/mask';
+import IconTopologyStar from '~icons/tabler/topology-star-3';
+
+import IconXray from '~icons/proto/xray';
+import IconTrojan from '~icons/proto/trojan';
+import IconOpenVpn from '~icons/proto/openvpn';
+import IconTailscale from '~icons/proto/tailscale';
+import IconWireGuard from '~icons/proto/wireguard';
+import IconTrustTunnel from '~icons/proto/trusttunnel';
+import IconSudoku from '~icons/proto/sudoku';
+import IconGostRelay from '~icons/proto/gost-relay';
 
 import IconShieldLock from '~icons/tabler/shield-lock';
 import IconGitBranch from '~icons/tabler/git-branch';
@@ -70,20 +81,26 @@ const SERVICE_ICONS: Record<string, IconComponent> = {
 // Only protocols with a non-arbitrary mapping are named. Inventing a glyph for
 // each of the remaining ones would read as noise, so they fall through to the
 // protocol default below.
-// Only protocols with a non-arbitrary mapping are named; the rest fall through
-// to the shield-lock protocol default. Tabler has no brand marks, so the former
-// Xray/Trojan/WireGuard/… logos are gone as well.
 const PROTOCOL_ICONS: Record<string, IconComponent> = {
+    vless: IconXray,
+    trojan: IconTrojan,
+    trusttunnel: IconTrustTunnel,
     vmess: IconLetterV,
     shadowsocks: IconActivity,
     shadowsocksr: IconActivity,
     hysteria: IconBolt,
     hysteria2: IconBolt,
     tuic: IconRocket,
+    wireguard: IconWireGuard,
+    tailscale: IconTailscale,
+    openvpn: IconOpenVpn,
     http: IconWorld,
     socks5: IconNetwork,
     ssh: IconTerminal,
     masque: IconMask,
+    anytls: IconTopologyStar,
+    sudoku: IconSudoku,
+    gostrelay: IconGostRelay,
 };
 
 export type ProxyTypeKind = 'group' | 'service' | 'protocol' | 'unknown';
