@@ -413,6 +413,11 @@ rule:
     viewCards: 卡片
     viewTable: 表格
 
+  tabs:
+    now: 当前
+    group: 分组
+    providers: 提供者
+    ignore: 排除
 connections:
   title: 连接
   search: 搜索主机

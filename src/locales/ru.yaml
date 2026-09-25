@@ -413,6 +413,11 @@ rule:
     viewCards: Карточки
     viewTable: Таблица
 
+  tabs:
+    now: текущие
+    group: группы
+    providers: провайдеры
+    ignore: исключения
 connections:
   title: Соединения
   search: Поиск хоста

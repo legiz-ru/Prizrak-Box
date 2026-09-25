@@ -38,10 +38,10 @@ const ruleSubComponents: Record<string, any> = {
 };
 
 const ruleTabs = [
-  {key: 'Now', label: 'rule.now.title'},
-  {key: 'Group', label: 'rule.group.title'},
-  {key: 'Providers', label: 'rule.providers.title'},
-  {key: 'Ignore', label: 'rule.ignore.title'},
+  {key: 'Now', label: 'rule.tabs.now', tip: 'rule.now.title'},
+  {key: 'Group', label: 'rule.tabs.group', tip: 'rule.group.title'},
+  {key: 'Providers', label: 'rule.tabs.providers', tip: 'rule.providers.title'},
+  {key: 'Ignore', label: 'rule.tabs.ignore', tip: 'rule.ignore.title'},
 ];
 
 const connectionScope = computed({
@@ -79,6 +79,7 @@ const providersViewOptions = computed<UiPillOption<'cards' | 'table'>[]>(() => [
                 class="rule-tab"
                 :class="{ 'is-active': ruleSubTab === tab.key }"
                 :aria-selected="ruleSubTab === tab.key ? 'true' : 'false'"
+                v-tip="$t(tab.tip)"
                 @click="ruleSubTab = tab.key">
           <icon-tabler-list-details v-if="tab.key === 'Now'" width="15" height="15"/>
           <icon-tabler-adjustments v-else-if="tab.key === 'Group'" width="15" height="15"/>

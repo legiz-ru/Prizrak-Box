@@ -1214,6 +1214,12 @@ watch(() => webStore.dProfile, async (pList) => {
   min-width: 0;
 }
 
+/* The refresh button keeps a 26px hit area without making the head taller
+   than the 16px title line (the mockup draws a bare icon there). */
+.card-head :deep(.px-icon-btn) {
+  margin: -5px -5px -5px 0;
+}
+
 .card-grip {
   display: flex;
   color: var(--text-3);

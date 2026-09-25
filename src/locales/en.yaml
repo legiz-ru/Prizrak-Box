@@ -413,6 +413,11 @@ rule:
     viewCards: Cards
     viewTable: Table
 
+  tabs:
+    now: current
+    group: groups
+    providers: providers
+    ignore: exclusions
 connections:
   title: Connections
   search: Search host

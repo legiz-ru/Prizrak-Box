@@ -8,7 +8,19 @@ body {
     font-family: 'Twemoji', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
     'Microsoft YaHei', 'PingFang SC', sans-serif;
     color: var(--text);
-    line-height: 1.35;
+    /* The mockup is laid out with the font's natural line height. */
+    line-height: normal;
+}
+
+/* No UA margins: every gap in the layout comes from explicit padding/gap
+   (Element Plus' reset used to hide these defaults). */
+h1, h2, h3, h4, h5, h6, p, figure, blockquote, dl, dd, pre {
+    margin: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-size: inherit;
+    font-weight: inherit;
 }
 
 svg {
@@ -461,7 +473,7 @@ input:focus-visible, textarea:focus-visible {
     display: flex;
     align-items: center;
     gap: 10px;
-    min-height: 26px;
+    min-height: 24px;
 }
 
 .px-row--wrap {
@@ -471,7 +483,7 @@ input:focus-visible, textarea:focus-visible {
 .px-row__label {
     font-size: 13px;
     font-weight: 600;
-    width: 170px;
+    width: 150px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
