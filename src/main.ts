@@ -8,12 +8,7 @@ import {createPinia} from "pinia";
 import piniaPluginPersistence from "pinia-plugin-persistedstate";
 import {createI18n} from "vue-i18n";
 import messages from "@intlify/unplugin-vue-i18n/messages";
-import ElementPlus from "element-plus";
-import VueApexCharts from "vue3-apexcharts";
-import "element-plus/dist/index.css";
-import 'element-plus/theme-chalk/dark/css-vars.css'
 import "./styles/global.css";
-import "./styles/basic.css";
 import "./styles/tokens.css";
 import "./styles/ui.css";
 import {installA11y, installTooltips, vTip} from "@/components/ui";
@@ -116,8 +111,6 @@ async function bootstrap() {
 
     // 加载所需组件
     app.use(pinia);
-    app.use(ElementPlus);
-    app.use(VueApexCharts);
     app.use(i18n);
     app.use(router);
     app.directive("tip", vTip);

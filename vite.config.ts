@@ -2,10 +2,8 @@ import {defineConfig} from 'vite'
 import vue from '@vitejs/plugin-vue'
 import Icons from 'unplugin-icons/vite';
 import IconsResolver from "unplugin-icons/resolver";
-import {FileSystemIconLoader} from 'unplugin-icons/loaders';
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
-import {ElementPlusResolver} from 'unplugin-vue-components/resolvers'
 import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite'
 import path from 'path'
 
@@ -44,7 +42,6 @@ export default defineConfig({
         AutoImport({
             imports: ["vue"],
             resolvers: [
-                ElementPlusResolver(),
                 IconsResolver({
                     prefix: "Icon",
                 }),
@@ -55,28 +52,15 @@ export default defineConfig({
             resolvers: [
                 IconsResolver({
                     prefix: 'icon',
-                    enabledCollections: ["tabler", "ep", "mdi", "proto"],
-                    // "proto" is the local collection below; its files are not
-                    // in an Iconify package, so the resolver needs to be told
-                    // which names belong to it.
-                    customCollections: ["proto"],
+                    // Tabler is the only icon set used by the UI.
+                    enabledCollections: ["tabler"],
                 }),
-                ElementPlusResolver()
             ],
             dts: path.resolve(pathSrc, 'components.d.ts'),
         }),
         Icons({
-            autoInstall: true,
+            autoInstall: false,
             compiler: "vue3",
-            customCollections: {
-                // Protocol brand marks, normalised to MDI's 24x24 box and to
-                // currentColor so one asset serves both themes. See
-                // src/assets/icons/proto/ATTRIBUTION.md for sources, licences
-                // and the normalisation pipeline. Used as <icon-proto-xray/>.
-                proto: FileSystemIconLoader(
-                    path.resolve(pathSrc, 'assets/icons/proto'),
-                ),
-            },
         }),
         VueI18nPlugin({
             include: [path.resolve(pathSrc, './locales/**')],
