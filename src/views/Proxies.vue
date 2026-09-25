@@ -1027,7 +1027,7 @@ watch(groupList, (list) => {
 
 .group-nodes {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   align-content: start;
   gap: 10px;
   padding: 2px 6px 16px 16px;
