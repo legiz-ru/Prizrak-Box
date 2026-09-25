@@ -42,111 +42,43 @@ async function savaIgnore() {
 
 <template>
   <div class="ignore">
-    <el-space class="op">
-      <button class="pill-btn" @click="savaIgnore">{{ $t('save') }}</button>
-      <el-divider direction="vertical" border-style="dashed"/>
-      <el-text class="st">{{ $t('rule.ignore.tip') }}</el-text>
-      <el-tooltip
-          content="Домены из этого списка обходят системный прокси и подключаются напрямую (DIRECT). Указывайте по одному домену в строке, например: localhost, *.local, intranet.company"
-          placement="top"
-          :show-after="300"
-      >
-        <el-icon class="info-icon" size="16">
-          <icon-mdi-information-outline/>
-        </el-icon>
-      </el-tooltip>
-    </el-space>
-    <div class="content">
-      <textarea
-          v-model="bypass"
-          class="custom-textarea"
-          :placeholder="$t('rule.ignore.place')"
-      ></textarea>
+    <div class="ignore-bar">
+      <button type="button" class="px-btn px-btn--primary" @click="savaIgnore">{{ $t('save') }}</button>
+      <span class="px-kbd-hint">{{ $t('rule.ignore.tip') }}</span>
+      <span class="px-info" tabindex="0" :aria-label="$t('rule.ignore.info')" v-tip="$t('rule.ignore.info')">
+        <icon-tabler-info-circle width="15" height="15"/>
+      </span>
     </div>
+    <textarea
+        v-model="bypass"
+        class="px-textarea ignore-text"
+        spellcheck="false"
+        :aria-label="$t('rule.ignore.title')"
+        :placeholder="$t('rule.ignore.place')"
+    ></textarea>
   </div>
 </template>
 
 <style scoped>
-:deep(.bottom) {
-  padding-bottom: 0;
-  overflow-y: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
 .ignore {
-  width: 100%;
-  margin-left: 0;
-  margin-top: 5px;
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  gap: 10px;
+  padding: 0 28px 28px;
 }
 
-.op {
-  margin-top: 6px;
-}
-
-.pill-btn {
-  border: none;
-  border-radius: 999px;
-  background-color: var(--left-nav-btn-bg);
-  color: var(--text-color);
-  padding: 9px 18px;
-  font-size: 15px;
-  cursor: pointer;
-  box-shadow: var(--left-nav-shadow);
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.pill-btn:hover {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-.st {
-  color: var(--text-color);
-}
-
-.info-icon {
-  color: var(--text-color);
-  opacity: 0.8;
-  cursor: help;
-}
-
-.info-icon:hover {
-  opacity: 1;
-}
-
-.content {
-  margin-top: 25px;
-  flex: 1;
+.ignore-bar {
   display: flex;
-  flex-direction: column;
-  min-height: 0;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-.custom-textarea {
-  background-color: transparent; /* 背景透明 */
-  border: 2px solid var(--text-color); /* 边界为 2px 的白色 */
-  color: var(--text-color);
-  padding: 8px 8px 8px 16px; /* 内间距，确保内容不贴边 */
-  border-radius: 20px;
-  font-size: 16px; /* 字体大小 */
-  resize: none; /* 禁止调整大小（可选） */
-  outline: none; /* 去掉点击时的默认高亮框 */
-  width: 100%;
-  box-sizing: border-box;
+.ignore-text {
   flex: 1;
-  min-height: 0;
-}
-
-.custom-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.6); /* 占位符文字颜色，设置为白色半透明 */
-}
-
-.custom-textarea:focus {
-  box-shadow: var(--right-box-shadow); /* 焦点时添加阴影效果（可选） */
+  min-height: 280px;
+  line-height: 1.7;
 }
 </style>

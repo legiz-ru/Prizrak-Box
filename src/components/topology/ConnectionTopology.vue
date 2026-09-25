@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import IconWifiOff from '~icons/tabler/wifi-off';
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import * as echarts from 'echarts';
 import type { ECharts } from 'echarts';
@@ -196,9 +197,9 @@ const getThemeColors = () => {
   const styles = getComputedStyle(root);
 
   return {
-    text: styles.getPropertyValue('--text-color') || '#333',
-    background: styles.getPropertyValue('--left-bg-color') || '#fff',
-    border: styles.getPropertyValue('--sub-card-border') || '#aaa',
+    text: styles.getPropertyValue('--text').trim() || '#333',
+    background: styles.getPropertyValue('--dialog-bg').trim() || '#fff',
+    border: styles.getPropertyValue('--border').trim() || '#aaa',
   };
 };
 
@@ -369,82 +370,52 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="topology-container">
-    <div class="topology-header">
-      <div class="topology-title">
-        {{ $t('connections.topology') }}
-      </div>
-      <div class="topology-controls">
-        <el-button
-          @click="togglePause"
-          circle
-          size="small"
-          :title="isPaused ? $t('connections.resume') : $t('connections.pause')"
-        >
-          <icon-mdi-play v-if="isPaused" />
-          <icon-mdi-pause v-else />
-        </el-button>
-      </div>
+  <div class="topology">
+    <div class="topology-head">
+      <span class="topology-title">{{ $t('connections.topology-view') }}</span>
+      <button type="button" class="px-btn px-btn--chip topology-pause" :aria-pressed="isPaused ? 'true' : 'false'" @click="togglePause">
+        <icon-tabler-player-play-filled v-if="isPaused" width="13" height="13"/>
+        <icon-tabler-player-pause-filled v-else width="13" height="13"/>
+        {{ isPaused ? $t('resume') : $t('pause') }}
+      </button>
     </div>
     <div
       v-if="sankeyData.nodes.length > 0"
       ref="chartContainer"
       class="chart-container"
     ></div>
-    <div v-else class="no-data">
-      <el-empty :description="$t('connections.noData')" />
-    </div>
+    <UiEmpty v-else :icon="IconWifiOff" :title="$t('empty.connections.title')" :text="$t('empty.connections.text')"/>
   </div>
 </template>
 
 <style scoped>
-.topology-container {
-  width: 100%;
+.topology {
   height: 100%;
+  min-height: 360px;
   display: flex;
   flex-direction: column;
-  background: transparent;
-  overflow: hidden;
-  min-height: calc(100vh - 220px);
+  gap: 10px;
 }
 
-.topology-header {
+.topology-head {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 10px 16px;
-  background: var(--left-bg-color);
-  border-radius: 20px 20px 0 0;
-  flex-shrink: 0;
+  justify-content: space-between;
 }
 
 .topology-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-color);
+  font-size: 14px;
+  font-weight: 700;
 }
 
-.topology-controls {
-  display: flex;
-  gap: 8px;
+.topology-pause {
+  height: 30px;
+  font-size: 12px;
 }
 
 .chart-container {
   flex: 1;
   width: 100%;
-  height: 100%;
-  min-height: 0;
-  background: var(--left-bg-color);
-  border-radius: 0 0 20px 20px;
-}
-
-.no-data {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 500px;
-  background: var(--left-bg-color);
-  border-radius: 0 0 20px 20px;
+  min-height: 320px;
 }
 </style>

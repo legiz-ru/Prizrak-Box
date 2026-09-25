@@ -33,12 +33,11 @@ export const useWebStore = defineStore('web', {
             if (secret) this.secret = secret;
         },
         addLog(log: any) {
-            // 只保留最近的100条日志
-            if (this.logs.length >= 100) {
-                this.logs.pop();
+            // Oldest first; keep the most recent 1000 entries (also persisted).
+            this.logs.push(log);
+            if (this.logs.length > 1000) {
+                this.logs.splice(0, this.logs.length - 1000);
             }
-            // 在头部添加新日志
-            this.logs.unshift(log);
         },
         clearLogs() {
             this.logs = [];

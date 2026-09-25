@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {ref} from "vue";
-import {EditPen} from "@element-plus/icons-vue";
 import {useSettingStore} from "@/store/settingStore";
 import {pError} from "@/util/pLoad";
 import {useI18n} from "vue-i18n";
@@ -89,85 +88,50 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="input-container">
-    <span>{{ $t('setting.mihomo.port') }} :</span>
+  <div class="px-row">
+    <span class="px-row__label">{{ $t('setting.mihomo.port') }}</span>
     <template v-if="isEditing">
       <input
-          type="text"
           v-model="port"
-          placeholder="请输入端口号"
+          class="edit-input tabular"
+          inputmode="numeric"
+          :aria-label="$t('setting.mihomo.port')"
           autocapitalize="off"
           autocomplete="off"
           autocorrect="off"
           spellcheck="false"
+          @keydown.enter.prevent="savePort"
+          @keydown.esc.stop.prevent="cancelEdit"
       />
+      <UiIconButton class="edit-ok" :size="26" :label="$t('save')" @click="savePort">
+        <icon-tabler-check width="15" height="15"/>
+      </UiIconButton>
+      <UiIconButton :size="26" :label="$t('cancel')" @click="cancelEdit">
+        <icon-tabler-x width="15" height="15"/>
+      </UiIconButton>
     </template>
     <template v-else>
-      <span class="content">{{ settingStore.port }}</span>
+      <span class="px-row__value tabular">{{ settingStore.port }}</span>
+      <UiIconButton :size="26" :label="$t('edit')" @click="toggleEditing">
+        <icon-tabler-edit width="14" height="14"/>
+      </UiIconButton>
     </template>
-    <button class="action-btn" @click="toggleEditing" v-if="!isEditing">
-      <el-icon><EditPen/></el-icon>
-    </button>
-    <button class="action-btn" @click="savePort" v-if="isEditing">
-      <el-icon><icon-ep-select/></el-icon>
-    </button>
-    <button class="action-btn" @click="cancelEdit" v-if="isEditing">
-      <el-icon><icon-ep-close-bold/></el-icon>
-    </button>
   </div>
 </template>
 
 <style scoped>
-.input-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 30px;
-}
-
-span {
-  color: var(--text-color);
-  font-size: 18px;
-  font-weight: bold;
-}
-
-.content {
-  font-weight: normal;
-}
-
-input {
-  width: 100px;
-  padding: 5px 8px;
-  border: 1px solid var(--text-color);
-  border-radius: 5px;
-  background-color: rgba(255, 255, 255, 0.1);
-  color: var(--text-color);
-  font-size: 16px;
-}
-
-input:focus {
+.edit-input {
+  width: 140px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: var(--panel-soft);
+  color: var(--text);
+  font-size: 13px;
   outline: none;
 }
 
-.action-btn {
-  height: 36px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 999px;
-  background-color: var(--left-nav-btn-bg);
-  color: var(--text-color);
-  box-shadow: var(--left-nav-shadow);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  flex-shrink: 0;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.action-btn:hover {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
+.edit-ok {
+  color: var(--success);
 }
 </style>

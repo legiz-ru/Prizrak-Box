@@ -205,6 +205,20 @@ setting:
     empty: No custom dashboards yet
     error: Please provide both a name and a URL
 
+  section:
+    app: Application
+    core: Core
+    rule: Rules
+    connection: Connections
+    log: Log
+    dns: DNS override
+    shortcut: Hotkeys
+  tips:
+    service: 'A privileged service: TUN and the system proxy work without a UAC prompt on every launch'
+    hwid: Binds the profile to this hardware — for subscriptions limited by device count
+    auth: Require a password to open the app control panel
+    secret: The Mihomo core secret grants full API access. Do not share it.
+    independent-test: Test a group's latency with its own URL instead of the shared test address
 updates:
   banner:
     title: Update available
@@ -368,12 +382,14 @@ rule:
       placeholder: Title cannot be changed after adding
       tip: The template content cannot be empty
       success: Add success
+      new: New rule template
     delete:
       success: Delete success
   ignore:
     title: Ignore these domains
     tip: Split by row
     place: Type Here
+    info: Domains from this list bypass the system proxy and connect directly (DIRECT). One domain per line, e.g. localhost, *.local, intranet.company
   providers:
     title: Rule providers
     refresh: Refresh data
@@ -455,6 +471,17 @@ connections:
   open-in-browser: Open in browser
   show-in-explorer: Show in Explorer
 
+  sort:
+    label: Sorting
+    time: By time
+    download: By download
+    upload: By upload
+    dl-speed: By download speed
+    ul-speed: By upload speed
+    host: By host
+    asc: Ascending
+    desc: Descending
+  count: '{n} connections'
 log:
   title: Log
   search: Search
@@ -463,6 +490,7 @@ dns:
   title: DNS Override
   success: Save success
 
+  hint: The dns block in YAML — overrides the DNS settings of the profile.
 bg:
   default: Default
   harbor: Harbor
@@ -607,6 +635,10 @@ ui:
   decrease: Decrease
   increase: Increase
   hours-short: h
+  show: Show
+  hide: Hide
+  saved: Saved
+  found: '{n} found'
 time:
   just-now: just now
   sec-ago: '{n} s ago'
@@ -624,3 +656,29 @@ empty:
   profiles:
     title: No profiles
     text: Add a subscription, a link or a config file to get started.
+  providers:
+    title: No rule providers
+    text: The current profile has no rule-providers.
+  connections:
+    title: No connections
+    text: Connections will appear here once apps start using the network.
+  logs:
+    title: Log is empty
+    text: No entries for the selected log level.
+  search:
+    title: Nothing found
+    text: Try a different query.
+logs:
+  level: Log level
+  search: Search logs
+  autoscroll: Autoscroll
+  copy-all: Copy all
+  export: Export .log
+  clear: Clear log
+  cleared: Log cleared
+  copied: 'Lines copied: {n}'
+  shown: Showing last {n}
+hotkey:
+  record-hint: Click the field and press the key combination
+pause: Pause
+resume: Resume

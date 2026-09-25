@@ -250,9 +250,6 @@ async function bootstrap() {
     router.afterEach((to) => {
         const split = to.path.split("/");
         menuStore.setMenu(split[1]);
-        if (split.length > 2 && split[1] === "Rule") {
-            menuStore.setRuleMenu(split[2]);
-        }
     });
     if (!menuStore.language) {
         menuStore.setLanguage(lang);

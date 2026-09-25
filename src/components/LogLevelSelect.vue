@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import createApi from "@/api";
 import {logLevel} from "@/composables/logLevel";
+import {useI18n} from "vue-i18n";
 
 const {proxy} = getCurrentInstance()!;
 const api = createApi(proxy);
+const {t} = useI18n();
 
 const LOG_LEVELS = ['debug', 'info', 'warning', 'error', 'silent'] as const;
+const options = LOG_LEVELS.map(level => ({value: level as string, label: level}));
 
 // Level from mihomo config — used as display default when user hasn't overridden
 const configLevel = ref('info');
@@ -32,43 +35,18 @@ onMounted(async () => {
 </script>
 
 <template>
-  <el-select v-model="displayLevel" class="level-select">
-    <el-option
-        v-for="level in LOG_LEVELS"
-        :key="level"
-        :label="level"
-        :value="level"
-    />
-  </el-select>
+  <UiSelect v-model="displayLevel"
+            class="level-select"
+            variant="pill"
+            capitalize
+            :options="options"
+            :aria-label="t('logs.level')"
+            :tip="t('logs.level')"/>
 </template>
 
 <style scoped>
 .level-select {
   width: 130px;
   flex-shrink: 0;
-}
-
-:deep(.el-select__wrapper) {
-  height: 38px;
-  border-radius: 999px;
-  background: var(--left-nav-btn-bg);
-  box-shadow: var(--left-nav-shadow);
-  border: none;
-  padding: 0 12px 0 16px;
-}
-
-:deep(.el-select__wrapper:hover) {
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-:deep(.el-select__placeholder),
-:deep(.el-select__selected-item) {
-  color: var(--text-color);
-  text-transform: capitalize;
-}
-
-:deep(.el-select__suffix .el-icon) {
-  color: var(--text-color);
-  opacity: 0.6;
 }
 </style>

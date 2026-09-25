@@ -10,7 +10,6 @@ import MyTun from "@/components/setting/MyTun.vue";
 import MyService from "@/components/setting/MyService.vue";
 import MyHotkeyInput from "@/components/setting/MyHotkeyInput.vue";
 import MyAgeKeypair from "@/components/setting/MyAgeKeypair.vue";
-import {ArrowDown, EditPen} from "@element-plus/icons-vue";
 import {useWebStore} from "@/store/webStore";
 import {useHomeStore} from "@/store/homeStore";
 import {copy, pError, pLoad, pSuccess, pWarning} from "@/util/pLoad";
@@ -28,6 +27,8 @@ import {storeToRefs} from "pinia";
 import type {DashboardOption} from "@/util/dashboard";
 import {formatDashboardUrl as buildDashboardUrl, resolveDashboardOptions} from "@/util/dashboard";
 import {updateSystemProxy} from "@/util/systemProxy";
+import {confirm} from "@/components/ui";
+import UiDropdown from "@/components/ui/UiDropdown.vue";
 
 // 获取当前 Vue 实例的 proxy 对象 和 api
 const {proxy} = getCurrentInstance()!;
@@ -103,6 +104,9 @@ const hwidTooltipContent = computed(() => {
   if (lines.length === 0) {
     return ['HWID=—', 'OS=—', 'OS Version=—', 'Model=—'];
   }
+  return lines;
+});
+
 const importInputRef = ref<HTMLInputElement | null>(null);
 
 const openImportDialog = () => {
@@ -164,9 +168,6 @@ const handleImportFile = async (event: Event) => {
 };
 
 
-  return lines;
-});
-
 const openExternalLink = (url: string) => {
   if (!url) {
     return;
@@ -215,6 +216,18 @@ const submitCustomDashboardEntry = () => {
   }
 
   resetDashboardForm();
+};
+
+// Accepted product change: removing a custom dashboard asks first.
+const askRemoveCustomDashboardEntry = async (index: number) => {
+  const dashboard = customDashboards.value[index];
+  if (!dashboard) return;
+  const ok = await confirm({
+    title: t('confirm.delete-dashboard.title'),
+    text: t('confirm.delete-dashboard.text', {name: dashboard.name}),
+    okLabel: t('confirm.delete-dashboard.ok'),
+  });
+  if (ok) removeCustomDashboardEntry(index);
 };
 
 const removeCustomDashboardEntry = (index: number) => {
@@ -394,880 +407,412 @@ watch(dashboardDialogVisible, (visible) => {
   }
 });
 
-const shortcutDialogVisible = ref(false);
+const secretVisible = ref(false);
+const dnsTypeOptions = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS'].map(value => ({value, label: value}));
 
 const ageKeypairDialogVisible = ref(false);
 
 </script>
 
 <template>
-  <el-row v-if="props.section !== 'app'" :gutter="20" class="spark"
-          style="margin-left: 0;
-          margin-top: 2px;
-          margin-right: 0;">
-    <el-col :span="24">
-      <div class="box box1">
-        <div class="title">
-          Mihomo
-        </div>
-        <hr/>
-        <ul class="info-list">
-          <li>
-            <MyPort></MyPort>
-          </li>
-          <li>
-            <MyBind></MyBind>
-          </li>
-          <li>
-            <MyTun></MyTun>
-          </li>
-          <li class="toggle-row">
-            <strong>
-              {{ $t('setting.mihomo.dns') }} :
-            </strong>
-            <div :class="['px-toggle', { 'is-on': settingStore.dns }]" @click="settingStore.dns = !settingStore.dns">
-              <div class="px-toggle__thumb"></div>
-            </div>
-            <button class="pencil-btn" @click.stop="changeMenu('Setting/Dns',router)">
-              <el-icon><EditPen/></el-icon>
-            </button>
-          </li>
-          <li class="toggle-row">
-            <strong>IPV6 :</strong>
-            <div :class="['px-toggle', { 'is-on': settingStore.ipv6 }]" @click="settingStore.ipv6 = !settingStore.ipv6">
-              <div class="px-toggle__thumb"></div>
-            </div>
-          </li>
-          <li class="toggle-row">
-            <strong>{{ $t('setting.mihomo.independentDelayTest') }} :</strong>
-            <div :class="['px-toggle', { 'is-on': settingStore.independentDelayTest }]" @click="settingStore.independentDelayTest = !settingStore.independentDelayTest">
-              <div class="px-toggle__thumb"></div>
-            </div>
-          </li>
-          <li v-if="settingStore.independentDelayTest" class="group-test-urls-section">
-            <div class="group-test-urls-header">
-              <strong>{{ $t('setting.mihomo.groupTestUrls') }} :</strong>
-              <button class="pill-btn" @click="addGroupTestUrl">+ {{ $t('setting.mihomo.addGroupUrl') }}</button>
-            </div>
-            <div class="group-test-urls-list">
-              <div
-                v-for="(item, index) in settingStore.groupTestUrls"
-                :key="index"
-                class="group-test-url-row"
-              >
-                <el-input
-                  v-model="item.name"
-                  :placeholder="$t('setting.mihomo.groupName')"
-                  size="small"
-                  class="group-test-url-input"
-                />
-                <el-input
-                  v-model="item.url"
-                  :placeholder="$t('setting.mihomo.testUrlPlaceholder')"
-                  size="small"
-                  class="group-test-url-input"
-                />
-                <button class="pill-btn pill-btn--danger" @click="removeGroupTestUrl(index)">✕</button>
-              </div>
-            </div>
-          </li>
-          <li class="age-row">
-            <strong>{{ $t('age.settings.label') }} :</strong>
-            <button class="pill-btn" @click="ageKeypairDialogVisible = true">
-              {{ $t('age.settings.generateBtn') }}
-            </button>
-          </li>
-          <MyAgeKeypair v-model="ageKeypairDialogVisible" />
-          <li class="api-row">
-            <div class="api-row__info">
-              <strong>Api :</strong>
-              <span class="api-row__value">{{ webStore.baseUrl }}</span>
-            </div>
-            <div class="api-row__actions">
-              <button class="pill-btn" @click="copy(webStore.baseUrl,t)">{{ $t('copy.title') }}</button>
-              <el-dropdown trigger="click" @command="handleDashboardCommand" class="api-row__dropdown">
-                <button class="pill-btn pill-btn--arrow">
-                  {{ t('setting.dashboard.open') }}
-                  <el-icon class="api-row__icon"><ArrowDown/></el-icon>
-                </button>
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item
-                        v-for="dashboard in dashboardOptions"
-                        :key="dashboard.key"
-                        :command="dashboard"
-                    >
-                      {{ dashboard.name }}
-                    </el-dropdown-item>
-                    <el-dropdown-item divided command="manage">
-                      {{ t('setting.dashboard.manage') }}
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
-            </div>
-          </li>
-          <li class="secret-row">
-            <strong>Secret:</strong>
-            <span class="secret-row__value">{{ webStore.secret }}</span>
-            <button class="pill-btn" @click="copy(webStore.secret,t)">{{ $t('copy.title') }}</button>
-          </li>
-          <li class="api-row dns-query-row">
-            <strong>{{ $t('setting.mihomo.dnsQuery.queryTitle') }} :</strong>
-            <input
-              v-model="dnsQueryName"
-              class="dns-query-input"
-              placeholder="example.com"
-              autocapitalize="off"
-              autocomplete="off"
-              autocorrect="off"
-              spellcheck="false"
-              @keyup.enter="runDnsQuery"
-            />
-            <el-dropdown trigger="click" @command="(cmd: string) => dnsQueryType = cmd">
-              <button class="pill-btn pill-btn--arrow">
-                {{ dnsQueryType }}
-                <el-icon class="api-row__icon"><ArrowDown/></el-icon>
+  <section v-if="props.section !== 'app'" class="px-card cfg-card">
+    <div class="px-card-title">Mihomo</div>
+    <div class="px-divider cfg-divider"></div>
+    <div class="px-rows">
+      <MyPort/>
+      <MyBind/>
+      <MyTun/>
+
+      <div class="px-row px-row--wrap">
+        <span class="px-row__label">Api</span>
+        <span class="px-row__value ellipsis">{{ webStore.baseUrl }}</span>
+        <div class="px-row__end">
+          <button type="button" class="px-btn px-btn--soft px-btn--sm" @click="copy(webStore.baseUrl,t)">{{ $t('copy.title') }}</button>
+          <UiDropdown align="right" role="menu" :min-width="220">
+            <template #trigger="{ open, toggle, attrs }">
+              <button type="button" v-bind="attrs" class="px-btn px-btn--soft px-btn--sm" @click="toggle">
+                <icon-tabler-layout-dashboard width="14" height="14"/>
+                {{ t('setting.dashboard.open') }}
+                <icon-tabler-chevron-down width="12" height="12" class="cfg-chev" :class="{ 'is-open': open }"/>
               </button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item v-for="type in ['A','AAAA','CNAME','MX','TXT','NS']" :key="type" :command="type">{{ type }}</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-            <button class="pill-btn" :disabled="dnsQueryLoading" @click="runDnsQuery">
-              {{ dnsQueryLoading ? '...' : $t('setting.mihomo.dnsQuery.query') }}
-            </button>
-          </li>
-          <li v-if="dnsQueryError || dnsQueryResults.length > 0" class="dns-query-results-row">
-            <div v-if="dnsQueryError" class="dns-query-error">{{ dnsQueryError }}</div>
-            <div v-if="dnsQueryResults.length > 0" class="dns-query-results">
-              <div v-for="(rec, i) in dnsQueryResults" :key="i" class="dns-query-record">
-                <span class="dns-type-badge" :class="'dns-type--' + (DNS_TYPE_MAP[rec.type] ?? 'other').toLowerCase()">
-                  {{ DNS_TYPE_MAP[rec.type] ?? rec.type }}
-                </span>
-                <span class="dns-record-data">{{ rec.data }}</span>
-                <span class="dns-record-ttl">TTL {{ rec.TTL }}</span>
-              </div>
-            </div>
-          </li>
-        </ul>
+            </template>
+            <template #default="{ close }">
+              <button v-for="dashboard in dashboardOptions"
+                      :key="dashboard.key"
+                      type="button"
+                      role="menuitem"
+                      data-dd-item
+                      class="px-dd-item"
+                      @click="close(); openDashboard(dashboard)">
+                <span class="ellipsis" style="flex:1">{{ dashboard.name }}</span>
+                <icon-tabler-external-link width="13" height="13" style="color:var(--text-3);flex-shrink:0"/>
+              </button>
+              <div class="px-dd-sep"></div>
+              <button type="button" role="menuitem" data-dd-item class="px-dd-item" @click="close(); dashboardDialogVisible = true">
+                <icon-tabler-settings width="14" height="14" style="color:var(--text-2);flex-shrink:0"/>
+                {{ t('setting.dashboard.manage') }}
+              </button>
+            </template>
+          </UiDropdown>
+        </div>
       </div>
-    </el-col>
-  </el-row>
 
-  <el-row v-if="props.section !== 'core'" :gutter="20" class="spark"
-          :style="{
-            marginLeft: '0',
-            marginTop: props.section === 'app' ? '2px' : '30px',
-            marginRight: '0'
-          }">
-    <el-col :span="24">
-      <div class="box box2">
-        <div class="title title--status">
-          <span class="title__label">Prizrak-Box</span>
-          <span
-              v-if="manualUpdateStatus.text"
-              :class="['title__status', manualUpdateStatus.type && `title__status--${manualUpdateStatus.type}`]"
-          >
-            {{ manualUpdateStatus.text }}
+      <div class="px-row px-row--wrap">
+        <span class="px-row__label">
+          Secret
+          <span class="px-info" tabindex="0" :aria-label="t('setting.tips.secret')" v-tip="t('setting.tips.secret')">
+            <icon-tabler-info-circle width="13" height="13"/>
           </span>
+        </span>
+        <span class="px-row__value mono ellipsis">{{ secretVisible ? webStore.secret : '••••••••••••' }}</span>
+        <UiIconButton :size="26" :label="secretVisible ? t('ui.hide') : t('ui.show')" @click="secretVisible = !secretVisible">
+          <icon-tabler-eye-off v-if="secretVisible" width="14" height="14"/>
+          <icon-tabler-eye v-else width="14" height="14"/>
+        </UiIconButton>
+        <div class="px-row__end">
+          <button type="button" class="px-btn px-btn--soft px-btn--sm" @click="copy(webStore.secret,t)">{{ $t('copy.title') }}</button>
         </div>
-        <hr/>
-        <ul class="info-list">
-          <li class="toggle-row">
-            <el-tooltip placement="top" effect="dark" class="hwid-tooltip__trigger">
-              <template #content>
-                <div class="hwid-tooltip">
-                  <div v-for="line in hwidTooltipContent" :key="line">{{ line }}</div>
-                </div>
-              </template>
-              <strong class="hwid-label">HWID :</strong>
-            </el-tooltip>
-            <div :class="['px-toggle', { 'is-on': settingStore.hwid }]" @click="settingStore.hwid = !settingStore.hwid">
-              <div class="px-toggle__thumb"></div>
-            </div>
-          </li>
-          <li class="toggle-row">
-            <strong>{{ $t('setting.px.startup') }} :</strong>
-            <div :class="['px-toggle', { 'is-on': settingStore.startup }]" @click="settingStore.startup = !settingStore.startup">
-              <div class="px-toggle__thumb"></div>
-            </div>
-          </li>
-          <li class="toggle-row">
-            <strong>{{ $t('setting.px.startMinimized') }} :</strong>
-            <div :class="['px-toggle', { 'is-on': settingStore.startMinimized }]" @click="settingStore.startMinimized = !settingStore.startMinimized">
-              <div class="px-toggle__thumb"></div>
-            </div>
-          </li>
-          <li class="toggle-row">
-            <strong>{{ $t('setting.px.systemProxyMode') }} :</strong>
-            <div :class="['px-toggle', { 'is-on': settingStore.systemProxyMode }]" @click="settingStore.systemProxyMode = !settingStore.systemProxyMode">
-              <div class="px-toggle__thumb"></div>
-            </div>
-          </li>
-          <li class="toggle-row">
-            <strong>{{ $t('setting.px.auth') }} :</strong>
-            <div :class="['px-toggle', { 'is-on': settingStore.auth }]" @click="settingStore.auth = !settingStore.auth">
-              <div class="px-toggle__thumb"></div>
-            </div>
-          </li>
-          <li>
-            <MyService />
-          </li>
-          <li class="toggle-row">
-            <strong>{{ $t('setting.shortcut.title') }} :</strong>
-            <div :class="['px-toggle', { 'is-on': settingStore.sc_switch }]" @click="settingStore.sc_switch = !settingStore.sc_switch">
-              <div class="px-toggle__thumb"></div>
-            </div>
-            <button class="pencil-btn" @click.stop="shortcutDialogVisible = true">
-              <el-icon><EditPen/></el-icon>
-            </button>
-          </li>
-          <li class="toggle-row">
-            <strong>{{ $t('setting.subscriptionAlerts.title') }} :</strong>
-            <div :class="['px-toggle', { 'is-on': settingStore.notifySubscriptionAlerts }]" @click="settingStore.notifySubscriptionAlerts = !settingStore.notifySubscriptionAlerts">
-              <div class="px-toggle__thumb"></div>
-            </div>
-            <el-tooltip :content="$t('setting.subscriptionAlerts.tooltip')" placement="top" effect="dark">
-              <el-icon class="info-icon"><icon-mdi-information-outline/></el-icon>
-            </el-tooltip>
-          </li>
-          <li class="btn-row">
-            <strong>{{ $t('setting.px.dir') }} :</strong>
-            <button class="pill-btn" @click="pxConfigDir">{{ $t('setting.px.open') }}</button>
-            <button class="pill-btn" @click="changeConfigDir">{{ $t('setting.px.change') }}</button>
-            <button class="pill-btn" @click="openImportDialog">{{ $t('setting.px.import') }}</button>
-            <input
-                ref="importInputRef"
-                type="file"
-                accept=".yaml,.yml"
-                hidden
-                @change="handleImportFile"
-            />
-          </li>
-          <li class="update-row">
-            <strong>{{ $t('setting.px.update') }} :</strong>
-            <button class="pill-btn" @click="openReleasesPage">{{ t('updates.actions.open') }}</button>
-            <button class="pill-btn" @click="checkForUpdatesManually" :disabled="updateChecking">
-              <icon-mdi-loading v-if="updateChecking" class="pill-spin"/>
-              {{ t('updates.actions.check') }}
-            </button>
-          </li>
-        </ul>
       </div>
-    </el-col>
-  </el-row>
 
-  <!-- Диалог 1: Горячие клавиши -->
-  <el-dialog
-      v-model="shortcutDialogVisible"
-      :title="t('setting.shortcut.title')"
-      width="420"
-  >
-    <ul class="shortcut-list">
-      <li class="shortcut-item">
-        <span class="shortcut-label">{{ t('setting.shortcut.showHide') }}</span>
-        <div class="shortcut-controls">
-          <div :class="['px-toggle', { 'is-on': settingStore.sc_switch }]" @click="settingStore.sc_switch = !settingStore.sc_switch">
-            <div class="px-toggle__thumb"></div>
-          </div>
-          <MyHotkeyInput v-model="settingStore.sc_switch_key"/>
-        </div>
-      </li>
-    </ul>
-    <template #footer>
-      <el-button @click="shortcutDialogVisible = false">{{ t('close') }}</el-button>
-    </template>
-  </el-dialog>
+      <div class="px-row">
+        <span class="px-row__label">{{ $t('setting.mihomo.dns') }}</span>
+        <UiSwitch v-model="settingStore.dns" :aria-label="$t('setting.mihomo.dns')"/>
+        <UiIconButton :size="26" :label="$t('setting.section.dns')" @click="changeMenu('Setting/Dns',router)">
+          <icon-tabler-edit width="14" height="14"/>
+        </UiIconButton>
+      </div>
 
-  <el-dialog
-      v-model="dashboardDialogVisible"
-      :title="t('setting.dashboard.custom-title')"
-      width="520px"
-  >
-    <div class="dashboard-dialog">
-      <div class="dashboard-dialog__form">
-        <el-form label-position="top" class="dashboard-dialog__form-fields">
-          <el-form-item :label="t('setting.dashboard.name')">
-            <el-input v-model="newDashboard.name" placeholder="Zashboard"/>
-          </el-form-item>
-          <el-form-item :label="t('setting.dashboard.url')">
-            <el-input
-                v-model="newDashboard.url"
-                placeholder="https://legiz-ru.github.io/zashboard/#/setup?disableUpgradeCore=1&http=true&hostname=%host&port=%port&secret=%secret"
-            />
-          </el-form-item>
-        </el-form>
-        <p class="dashboard-dialog__hint">{{ t('setting.dashboard.hint') }}</p>
-        <div class="dashboard-dialog__actions">
-          <el-button type="primary" plain @click="submitCustomDashboardEntry">
-            <component
-                :is="isEditingDashboard ? 'icon-mdi-content-save' : 'icon-mdi-plus'"
-                class="dashboard-dialog__action-icon dashboard-dialog__action-icon--with-label"
-            />
-            {{ isEditingDashboard ? t('setting.dashboard.save') : t('setting.dashboard.add') }}
-          </el-button>
-          <el-button v-if="isEditingDashboard" link @click="cancelEditingCustomDashboardEntry">
-            {{ t('setting.dashboard.cancel') }}
-          </el-button>
+      <div class="px-row">
+        <span class="px-row__label">IPv6</span>
+        <UiSwitch v-model="settingStore.ipv6" aria-label="IPv6"/>
+      </div>
+
+      <div class="px-row">
+        <span class="px-row__label">
+          {{ $t('setting.mihomo.independentDelayTest') }}
+          <span class="px-info" tabindex="0" :aria-label="t('setting.tips.independent-test')" v-tip="t('setting.tips.independent-test')">
+            <icon-tabler-info-circle width="13" height="13"/>
+          </span>
+        </span>
+        <UiSwitch v-model="settingStore.independentDelayTest" :aria-label="$t('setting.mihomo.independentDelayTest')"/>
+      </div>
+
+      <div v-if="settingStore.independentDelayTest" class="px-row cfg-urls-row">
+        <span class="px-row__label cfg-urls-label">{{ $t('setting.mihomo.groupTestUrls') }}</span>
+        <div class="cfg-urls">
+          <div v-for="(item, index) in settingStore.groupTestUrls" :key="index" class="cfg-url">
+            <input v-model="item.name" class="px-input px-input--sm" :aria-label="$t('setting.mihomo.groupName')" :placeholder="$t('setting.mihomo.groupName')">
+            <input v-model="item.url" class="px-input px-input--sm" :aria-label="$t('setting.mihomo.testUrlPlaceholder')" :placeholder="$t('setting.mihomo.testUrlPlaceholder')">
+            <UiIconButton :size="26" :label="$t('delete')" @click="removeGroupTestUrl(index)">
+              <icon-tabler-x width="14" height="14"/>
+            </UiIconButton>
+          </div>
+          <UiIconButton :size="26" :label="$t('setting.mihomo.addGroupUrl')" @click="addGroupTestUrl">
+            <icon-tabler-plus width="14" height="14"/>
+          </UiIconButton>
         </div>
-        <p v-if="dashboardFormError" class="dashboard-dialog__error">{{ dashboardFormError }}</p>
       </div>
-      <el-divider/>
-      <div v-if="customDashboards.length === 0" class="dashboard-dialog__empty">
-        {{ t('setting.dashboard.empty') }}
+
+      <div class="px-row px-row--wrap">
+        <span class="px-row__label">{{ $t('setting.mihomo.dnsQuery.queryTitle') }}</span>
+        <input v-model="dnsQueryName"
+               class="px-input px-input--sm cfg-dns-input"
+               placeholder="example.com"
+               aria-label="example.com"
+               autocapitalize="off"
+               autocomplete="off"
+               autocorrect="off"
+               spellcheck="false"
+               @keyup.enter="runDnsQuery">
+        <UiSelect v-model="dnsQueryType" :options="dnsTypeOptions" class="cfg-dns-type" :min-width="90" align="left" :aria-label="$t('setting.mihomo.dnsQuery.queryTitle')"/>
+        <button type="button" class="px-btn px-btn--soft px-btn--sm" :disabled="dnsQueryLoading" @click="runDnsQuery">
+          <UiSpinner v-if="dnsQueryLoading" :size="12"/>
+          <icon-tabler-search v-else width="13" height="13"/>
+          {{ $t('setting.mihomo.dnsQuery.query') }}
+        </button>
       </div>
-      <ul v-else class="dashboard-dialog__list">
-        <li v-for="(item, index) in customDashboards" :key="item.name + index" class="dashboard-dialog__item">
-          <div class="dashboard-dialog__item-info">
-            <span class="dashboard-dialog__item-name">{{ item.name }}</span>
-            <span class="dashboard-dialog__item-url">{{ item.url }}</span>
-          </div>
-          <div class="dashboard-dialog__item-actions">
-            <el-button
-                type="primary"
-                plain
-                circle
-                :title="t('setting.dashboard.edit')"
-                :aria-label="t('setting.dashboard.edit')"
-                @click="startEditingCustomDashboardEntry(index)"
-            >
-              <icon-mdi-pencil class="dashboard-dialog__action-icon"/>
-            </el-button>
-            <el-button
-                type="danger"
-                plain
-                circle
-                :title="t('setting.dashboard.remove')"
-                :aria-label="t('setting.dashboard.remove')"
-                @click="removeCustomDashboardEntry(index)"
-            >
-              <icon-mdi-trash-can-outline class="dashboard-dialog__action-icon"/>
-            </el-button>
-          </div>
-        </li>
-      </ul>
+      <div v-if="dnsQueryError || dnsQueryResults.length > 0" class="cfg-dns-results">
+        <div v-if="dnsQueryError" class="px-alert px-alert--error">
+          <icon-tabler-alert-circle width="15" height="15"/>
+          <span>{{ dnsQueryError }}</span>
+        </div>
+        <div v-for="(rec, i) in dnsQueryResults" :key="i" class="cfg-dns-record">
+          <span class="px-tag px-tag--accent">{{ DNS_TYPE_MAP[rec.type] ?? rec.type }}</span>
+          <span class="mono ellipsis" style="flex:1">{{ rec.data }}</span>
+          <span class="tabular cfg-ttl">TTL {{ rec.TTL }}</span>
+        </div>
+      </div>
+
+      <div class="px-row">
+        <span class="px-row__label">{{ $t('age.settings.label') }}</span>
+        <button type="button" class="px-btn px-btn--soft px-btn--sm" @click="ageKeypairDialogVisible = true">
+          {{ $t('age.settings.generateBtn') }}
+        </button>
+      </div>
     </div>
-  </el-dialog>
+    <MyAgeKeypair v-model="ageKeypairDialogVisible"/>
+  </section>
+
+  <section v-if="props.section !== 'core'" class="px-card cfg-card">
+    <div class="cfg-head">
+      <span class="px-card-title">Prizrak-Box</span>
+      <span v-if="manualUpdateStatus.text"
+            class="px-tag"
+            :class="{
+              'px-tag--success': manualUpdateStatus.type === 'success',
+              'px-tag--warning': manualUpdateStatus.type === 'warning',
+              'px-tag--error': manualUpdateStatus.type === 'danger',
+            }"
+            role="status">
+        <UiSpinner v-if="manualUpdateStatus.type === 'info'" :size="10"/>
+        {{ manualUpdateStatus.text }}
+      </span>
+    </div>
+    <div class="px-divider cfg-divider"></div>
+    <div class="px-rows">
+      <MyService/>
+      <div class="px-divider"></div>
+
+      <div class="px-row">
+        <span class="px-row__label">
+          HWID
+          <span class="px-info" tabindex="0" :aria-label="t('setting.tips.hwid')" v-tip="[t('setting.tips.hwid'), '', ...hwidTooltipContent].join('\n')">
+            <icon-tabler-info-circle width="13" height="13"/>
+          </span>
+        </span>
+        <UiSwitch v-model="settingStore.hwid" aria-label="HWID"/>
+      </div>
+      <div class="px-row">
+        <span class="px-row__label">{{ $t('setting.px.startup') }}</span>
+        <UiSwitch v-model="settingStore.startup" :aria-label="$t('setting.px.startup')"/>
+      </div>
+      <div class="px-row">
+        <span class="px-row__label">{{ $t('setting.px.startMinimized') }}</span>
+        <UiSwitch v-model="settingStore.startMinimized" :aria-label="$t('setting.px.startMinimized')"/>
+      </div>
+      <div class="px-row">
+        <span class="px-row__label">{{ $t('setting.px.systemProxyMode') }}</span>
+        <UiSwitch v-model="settingStore.systemProxyMode" :aria-label="$t('setting.px.systemProxyMode')"/>
+      </div>
+      <div class="px-row">
+        <span class="px-row__label">
+          {{ $t('setting.px.auth') }}
+          <span class="px-info" tabindex="0" :aria-label="t('setting.tips.auth')" v-tip="t('setting.tips.auth')">
+            <icon-tabler-info-circle width="13" height="13"/>
+          </span>
+        </span>
+        <UiSwitch v-model="settingStore.auth" :aria-label="$t('setting.px.auth')"/>
+      </div>
+
+      <div class="px-divider"></div>
+
+      <div class="px-row">
+        <span class="px-row__label">{{ $t('setting.shortcut.title') }}</span>
+        <UiSwitch v-model="settingStore.sc_switch" :aria-label="$t('setting.shortcut.title')"/>
+        <UiIconButton :size="26" :label="$t('setting.shortcut.edit')" @click="changeMenu('Setting/Shortcut',router)">
+          <icon-tabler-edit width="14" height="14"/>
+        </UiIconButton>
+      </div>
+      <div class="px-row">
+        <span class="px-row__label">
+          {{ $t('setting.subscriptionAlerts.title') }}
+          <span class="px-info" tabindex="0" :aria-label="$t('setting.subscriptionAlerts.tooltip')" v-tip="$t('setting.subscriptionAlerts.tooltip')">
+            <icon-tabler-info-circle width="13" height="13"/>
+          </span>
+        </span>
+        <UiSwitch v-model="settingStore.notifySubscriptionAlerts" :aria-label="$t('setting.subscriptionAlerts.title')"/>
+      </div>
+      <div class="px-row px-row--wrap">
+        <span class="px-row__label">{{ $t('setting.px.dir') }}</span>
+        <button type="button" class="px-btn px-btn--soft px-btn--sm" @click="pxConfigDir">{{ $t('setting.px.open') }}</button>
+        <button type="button" class="px-btn px-btn--soft px-btn--sm" @click="changeConfigDir">{{ $t('setting.px.change') }}</button>
+        <button type="button" class="px-btn px-btn--soft px-btn--sm" @click="openImportDialog">{{ $t('setting.px.import') }}</button>
+        <input ref="importInputRef" type="file" accept=".yaml,.yml" hidden @change="handleImportFile"/>
+      </div>
+      <div class="px-row px-row--wrap">
+        <span class="px-row__label">{{ $t('setting.px.update') }}</span>
+        <button type="button" class="px-btn px-btn--soft px-btn--sm" @click="openReleasesPage">{{ t('updates.actions.open') }}</button>
+        <button type="button" class="px-btn px-btn--soft px-btn--sm" :disabled="updateChecking" @click="checkForUpdatesManually">
+          <UiSpinner v-if="updateChecking" :size="12"/>
+          {{ t('updates.actions.check') }}
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Custom dashboards -->
+  <UiModal v-model="dashboardDialogVisible" :title="t('setting.dashboard.custom-title')" :width="520">
+    <label class="px-field">
+      <span class="px-field__label">{{ t('setting.dashboard.name') }}</span>
+      <input v-model="newDashboard.name" class="px-input" placeholder="Zashboard">
+    </label>
+    <label class="px-field">
+      <span class="px-field__label">{{ t('setting.dashboard.url') }}</span>
+      <input v-model="newDashboard.url" class="px-input" placeholder="https://example.com/?host=%host&port=%port&secret=%secret">
+    </label>
+    <span class="px-field__hint">{{ t('setting.dashboard.hint') }}</span>
+    <span v-if="dashboardFormError" class="px-field__error" role="alert">{{ dashboardFormError }}</span>
+    <div class="cfg-dash-actions">
+      <button v-if="isEditingDashboard" type="button" class="px-btn px-btn--pill" @click="cancelEditingCustomDashboardEntry">
+        {{ t('setting.dashboard.cancel') }}
+      </button>
+      <button type="button" class="px-btn px-btn--primary px-btn--pill" @click="submitCustomDashboardEntry">
+        <icon-tabler-device-floppy v-if="isEditingDashboard" width="15" height="15"/>
+        <icon-tabler-plus v-else width="15" height="15"/>
+        {{ isEditingDashboard ? t('setting.dashboard.save') : t('setting.dashboard.add') }}
+      </button>
+    </div>
+    <div class="px-divider"></div>
+    <div v-if="customDashboards.length === 0" class="cfg-dash-empty">{{ t('setting.dashboard.empty') }}</div>
+    <div v-else class="cfg-dash-list">
+      <div v-for="(item, index) in customDashboards"
+           :key="item.name + index"
+           class="cfg-dash-item"
+           :class="{ 'is-editing': editingDashboardIndex === index }">
+        <div class="cfg-dash-info">
+          <span class="ellipsis cfg-dash-name">{{ item.name }}</span>
+          <span class="ellipsis cfg-dash-url" v-tip="item.url">{{ item.url }}</span>
+        </div>
+        <UiIconButton :size="30" :label="t('setting.dashboard.edit')" @click="startEditingCustomDashboardEntry(index)">
+          <icon-tabler-edit width="15" height="15"/>
+        </UiIconButton>
+        <UiIconButton :size="30" danger :label="t('setting.dashboard.remove')" @click="askRemoveCustomDashboardEntry(index)">
+          <icon-tabler-trash width="15" height="15"/>
+        </UiIconButton>
+      </div>
+    </div>
+  </UiModal>
 </template>
 
 <style scoped>
-.spark {
-  max-width: 95%;
+.cfg-card {
+  padding: 18px 20px;
+  flex-shrink: 0;
 }
 
-.box {
-  padding: 10px;
-  border-radius: 20px;
-  text-align: left;
+.cfg-divider {
+  margin: 12px 0;
 }
 
-.box hr {
-  border: none;
-  height: 1px;
-  background-color: var(--hr-color);
-  margin: 10px 0;
-}
-
-.info-list {
-  list-style: none;
-  padding: 0;
-}
-
-.info-list li {
-  font-size: 18px;
-  margin: 8px 0;
-}
-
-.api-row {
+.cfg-head {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  min-height: 30px;
-}
-
-.api-row__info {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.api-row__value {
-  word-break: break-all;
-}
-
-.api-row__actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.api-row__dropdown {
-  display: inline-flex;
-}
-
-.api-row__icon {
-  margin-left: 4px;
-  font-size: 0.85rem;
-}
-
-.secret-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  min-height: 30px;
-}
-
-.age-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 30px;
-}
-
-.secret-row__value {
-  word-break: break-all;
-}
-
-.info-list .dns-query-row {
-  margin-top: 8px;
-}
-
-.update-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  min-height: 30px;
-}
-
-.update-row strong {
-  margin-right: 6px;
-}
-
-.update-row__button {
-  margin-left: 0;
-}
-
-.title--status {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.title__status {
-  font-size: 0.85rem;
-}
-
-.title__status--info {
-  color: #909399;
-}
-
-.title__status--success {
-  color: #67c23a;
-}
-
-.title__status--warning {
-  color: #e6a23c;
-}
-
-.title__status--danger {
-  color: #f56c6c;
-}
-
-.dashboard-dialog {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.dashboard-dialog__form-fields {
-  display: grid;
-  gap: 12px;
-}
-
-.dashboard-dialog__actions {
-  margin-top: 4px;
-}
-
-.dashboard-dialog__action-icon {
-  display: inline-flex;
-  vertical-align: middle;
-}
-
-.dashboard-dialog__action-icon--with-label {
-  margin-right: 6px;
-}
-
-.dashboard-dialog__item-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.dashboard-dialog__hint {
-  font-size: 0.85rem;
-  opacity: 0.75;
-  margin: 0;
-}
-
-.dashboard-dialog__error {
-  color: #f56c6c;
-  font-size: 0.85rem;
-  margin: 6px 0 0;
-}
-
-.dashboard-dialog__empty {
-  text-align: center;
-  opacity: 0.7;
-  font-size: 0.9rem;
-}
-
-.dashboard-dialog__list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   gap: 10px;
 }
 
-.dashboard-dialog__item {
-  display: flex;
+.cfg-chev {
+  transition: transform .15s;
+}
+
+.cfg-chev.is-open {
+  transform: rotate(180deg);
+}
+
+.cfg-urls-row {
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
 }
 
-.dashboard-dialog__item-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  max-width: 75%;
+.cfg-urls-label {
+  padding-top: 6px;
 }
 
-.dashboard-dialog__item-name {
-  font-weight: 600;
-}
-
-.dashboard-dialog__item-url {
-  font-size: 0.85rem;
-  word-break: break-all;
-  opacity: 0.75;
-}
-
-.box1 {
-}
-
-.box2 {
-}
-
-.toggle-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.px-toggle {
-  position: relative;
-  display: inline-block;
-  width: 58px;
-  height: 36px;
-  border-radius: 999px;
-  background-color: var(--left-nav-btn-bg);
-  box-shadow: var(--left-nav-shadow);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background-color 0.25s ease, box-shadow 0.25s ease;
-}
-
-.px-toggle:hover {
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-.px-toggle.is-on {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-.px-toggle__thumb {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background-color: var(--text-color);
-  transition: left 0.25s ease, background-color 0.25s ease;
-}
-
-.px-toggle.is-on .px-toggle__thumb {
-  left: 26px;
-  background-color: #fff;
-}
-
-.pencil-btn {
-  height: 36px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 999px;
-  background-color: var(--left-nav-btn-bg);
-  color: var(--text-color);
-  box-shadow: var(--left-nav-shadow);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  flex-shrink: 0;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.pencil-btn:hover {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-.info-icon {
-  color: var(--text-color);
-  opacity: 0.55;
-  font-size: 18px;
-  cursor: help;
-  flex-shrink: 0;
-}
-
-.info-icon:hover {
-  opacity: 0.85;
-}
-
-.pill-btn {
-  border: none;
-  border-radius: 999px;
-  background-color: var(--left-nav-btn-bg);
-  color: var(--text-color);
-  padding: 9px 16px;
-  font-size: 14px;
-  height: 36px !important;
-  cursor: pointer;
-  box-shadow: var(--left-nav-shadow);
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-}
-
-.pill-btn:hover {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-.pill-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.pill-btn--arrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.pill-btn--danger {
-  background-color: rgba(255, 80, 80, 0.15);
-  color: var(--el-color-danger, #f56c6c);
-  padding: 4px 10px;
-}
-
-.pill-btn--danger:hover {
-  background-color: rgba(255, 80, 80, 0.3);
-}
-
-.group-test-urls-section {
-  flex-direction: column !important;
-  align-items: flex-start !important;
-  gap: 8px;
-}
-
-.group-test-urls-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-}
-
-.group-test-urls-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-}
-
-.group-test-url-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-}
-
-.group-test-url-input {
+.cfg-urls {
   flex: 1;
-}
-
-.pill-spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.btn-row {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 8px;
-  min-height: 30px;
+  min-width: 0;
 }
 
-.dashboard-dialog :deep(.el-button--primary) {
-  --el-button-bg-color: var(--left-item-selected-bg);
-  --el-button-border-color: var(--left-item-selected-bg);
-  --el-button-text-color: #fff;
-  --el-button-hover-bg-color: var(--left-item-selected-bg);
-  --el-button-hover-text-color: #fff;
-}
-
-.dashboard-dialog :deep(.el-button.is-link) {
-  --el-button-bg-color: transparent;
-}
-
-
-.shortcut-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.shortcut-item {
-  display: flex;
+.cfg-url {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  gap: 8px;
   align-items: center;
-  justify-content: space-between;
-  font-size: 16px;
-  padding: 6px 0;
 }
 
-.shortcut-label {
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+.cfg-dns-input {
+  width: 170px;
 }
 
-.shortcut-controls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.cfg-dns-type {
+  width: 90px;
 }
 
-/* The shared .px-toggle colours derive from the background image (--text-color
-   / --left-nav-btn-bg) and can blend into the dialog's own surface, leaving the
-   switch invisible on some themes. Inside the dialog use self-contained colours
-   with a clear off/on contrast and a white thumb so it reads on any theme. */
-.shortcut-controls .px-toggle {
-  background-color: rgba(120, 120, 120, 0.45);
-  box-shadow: inset 0 0 0 1.5px rgba(150, 150, 150, 0.55);
-}
-.shortcut-controls .px-toggle.is-on {
-  background-color: var(--el-color-primary, #409eff);
-  box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, 0.15);
-}
-.shortcut-controls .px-toggle__thumb {
-  background-color: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
-}
-.shortcut-controls .px-toggle.is-on .px-toggle__thumb {
-  background-color: #fff;
+.cfg-dns-type :deep(.px-select--field) {
+  padding: 6px 8px 6px 10px;
+  font-size: 12px;
 }
 
-/* DNS Query Tool */
-.dns-query-results-row {
-  flex-direction: column !important;
-  align-items: flex-start !important;
-  gap: 6px !important;
-}
-
-.dns-query-input {
-  width: 160px;
-  border: none;
-  border-radius: 999px;
-  background-color: var(--left-nav-btn-bg);
-  color: var(--text-color);
-  padding: 0 16px;
-  font-size: 14px;
-  height: 36px;
-  box-shadow: var(--left-nav-shadow);
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.dns-query-input:focus {
-  outline: none;
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-.dns-query-error {
-  font-size: 13px;
-  color: var(--el-color-danger, #f56c6c);
-  word-break: break-all;
-}
-
-.dns-query-results {
+.cfg-dns-results {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  width: 100%;
+  margin-left: 180px;
 }
 
-.dns-query-record {
+.cfg-dns-record {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 14px;
+  gap: 8px;
+  font-size: 12px;
+  min-width: 0;
 }
 
-.dns-type-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  min-width: 48px;
+.cfg-ttl {
+  color: var(--text-3);
+  flex-shrink: 0;
+}
+
+.cfg-dash-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cfg-dash-empty {
+  padding: 18px 0;
   text-align: center;
-  background-color: rgba(128, 128, 128, 0.2);
-  color: var(--text-color);
+  font-size: 13px;
+  color: var(--text-3);
 }
 
-.dns-type--a      { background-color: rgba(64, 158, 255, 0.2); color: #409eff; }
-.dns-type--aaaa   { background-color: rgba(103, 194, 58, 0.2); color: #67c23a; }
-.dns-type--cname  { background-color: rgba(230, 162, 60, 0.2); color: #e6a23c; }
-.dns-type--mx     { background-color: rgba(245, 108, 108, 0.2); color: #f56c6c; }
-.dns-type--txt    { background-color: rgba(144, 147, 153, 0.2); color: #909399; }
-.dns-type--ns     { background-color: rgba(160, 90, 220, 0.2); color: #a05adc; }
+.cfg-dash-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
-.dns-record-data {
-  color: var(--text-color);
-  word-break: break-all;
+.cfg-dash-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+}
+
+.cfg-dash-item.is-editing {
+  border-color: var(--accent);
+}
+
+.cfg-dash-info {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.dns-record-ttl {
+.cfg-dash-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cfg-dash-url {
   font-size: 12px;
-  opacity: 0.55;
-  white-space: nowrap;
+  color: var(--text-2);
 }
-
 </style>

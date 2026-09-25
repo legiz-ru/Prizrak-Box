@@ -1,19 +1,17 @@
-import RuleProviders from '@/views/rule/Providers.vue';
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router';
 
 import Home from '@/views/Home.vue';
 import Setting from '@/views/Setting.vue';
 import Proxies from '@/views/Proxies.vue';
 import Profiles from '@/views/Profiles.vue';
-import Rule from '@/views/Rule.vue';
-import Now from '@/views/rule/Now.vue';
-import Group from '@/views/rule/Group.vue';
-import Ignore from '@/views/rule/Ignore.vue';
-import Connection from '@/views/Connection.vue';
-import Log from '@/views/Log.vue';
-import Crawl from '@/views/Crawl.vue';
 import Dns from '@/views/setting/Dns.vue';
 import Shortcut from '@/views/setting/Shortcut.vue';
+import {useMenuStore} from '@/store/menuStore';
+
+function settingsTab(tab: string) {
+    useMenuStore().setSettingTab(tab);
+    return '/Setting';
+}
 
 const routes: Array<RouteRecordRaw> = [
     {
@@ -51,48 +49,12 @@ const routes: Array<RouteRecordRaw> = [
         name: 'Profiles',
         component: Profiles,
     },
-    {
-        path: '/Rule',
-        name: 'Rule',
-        component: Rule,
-        children: [
-            {
-                path: 'Now',
-                name: 'Now',
-                component: Now,
-            },
-            {
-                path: 'Group',
-                name: 'Group',
-                component: Group,
-            },
-            {
-                path: 'Ignore',
-                name: 'Ignore',
-                component: Ignore,
-            },
-            {
-                path: 'Providers',
-                name: 'RuleProviders',
-                component: RuleProviders,
-            },
-        ],
-    },
-    {
-        path: '/Connection',
-        name: 'Connection',
-        component: Connection,
-    },
-    {
-        path: '/Log',
-        name: 'Log',
-        component: Log,
-    },
-    {
-        path: '/Crawl',
-        name: 'Crawl',
-        component: Crawl,
-    },
+    // Legacy screens now live inside Settings; keep old paths (persisted menu
+    // state, tray/deeplink callers) working by redirecting to the right tab.
+    {path: '/Rule/:sub(.*)*', redirect: () => settingsTab('rule')},
+    {path: '/Connection', redirect: () => settingsTab('connection')},
+    {path: '/Log', redirect: () => settingsTab('log')},
+    {path: '/Crawl', redirect: '/Home'},
 ];
 
 const router = createRouter({

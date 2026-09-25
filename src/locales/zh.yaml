@@ -205,6 +205,20 @@ setting:
     empty: 暂无自定义面板
     error: 请输入名称和链接
 
+  section:
+    app: 应用
+    core: 内核
+    rule: 规则
+    connection: 连接
+    log: 日志
+    dns: DNS 覆写
+    shortcut: 快捷键
+  tips:
+    service: 高权限服务：TUN 和系统代理无需每次启动时请求 UAC
+    hwid: 将配置绑定到本机硬件，用于限制设备数量的订阅
+    auth: 打开应用控制面板时需要密码
+    secret: Mihomo 内核密钥可完全访问 API，请勿泄露。
+    independent-test: 使用分组自己的 URL 而非公共测试地址测试延迟
 updates:
   banner:
     title: 发现新版本
@@ -368,12 +382,14 @@ rule:
       placeholder: 标题添加后不可修改
       tip: 模版内容不能为空
       success: 添加成功
+      new: 新规则模板
     delete:
       success: 删除成功
   ignore:
     title: 忽略这些域名
     tip: 按行分割
     place: 在这里输入
+    info: 此列表中的域名绕过系统代理直接连接（DIRECT）。每行一个域名，例如 localhost、*.local、intranet.company
   providers:
     title: 规则提供者
     refresh: 刷新数据
@@ -455,6 +471,17 @@ connections:
   open-in-browser: 在浏览器中打开
   show-in-explorer: 在资源管理器中显示
 
+  sort:
+    label: 排序
+    time: 按时间
+    download: 按下载量
+    upload: 按上传量
+    dl-speed: 按下载速度
+    ul-speed: 按上传速度
+    host: 按主机
+    asc: 升序
+    desc: 降序
+  count: '{n} 个连接'
 log:
   title: 日志
   search: 搜索
@@ -463,6 +490,7 @@ dns:
   title: DNS 覆写
   success: 保存成功
 
+  hint: YAML 格式的 dns 配置块，将覆盖配置中的 DNS 设置。
 bg:
   default: 默认
   harbor: 港口
@@ -607,6 +635,10 @@ ui:
   decrease: 减少
   increase: 增加
   hours-short: 小时
+  show: 显示
+  hide: 隐藏
+  saved: 已保存
+  found: 找到 {n} 个
 time:
   just-now: 刚刚
   sec-ago: '{n} 秒前'
@@ -624,3 +656,29 @@ empty:
   profiles:
     title: 没有配置
     text: 添加订阅、链接或配置文件以开始使用。
+  providers:
+    title: 未找到规则提供者
+    text: 当前配置没有 rule-providers。
+  connections:
+    title: 没有连接
+    text: 应用开始联网后，连接会显示在这里。
+  logs:
+    title: 日志为空
+    text: 所选日志级别下没有记录。
+  search:
+    title: 未找到结果
+    text: 请尝试其他关键词。
+logs:
+  level: 日志级别
+  search: 搜索日志
+  autoscroll: 自动滚动
+  copy-all: 全部复制
+  export: 导出 .log
+  clear: 清空日志
+  cleared: 日志已清空
+  copied: 已复制 {n} 行
+  shown: 显示最近 {n} 条
+hotkey:
+  record-hint: 点击输入框并按下组合键
+pause: 暂停
+resume: 继续

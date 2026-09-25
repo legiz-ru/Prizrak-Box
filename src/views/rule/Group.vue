@@ -5,7 +5,10 @@ import "ace-builds/src-noconflict/ext-searchbox"; // 查找替换
 import "ace-builds/src-noconflict/mode-yaml"; // YAML 支持
 import "ace-builds/src-noconflict/ext-beautify";
 import "ace-builds/src-noconflict/ext-language_tools"; // YAML 支持
-import "ace-builds/src-noconflict/theme-monokai"; // 主题支持
+import "ace-builds/src-noconflict/theme-tomorrow_night";
+import "ace-builds/src-noconflict/theme-tomorrow";
+import {confirm} from "@/components/ui";
+import IconTrash from "~icons/tabler/trash";
 import createApi from "@/api";
 import {useI18n} from "vue-i18n";
 import {pError, pLoad, pSuccess} from "@/util/pLoad";
@@ -16,12 +19,33 @@ import {getTemplateTitle} from "@/util/format";
 // 编辑器使用
 const editorOptions = {
   showPrintMargin: false,
+  fontSize: 13,
+  tabSize: 2,
+  useSoftTabs: true,
 };
 // 编辑器显示内容
 const yamlContent = ref("");
 
 // 当前页面使用store
 const menuStore = useMenuStore();
+
+const editorTheme = computed(() => menuStore.useWhite ? 'tomorrow_night' : 'tomorrow');
+
+// A template being added has no id yet; it shows by its title until saved.
+const templateOptions = computed(() => {
+  const list = tList.value.map((item: any) => ({value: item.id as string, label: getTemplateTitle(t, item.title)}));
+  if (!now.id) list.push({value: '', label: getTemplateTitle(t, now.title)});
+  return list;
+});
+
+const onOff = computed({
+  get: () => !!now.selected,
+  set: (value: boolean) => {
+    if (value === !!now.selected) return;
+    now.selected = value;
+    switchTemplate();
+  },
+});
 const proxiesStore = useProxiesStore();
 
 // i18n
@@ -32,8 +56,8 @@ const {proxy} = getCurrentInstance()!;
 const api = createApi(proxy);
 
 
-// Template列表
-let tList = reactive([]);
+// Template列表 (a ref: the list is replaced after add/delete/switch)
+const tList = ref<any[]>([]);
 // Template
 let now = reactive({
   id: "",
@@ -59,11 +83,11 @@ const addForm = reactive({
 
 const initPage = async () => {
   // 初始化
-  tList = await api.getTemplateList();
-  Object.assign(now, tList[0]);
+  tList.value = await api.getTemplateList();
+  Object.assign(now, tList.value[0]);
 
   // 处理选中项
-  for (const item of tList) {
+  for (const item of tList.value) {
     canDelete.value = !isDefault(item.title);
     if (item.selected) {
       Object.assign(now, item);
@@ -79,7 +103,7 @@ onMounted(initPage);
 
 // Template 下拉列表逻辑
 const handleTemplateChange = async (id: string) => {
-  const item = tList.find(i => i.id === id);
+  const item = tList.value.find((i: any) => i.id === id);
   if (item) {
     Object.assign(now, item);
     // 处理编辑器内容
@@ -104,9 +128,18 @@ const addTemplate = async () => {
   canDelete.value = false;
 }
 
-// 删除逻辑
+// 删除逻辑 — asks first (accepted product change)
 const deleteTemplate = async () => {
   if (!now.id) {
+    return
+  }
+  const ok = await confirm({
+    title: t('confirm.delete-template.title'),
+    text: t('confirm.delete-template.text'),
+    okLabel: t('confirm.delete-template.ok'),
+    icon: IconTrash,
+  })
+  if (!ok) {
     return
   }
   try {
@@ -156,8 +189,8 @@ const saveTemplate = async () => {
           title: now.title,
         });
 
-        tList = await api.getTemplateList();
-        for (const item of tList) {
+        tList.value = await api.getTemplateList();
+        for (const item of tList.value) {
           if (now.title == item.title) {
             canDelete.value = true;
             Object.assign(now, item);
@@ -188,10 +221,10 @@ const switchTemplate = async () => {
     await pLoad(t('rule.group.switch.ing'), async () => {
       try {
         await api.switchTemplate(now);
-        tList = await api.getTemplateList();
+        tList.value = await api.getTemplateList();
 
         // Sync now.selected from refreshed list so the toggle reflects actual state
-        const updated = tList.find((i: any) => i.id === now.id);
+        const updated = tList.value.find((i: any) => i.id === now.id);
         if (updated) Object.assign(now, updated);
 
         await api.waitRunning()
@@ -217,233 +250,91 @@ const switchTemplate = async () => {
 
 <template>
   <div class="group">
-    <el-space class="op">
-      <el-select v-model="now.id" @change="handleTemplateChange" class="template-select">
-        <el-option
-            v-for="item in tList"
-            :key="item.id"
-            :label="getTemplateTitle(t, item.title)"
-            :value="item.id"
-        />
-      </el-select>
-      <el-divider direction="vertical" border-style="dashed"/>
-      <button class="pill-btn" @click="saveTemplate">{{ t("save") }}</button>
-      <button class="pill-btn" @click="addVisible=true;addForm.content=''">{{ t("add") }}</button>
-      <button class="pill-btn pill-btn--danger" @click="deleteTemplate" v-if="canDelete">{{ t("delete") }}</button>
-      <el-divider direction="vertical" border-style="dashed"/>
-      <div class="pill-toggle">
-        <button
-            :class="['pill-toggle__btn', { 'is-active': !now.selected }]"
-            :disabled="!now.id"
-            type="button"
-            @click="if (now.selected) { now.selected = false; switchTemplate() }"
-        >{{ t("off") }}</button>
-        <button
-            :class="['pill-toggle__btn', { 'is-active': now.selected }]"
-            :disabled="!now.id"
-            type="button"
-            @click="if (!now.selected) { now.selected = true; switchTemplate() }"
-        >{{ t("on") }}</button>
-      </div>
-    </el-space>
+    <div class="group-bar">
+      <UiSelect :model-value="now.id"
+                :options="templateOptions"
+                class="group-select"
+                align="left"
+                :min-width="180"
+                :aria-label="t('rule.group.model')"
+                @change="(id: string) => id && handleTemplateChange(id)"/>
+      <span class="px-vdivider"></span>
+      <button type="button" class="px-btn px-btn--primary" @click="saveTemplate">{{ t("save") }}</button>
+      <button type="button" class="px-btn px-btn--input" @click="addVisible = true; addForm.content = ''">{{ t("add") }}</button>
+      <button v-if="canDelete" type="button" class="px-btn px-btn--input" @click="deleteTemplate">{{ t("delete") }}</button>
+      <UiPillTabs v-model="onOff"
+                  class="group-toggle"
+                  :options="[{value: false, label: t('off')}, {value: true, label: t('on')}]"
+                  :aria-label="t('rule.group.title')"/>
+    </div>
 
     <VAceEditor
         v-model:value="yamlContent"
         lang="yaml"
-        theme="monokai"
+        :theme="editorTheme"
         :options="editorOptions"
-        style="width: 100%; height: 100%"
         class="editor"
     />
   </div>
 
-
-  <el-dialog v-model="addVisible"
-             :title="t('add')"
-             width="520"
-             draggable
-             center
-  >
-    <el-form :model="addForm" label-position="top">
-      <el-form-item :label="t('rule.group.add.title')">
-        <el-input
-            :rows="3"
-            type="text"
-            autocapitalize="off"
-            autocomplete="off"
-            spellcheck="false"
-            :placeholder="t('rule.group.add.placeholder')"
-            v-model="addForm.content"
-        />
-      </el-form-item>
-    </el-form>
+  <UiModal v-model="addVisible" :title="t('rule.group.add.new')" :width="420">
+    <label class="px-field">
+      <span class="px-field__label">{{ t('rule.group.add.title') }}</span>
+      <input v-model="addForm.content"
+             class="px-input"
+             autocapitalize="off"
+             autocomplete="off"
+             spellcheck="false"
+             :placeholder="t('rule.group.add.placeholder')"
+             @keydown.enter.prevent="addTemplate">
+    </label>
     <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="addVisible = false">
-          {{ t('cancel') }}
-        </el-button>
-        <el-button
-            :loading="isNowAdd"
-            type="primary"
-            @click="addTemplate">
-          {{ t('confirm') }}
-        </el-button>
-      </div>
+      <button type="button" class="px-btn" @click="addVisible = false">{{ t('cancel') }}</button>
+      <button type="button" class="px-btn px-btn--primary" :disabled="isNowAdd" @click="addTemplate">{{ t('add') }}</button>
     </template>
-  </el-dialog>
-
+  </UiModal>
 </template>
 
 <style scoped>
 .group {
-  width: 100%;
-  margin-left: 0;
-  margin-top: 5px;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  gap: 10px;
+  padding: 0 28px 28px;
 }
 
-.op {
-  margin-top: 2px;
-}
-
-.template-select {
-  width: 150px;
-  flex-shrink: 0;
-}
-
-:deep(.el-select__wrapper) {
-  height: 38px;
-  border-radius: 999px;
-  background: var(--left-nav-btn-bg);
-  box-shadow: var(--left-nav-shadow);
-  border: none;
-  padding: 0 12px 0 16px;
-}
-
-:deep(.el-select__wrapper:hover) {
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-:deep(.el-select__placeholder),
-:deep(.el-select__selected-item) {
-  color: var(--text-color);
-}
-
-:deep(.el-select__suffix .el-icon) {
-  color: var(--text-color);
-  opacity: 0.6;
-}
-
-.pill-toggle {
-  display: inline-flex;
-  border-radius: 999px;
-  background-color: var(--left-nav-btn-bg);
-  box-shadow: var(--left-nav-shadow);
-  padding: 4px;
-  gap: 2px;
-}
-
-.pill-toggle:hover {
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-.pill-toggle__btn {
+.group-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  height: 32px;
-  width: auto;
-  padding: 0 14px;
-  font-size: 15px;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-color);
-  cursor: pointer;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-  white-space: nowrap;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-.pill-toggle__btn:hover {
-  background-color: var(--left-nav-btn-hover-bg);
+.group-select {
+  width: 200px;
 }
 
-.pill-toggle__btn.is-active {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
+.group-select :deep(.px-select--field) {
+  padding: 7px 10px 7px 12px;
+  font-weight: 600;
 }
 
-.pill-toggle__btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.pill-btn {
-  border: none;
-  border-radius: 999px;
-  background-color: var(--left-nav-btn-bg);
-  color: var(--text-color);
-  padding: 9px 18px;
-  font-size: 15px;
-  cursor: pointer;
-  box-shadow: var(--left-nav-shadow);
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.pill-btn:hover {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-.pill-btn--danger:hover {
-  background-color: #f56c6c;
+.group-toggle {
+  margin-left: auto;
 }
 
 .editor {
-  margin-top: 25px;
   flex: 1;
-  min-height: 200px;
+  min-height: 280px;
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--border);
 }
 
 :deep(.ace_editor) {
-  border: 2px solid var(--text-color);
-  border-radius: 20px;
-  font: 15px "Twemoji", "Monaco", "Menlo", "Ubuntu Mono", "Consolas",
-  "Source Code Pro", "source-code-pro", monospace;
-}
-
-:deep(.ace_gutter) {
-  border-top-left-radius: 20px;
-  border-bottom-left-radius: 20px;
-}
-
-:deep(.ace_search.right) {
-  width: 420px;
-  margin-left: 10px;
-  margin-right: -4px;
-  padding-left: 8px;
-  margin-top: 0;
-  border: none;
-  float: right;
-  color: var(--text-color);
-}
-
-:deep(.ace_search_form, .ace_replace_form) {
-  margin: 0;
-}
-
-:deep(.ace_search_form.ace_nomatch) {
-  width: 374px;
-}
-
-:deep(.ace_button, .ace_searchbtn_close) {
-  color: #cccccc;
-}
-
-:deep(.ace_button:hover) {
-  color: black;
+  font-family: 'SF Mono', Consolas, Menlo, monospace;
+  line-height: 1.6;
 }
 </style>
