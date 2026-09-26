@@ -50,6 +50,10 @@ export function installWailsShim(): void {
         return;
     }
 
+    // Marks the Wails shell for code that needs shell-specific behaviour
+    // (e.g. util/theme.ts routing remote backgrounds through the shell).
+    w.pxIsWails = true;
+
     // --- Synchronous OS helpers (no runtime needed) ---
     w.pxOs = (): string => {
         const ua = navigator.userAgent || '';

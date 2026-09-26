@@ -54,7 +54,7 @@
 
 <script setup lang="ts">
 import {useMenuStore} from "@/store/menuStore";
-import {preloadBackgroundImage, analyzeImage, type ImageTheme} from "@/util/theme";
+import {preloadBackgroundImage, analyzeImage, SHELL_IMAGE_PROXY, type ImageTheme} from "@/util/theme";
 import {imageTheme, useAppTheme} from "@/composables/useAppTheme";
 import IconDownload from "~icons/tabler/download";
 import {getCachedBg, setCachedBg, clearCachedBg} from "@/util/bgCache";
@@ -184,7 +184,8 @@ const changeBg = (bg: string, theme: ImageTheme | null) => {
 
 function isExternalBg(bg: string): boolean {
   const url = bg.match(/url\(['"]?(.*?)['"]?\)/)?.[1] ?? '';
-  return url.startsWith('http://') || url.startsWith('https://');
+  // A remote image re-served by the Wails shell proxy is still a remote one.
+  return url.startsWith('http://') || url.startsWith('https://') || url.startsWith(SHELL_IMAGE_PROXY + '?');
 }
 
 // Capture the already-loaded img element via canvas — no second network request,

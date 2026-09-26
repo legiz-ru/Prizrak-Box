@@ -23,6 +23,8 @@ declare global {
 
     interface Window {
         pxOs: () => string;
+        /** Set by src/wails-shim.ts when running in the Wails shell. */
+        pxIsWails?: boolean;
         pxDeepLink?: {
             onImportProfile: (callback: (data: { rawUrl?: string; url?: string; name?: string } | string) => void) => void;
             notifyReady?: () => void | Promise<void>;
