@@ -111,9 +111,17 @@ export function Home() {
  * KillPx terminates the locally spawned px process (if any). px started via
  * the service is not killed here; the caller handles that through the service.
  * 
- * On Unix it first sends SIGINT so px can run its shutdown (which disables the
- * system proxy), then force-kills after a short grace period. On Windows it
- * kills directly.
+ * px undoes its OS-level state — the system proxy above all — only inside its
+ * own exit path, so it is always asked to shut itself down first and killed
+ * only if it does not. Two mechanisms feed that exit path: the /prizrak/exit
+ * endpoint and, on Unix, SIGINT.
+ * 
+ * Windows previously had neither: Process.Kill is TerminateProcess, which
+ * delivers no signal, and px's /pxAlive watchdog (its other cleanup trigger)
+ * never noticed the shell was gone because the kill was instant. Closing the
+ * app therefore left ProxyEnable=1 in the registry pointing at a dead port —
+ * invisible while px happened to reclaim the same port next launch, and broken
+ * as soon as another client rewrote those keys in between.
  * @returns {$CancellablePromise<void>}
  */
 export function KillPx() {
@@ -143,6 +151,16 @@ export function OpenConfigDir() {
  */
 export function PxPath() {
     return $Call.ByID(3778299366);
+}
+
+/**
+ * RequestExit asks the running px — whoever spawned it — to shut itself down
+ * cleanly, without touching the local process handle. Used where px is owned by
+ * the elevated service and can only be reached over its control API.
+ * @returns {$CancellablePromise<void>}
+ */
+export function RequestExit() {
+    return $Call.ByID(519875850);
 }
 
 /**
@@ -185,7 +203,10 @@ export function Start() {
 }
 
 /**
- * Stop terminates px and the callback server (Wails lifecycle hook).
+ * Stop terminates px and the callback server, waiting for both to actually go
+ * away. This is the "full" shutdown used by tests and anywhere else that runs
+ * off the platform's main UI thread; the real app-shutdown hook below does
+ * NOT use this — see ServiceShutdown.
  * @returns {$CancellablePromise<void>}
  */
 export function Stop() {

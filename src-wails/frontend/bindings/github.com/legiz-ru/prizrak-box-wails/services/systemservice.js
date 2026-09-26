@@ -47,7 +47,14 @@ export function SetAutostart(enabled) {
 }
 
 /**
- * Username returns the current user's username (best effort).
+ * Username returns the current user's username (best effort), matching what
+ * Electron's preload reports via os.userInfo().username.
+ * 
+ * The bare account name is what callers need: px looks the user's SID up with
+ * `Win32_UserAccount WHERE Name='<username>'` to reach their registry hive
+ * (pkg/sys/proxy.getUserSID), and that query does not match a domain-qualified
+ * name. user.Current() returns `DOMAIN\user` on Windows, so the prefix is
+ * stripped here rather than at each call site.
  * @returns {$CancellablePromise<string>}
  */
 export function Username() {
