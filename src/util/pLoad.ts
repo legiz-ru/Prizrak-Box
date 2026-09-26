@@ -1,4 +1,4 @@
-import {ElLoading, ElMessage} from "element-plus";
+import {showLoading, toast} from "@/components/ui/services";
 
 function translateErrorSegment(key: string, fallback: string): string {
     const translator = (window as any)?.pxTranslate;
@@ -43,13 +43,12 @@ function normalizeErrorMessage(message: unknown): string {
 }
 
 export async function pLoad(tip: any, callback: any) {
-    const loading = ElLoading.service({
-        lock: true,
-        text: tip,
-        background: "rgba(0, 0, 0, 0.2)",
-    });
-    await callback();
-    loading.close();
+    const close = showLoading(tip);
+    try {
+        await callback();
+    } finally {
+        close();
+    }
 }
 
 
@@ -58,32 +57,22 @@ export async function copy(textToCopy: any, t: any) {
         await navigator.clipboard.writeText(textToCopy);
         pSuccess(t("copy.success"));
     } catch (error) {
-        error(t("copy.fail"));
+        pError(t("copy.fail"));
     }
 }
 
 export function pSuccess(msg: any) {
-    ElMessage({
-        message: msg,
-        type: "success",
-        grouping: true
-    });
+    toast("success", msg);
+}
+
+export function pInfo(msg: any) {
+    toast("info", msg);
 }
 
 export function pError(msg: any) {
-    ElMessage({
-        message: normalizeErrorMessage(msg),
-        type: "error",
-        duration: 5000,
-        grouping: true
-    });
+    toast("error", normalizeErrorMessage(msg));
 }
 
 export function pWarning(msg: any) {
-    ElMessage({
-        message: msg,
-        type: "warning",
-        duration: 5000,
-        grouping: true
-    });
+    toast("warning", msg);
 }

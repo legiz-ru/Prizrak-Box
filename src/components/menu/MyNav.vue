@@ -5,61 +5,35 @@ import {useRouter} from "vue-router";
 
 const menuStore = useMenuStore()
 const router = useRouter()
+
+const items = [
+  {key: 'Home', label: 'nav.home'},
+  {key: 'Setting', label: 'nav.setting'},
+  {key: 'Proxies', label: 'nav.proxies'},
+  {key: 'Profiles', label: 'nav.profiles'},
+]
 </script>
 
 <template>
-  <div class="nav">
-    <div
-        :class="menuStore.menu == 'Home' ? 'nav-btn nav-btn-select' : 'nav-btn'"
-        @click="changeMenu('Home', router)"
-    >
-      <el-icon>
-        <icon-mdi-home v-if="menuStore.menu == 'Home'"/>
-        <icon-mdi-home-outline v-else/>
-      </el-icon>
-      <span class="nav-label">{{ $t('nav.home') }}</span>
-    </div>
-
-    <div
-        :class="menuStore.menu == 'Setting' ? 'nav-btn nav-btn-select' : 'nav-btn'"
-        @click="changeMenu('Setting', router)"
-    >
-      <el-icon>
-        <icon-mdi-cog v-if="menuStore.menu == 'Setting'"/>
-        <icon-mdi-cog-outline v-else/>
-      </el-icon>
-      <span class="nav-label">{{ $t('nav.setting') }}</span>
-    </div>
-
-    <div
-        :class="menuStore.menu == 'Proxies' ? 'nav-btn nav-btn-select' : 'nav-btn'"
-        @click="changeMenu('Proxies', router)"
-    >
-      <el-icon>
-        <icon-mdi-rocket-launch v-if="menuStore.menu == 'Proxies'"/>
-        <icon-mdi-rocket-launch-outline v-else/>
-      </el-icon>
-      <span class="nav-label">{{ $t('nav.proxies') }}</span>
-    </div>
-
-    <div
-        :class="menuStore.menu == 'Profiles' ? 'nav-btn nav-btn-select' : 'nav-btn'"
-        @click="changeMenu('Profiles', router)"
-    >
-      <el-icon>
-        <icon-mdi-account-cog v-if="menuStore.menu == 'Profiles'"/>
-        <icon-mdi-account-cog-outline v-else/>
-      </el-icon>
-      <span class="nav-label">{{ $t('nav.profiles') }}</span>
-    </div>
-  </div>
+  <nav class="nav no-drag" :aria-label="$t('ui.nav-label')">
+    <button v-for="item in items"
+            :key="item.key"
+            type="button"
+            class="nav-btn"
+            :class="{ 'is-active': menuStore.menu == item.key }"
+            :aria-current="menuStore.menu == item.key ? 'page' : undefined"
+            @click="changeMenu(item.key, router)">
+      <icon-tabler-home v-if="item.key === 'Home'" width="18" height="18"/>
+      <icon-tabler-settings v-else-if="item.key === 'Setting'" width="18" height="18"/>
+      <icon-tabler-rocket v-else-if="item.key === 'Proxies'" width="18" height="18"/>
+      <icon-tabler-user-cog v-else width="18" height="18"/>
+      <span class="ellipsis">{{ $t(item.label) }}</span>
+    </button>
+  </nav>
 </template>
 
 <style scoped>
 .nav {
-  margin-top: 20px;
-  margin-left: 22px;
-  width: 185px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -68,29 +42,32 @@ const router = useRouter()
 .nav-btn {
   display: flex;
   align-items: center;
+  gap: 12px;
+  width: 100%;
   padding: 10px 14px;
+  border: none;
   border-radius: 999px;
   cursor: pointer;
-  background-color: var(--left-nav-btn-bg);
-  box-shadow: var(--left-nav-shadow);
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-  font-size: 18px;
-  color: var(--text-color);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  color: var(--text);
+  background: var(--side-bg);
+  backdrop-filter: var(--side-blur);
+  transition: background .15s;
 }
 
 .nav-btn:hover {
-  background-color: var(--left-nav-btn-hover-bg);
-  box-shadow: var(--left-nav-hover-shadow);
+  background: var(--hover-bg);
 }
 
-.nav-btn-select,
-.nav-btn-select:hover {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
+.nav-btn svg {
+  flex-shrink: 0;
 }
 
-.nav-label {
-  font-size: 14px;
-  margin-left: 12px;
+.nav-btn.is-active,
+.nav-btn.is-active:hover {
+  background: var(--accent);
+  color: var(--on-accent);
 }
 </style>

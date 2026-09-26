@@ -1,377 +1,214 @@
-import ColorThief from "colorthief";
-import chroma from "chroma-js";
+// Background image analysis and accent colour.
+//
+// Accent (accepted product change vs. dev_21's ColorThief dominant colour): take
+// the most frequent *saturated* colour of the image — 5-5-5 bins over a 64×64
+// downscale, skipping pixels with max-min < 22 or max < 28, weighting each bin
+// by count * (0.35 + (max-min)/255). If there is none, or it covers < 1 % of
+// the pixels, fall back to the most frequent colour overall. The hue is then
+// shifted and saturation/lightness tuned exactly like dev_21's
+// adjustSelectedColor, and the lightness is walked until the contrast with the
+// current text colour reaches 4.5 (see accentFor).
+//
+// Light/dark for the "Auto" mode keeps dev_21's rule (shouldUseWhiteText): the
+// average perceived luminance of the image below 0.55 means white text.
 
-const colorThief = new ColorThief();
+export interface ImageTheme {
+    /** Accent in HSL, before the per-mode contrast pass. */
+    h: number;
+    s: number;
+    l: number;
+    /** The image is dark: white text reads better on it. */
+    white: boolean;
+}
 
-// ======================== 常量定义 ======================== //
-const RGB_MAX_VALUE = 255;
-const DEFAULT_COLOR_COUNT = 8;
-const WHITE_TEXT_LUMINANCE_THRESHOLD = 0.55; // 判断是否使用白色文字的亮度阈值
+type RGB = [number, number, number];
 
-// 对比度常量
-const MIN_CONTRAST = 4.5; // 文本与背景的最小对比度
-const MAX_CONTRAST_ATTEMPTS = 5; // 调整对比度的最大尝试次数
-const MIN_BASE_CONTRAST = 2.5; // 主色调与基础色的最小对比度
-const MIN_SUBTITLE_CONTRAST_TEXT = 3.2; // 副标题与文本的最小对比度
-const MIN_SUBTITLE_CONTRAST_BG = 4.0; // 副标题与背景的最小对比度
-const MAX_SUBTITLE_CONTRAST_ATTEMPTS = 6; // 调整副标题对比度的最大尝试次数
-
-// 图片加载常量
-const IMAGE_LOAD_TIMEOUT = 15000; // 15秒超时
+const IMAGE_LOAD_TIMEOUT = 15000;
 const DEFAULT_BACKGROUND_IMAGE = "url('/images/default.jpg')";
+const WHITE_TEXT_LUMINANCE_THRESHOLD = 0.55;
+const MIN_CONTRAST = 4.5;
 
-// 色相偏移常量
-const HUE_SHIFT_200_250 = 10;
-const HUE_SHIFT_250_320 = 20;
-const HUE_SHIFT_DEFAULT = 25;
-const HUE_MAX = 360;
+export function hslToRgb(h: number, s: number, l: number): RGB {
+    const k = (n: number) => (n + h / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1));
+    return [f(0) * 255, f(8) * 255, f(4) * 255];
+}
 
-// 饱和度/亮度调整常量 (selectedColor)
-const SATURATION_ADD = 0.22;
-const SATURATION_MAX = 0.88;
-const LUMINANCE_MIN = 0.48;
-const LUMINANCE_MAX = 0.68;
-const BRIGHTEN_ADD = 0.18;
-const SATURATE_ADD = 0.28;
+export function rgbToHsl(r: number, g: number, b: number): RGB {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const l = (max + min) / 2, d = max - min;
+    if (!d) return [0, 0, l];
+    const s = d / (1 - Math.abs(2 * l - 1));
+    const hh = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return [(hh * 60 + 360) % 360, s, l];
+}
 
-// 黄色调优化常量
-const YELLOW_HUE_MIN = 40;
-const YELLOW_HUE_MAX = 65;
-const YELLOW_LUMINANCE_THRESHOLD = 0.7;
-const YELLOW_DARKEN_AMOUNT = 0.5;
-const YELLOW_HUE_SHIFT_AMOUNT = 20;
-
-// 混合颜色常量 (backgroundBlendColor)
-const MIX_BLACK_WHITE_RATIO_BLEND = 0.28;
-const LUMINANCE_MULTIPLIER_BLEND = 1.08;
-const DESATURATE_AMOUNT_BLEND = 0.25;
-const ALPHA_WHITE_TEXT_BLEND = 0.25;
-const ALPHA_BLACK_TEXT_BLEND = 0.12;
-
-// 混合颜色常量 (backgroundRightColor)
-const MIX_BASE_SELECTED_RATIO_RIGHT = 0.3;
-const SATURATION_MULTIPLIER_RIGHT = 1.2;
-const LUMINANCE_MULTIPLIER_RIGHT = 1.1;
-const ALPHA_WHITE_TEXT_RIGHT = 0.2;
-const ALPHA_BLACK_TEXT_RIGHT = 0.4;
-
-// 副标题颜色常量
-const SUBTITLE_BRIGHTEN_DARKEN_AMOUNT = 0.3;
-const SUBTITLE_SATURATE_AMOUNT = 0.2;
-const SUBTITLE_ALPHA = 0.95;
-const SUBTITLE_HUE_SHIFT_WHITE = 10;
-const SUBTITLE_HUE_SHIFT_BLACK = 15;
-
-// body-blur-color 常量
-const BODY_BLUR_BLACK_ALPHA = 0.22;
-const BODY_BLUR_WHITE_ALPHA = 0.15;
-const BODY_BLUR_MIX_RATIO = 0.3;
-const BODY_BLUR_LUMINANCE_MULTIPLIER_WHITE = 0.85;
-const BODY_BLUR_LUMINANCE_MULTIPLIER_BLACK = 1.15;
-
-
-// ======================== 工具函数 ======================== //
-
-/**
- * 计算颜色的感知亮度。
- * @param rgb 包含红、绿、蓝分量的数组。
- * @returns 感知亮度值（0-1）。
- */
-const getPerceivedLuminance = (rgb: number[]): number => {
-    // 根据 ITU-R BT.709 标准计算感知亮度
-    return (
-        0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]
-    ) / RGB_MAX_VALUE;
-};
-
-/**
- * 提取图片主色调调色板并计算平均亮度。
- * @param img HTMLImageElement 对象。
- * @param colorCount 要提取的颜色数量。
- * @returns 平均亮度值。
- */
-const getAverageLuminance = (img: HTMLImageElement, colorCount: number = DEFAULT_COLOR_COUNT): number => {
-    const palette = colorThief.getPalette(img, colorCount);
-    const totalLuminance = palette.reduce((sum, color) => sum + getPerceivedLuminance(color), 0);
-    return totalLuminance / palette.length;
-};
-
-/**
- * 判断是否应该使用白色文本以获得更好的可读性。
- * @param img HTMLImageElement 对象。
- * @returns 如果应该使用白色文本，则为 true；否则为 false。
- */
-const shouldUseWhiteText = (img: HTMLImageElement): boolean =>
-    getAverageLuminance(img) < WHITE_TEXT_LUMINANCE_THRESHOLD;
-
-/**
- * 设置CSS变量。
- * @param vars 包含CSS变量名和值的对象。
- */
-const setCSSVariables = (vars: Record<string, string>) => {
-    const root = document.documentElement;
-    Object.entries(vars).forEach(([key, value]) => {
-        root.style.setProperty(`--${key}`, value);
-    });
-};
-
-/**
- * 计算两种RGB颜色之间的对比度。
- * @param rgb1 第一个颜色的RGB数组。
- * @param rgb2 第二个颜色的RGB数组。
- * @returns 对比度值。
- */
-const getContrast = (rgb1: number[], rgb2: number[]): number => {
-    const luminance = (rgb: number[]) => {
-        const a = rgb.map((v) => {
-            v /= RGB_MAX_VALUE;
-            return v <= 0.03928
-                ? v / 12.92
-                : Math.pow((v + 0.055) / 1.055, 2.4);
+export function contrast(a: RGB | number[], b: RGB | number[]): number {
+    const lum = (c: number[]) => {
+        const v = c.map((x) => {
+            x /= 255;
+            return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
         });
-        return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+        return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
     };
-    const L1 = luminance(rgb1);
-    const L2 = luminance(rgb2);
-    return (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
-};
+    const l1 = lum(a), l2 = lum(b);
+    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+}
 
-/**
- * 根据色相值计算智能偏移后的色相。
- * @param h 原始色相值。
- * @returns 偏移后的色相值。
- */
-const calculateHueShift = (h: number): number => {
-    if (h >= 200 && h <= 250) {
-        return h - HUE_SHIFT_200_250;
-    } else if (h > 250 && h < 320) {
-        return h - HUE_SHIFT_250_320;
-    } else {
-        return (h + HUE_SHIFT_DEFAULT) % HUE_MAX;
+export function parseColor(color: string): RGB | null {
+    const hex = color.trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+    if (hex) {
+        const v = hex[1].length === 3 ? hex[1].split('').map(c => c + c).join('') : hex[1];
+        return [0, 2, 4].map(i => parseInt(v.slice(i, i + 2), 16)) as RGB;
     }
-};
+    const rgb = color.match(/rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/i);
+    return rgb ? [Number(rgb[1]), Number(rgb[2]), Number(rgb[3])] : null;
+}
 
 /**
- * 调整和优化主选颜色。
- * @param baseColor 基础颜色（从图片提取）。
- * @param h 基础色的色相。
- * @param s 基础色的饱和度。
- * @param l 基础色的亮度。
- * @returns 调整后的主选颜色。
+ * Samples the image and returns the accent and light/dark verdict, or null when
+ * the pixels cannot be read (cross-origin image without CORS: tainted canvas).
  */
-const adjustSelectedColor = (
-    baseColor: chroma.Color,
-    h: number,
-    s: number,
-    l: number
-): chroma.Color => {
-    // 动态调整饱和度和亮度，考虑背景亮度
-    const dynamicSaturation = Math.min(s + SATURATION_ADD + (l < 0.5 ? 0.05 : -0.05), SATURATION_MAX); // 如果背景亮，饱和度稍微低一点，反之高一点
-    const dynamicLuminance = Math.min(Math.max(l, LUMINANCE_MIN), LUMINANCE_MAX);
-
-    let selectedColor = chroma.hsl(
-        calculateHueShift(h),
-        dynamicSaturation,
-        dynamicLuminance
-    )
-        .saturate(SATURATE_ADD)
-        .brighten(BRIGHTEN_ADD)
-        .alpha(0.88);
-
-    // 避免偏亮黄色
-    if (h > YELLOW_HUE_MIN && h < YELLOW_HUE_MAX && l > YELLOW_LUMINANCE_THRESHOLD) {
-        selectedColor = selectedColor.darken(YELLOW_DARKEN_AMOUNT).set("hsl.h", (h + YELLOW_HUE_SHIFT_AMOUNT) % HUE_MAX);
+export function analyzeImage(img: HTMLImageElement): ImageTheme | null {
+    const N = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = N;
+    const ctx = canvas.getContext('2d', {willReadFrequently: true});
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, N, N);
+    let data: Uint8ClampedArray;
+    try {
+        data = ctx.getImageData(0, 0, N, N).data;
+    } catch {
+        return null;
     }
-    return selectedColor;
-};
 
-/**
- * 确保给定颜色与文本颜色之间有足够的对比度。
- * @param color 要调整的颜色。
- * @param textRGB 文本的RGB颜色数组。
- * @param useWhiteText 是否使用白色文本。
- * @returns 调整后的颜色。
- */
-const ensureContrastWithText = (
-    color: chroma.Color,
-    textRGB: number[],
-    useWhiteText: boolean
-): chroma.Color => {
-    let adjustedColor = color;
-    let attempts = 0;
-    while (getContrast(adjustedColor.rgb(), textRGB) < MIN_CONTRAST && attempts < MAX_CONTRAST_ATTEMPTS) {
-        adjustedColor = useWhiteText
-            ? adjustedColor.darken(0.2)
-            : adjustedColor.brighten(0.2);
-        attempts++;
+    const bins = new Map<number, number[]>();
+    let lumSum = 0, n = 0;
+    for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] < 125) continue;
+        const r = data[i], g = data[i + 1], b = data[i + 2];
+        lumSum += (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        n++;
+        if (r > 250 && g > 250 && b > 250) continue;
+        const key = (r >> 3) << 10 | (g >> 3) << 5 | (b >> 3);
+        const bin = bins.get(key) ?? [0, 0, 0, 0];
+        bin[0] += r;
+        bin[1] += g;
+        bin[2] += b;
+        bin[3]++;
+        bins.set(key, bin);
     }
-    return adjustedColor;
-};
+    if (!n) return null;
 
-/**
- * 调整副标题颜色以确保可读性和和谐。
- * @param selectedColor 主选颜色。
- * @param useWhiteText 是否使用白色文本。
- * @param h 基础色的色相。
- * @param textRGB 文本的RGB颜色数组。
- * @param baseColor 基础颜色。
- * @returns 调整后的副标题颜色。
- */
-const adjustSubtitleColor = (
-    selectedColor: chroma.Color,
-    useWhiteText: boolean,
-    h: number,
-    textRGB: number[],
-    baseColor: chroma.Color
-): chroma.Color => {
-    let subtitleBase = useWhiteText
-        ? selectedColor.brighten(0.9).desaturate(0.4).set("hsl.h", (h + SUBTITLE_HUE_SHIFT_WHITE) % HUE_MAX)
-        : selectedColor.darken(0.5).desaturate(0.3).set("hsl.h", (h + SUBTITLE_HUE_SHIFT_BLACK) % HUE_MAX);
-
-    let attempt = 0;
-    while (attempt < MAX_SUBTITLE_CONTRAST_ATTEMPTS) {
-        const contrastText = getContrast(subtitleBase.rgb(), textRGB);
-        const contrastBg = getContrast(subtitleBase.rgb(), baseColor.rgb());
-        if (contrastText >= MIN_SUBTITLE_CONTRAST_TEXT && contrastBg >= MIN_SUBTITLE_CONTRAST_BG) {
-            break;
+    let best: number[] | null = null, bestScore = 0;
+    let dominant: number[] | null = null;
+    for (const bin of bins.values()) {
+        if (!dominant || bin[3] > dominant[3]) dominant = bin;
+        const r = bin[0] / bin[3], g = bin[1] / bin[3], b = bin[2] / bin[3];
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        if (max - min < 22 || max < 28) continue;
+        const score = bin[3] * (0.35 + (max - min) / 255);
+        if (score > bestScore) {
+            bestScore = score;
+            best = bin;
         }
-        subtitleBase = useWhiteText
-            ? subtitleBase.brighten(SUBTITLE_BRIGHTEN_DARKEN_AMOUNT).saturate(SUBTITLE_SATURATE_AMOUNT)
-            : subtitleBase.darken(SUBTITLE_BRIGHTEN_DARKEN_AMOUNT).saturate(SUBTITLE_SATURATE_AMOUNT);
-        attempt++;
     }
-    return subtitleBase;
-};
+    if (!best || best[3] < n * 0.01) best = dominant;
+    if (!best) return null;
 
-// ======================== 主题应用主逻辑 ======================== //
+    const base: RGB = [best[0] / best[3], best[1] / best[3], best[2] / best[3]];
+    const white = lumSum / n < WHITE_TEXT_LUMINANCE_THRESHOLD;
+    const [h0, s0, l0] = rgbToHsl(...base);
+    // dev_21 calculateHueShift / adjustSelectedColor
+    let h = h0 >= 200 && h0 <= 250 ? h0 - 10 : h0 > 250 && h0 < 320 ? h0 - 20 : (h0 + 25) % 360;
+    const s = Math.min(1, Math.min(s0 + 0.22 + (l0 < 0.5 ? 0.05 : -0.05), 0.88) + 0.28);
+    let l = Math.min(0.9, Math.min(Math.max(l0, 0.48), 0.68) + 0.03);
+    if (h0 > 40 && h0 < 65 && l0 > 0.7) {
+        l -= 0.09;
+        h = (h0 + 20) % 360;
+    }
+    const text: RGB = white ? [255, 255, 255] : [0, 0, 0];
+    for (let i = 0; i < 5 && contrast(hslToRgb(h, s, l), text) < MIN_CONTRAST; i++) {
+        l += white ? -0.035 : 0.035;
+    }
+    if (contrast(hslToRgb(h, s, l), base) < 2.5) l = Math.min(0.9, l + 0.08);
+    return {h: Math.round(h), s, l, white};
+}
 
 /**
- * 根据图片动态改变应用主题。
- * @param img HTMLImageElement 对象。
- * @returns 是否使用白色文本。
+ * The accent for the given mode: lightness walked until the text drawn on the
+ * accent (white in dark mode, black in light mode) has contrast >= 4.5.
  */
-export const changeTheme = (img: HTMLImageElement): boolean => {
-    const baseColor = chroma(colorThief.getColor(img));
-    const [h, s, l] = baseColor.hsl();
-
-    const useWhiteText = shouldUseWhiteText(img);
-    const textRGB = useWhiteText ? [RGB_MAX_VALUE, RGB_MAX_VALUE, RGB_MAX_VALUE] : [0, 0, 0];
-    const textColor = useWhiteText ? "#fff" : "#000";
-
-    let selectedColor = adjustSelectedColor(baseColor, h, s, l);
-    selectedColor = ensureContrastWithText(selectedColor, textRGB, useWhiteText);
-
-    // 再次检查 selectedColor 和 baseColor 的对比度
-    const contrastWithBase = getContrast(selectedColor.rgb(), baseColor.rgb());
-    if (contrastWithBase < MIN_BASE_CONTRAST) {
-        selectedColor = selectedColor.brighten(0.5);
+export function accentFor(theme: ImageTheme, dark: boolean): string {
+    const text: RGB = dark ? [255, 255, 255] : [0, 0, 0];
+    let l = theme.l;
+    let rgb = hslToRgb(theme.h, theme.s, l);
+    for (let i = 0; i < 40 && contrast(rgb, text) < MIN_CONTRAST; i++) {
+        l = Math.max(0.05, Math.min(0.95, l + (dark ? -0.02 : 0.02)));
+        rgb = hslToRgb(theme.h, theme.s, l);
     }
+    return `rgb(${rgb.map(Math.round).join(',')})`;
+}
 
-    // ========= 🎨 背景与辅助色 =========
-    const backgroundBlendColor = chroma
-        .mix(useWhiteText ? "#000" : "#fff", selectedColor, MIX_BLACK_WHITE_RATIO_BLEND)
-        .set("hsl.l", `*${LUMINANCE_MULTIPLIER_BLEND}`)
-        .desaturate(DESATURATE_AMOUNT_BLEND)
-        .alpha(useWhiteText ? ALPHA_WHITE_TEXT_BLEND : ALPHA_BLACK_TEXT_BLEND)
-        .css();
+/** Black or white, whichever reads better on the colour. */
+export function onColor(color: string): string {
+    const rgb = parseColor(color) ?? [91, 103, 232];
+    return contrast(rgb, [255, 255, 255]) >= contrast(rgb, [0, 0, 0]) ? '#fff' : '#000';
+}
 
-    const backgroundRightColor = chroma
-        .mix(baseColor, selectedColor, MIX_BASE_SELECTED_RATIO_RIGHT)
-        .set("hsl.s", `*${SATURATION_MULTIPLIER_RIGHT}`)
-        .set("hsl.l", `*${LUMINANCE_MULTIPLIER_RIGHT}`)
-        .alpha(useWhiteText ? ALPHA_WHITE_TEXT_RIGHT : ALPHA_BLACK_TEXT_RIGHT)
-        .css();
-
-    // ========= 副标题颜色更克制 =========
-    const subtitleBase = adjustSubtitleColor(selectedColor, useWhiteText, h, textRGB, baseColor);
-    const subtitleColor = subtitleBase.alpha(SUBTITLE_ALPHA).css();
-
-    // -------- body-blur-color 更柔 --------
-    const bodyBlurColor = chroma(useWhiteText ? "black" : "white")
-        .alpha(useWhiteText ? BODY_BLUR_BLACK_ALPHA : BODY_BLUR_WHITE_ALPHA)
-        .mix(baseColor, BODY_BLUR_MIX_RATIO)
-        .desaturate(DESATURATE_AMOUNT_BLEND)
-        .set("hsl.l", useWhiteText ? `*${BODY_BLUR_LUMINANCE_MULTIPLIER_WHITE}` : `*${BODY_BLUR_LUMINANCE_MULTIPLIER_BLACK}`)
-        .css();
-
-    // ========= ✅ 应用主题色 =========
-    setCSSVariables({
-        "text-color": textColor,
-        "top-hr-color": subtitleColor,
-        "left-item-selected-bg": selectedColor.css(),
-        "blend-color": backgroundBlendColor,
-        "right-bg-color": backgroundRightColor,
-        "body-blur-color": bodyBlurColor,
-    });
-
-    return useWhiteText;
-};
-
-// ======================== 背景处理工具 ======================== //
-
-/**
- * 从 CSS style 字符串中提取图片 URL。
- * @param style 包含 URL 的 CSS 字符串。
- * @returns 提取到的图片 URL，如果没有找到则为 null。
- */
 const extractImageUrl = (style: string): string | null => {
     const match = style.match(/^url\(["']?(.*?)["']?\)$/);
     return match?.[1] || null;
 };
 
-let isBgLoading = false; // 标记背景是否正在加载中，避免重复请求
+let isBgLoading = false;
 
 /**
- * 预加载背景图片并应用主题。
- * @param bg 背景图片 URL 或 CSS 渐变字符串。
- * @param cb 回调函数，在图片加载完成并应用主题后调用。
+ * Loads a background (CSS `url(...)` value) and analyses it. Falls back to the
+ * default image on error/timeout. A cross-origin image without CORS headers is
+ * still shown, just without analysis (theme = null).
  */
 export function preloadBackgroundImage(
     bg: string,
-    cb: (bg: string, useWhite: boolean, img?: HTMLImageElement) => void
+    cb: (bg: string, theme: ImageTheme | null, img?: HTMLImageElement) => void
 ): void {
     if (isBgLoading) {
         console.warn("Background is loading, ignore new request:", bg);
         return;
     }
 
-    // 如果 bg 不是一个图片 URL (例如是渐变色)，则直接回调
     if (!bg.startsWith("url(")) {
-        cb(bg, false); // 假设非图片背景默认不使用白色文本
+        cb(bg, null);
         return;
     }
 
     const imgUrl = extractImageUrl(bg);
     if (!imgUrl) {
-        // 如果无法解析 URL，回退到默认背景
         return preloadBackgroundImage(DEFAULT_BACKGROUND_IMAGE, cb);
     }
 
-    isBgLoading = true; // 设置加载中标记
-
-    let isResolved = false; // 标记是否已处理加载结果
-    // 标记是否已经尝试过不带 crossOrigin 的二次加载（避免无限重试）。
+    isBgLoading = true;
+    let isResolved = false;
     let triedWithoutCors = false;
 
     const finish = (img: HTMLImageElement) => {
-        if (isResolved) return; // 避免重复处理
+        if (isResolved) return;
         isResolved = true;
         isBgLoading = false;
-        // 主题分析依赖 canvas 像素读取（colorthief）。当图片来自跨域且未启用
-        // CORS 时，canvas 会被污染，getImageData 抛出 SecurityError。
-        // Electron 通过 webSecurity:false 规避；Wails(WKWebView) 无法关闭，
-        // 因此这里必须容错：即便配色分析失败，也要照常应用背景图片。
-        let useWhite = false;
+        let theme: ImageTheme | null = null;
         try {
-            useWhite = changeTheme(img);
+            theme = analyzeImage(img);
         } catch (e) {
             console.warn("Theme color analysis failed (tainted canvas?); applying background without recolor:", e);
         }
-        cb(bg, useWhite, img); // 图片加载成功，应用主题（或仅应用背景）
+        cb(bg, theme, img);
     };
 
-    // 加载入口：先尝试带 crossOrigin（允许配色分析与缓存），失败则降级为
-    // 不带 crossOrigin 的纯展示加载，最后才回退到默认背景。
     const load = (withCors: boolean) => {
         const img = new Image();
         if (withCors) img.crossOrigin = "anonymous";
@@ -385,8 +222,6 @@ export function preloadBackgroundImage(
         img.onerror = () => {
             if (isResolved) return;
             if (withCors && !triedWithoutCors) {
-                // 跨域且服务器未返回 CORS 头：重试一次纯展示加载，
-                // 这样动漫等网络图片至少能正常显示（与 Electron 行为一致）。
                 triedWithoutCors = true;
                 load(false);
                 return;
@@ -395,7 +230,7 @@ export function preloadBackgroundImage(
             isResolved = true;
             console.error(`Failed to load background image: ${imgUrl}`);
             isBgLoading = false;
-            preloadBackgroundImage(DEFAULT_BACKGROUND_IMAGE, cb); // 图片加载失败，回退到默认背景
+            preloadBackgroundImage(DEFAULT_BACKGROUND_IMAGE, cb);
         };
 
         img.src = imgUrl;
@@ -406,11 +241,9 @@ export function preloadBackgroundImage(
             console.error(`Background image load timed out: ${imgUrl}`);
             isResolved = true;
             isBgLoading = false;
-            preloadBackgroundImage(DEFAULT_BACKGROUND_IMAGE, cb); // 超时回退到默认背景
+            preloadBackgroundImage(DEFAULT_BACKGROUND_IMAGE, cb);
         }
     }, IMAGE_LOAD_TIMEOUT);
 
-    // 本地/同源图片（如内置 /images/*、data: URL、file:）天然可读，
-    // 带 crossOrigin 不会有副作用；网络图片则按上面的两段式降级处理。
     load(true);
 }

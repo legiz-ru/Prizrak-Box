@@ -648,6 +648,9 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 	// 更新间隔
 	if val := header.Get("Profile-Update-Interval"); val != "" {
 		profile.Interval = val
+		profile.IntervalFromHeader = true
+	} else {
+		profile.IntervalFromHeader = false
 	}
 
 	// 主页

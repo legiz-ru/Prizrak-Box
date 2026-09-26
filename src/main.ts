@@ -8,12 +8,10 @@ import {createPinia} from "pinia";
 import piniaPluginPersistence from "pinia-plugin-persistedstate";
 import {createI18n} from "vue-i18n";
 import messages from "@intlify/unplugin-vue-i18n/messages";
-import ElementPlus from "element-plus";
-import VueApexCharts from "vue3-apexcharts";
-import "element-plus/dist/index.css";
-import 'element-plus/theme-chalk/dark/css-vars.css'
 import "./styles/global.css";
-import "./styles/basic.css";
+import "./styles/tokens.css";
+import "./styles/ui.css";
+import {installA11y, installTooltips, vTip} from "@/components/ui";
 import {useMenuStore} from "@/store/menuStore";
 import {useWebStore} from "@/store/webStore";
 import {AxiosRequest} from "@/util/axiosRequest";
@@ -113,10 +111,11 @@ async function bootstrap() {
 
     // 加载所需组件
     app.use(pinia);
-    app.use(ElementPlus);
-    app.use(VueApexCharts);
     app.use(i18n);
     app.use(router);
+    app.directive("tip", vTip);
+    installA11y();
+    installTooltips();
 
     const translate = (key: string, values?: Record<string, unknown>) => {
         try {
@@ -244,9 +243,6 @@ async function bootstrap() {
     router.afterEach((to) => {
         const split = to.path.split("/");
         menuStore.setMenu(split[1]);
-        if (split.length > 2 && split[1] === "Rule") {
-            menuStore.setRuleMenu(split[2]);
-        }
     });
     if (!menuStore.language) {
         menuStore.setLanguage(lang);
@@ -254,7 +250,7 @@ async function bootstrap() {
 
     // Sync i18n locale to stored preference immediately — before app.mount()
     // so that any tray interaction before Language.vue mounts shows the correct language
-    i18n.global.locale.value = menuStore.language;
+    (i18n.global.locale as any).value = menuStore.language;
 
     // Pre-send tray translations with the correct language before the slow HTTP call
     // (updateHttpClientConfig below). Without this the tray shows Chinese default labels

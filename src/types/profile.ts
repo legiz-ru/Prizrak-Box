@@ -14,6 +14,7 @@ export class Profile {
     total?: bigint; // 可选
     expire?: string; // 可选
     interval?: string; // 可选
+    intervalFromHeader?: boolean; // interval задан заголовком profile-update-interval
     home?: string; // 可选
     support?: string; // 可选
     logo?: string; // 可选

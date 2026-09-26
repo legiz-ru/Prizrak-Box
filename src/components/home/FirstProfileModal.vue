@@ -2,6 +2,7 @@
 import { ref, watch, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import IconInfoCircle from '~icons/tabler/info-circle';
 
 const { t } = useI18n();
 const onboardingStore = useOnboardingStore();
@@ -42,45 +43,35 @@ function closeModal() {
 </script>
 
 <template>
-  <el-dialog
-    v-if="hasContent"
-    v-model="localVisible"
-    :title="t('onboarding.first-profile-info.title')"
-    width="520"
-    center
-    :close-on-click-modal="false"
-    :close-on-press-escape="false"
-    :show-close="false"
-  >
-    <div class="modal-content">
-      <p>{{ message }}</p>
-    </div>
-
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button
-          type="primary"
-          size="large"
-          @click="closeModal"
-          class="ok-btn"
-        >
-          {{ t('onboarding.first-profile-info.ok') }}
-        </el-button>
-      </div>
+  <!-- Esc and overlay clicks are ignored: the info must be acknowledged. -->
+  <UiNotice v-if="hasContent"
+            v-model="localVisible"
+            tone="info"
+            :width="440"
+            :icon="IconInfoCircle"
+            :close-on-esc="false"
+            :close-on-overlay="false"
+            :title="t('onboarding.first-profile-info.title')">
+    <span class="first-profile-text">{{ message }}</span>
+    <template #actions>
+      <button type="button" class="px-btn px-btn--primary first-profile-ok" @click="closeModal">
+        {{ t('onboarding.first-profile-info.ok') }}
+      </button>
     </template>
-  </el-dialog>
+  </UiNotice>
 </template>
 
 <style scoped>
-.modal-content {
-  padding: 10px 0;
-  font-size: 16px;
+.first-profile-text {
+  font-size: 14px;
   line-height: 1.6;
-  color: var(--el-text-color-primary);
-  text-align: center;
 }
 
-.ok-btn {
+.first-profile-ok {
+  flex: 0 0 auto !important;
   min-width: 120px;
+  margin: 0 auto;
+  padding: 10px 24px;
+  font-size: 14px;
 }
 </style>

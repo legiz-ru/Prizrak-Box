@@ -162,13 +162,13 @@ const statusText = computed(() => {
 
 const statusType = computed(() => {
   if (!serviceStatus.value.installed) {
-    return 'info';
+    return '';
   }
   if (serviceStatus.value.running && serviceStatus.value.isAdmin) {
     return 'success';
   }
   if (serviceStatus.value.running && !serviceStatus.value.isAdmin) {
-    return 'danger';
+    return 'error';
   }
   return 'warning';
 });
@@ -185,104 +185,35 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="service-setting">
-    <div class="service-setting__header">
-      <strong>{{ t('service.mode') }}:</strong>
-      <el-tag :type="statusType" size="small" class="service-setting__status">
-        {{ statusText }}
-      </el-tag>
-    </div>
-    <p class="service-setting__description">{{ t('service.mode-description') }}</p>
-    <div class="service-setting__actions">
-      <button class="pill-btn" :disabled="loading" @click="installService">
-        <icon-mdi-loading v-if="loading" class="pill-spin"/>
+  <div class="px-row px-row--wrap service-row">
+    <span class="px-row__label">
+      {{ t('service.mode') }}
+      <span class="px-info" tabindex="0" :aria-label="t('setting.tips.service')" v-tip="t('setting.tips.service')">
+        <icon-tabler-info-circle width="13" height="13"/>
+      </span>
+    </span>
+    <span class="px-tag" :class="statusType && `px-tag--${statusType}`" role="status">{{ statusText }}</span>
+    <div class="px-row__end">
+      <button type="button" class="px-btn px-btn--soft px-btn--sm" :disabled="loading" @click="installService">
+        <UiSpinner v-if="loading" :size="12"/>
         {{ t('service.install-btn') }}
       </button>
-      <button
-          v-if="serviceStatus.installed || serviceStatus.running"
-          class="pill-btn pill-btn--danger"
-          :disabled="loading"
-          @click="uninstallService"
-      >
-        <icon-mdi-loading v-if="loading" class="pill-spin"/>
+      <button v-if="serviceStatus.installed || serviceStatus.running"
+              type="button"
+              class="px-btn px-btn--danger-soft px-btn--sm"
+              :disabled="loading"
+              @click="uninstallService">
         {{ t('service.uninstall-btn') }}
       </button>
-      <button class="pill-btn" :disabled="loading" @click="fetchServiceStatus">
-        <icon-mdi-loading v-if="loading" class="pill-spin"/>
-        {{ t('service.check-status') }}
-      </button>
+      <UiIconButton :size="28" :label="t('service.check-status')" :disabled="loading" @click="fetchServiceStatus">
+        <icon-tabler-refresh width="15" height="15"/>
+      </UiIconButton>
     </div>
   </div>
 </template>
 
 <style scoped>
-.service-setting {
-  margin: 8px 0;
-}
-
-.service-setting__header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 18px;
-}
-
-.service-setting__status {
-  margin-left: 8px;
-  --el-tag-border-radius: 999px;
-  border-radius: 999px;
-}
-
-.service-setting__description {
-  font-size: 14px;
-  color: var(--text-color);
-  opacity: 0.7;
-  margin: 8px 0;
-}
-
-.service-setting__actions {
-  display: flex;
+.service-row .px-row__end {
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.pill-btn {
-  border: none;
-  border-radius: 999px;
-  background-color: var(--left-nav-btn-bg);
-  color: var(--text-color);
-  padding: 6px 18px;
-  font-size: 14px;
-  cursor: pointer;
-  box-shadow: var(--left-nav-shadow);
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-}
-
-.pill-btn:hover {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-.pill-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.pill-btn--danger:hover {
-  background-color: #f56c6c;
-}
-
-.pill-spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 </style>

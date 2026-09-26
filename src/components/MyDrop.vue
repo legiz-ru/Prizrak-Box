@@ -1,50 +1,52 @@
 <template>
-  <div class="mask" @click="webStore.dnd = false" v-show="webStore.dnd">
-    <div class="mask-card" @click.stop>
-      <h3>{{ t("drag.hear") }}</h3>
-      <el-button class="import-button" @click="openImportDialog">
-        {{ t("drag.open") }}
-      </el-button>
-      <input
-          ref="importInputRef"
-          type="file"
-          accept=".yaml,.yml,.age"
-          hidden
-          @change="handleImportFile"
-      />
-    </div>
-  </div>
-
-  <el-dialog
-      v-model="ageKeyDialogVisible"
-      :title="t('age.file.title')"
-      width="420"
-      draggable
-      append-to-body
-      :close-on-click-modal="false"
-  >
-    <div class="age-file-body">
-      <p class="age-file-hint">{{ t('age.file.hint') }}</p>
-      <el-input
-          v-model="ageKeyInput"
-          :placeholder="t('age.profile.keyPlaceholder')"
-          autocapitalize="off"
-          autocomplete="off"
-          spellcheck="false"
-          clearable
-      >
-        <template #prefix>
-          <el-icon><icon-mdi-key-variant/></el-icon>
-        </template>
-      </el-input>
-    </div>
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="cancelAgeFileImport">{{ t('cancel') }}</el-button>
-        <el-button type="primary" :disabled="!ageKeyInput.trim()" @click="confirmAgeFileImport">{{ t('confirm') }}</el-button>
+  <Teleport to="body">
+    <Transition name="px-drop">
+      <div v-if="webStore.dnd" class="drop-overlay" @click="webStore.dnd = false">
+        <div class="drop-dialog" role="dialog" aria-modal="true" :aria-label="t('drag.hear')" tabindex="-1" @click.stop>
+          <div class="drop-zone">
+            <icon-tabler-cloud-upload width="32" height="32" class="drop-zone__icon"/>
+            <span class="drop-zone__title">{{ t("drag.hear") }}</span>
+            <span class="drop-zone__hint">{{ t("drag.formats") }}</span>
+          </div>
+          <button type="button" class="px-btn px-btn--primary px-btn--pill drop-open" @click="openImportDialog">
+            <icon-tabler-folder-open width="15" height="15"/>
+            {{ t("drag.open") }}
+          </button>
+          <input
+              ref="importInputRef"
+              type="file"
+              accept=".yaml,.yml,.age"
+              hidden
+              @change="handleImportFile"
+          />
+        </div>
       </div>
+    </Transition>
+  </Teleport>
+
+  <UiModal v-model="ageKeyDialogVisible"
+           :title="t('age.file.title')"
+           :icon="IconKey"
+           :width="420"
+           :z-index="72"
+           :close-on-overlay="false"
+           @close="cancelAgeFileImport">
+    <span class="age-file-hint">{{ t('age.file.hint') }}</span>
+    <label class="age-file-field">
+      <icon-tabler-key width="15" height="15"/>
+      <input v-model="ageKeyInput"
+             :placeholder="t('age.profile.keyPlaceholder')"
+             :aria-label="t('age.profile.keyPlaceholder')"
+             autocapitalize="off"
+             autocomplete="off"
+             spellcheck="false"
+             @keydown.enter.prevent="confirmAgeFileImport">
+    </label>
+    <template #footer>
+      <button type="button" class="px-btn" @click="cancelAgeFileImport">{{ t('cancel') }}</button>
+      <button type="button" class="px-btn px-btn--primary" :disabled="!ageKeyInput.trim()" @click="confirmAgeFileImport">{{ t('confirm.label') }}</button>
     </template>
-  </el-dialog>
+  </UiModal>
 </template>
 
 <script setup lang="ts">
@@ -56,6 +58,8 @@ import createApi from "@/api/index.js";
 import {Events} from "@/runtime";
 import {changeMenu} from "@/util/menu";
 import {useRouter} from "vue-router";
+import {registerModal} from "@/components/ui/services";
+import IconKey from "~icons/tabler/key";
 
 const {t} = useI18n();
 const webStore = useWebStore();
@@ -72,6 +76,14 @@ let pendingAgeImport: { content: string; title: string } | null = null;
 const openImportDialog = () => {
   importInputRef.value?.click();
 };
+
+// The drop mask behaves like a dialog: Esc or a click outside the box closes it.
+let unregisterMask: (() => void) | null = null;
+watch(() => webStore.dnd, (open) => {
+  unregisterMask?.();
+  unregisterMask = open ? registerModal(() => { webStore.dnd = false; }, () => true) : null;
+}, {immediate: true});
+onBeforeUnmount(() => unregisterMask?.());
 
 async function doImportProfile(content: string, title: string, ageSecretKey?: string) {
   await pLoad(t("drag.add"), async () => {
@@ -219,60 +231,97 @@ function handleDrop(e: any) {
 </script>
 
 <style scoped>
-.mask {
+.drop-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 9999;
-  background: var(--skin-bg-color);
+  inset: 0;
+  z-index: 75;
+  background: rgba(0, 0, 0, .5);
+  backdrop-filter: blur(4px);
   display: flex;
+  align-items: center;
   justify-content: center;
-  align-items: center;
-  color: var(--text-color);
-  font-size: 1.5rem;
+  padding: 20px;
+  -webkit-app-region: no-drag;
+  --wails-draggable: no-drag;
 }
 
-.mask-card {
+.drop-dialog {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
 }
 
-h3 {
-  margin: 0;
-  width: 450px;
-  height: 100px;
-  border: 2px dashed var(--text-color);
+.drop-zone {
+  width: 400px;
+  max-width: calc(100vw - 40px);
+  padding: 34px 20px;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  background: var(--dialog-bg);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   text-align: center;
-  padding-top: 70px;
-  border-radius: 20px;
+  color: var(--text);
 }
 
-.import-button {
-  min-width: 200px;
-  --el-border-radius-base: 999px;
-  border-radius: 999px;
+.drop-zone__icon {
+  color: var(--text-3);
 }
 
-.age-file-body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.drop-zone__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.drop-zone__hint {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.drop-open {
+  padding: 9px 24px;
 }
 
 .age-file-hint {
-  margin: 0;
   font-size: 13px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-2);
   line-height: 1.5;
 }
 
-.dialog-footer {
+.age-file-field {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
   gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: var(--input-bg);
+  color: var(--text-3);
+}
+
+.age-file-field:focus-within {
+  border-color: var(--accent);
+}
+
+.age-file-field input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+}
+
+.px-drop-enter-active, .px-drop-leave-active {
+  transition: opacity .15s ease;
+}
+
+.px-drop-enter-from, .px-drop-leave-to {
+  opacity: 0;
 }
 </style>

@@ -1,58 +1,8 @@
-<template>
-  <el-dialog
-      v-model="dialogVisible"
-      :title="$t('age.keypair.title')"
-      width="480"
-      draggable
-      append-to-body
-      @closed="onClosed"
-  >
-    <div class="age-keypair-body">
-      <div class="algo-section">
-        <span class="algo-label">{{ $t('age.keypair.algorithm') }}</span>
-        <el-radio-group v-model="selectedType" @change="regenerate">
-          <el-radio value="mlkem768-x25519">MLKEM768-X25519</el-radio>
-          <el-radio value="x25519">X25519</el-radio>
-        </el-radio-group>
-      </div>
-
-      <div v-if="loading" class="loading-hint">{{ $t('age.keypair.generating') }}</div>
-      <div v-else-if="error" class="error-hint">{{ error }}</div>
-      <template v-else-if="keypair">
-        <div class="key-row">
-          <div class="key-label">{{ $t('age.keypair.publicKey') }}</div>
-          <div class="key-area">
-            <span class="key-value">{{ keypair.publicKey }}</span>
-            <button class="pill-btn" @click="copyKey(keypair.publicKey, 'pub')">
-              {{ copiedPub ? $t('age.keypair.copied') : $t('age.keypair.copy') }}
-            </button>
-          </div>
-        </div>
-        <div class="key-row">
-          <div class="key-label">{{ $t('age.keypair.secretKey') }}</div>
-          <div class="key-area">
-            <span class="key-value">{{ keypair.secretKey }}</span>
-            <button class="pill-btn" @click="copyKey(keypair.secretKey, 'sec')">
-              {{ copiedSec ? $t('age.keypair.copied') : $t('age.keypair.copy') }}
-            </button>
-          </div>
-        </div>
-      </template>
-    </div>
-
-    <template #footer>
-      <div class="age-keypair-footer">
-        <button class="pill-btn" :disabled="loading" @click="regenerate">
-          {{ keypair ? $t('age.keypair.regenerate') : $t('age.keypair.generate') }}
-        </button>
-      </div>
-    </template>
-  </el-dialog>
-</template>
-
 <script setup lang="ts">
 import {useI18n} from "vue-i18n";
 import createApi from "@/api";
+import IconKey from "~icons/tabler/key";
+import {toast} from "@/components/ui";
 
 const props = defineProps<{ modelValue: boolean }>();
 const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void }>();
@@ -77,7 +27,17 @@ watch(() => props.modelValue, (visible) => {
   if (visible && !keypair.value) {
     regenerate();
   }
+  if (!visible) {
+    onClosed();
+  }
 });
+
+const algoOptions = [
+  {value: 'mlkem768-x25519' as const, label: 'MLKEM768-X25519'},
+  {value: 'x25519' as const, label: 'X25519'},
+];
+
+watch(selectedType, () => regenerate());
 
 async function regenerate() {
   loading.value = true;
@@ -103,6 +63,7 @@ function copyKey(text: string, which: 'pub' | 'sec') {
     document.execCommand('copy');
     document.body.removeChild(el);
   });
+  toast('success', t('copy.success'));
   if (which === 'pub') {
     copiedPub.value = true;
     setTimeout(() => { copiedPub.value = false; }, 2000);
@@ -118,103 +79,142 @@ function onClosed() {
 }
 </script>
 
-<style scoped>
-.age-keypair-body {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
+<template>
+  <UiModal v-model="dialogVisible" :title="t('age.keypair.title')" :icon="IconKey" :width="480">
+    <div class="algo">
+      <span class="algo__label">{{ t('age.keypair.algorithm') }}</span>
+      <UiPillTabs v-model="selectedType" :options="algoOptions" :aria-label="t('age.keypair.algorithm')"/>
+    </div>
 
-.algo-section {
+    <div v-if="loading" class="age-loading" role="status">
+      <span class="dots" aria-hidden="true"><span></span><span></span><span></span></span>
+      {{ t('age.keypair.generating') }}
+    </div>
+    <div v-else-if="error" class="px-alert px-alert--error">
+      <icon-tabler-alert-circle width="15" height="15"/>
+      <span>{{ error }}</span>
+    </div>
+    <template v-else-if="keypair">
+      <div class="key">
+        <span class="key__label">{{ t('age.keypair.publicKey') }}</span>
+        <div class="key__area">
+          <span class="key__value mono ellipsis" v-tip="keypair.publicKey">{{ keypair.publicKey }}</span>
+          <button type="button" class="key__copy" :class="{ 'is-done': copiedPub }" @click="copyKey(keypair.publicKey, 'pub')">
+            {{ copiedPub ? t('age.keypair.copied') : t('age.keypair.copy') }}
+          </button>
+        </div>
+      </div>
+      <div class="key">
+        <span class="key__label">{{ t('age.keypair.secretKey') }}</span>
+        <div class="key__area">
+          <span class="key__value mono ellipsis">{{ keypair.secretKey }}</span>
+          <button type="button" class="key__copy" :class="{ 'is-done': copiedSec }" @click="copyKey(keypair.secretKey, 'sec')">
+            {{ copiedSec ? t('age.keypair.copied') : t('age.keypair.copy') }}
+          </button>
+        </div>
+      </div>
+    </template>
+
+    <template #footer>
+      <button type="button" class="px-btn px-btn--pill regen" :disabled="loading" @click="regenerate">
+        <UiSpinner v-if="loading" :size="12"/>
+        <icon-tabler-refresh v-else width="14" height="14"/>
+        {{ t('age.keypair.regenerate') }}
+      </button>
+    </template>
+  </UiModal>
+</template>
+
+<style scoped>
+.algo {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
-.algo-label {
-  font-size: 14px;
+.algo__label {
+  font-size: 13px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
-  white-space: nowrap;
 }
 
-.key-row {
+.age-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.dots {
+  display: flex;
+  gap: 3px;
+}
+
+.dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: px-dot-pulse 1s ease-in-out infinite;
+}
+
+.dots span:nth-child(2) { animation-delay: .15s; }
+.dots span:nth-child(3) { animation-delay: .3s; }
+
+.key {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  min-width: 0;
 }
 
-.key-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--el-text-color-secondary);
+.key__label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-3);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: .05em;
 }
 
-.key-area {
+.key__area {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: var(--el-fill-color-light);
-  border: 1px solid var(--el-border-color);
-  border-radius: 10px;
-  padding: 8px 12px;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 8px 8px 12px;
   min-width: 0;
 }
 
-.key-value {
+.key__value {
   flex: 1;
-  font-family: monospace;
   font-size: 12px;
-  color: var(--el-text-color-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
+  user-select: all;
 }
 
-.loading-hint,
-.error-hint {
-  font-size: 13px;
-  text-align: center;
-  padding: 12px 0;
-}
-
-.error-hint {
-  color: var(--el-color-danger);
-}
-
-.age-keypair-footer {
-  display: flex;
-  justify-content: center;
-}
-
-.pill-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 28px;
-  padding: 0 14px;
-  border: 1.5px solid var(--el-border-color);
-  border-radius: 999px;
-  cursor: pointer;
-  font-size: 12px;
-  background: transparent;
-  color: var(--el-text-color-primary);
-  user-select: none;
-  transition: border-color 0.2s, color 0.2s;
-  white-space: nowrap;
+.key__copy {
   flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text);
 }
 
-.pill-btn:hover {
-  border-color: var(--el-color-primary);
-  color: var(--el-color-primary);
+.key__copy.is-done {
+  border-color: var(--success);
+  color: var(--success);
 }
 
-.pill-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.regen {
+  margin: 0 auto;
 }
 </style>

@@ -14,47 +14,44 @@ onBeforeMount(() => {
     router.push(menuStore.path)
   }
 })
-
-// 主题切换
-const changeTheme = (useWhite:boolean) => {
-  if (useWhite) {
-    document.documentElement.classList.remove('dark')
-    document.documentElement.setAttribute('data-theme', '');
-  } else {
-    document.documentElement.classList.add('dark')
-    document.documentElement.setAttribute('data-theme', 'dark');
-  }
-}
-
-//
-onMounted(()=>{
-  changeTheme(menuStore.useWhite)
-})
-
-// 监控黑白切换
-watch(() => menuStore.useWhite, changeTheme);
 </script>
 
 <template>
-  <div class="bottom-text">
-
-    <Off></Off>
-    <Language></Language>
-    <Skin></Skin>
-
+  <div class="bottom no-drag">
+    <Language/>
+    <Skin/>
+    <Off/>
   </div>
 </template>
 
 <style scoped>
-.bottom-text {
-  margin-top: auto;
-  margin-bottom: 18px;
-  margin-left: 22px;
-  width: 185px;
+.bottom {
+  position: relative;
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 4px;
+}
+
+.bottom :deep(.side-round) {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--side-bg);
+  backdrop-filter: var(--side-blur);
+  display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 16px;
-  color: var(--text-color);
-  font-size: 20px;
+  color: var(--text-2);
+  cursor: pointer;
+  padding: 0;
+  transition: background .15s, color .15s;
+}
+
+.bottom :deep(.side-round:hover),
+.bottom :deep(.side-round[aria-expanded="true"]) {
+  background: var(--hover-bg);
+  color: var(--text);
 }
 </style>

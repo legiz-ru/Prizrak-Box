@@ -5,130 +5,140 @@ import "ace-builds/src-noconflict/ext-searchbox"; // 查找替换
 import "ace-builds/src-noconflict/mode-yaml"; // YAML 支持
 import "ace-builds/src-noconflict/ext-beautify";
 import "ace-builds/src-noconflict/ext-language_tools"; // YAML 支持
-import "ace-builds/src-noconflict/theme-monokai"; // 主题支持
+import "ace-builds/src-noconflict/theme-tomorrow_night";
+import "ace-builds/src-noconflict/theme-tomorrow";
 import {useI18n} from "vue-i18n";
+import {useMenuStore} from "@/store/menuStore";
 
-// 入参
-const props = defineProps({
-  load: Function,
-  save: Function,
-});
+// 入参: load(holder) fills holder.value, save(content) persists it (returns false on failure).
+const props = defineProps<{
+  load: (content: { value: string }) => void | Promise<void>;
+  save: (content: string) => unknown;
+  hint?: string;
+}>();
 
-// 编辑器使用
+const {t} = useI18n();
+const menuStore = useMenuStore();
+
+// Editor colours follow the app's light/dark mode.
+const theme = computed(() => menuStore.useWhite ? 'tomorrow_night' : 'tomorrow');
+
 const editorOptions = {
   showPrintMargin: false,
+  fontSize: 13,
+  tabSize: 2,
+  useSoftTabs: true,
 };
 // 编辑器显示内容
 const yamlContent = ref("");
+const loaded = ref("");
 
-// i18n
-const {t} = useI18n();
+const dirty = computed(() => yamlContent.value !== loaded.value);
+const saving = ref(false);
+const saved = ref(false);
+let savedTimer: number | undefined;
 
+async function reload() {
+  const holder = {value: ''};
+  await props.load(holder);
+  yamlContent.value = holder.value;
+  loaded.value = holder.value;
+}
 
-onMounted(() => {
-  // 加载编辑器内容
-  props.load(yamlContent);
-});
-
-const disabled = ref(true)
-let isFirst = true
-// 监听内容变化
-const onContentChange = () => {
-  if (isFirst) {
-    isFirst = false;
-    return
+async function doSave() {
+  if (saving.value) return;
+  saving.value = true;
+  try {
+    const result = await props.save(yamlContent.value);
+    if (result !== false) {
+      loaded.value = yamlContent.value;
+      saved.value = true;
+      window.clearTimeout(savedTimer);
+      savedTimer = window.setTimeout(() => (saved.value = false), 1800);
+    }
+  } finally {
+    saving.value = false;
   }
+}
 
-  disabled.value = false;
-};
-
+onMounted(reload);
+onBeforeUnmount(() => window.clearTimeout(savedTimer));
 </script>
 
 <template>
-  <div class="group">
-    <el-space class="op">
-      <el-button
-          :disabled="disabled"
-          @click="save(yamlContent)">
-        {{ t("save") }}
-      </el-button>
-    </el-space>
-
+  <div class="editor-wrap">
+    <div v-if="hint" class="editor-hint">
+      <icon-tabler-info-circle width="16" height="16"/>
+      {{ hint }}
+    </div>
     <VAceEditor
         v-model:value="yamlContent"
         lang="yaml"
-        theme="monokai"
+        :theme="theme"
         :options="editorOptions"
-        style="width: 100%; height: calc(100vh - 300px)"
         class="editor"
-        @change="onContentChange"
     />
+    <div class="editor-actions">
+      <button type="button" class="px-btn px-btn--pill" :disabled="!dirty || saving" @click="reload">{{ t('theme.reset') }}</button>
+      <button type="button"
+              class="px-btn px-btn--pill"
+              :class="saved ? 'editor-saved' : 'px-btn--primary'"
+              :disabled="(!dirty && !saved) || saving"
+              @click="doSave">
+        <UiSpinner v-if="saving" :size="12"/>
+        <icon-tabler-check v-else-if="saved" width="14" height="14"/>
+        {{ saved ? t('ui.saved') : t('save') }}
+      </button>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.group {
-  width: 95%;
-  margin-left: 10px;
-  margin-top: 5px;
+.editor-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.op {
-  margin-top: 8px;
+.editor-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.5;
 }
 
-:deep(.el-button) {
-  padding: 2px 10px;
-  --el-button-bg-color: transparent;
-  --el-button-text-color: var(--text-color);
-  --el-button-hover-text-color: var(--left-item-selected-bg);
-  --el-button-hover-bg-color: var(--text-color);
-}
-
-.st {
-  color: var(--text-color);
+.editor-hint svg {
+  flex-shrink: 0;
+  color: var(--info);
 }
 
 .editor {
-  margin-top: 25px;
+  flex: 1;
+  min-height: 360px;
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.editor-saved {
+  background: var(--success);
+  color: #fff;
+  border-color: transparent;
 }
 
 :deep(.ace_editor) {
-  border: 2px solid var(--text-color);
-  border-radius: 20px;
-  font: 15px "Twemoji", "Monaco", "Menlo", "Ubuntu Mono", "Consolas",
-  "Source Code Pro", "source-code-pro", monospace;
-}
-
-:deep(.ace_gutter) {
-  border-top-left-radius: 8px;
-  border-bottom-left-radius: 8px;
-}
-
-:deep(.ace_search.right) {
-  width: 420px;
-  margin-left: 10px;
-  margin-right: -4px;
-  padding-left: 8px;
-  margin-top: 0;
-  border: none;
-  float: right;
-  color: var(--text-color);
-}
-
-:deep(.ace_search_form, .ace_replace_form) {
-  margin: 0;
-}
-
-:deep(.ace_search_form.ace_nomatch) {
-  width: 374px;
-}
-
-:deep(.ace_button, .ace_searchbtn_close) {
-  color: #cccccc;
-}
-
-:deep(.ace_button:hover) {
-  color: black;
+  font-family: 'SF Mono', Consolas, Menlo, monospace;
+  line-height: 1.7;
 }
 </style>

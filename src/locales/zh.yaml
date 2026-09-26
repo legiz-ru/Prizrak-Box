@@ -34,15 +34,53 @@ sec-nav:
   crawl: 爬取
 
 delete: 删除
-confirm: 确定
+confirm:
+  label: 确定
+  close-all:
+    title: 关闭所有连接？
+    text: 所有活动连接都将断开，应用会自动重新连接。
+    ok: 全部关闭
+  delete-template:
+    title: 删除模板？
+    text: 规则模板将被永久删除。
+    ok: 删除
+  delete-dashboard:
+    title: 删除面板？
+    text: “{name}”将从自定义面板中移除。
+    ok: 删除
+  delete-profile:
+    title: 删除配置？
+    text: “{name}”将被永久删除。
+    ok: 删除
 cancel: 取消
 on: 开启
 off: 关闭
 refresh: 刷新
 add: 添加
 edit: 编辑
-quit: 退出
-theme: 主题
+quit:
+  label: 退出
+  confirm:
+    title: 退出 Prizrak-Box？
+    text: 内核将停止，代理和 TUN 将被关闭。
+    ok: 退出
+theme:
+  label: 主题
+  mode: 模式
+  auto: 自动
+  auto-tip: 根据背景图片选择，没有背景时跟随系统主题
+  light: 浅色
+  dark: 深色
+  use-image: 背景图片
+  use-image-desc: 界面后方的图片，强调色会根据它自动选取。
+  transparency: 界面透明度
+  blur: 面板下方模糊
+  dim: 背景暗化
+  accent: 强调色
+  accent-from-image: 强调色取自图片并随模式自动调整
+  accent-fallback: 无法从图片中取色 — 使用所选强调色
+  reset: 重置
+  done: 完成
 mini: 最小化
 max: 最大化
 restore: 还原
@@ -66,6 +104,7 @@ drag:
   success: 导入成功
   error: 导入失败
 
+  formats: .yaml、.yml 或 .age
 home:
   download: 下载
   upload: 上传
@@ -125,6 +164,7 @@ setting:
     groupName: 分组名称
     addGroupUrl: 添加
     testUrlPlaceholder: 'https://example.com'
+    core-version-tip: 当前使用的 Prizrak-Core 版本
   px:
     auth: 授权提示
     startup: 开机自启
@@ -166,6 +206,20 @@ setting:
     empty: 暂无自定义面板
     error: 请输入名称和链接
 
+  section:
+    app: 应用
+    core: 内核
+    rule: 规则
+    connection: 连接
+    log: 日志
+    dns: DNS 覆写
+    shortcut: 快捷键
+  tips:
+    service: 高权限服务：TUN 和系统代理无需每次启动时请求 UAC
+    hwid: 将配置绑定到本机硬件，用于限制设备数量的订阅
+    auth: 打开应用控制面板时需要密码
+    secret: Mihomo 内核密钥可完全访问 API，请勿泄露。
+    independent-test: 使用分组自己的 URL 而非公共测试地址测试延迟
 updates:
   banner:
     title: 发现新版本
@@ -229,6 +283,10 @@ proxies:
     protocol: "使用 {type} 协议"
     unknown: "无法识别协议类型"
 
+  jump-to-group: 跳转到分组
+  collapse-all: 全部折叠
+  expand-all: 全部展开
+  show-more: 再显示 {n} 个
 profiles:
   title: 订阅
   primary: 主要
@@ -247,6 +305,7 @@ profiles:
     question: 确定要继续吗？
     accept: 是
     decline: 否
+    pick: 多选时选中
   available: 可用
   use: 已用
   expire: 到期时间
@@ -269,6 +328,7 @@ profiles:
     url-error: 地址格式错误
     update-tip: 更新间隔必须大于 0 且小于 128
     success: 编辑成功
+    interval-locked: 更新间隔由订阅（profile-update-interval）设定，无法修改
   refresh:
     ing: 更新中。。。
     success: 更新成功
@@ -294,6 +354,7 @@ profiles:
     success: 配置已成功发送到 Android TV
     error: 向 Prizrak-Box Android TV 设备导入配置失败
 
+  deleted-select-new: 配置已删除，请选择新的活动配置
 rule:
   title: 规则
   success: 保存成功
@@ -322,12 +383,14 @@ rule:
       placeholder: 标题添加后不可修改
       tip: 模版内容不能为空
       success: 添加成功
+      new: 新规则模板
     delete:
       success: 删除成功
   ignore:
     title: 忽略这些域名
     tip: 按行分割
     place: 在这里输入
+    info: 此列表中的域名绕过系统代理直接连接（DIRECT）。每行一个域名，例如 localhost、*.local、intranet.company
   providers:
     title: 规则提供者
     refresh: 刷新数据
@@ -351,6 +414,11 @@ rule:
     viewCards: 卡片
     viewTable: 表格
 
+  tabs:
+    now: 当前
+    group: 分组
+    providers: 提供者
+    ignore: 排除
 connections:
   title: 连接
   search: 搜索主机
@@ -409,6 +477,17 @@ connections:
   open-in-browser: 在浏览器中打开
   show-in-explorer: 在资源管理器中显示
 
+  sort:
+    label: 排序
+    time: 按时间
+    download: 按下载量
+    upload: 按上传量
+    dl-speed: 按下载速度
+    ul-speed: 按上传速度
+    host: 按主机
+    asc: 升序
+    desc: 降序
+  count: '{n} 个连接'
 log:
   title: 日志
   search: 搜索
@@ -417,6 +496,7 @@ dns:
   title: DNS 覆写
   success: 保存成功
 
+  hint: YAML 格式的 dns 配置块，将覆盖配置中的 DNS 设置。
 bg:
   default: 默认
   harbor: 港口
@@ -552,3 +632,59 @@ age:
   file:
     title: 输入 age-secret-key
     hint: 请提供私钥以解密 .age 文件
+ui:
+  nav-label: 主导航
+  mode-label: 路由模式
+  language: 语言
+  window-controls: 窗口控制
+  not-selected: 未选择
+  decrease: 减少
+  increase: 增加
+  hours-short: 小时
+  show: 显示
+  hide: 隐藏
+  saved: 已保存
+  found: 找到 {n} 个
+time:
+  just-now: 刚刚
+  sec-ago: '{n} 秒前'
+  min-ago: '{n} 分钟前'
+  hour-ago: '{n} 小时前'
+  today: 今天
+  yesterday: 昨天
+  days-ago: '{n} 天前'
+  weeks-ago: '{n} 周前'
+  months-ago: '{n} 个月前'
+empty:
+  proxies:
+    title: 没有代理分组
+    text: 请选择配置，或等待内核加载配置。
+  profiles:
+    title: 没有配置
+    text: 添加订阅、链接或配置文件以开始使用。
+  providers:
+    title: 未找到规则提供者
+    text: 当前配置没有 rule-providers。
+  connections:
+    title: 没有连接
+    text: 应用开始联网后，连接会显示在这里。
+  logs:
+    title: 日志为空
+    text: 所选日志级别下没有记录。
+  search:
+    title: 未找到结果
+    text: 请尝试其他关键词。
+logs:
+  level: 日志级别
+  search: 搜索日志
+  autoscroll: 自动滚动
+  copy-all: 全部复制
+  export: 导出 .log
+  clear: 清空日志
+  cleared: 日志已清空
+  copied: 已复制 {n} 行
+  shown: 显示最近 {n} 条
+hotkey:
+  record-hint: 点击输入框并按下组合键
+pause: 暂停
+resume: 继续

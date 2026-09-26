@@ -1,0 +1,61 @@
+/*
+ * Design tokens. The static palette lives here per mode; the values that depend
+ * on the background image and the theme dialog (accent, panel opacity, blur,
+ * dimming) are written onto <html> as inline custom properties by
+ * src/composables/useAppTheme.ts and override these defaults.
+ *
+ * Radii: 8 / 12 / 999 only. Font sizes: 11 / 12 / 13 / 14 / 16 / 24.
+ */
+:root,
+[data-theme="dark"] {
+    color-scheme: dark;
+    --accent: #5b67e8;
+    --on-accent: #fff;
+    --panel-bg: rgba(20, 21, 27, 0.74);
+    --side-bg: rgba(255, 255, 255, 0.07);
+    --panel-soft: rgba(255, 255, 255, 0.07);
+    --dialog-bg: #1b1c23;
+    --input-bg: rgba(255, 255, 255, 0.06);
+    --hover-bg: rgba(255, 255, 255, 0.09);
+    --border: rgba(255, 255, 255, 0.1);
+    --text: #f3f4f6;
+    --text-2: rgba(243, 244, 246, 0.64);
+    --text-3: rgba(243, 244, 246, 0.4);
+    --success: #63e2b7;
+    --warning: #f2c97d;
+    --error: #e88080;
+    --info: #70c0e8;
+    --ui-blur: 24px;
+    --side-blur: none;
+    --overlay: linear-gradient(180deg, rgba(6, 7, 11, .45), rgba(6, 7, 11, .82));
+    --title-bg: transparent;
+    --title-shadow: none;
+    --logo-shadow: none;
+    --app-bg: #0b0c10;
+    --tip-bg: rgba(30, 30, 36, .97);
+    --upload-color: #f59e0b;
+    --download-color: #10b981;
+}
+
+[data-theme="light"] {
+    color-scheme: light;
+    --on-accent: #fff;
+    --panel-bg: rgba(255, 255, 255, 0.82);
+    --side-bg: rgba(0, 0, 0, 0.045);
+    --panel-soft: rgba(0, 0, 0, 0.045);
+    --dialog-bg: #ffffff;
+    --input-bg: rgba(0, 0, 0, 0.04);
+    --hover-bg: rgba(0, 0, 0, 0.05);
+    --border: rgba(0, 0, 0, 0.09);
+    --text: #1f2329;
+    --text-2: rgba(31, 35, 41, 0.64);
+    --text-3: rgba(31, 35, 41, 0.42);
+    --success: #18a058;
+    --warning: #f0a020;
+    --error: #d03050;
+    --info: #2080f0;
+    --overlay: linear-gradient(180deg, rgba(255, 255, 255, .4), rgba(255, 255, 255, .72));
+    --app-bg: #e9ebee;
+    --upload-color: #c77700;
+    --download-color: #0e8a62;
+}

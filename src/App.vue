@@ -1,54 +1,62 @@
 <template>
-  <div class="cBody"
-       :style="{ backgroundImage: currentBackground }"
-       key="prizrak-box-body"
-  >
-    <div class="left">
-      <div :class="isWindows?'top-title win':'top-title'">
-        <div
-            class="top-icon"
-            :style="topIconStyle"
-        ></div>
-        <span class="top-title-text">{{ topTitle }}</span>
-      </div>
-      <div v-if="showUpdateBanner" class="update-banner">
-        <div class="update-banner__content">
-          <span class="update-banner__message">{{ updateBannerMessage }}</span>
-          <icon-mdi-close-circle
-              class="update-banner__dismiss"
-              @click="dismissUpdateNotification"
-          />
-        </div>
-        <el-button
-            class="update-banner__open"
-            size="small"
-            @click="openLatestRelease"
-        >
-          {{ t('updates.actions.open') }}
-        </el-button>
+  <div class="app-root" key="prizrak-box-body">
+    <div v-if="menuStore.useBgImage" class="app-bg" aria-hidden="true">
+      <div class="app-bg__image" :style="{ backgroundImage: currentBackground }"></div>
+      <div class="app-bg__overlay"></div>
+    </div>
+
+    <header class="app-top drag">
+      <MySearch v-if="menuStore.menu !== 'Proxies'"/>
+      <MyTitleBar/>
+    </header>
+
+    <aside class="app-side drag">
+      <div class="app-brand no-drag">
+        <div class="app-brand__logo" :style="topIconStyle" role="img" :aria-label="topTitle"></div>
+        <div class="app-brand__title ellipsis" v-tip="topTitle.length > 18 ? topTitle : ''">{{ topTitle }}</div>
       </div>
       <MyEvent/>
       <MyNav/>
       <MyRule :active-profile="activeProfile"/>
       <MyProxy/>
+      <div class="app-side__spacer"></div>
       <MyBottom/>
-    </div>
+    </aside>
 
-    <div class="right">
+    <main class="app-main">
       <router-view/>
       <MyDrop/>
-    </div>
+    </main>
+
     <DeepLinkImportOverlay/>
     <HwidNotSupportedDialog/>
     <HwidMaxDevicesDialog/>
     <SubscriptionAlertModal/>
+
+    <UiNotice :model-value="showUpdateDialog"
+              tone="accent"
+              :icon="IconDownload"
+              :title="t('updates.notification.title')"
+              @update:model-value="(v: boolean) => { if (!v) dismissUpdateNotification() }">
+      <span>{{ t('updates.notification.message', {version: updateStore.latestDisplayName || t('updates.banner.version-unknown')}) }}</span>
+      <template #actions>
+        <button type="button" class="px-btn" @click="dismissUpdateNotification">{{ t('close') }}</button>
+        <button type="button" class="px-btn px-btn--primary" @click="openLatestRelease">{{ t('updates.actions.open') }}</button>
+      </template>
+    </UiNotice>
+
+    <UiToast/>
+    <UiConfirm/>
+    <UiTooltip/>
   </div>
 </template>
 
 
 <script setup lang="ts">
 import {useMenuStore} from "@/store/menuStore";
-import {preloadBackgroundImage, changeTheme} from "@/util/theme";
+import {preloadBackgroundImage, analyzeImage, type ImageTheme} from "@/util/theme";
+import {imageTheme, useAppTheme} from "@/composables/useAppTheme";
+import IconDownload from "~icons/tabler/download";
 import {getCachedBg, setCachedBg, clearCachedBg} from "@/util/bgCache";
 import {getCachedLogo, setCachedLogo, clearCachedLogo} from "@/util/logoCache";
 import DeepLinkImportOverlay from "@/components/DeepLinkImportOverlay.vue";
@@ -86,8 +94,11 @@ const rendererOrigin = getRendererOrigin();
 
 const {hasVisibleUpdate, latestUrl} = storeToRefs(updateStore);
 
-const showUpdateBanner = computed(() => hasVisibleUpdate.value);
-const updateBannerMessage = computed(() => t('updates.banner.message'));
+// A new release is announced once in a dialog; closing it dismisses that
+// version (the old sidebar banner did the same with its × button).
+const showUpdateDialog = computed(() => hasVisibleUpdate.value);
+
+useAppTheme();
 const defaultTitle = "Prizrak-Box";
 const defaultLogo = new URL("@/assets/images/appicon.png", import.meta.url).href;
 
@@ -153,6 +164,7 @@ const openExternalLink = (url: string) => {
 const openLatestRelease = () => {
   const url = latestUrl.value || 'https://github.com/legiz-ru/Prizrak-Box/releases/latest';
   openExternalLink(url);
+  updateStore.dismissCurrentUpdate();
 };
 
 const dismissUpdateNotification = () => {
@@ -160,24 +172,14 @@ const dismissUpdateNotification = () => {
 };
 
 // 当前背景
-const currentBackground = ref("linear-gradient(to bottom, #434343, #000000)");
+// Empty until the stored background has loaded, so an upgraded install never
+// flashes the default picture before its own one.
+const currentBackground = ref("none");
 
-// 切换背景
-const changeBg = (bg: string, useWhite: boolean) => {
+// 切换背景: the image itself plus its analysis (accent, light/dark for "auto").
+const changeBg = (bg: string, theme: ImageTheme | null) => {
   currentBackground.value = bg;
-  menuStore.setUseWhite(useWhite);
-  // Persist dark/light for the Wails shell: it paints the native window
-  // background in a matching colour before the webview renders, so the first
-  // frame doesn't flash a mismatched black/white rectangle. useWhite (white
-  // text) implies a dark background. No-op under Electron (no handler).
-  Events.Emit({name: 'darkBg', data: !!useWhite});
-  // Same value for index.html's boot placeholder, which runs before any
-  // module (and before the async pxStore) is available.
-  try {
-    localStorage.setItem('px:darkBg', useWhite ? '1' : '0');
-  } catch (e) {
-    /* ignore */
-  }
+  imageTheme.value = theme;
 }
 
 function isExternalBg(bg: string): boolean {
@@ -220,8 +222,8 @@ const applyBackground = (value: string) => {
   const cssValue = normalized?.cssValue ?? value;
 
   const loadExternal = () => {
-    preloadBackgroundImage(cssValue, (bg: string, useWhite: boolean, img?: HTMLImageElement) => {
-      changeBg(bg, useWhite);
+    preloadBackgroundImage(cssValue, (bg: string, theme: ImageTheme | null, img?: HTMLImageElement) => {
+      changeBg(bg, theme);
       // img is the already-loaded element — capture it without a second request
       if (img && isExternalBg(bg)) {
         captureAndCache(img, storageKey);
@@ -234,13 +236,13 @@ const applyBackground = (value: string) => {
   if (cachedDataUrl) {
     const img = new Image();
     img.onload = () => {
-      let useWhite = false;
+      let theme: ImageTheme | null = null;
       try {
-        useWhite = changeTheme(img);
+        theme = analyzeImage(img);
       } catch (e) {
         console.warn('[bg-cache] theme analysis failed for cached image:', e);
       }
-      changeBg(`url('${cachedDataUrl}')`, useWhite);
+      changeBg(`url('${cachedDataUrl}')`, theme);
     };
     img.onerror = () => {
       clearCachedBg();
@@ -253,13 +255,8 @@ const applyBackground = (value: string) => {
   loadExternal();
 };
 
-const isWindows = ref(false)
 onMounted(() => {
   applyBackground(menuStore.background);
-  // @ts-ignore
-  if (window["pxShowBar"]) {
-    isWindows.value = true;
-  }
 });
 
 const applyProfile = (data: any | null) => {
@@ -456,151 +453,118 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.cBody {
-  margin: 0;
+.app-root {
   display: flex;
   height: 100vh;
-  color: var(--text-color);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-  background-color: var(--blend-color);
-  background-blend-mode: overlay;
-  transition: background-image 0.6s ease-in-out, background-color 0.4s ease-in-out;
-  position: relative;
+  width: 100%;
   overflow: hidden;
+  position: relative;
+  color: var(--text);
+  background: var(--app-bg);
 }
 
-.cBody::before {
-  content: "";
+.app-bg {
   position: absolute;
   inset: 0;
-  background-color: var(--body-blur-color);
-  backdrop-filter: var(--body-blur);
   z-index: 0;
+  overflow: hidden;
   pointer-events: none;
 }
 
-.left {
-  margin-right: 22px;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  width: 208px;
-  flex-shrink: 0;
-  box-sizing: border-box;
+.app-bg__image {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: var(--panel-soft);
+  transition: background-image .3s;
 }
 
-.right {
-  z-index: 1;
-  overflow: hidden;
-  position: relative;
-  width: 100%;
-  flex-grow: 1;
-  margin: 15px 15px 15px 0;
-  border-radius: 35px;
-  background-color: var(--right-bg-color);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15),
-  0 2px 8px rgba(0, 0, 0, 0.08);
-  display: flex;
-  flex-direction: column;
-  border: var(--right-boder);
+.app-bg__overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--overlay);
 }
 
-.top-title {
-  padding-top: 40px;
-  margin-left: 22px;
-  width: 185px;
+.app-top {
+  position: absolute;
+  top: 0;
+  left: 228px;
+  right: 0;
+  height: 64px;
+  z-index: 6;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 16px;
-  -webkit-app-region: drag; /* Electron */
-  --wails-draggable: drag;  /* Wails (frameless on Windows/Linux) */
+  gap: 12px;
+  padding: 0 14px 0 0;
+}
+
+.app-side {
+  position: relative;
+  z-index: 1;
+  width: 228px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 52px 14px 16px;
+  gap: 14px;
+  overflow-y: auto;
+  scrollbar-width: none;
   user-select: none;
 }
 
-.win {
-  padding-top: 32px;
+.app-side::-webkit-scrollbar {
+  display: none;
 }
 
-.top-icon {
-  width: 80px;
-  height: 80px;
-  background-image: url("@/assets/images/appicon.png");
+.app-side__spacer {
+  flex: 1;
+}
+
+.app-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.app-brand__logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
-  border-radius: 0;
+  filter: var(--logo-shadow);
 }
 
-.top-title-text {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-color);
-  text-align: center;
-  line-height: 1.2;
-  width: 100%;
-  word-wrap: break-word;
+.app-brand__title {
+  max-width: 100%;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  text-shadow: var(--title-shadow);
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: var(--title-bg);
+  backdrop-filter: var(--side-blur);
 }
 
-.update-banner {
-  margin: 12px 0 0 22px;
-  padding: 14px 16px 16px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-  color: var(--text-color);
+.app-main {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+  margin: 64px 14px 14px 0;
+  border-radius: 12px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(var(--ui-blur));
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .25);
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  width: 185px;
-  align-self: flex-start;
-  box-sizing: border-box;
-}
-
-.update-banner__content {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.update-banner__message {
-  flex: 1;
-  font-size: 0.9rem;
-  line-height: 1.4;
-  opacity: 0.85;
-}
-
-.update-banner__open {
-  align-self: stretch;
-  width: 100%;
-  --el-button-bg-color: var(--left-item-selected-bg);
-  --el-button-hover-bg-color: var(--left-item-selected-bg);
-  --el-button-active-bg-color: var(--left-item-selected-bg);
-  --el-button-border-color: transparent;
-  --el-button-hover-border-color: transparent;
-  --el-button-active-border-color: transparent;
-  --el-button-text-color: var(--text-color);
-  --el-button-hover-text-color: var(--text-color);
-  --el-button-active-text-color: var(--text-color);
-  --el-border-radius-base: 999px;
-  border-radius: 999px;
-}
-
-.update-banner__dismiss {
-  color: inherit;
-  opacity: 0.7;
-  cursor: pointer;
-  font-size: 1.1rem;
-  flex-shrink: 0;
-  transition: opacity 0.2s ease;
-}
-
-.update-banner__dismiss:hover {
-  opacity: 1;
+  overflow: hidden;
 }
 </style>

@@ -6,6 +6,8 @@ import { Profile } from '@/types/profile';
 import createApi from '@/api';
 import { pError, pSuccess } from '@/util/pLoad';
 import { useWebStore } from '@/store/webStore';
+import AddProfileDialog from '@/components/profile/AddProfileDialog.vue';
+import UiDropdown from '@/components/ui/UiDropdown.vue';
 
 const { t } = useI18n();
 const { proxy } = getCurrentInstance()!;
@@ -13,14 +15,12 @@ const api = createApi(proxy);
 const webStore = useWebStore();
 
 const addFormVisible = ref(false);
-const addForm = ref({
-  content: '',
-});
+const addInitial = ref('');
 const isAdding = ref(false);
 
 // Открыть модальное окно добавления профиля (ручной ввод)
 function openAddProfileDialog() {
-  addForm.value.content = '';
+  addInitial.value = '';
   addFormVisible.value = true;
 }
 
@@ -31,7 +31,7 @@ function handlePaste() {
     pError(t('onboarding.active-profile.clipboard-empty'));
     return;
   }
-  addForm.value.content = text;
+  addInitial.value = text;
   addFormVisible.value = true;
 }
 
@@ -41,14 +41,17 @@ function openFile() {
 }
 
 // Добавить профиль из модального окна
-async function addProfile() {
-  if (!addForm.value.content.trim()) {
+async function addProfile(form: { content: string; ageSecretKey?: string }) {
+  if (!form.content.trim()) {
     return;
   }
 
   isAdding.value = true;
   const p = new Profile();
-  p.content = addForm.value.content;
+  p.content = form.content;
+  if (form.ageSecretKey) {
+    p.ageSecretKey = form.ageSecretKey;
+  }
 
   try {
     const newProfiles = await api.addProfileFromInput(p);
@@ -99,7 +102,7 @@ async function addProfile() {
 
     // Если профиль все еще без логотипа, делаем refresh еще раз для профиля из списка
     if (firstProfileId && activeProfile?.id === firstProfileId && activeProfile?.type === 1) {
-      if (!activeProfile?.logo && !activeProfile?.icon) {
+      if (!activeProfile?.logo && !(activeProfile as any)?.icon) {
         try {
           const refreshed = await api.refreshProfile(activeProfile);
           Object.assign(activeProfile, refreshed);
@@ -142,7 +145,6 @@ async function addProfile() {
     }));
 
     pSuccess(t('drag.success'));
-    addForm.value.content = '';
     addFormVisible.value = false;
   } catch (e) {
     if (e['message']) {
@@ -186,8 +188,7 @@ async function handleDrop(e: DragEvent) {
       return;
     }
 
-    addForm.value.content = content;
-    await addProfile();
+    await addProfile({content});
   };
 
   reader.onerror = () => {
@@ -200,7 +201,7 @@ async function handleDrop(e: DragEvent) {
 
 <template>
   <div
-    class="welcome-container"
+    class="welcome"
     @dragover="handleDragOver"
     @drop="handleDrop"
   >
@@ -208,86 +209,45 @@ async function handleDrop(e: DragEvent) {
       <h1 class="welcome-title">{{ t('onboarding.welcome.title') }}</h1>
       <p class="welcome-subtitle">{{ t('onboarding.welcome.subtitle') }}</p>
 
-      <div class="add-profile-button-container">
-        <!-- Dropdown меню -->
-        <el-dropdown trigger="click" @command="(cmd) => {
-          if (cmd === 'add') openAddProfileDialog();
-          else if (cmd === 'paste') handlePaste();
-          else if (cmd === 'file') openFile();
-        }">
-          <button class="add-profile-button" :aria-label="t('onboarding.welcome.add-profile')">
-            <el-icon :size="40">
-              <icon-mdi-plus-thick />
-            </el-icon>
+      <UiDropdown role="menu" :min-width="240" class="welcome-dd">
+        <template #trigger="{ toggle, attrs }">
+          <button type="button"
+                  v-bind="attrs"
+                  class="welcome-add"
+                  :aria-label="t('onboarding.welcome.add-profile')"
+                  @click="toggle">
+            <icon-tabler-plus width="44" height="44" stroke-width="2.6"/>
           </button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="add">
-                <el-icon><icon-mdi-pencil /></el-icon>
-                {{ t('profiles.add') }}
-              </el-dropdown-item>
-              <el-dropdown-item command="paste">
-                <el-icon><icon-mdi-content-paste /></el-icon>
-                {{ t('profiles.paste') }}
-              </el-dropdown-item>
-              <el-dropdown-item command="file">
-                <el-icon><icon-mdi-folder-open /></el-icon>
-                {{ t('profiles.open') }}
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-
-        <div class="add-profile-label">{{ t('onboarding.welcome.add-profile') }}</div>
-      </div>
+          <div class="welcome-add-label">{{ t('onboarding.welcome.add-profile') }}</div>
+        </template>
+        <template #default="{ close }">
+          <button type="button" role="menuitem" data-dd-item class="px-dd-item welcome-item" @click="close(); openAddProfileDialog()">
+            <icon-tabler-pencil width="16" height="16"/>{{ t('profiles.add') }}
+          </button>
+          <button type="button" role="menuitem" data-dd-item class="px-dd-item welcome-item" @click="close(); handlePaste()">
+            <icon-tabler-clipboard width="16" height="16"/>{{ t('profiles.paste') }}
+          </button>
+          <button type="button" role="menuitem" data-dd-item class="px-dd-item welcome-item" @click="close(); openFile()">
+            <icon-tabler-folder-open width="16" height="16"/>{{ t('profiles.open') }}
+          </button>
+        </template>
+      </UiDropdown>
     </div>
   </div>
 
-  <!-- Модальное окно добавления профиля -->
-  <el-dialog
-    v-model="addFormVisible"
-    :title="t('profiles.add')"
-    width="520"
-    draggable
-    center
-  >
-    <el-form :model="addForm">
-      <el-form-item>
-        <el-input
-          :rows="3"
-          type="textarea"
-          autocapitalize="off"
-          autocomplete="off"
-          spellcheck="false"
-          :placeholder="t('profiles.placeholder')"
-          v-model="addForm.content"
-        />
-      </el-form-item>
-    </el-form>
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="addFormVisible = false">
-          {{ t('cancel') }}
-        </el-button>
-        <el-button
-          type="primary"
-          @click="addProfile"
-          :loading="isAdding"
-        >
-          {{ t('confirm') }}
-        </el-button>
-      </div>
-    </template>
-  </el-dialog>
+  <AddProfileDialog v-model="addFormVisible"
+                    :initial-content="addInitial"
+                    :loading="isAdding"
+                    @submit="addProfile"/>
 </template>
 
 <style scoped>
-.welcome-container {
+.welcome {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  width: 100%;
+  padding: 40px 20px;
 }
 
 .welcome-content {
@@ -295,64 +255,71 @@ async function handleDrop(e: DragEvent) {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 40px 20px;
 }
 
 .welcome-title {
-  font-size: 32px;
-  font-weight: 600;
-  margin-bottom: 10px;
-  color: var(--text-color);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  margin: 0 0 10px;
 }
 
 .welcome-subtitle {
-  font-size: 18px;
-  margin-bottom: 50px;
-  color: var(--text-color);
-  opacity: 0.7;
+  font-size: 16px;
+  color: var(--text-2);
+  margin: 0 0 48px;
+  text-wrap: pretty;
 }
 
-.add-profile-button-container {
+.welcome-dd {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 15px;
-  margin-bottom: 20px;
+  gap: 14px;
 }
 
-.add-profile-button {
+.welcome-dd :deep(.px-dd-panel) {
+  top: 128px !important;
+  left: 50% !important;
+  transform: translateX(-50%);
+}
+
+.welcome-add {
   width: 120px;
   height: 120px;
   border-radius: 50%;
   border: none;
-  background: var(--left-nav-btn-bg);
-  color: var(--text-color);
-  cursor: pointer;
-  transition: all 0.3s ease;
+  background: var(--accent);
+  color: var(--on-accent);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--left-nav-shadow);
+  cursor: pointer;
+  box-shadow: 0 14px 36px color-mix(in srgb, var(--accent) 45%, transparent);
+  transition: transform .2s;
 }
 
-.add-profile-button:hover {
+.welcome-add:hover {
   transform: scale(1.05);
-  background: var(--left-nav-btn-active-bg);
-  box-shadow: var(--left-nav-hover-shadow);
 }
 
-.add-profile-button:active {
-  transform: scale(0.98);
+.welcome-add:active {
+  transform: scale(.97);
 }
 
-.add-profile-label {
+.welcome-add-label {
   font-size: 16px;
-  color: var(--text-color);
-  font-weight: 500;
+  font-weight: 600;
 }
 
-:deep(.el-dropdown-menu__item:hover) {
-  background-color: var(--left-item-selected-bg);
-  color: var(--text-color);
+.welcome-item {
+  font-weight: 600;
+  padding: 9px 12px;
+  gap: 10px;
+}
+
+.welcome-item svg {
+  color: var(--text-2);
+  flex-shrink: 0;
 }
 </style>

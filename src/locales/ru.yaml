@@ -34,15 +34,53 @@ sec-nav:
   crawl: Сканирование
 
 delete: Удалить
-confirm: Подтвердить
+confirm:
+  label: Подтвердить
+  close-all:
+    title: Закрыть все соединения?
+    text: Все активные соединения будут разорваны. Приложения переподключатся заново.
+    ok: Закрыть все
+  delete-template:
+    title: Удалить шаблон?
+    text: Шаблон правил будет удалён без возможности восстановления.
+    ok: Удалить
+  delete-dashboard:
+    title: Удалить панель?
+    text: «{name}» будет удалена из пользовательских панелей.
+    ok: Удалить
+  delete-profile:
+    title: Удалить профиль?
+    text: «{name}» будет удалён без возможности восстановления.
+    ok: Удалить
 cancel: Отмена
 on: ВКЛ
 off: ВЫКЛ
 refresh: Обновить
 add: Добавить
 edit: Редактировать
-quit: Выйти
-theme: Тема
+quit:
+  label: Выйти
+  confirm:
+    title: Выйти из Prizrak-Box?
+    text: Ядро будет остановлено, прокси и TUN отключатся.
+    ok: Выйти
+theme:
+  label: Тема
+  mode: Режим
+  auto: Авто
+  auto-tip: Режим подбирается по фоновому изображению, без него — по системной теме
+  light: Светлая
+  dark: Тёмная
+  use-image: Фоновое изображение
+  use-image-desc: Картинка за интерфейсом. Цвет акцента подбирается по ней автоматически.
+  transparency: Прозрачность интерфейса
+  blur: Размытие под панелями
+  dim: Затемнение фона
+  accent: Акцент
+  accent-from-image: Цвет акцента подобран по изображению и подстраивается под режим
+  accent-fallback: Не удалось определить цвет по изображению — используется выбранный акцент
+  reset: Сбросить
+  done: Готово
 mini: Свернуть
 max: Развернуть
 restore: Восстановить
@@ -66,6 +104,7 @@ drag:
   success: Импорт успешно завершён
   error: Не удалось импортировать профиль
 
+  formats: .yaml, .yml или .age
 home:
   download: Загрузка
   upload: Отправка
@@ -125,6 +164,7 @@ setting:
     groupName: Имя группы
     addGroupUrl: Добавить
     testUrlPlaceholder: 'https://example.com'
+    core-version-tip: Используемая версия Prizrak-Core
   px:
     auth: Совет по аутентификации
     startup: Автозапуск
@@ -166,6 +206,20 @@ setting:
     empty: Пока нет пользовательских панелей
     error: Укажите название и ссылку
 
+  section:
+    app: Приложение
+    core: Ядро
+    rule: Правила
+    connection: Соединения
+    log: Журнал
+    dns: DNS-переопределение
+    shortcut: Горячие клавиши
+  tips:
+    service: 'Служба с повышенными правами: TUN и системный прокси работают без запроса UAC при каждом запуске'
+    hwid: Привязка профиля к оборудованию — для подписок с лимитом на количество устройств
+    auth: Требовать пароль при открытии панели управления приложением
+    secret: Секретный ключ ядра Mihomo — даёт полный доступ к API. Не передавайте его третьим лицам.
+    independent-test: Тестировать задержку группы через собственный URL, а не через общий тест-адрес
 updates:
   banner:
     title: Доступно обновление
@@ -229,6 +283,10 @@ proxies:
     protocol: "Используется протокол {type}"
     unknown: "Тип протокола не определён"
 
+  jump-to-group: Перейти к группе
+  collapse-all: Свернуть все
+  expand-all: Развернуть все
+  show-more: Показать ещё {n}
 profiles:
   title: Профили
   primary: Основной
@@ -247,6 +305,7 @@ profiles:
     question: Вы уверены, что хотите продолжить?
     accept: Да
     decline: Нет
+    pick: Выбрать для мультивыбора
   available: Доступно
   use: Использовано
   expire: Истекает
@@ -269,6 +328,7 @@ profiles:
     url-error: Неверный формат URL
     update-tip: Интервал обновления должен быть больше 0 и меньше 128
     success: Успешно изменено
+    interval-locked: Интервал задан подпиской (profile-update-interval) и не может быть изменён
   refresh:
     ing: Обновление...
     success: Успешно обновлено
@@ -294,6 +354,7 @@ profiles:
     success: Профиль успешно отправлен на Android TV
     error: Ошибка импорта профиля на устройство с Prizrak-Box Android TV
 
+  deleted-select-new: Профиль удалён, выберите новый активный профиль
 rule:
   title: Правило
   success: Успешно сохранено
@@ -309,10 +370,10 @@ rule:
     m0: Неиспользуемый
     m1: По умолчанию
     m2: ru-bundle от legiz
-    m3: от Davoyan 
+    m3: от Davoyan
     reset: Сбросить
     test: Тест
-    test-success : Тест успешно пройден
+    test-success: Тест успешно пройден
     save-ing: Сохранение...
     switch:
       ing: Переключение...
@@ -322,12 +383,14 @@ rule:
       placeholder: Заголовок нельзя изменить после добавления
       tip: Содержимое шаблона не может быть пустым
       success: Добавлено успешно
+      new: Новый шаблон правил
     delete:
       success: Удалено успешно
   ignore:
     title: Игнорируемые домены
     tip: Разделяйте по строкам
     place: Введите здесь
+    info: 'Домены из этого списка обходят системный прокси и подключаются напрямую (DIRECT). Указывайте по одному домену в строке, например: localhost, *.local, intranet.company'
   providers:
     title: Провайдеры правил
     refresh: Обновить данные
@@ -351,6 +414,11 @@ rule:
     viewCards: Карточки
     viewTable: Таблица
 
+  tabs:
+    now: текущие
+    group: группы
+    providers: провайдеры
+    ignore: исключения
 connections:
   title: Соединения
   search: Поиск хоста
@@ -409,6 +477,17 @@ connections:
   open-in-browser: Открыть в браузере
   show-in-explorer: Показать в проводнике
 
+  sort:
+    label: Сортировка
+    time: По времени
+    download: По загрузке
+    upload: По отправке
+    dl-speed: По скорости загрузки
+    ul-speed: По скорости отправки
+    host: По хосту
+    asc: По возрастанию
+    desc: По убыванию
+  count: '{n} соединений'
 log:
   title: Журнал
   search: Поиск
@@ -417,6 +496,7 @@ dns:
   title: DNS-переопределение
   success: Успешно сохранено
 
+  hint: Блок dns в формате YAML — переопределяет настройки DNS из профиля.
 bg:
   default: По умолчанию
   harbor: Гавань
@@ -552,3 +632,59 @@ age:
   file:
     title: Введите age-secret-key
     hint: Для расшифровки .age файла укажите секретный ключ
+ui:
+  nav-label: Основная навигация
+  mode-label: Режим маршрутизации
+  language: Язык
+  window-controls: Управление окном
+  not-selected: Не выбрано
+  decrease: Уменьшить
+  increase: Увеличить
+  hours-short: ч
+  show: Показать
+  hide: Скрыть
+  saved: Сохранено
+  found: '{n} найдено'
+time:
+  just-now: только что
+  sec-ago: '{n} сек назад'
+  min-ago: '{n} мин назад'
+  hour-ago: '{n} ч назад'
+  today: сегодня
+  yesterday: вчера
+  days-ago: '{n} дн. назад'
+  weeks-ago: '{n} нед. назад'
+  months-ago: '{n} мес. назад'
+empty:
+  proxies:
+    title: Нет групп прокси
+    text: Выберите профиль или дождитесь загрузки конфигурации ядром.
+  profiles:
+    title: Нет профилей
+    text: Добавьте подписку, ссылку или файл конфигурации, чтобы начать.
+  providers:
+    title: Провайдеры правил не найдены
+    text: В текущем профиле нет rule-providers.
+  connections:
+    title: Нет соединений
+    text: Когда приложения начнут выходить в сеть, соединения появятся здесь.
+  logs:
+    title: Журнал пуст
+    text: Нет записей для выбранного уровня логирования.
+  search:
+    title: Ничего не найдено
+    text: Попробуйте изменить запрос.
+logs:
+  level: Уровень логирования
+  search: Поиск по журналу
+  autoscroll: Автопрокрутка
+  copy-all: Копировать всё
+  export: Экспорт в .log
+  clear: Очистить журнал
+  cleared: Журнал очищен
+  copied: 'Скопировано строк: {n}'
+  shown: Показаны последние {n}
+hotkey:
+  record-hint: Нажмите на поле и введите сочетание клавиш
+pause: Пауза
+resume: Продолжить

@@ -25,6 +25,7 @@ const visible = ref(false);
 const profileName = ref('');
 const message = ref('');
 const renewUrl = ref('');
+const logo = ref('');
 
 async function resolveProfile(profileId: string): Promise<any | null> {
   const cached = webStore.profileList?.find((p: any) => p.id === profileId);
@@ -52,6 +53,7 @@ async function handleClick(detail: SubscriptionAlertClickDetail) {
   profileName.value = profile?.title || profile?.headerTitle || '';
   message.value = formatAlertText(t, alert);
   renewUrl.value = profile?.renewUrl || '';
+  logo.value = typeof profile?.logo === 'string' ? profile.logo.trim() : '';
   visible.value = true;
 }
 
@@ -96,27 +98,45 @@ function goRenew() {
 </script>
 
 <template>
-  <el-dialog
-      v-model="visible"
-      :title="profileName"
-      width="380"
-      draggable
-      center
-  >
-    <p class="subscription-alert-modal__message">{{ message }}</p>
-    <template #footer>
-      <el-button @click="visible = false">{{ t('close') }}</el-button>
-      <el-button v-if="renewUrl" type="primary" @click="goRenew">
-        {{ t('profiles.renew') }}
-      </el-button>
+  <UiNotice v-model="visible" :title="profileName" :width="380" tone="warning">
+    <template #top>
+      <img v-if="logo" :src="logo" alt="" class="sub-alert-logo">
     </template>
-  </el-dialog>
+    <div class="sub-alert-pill">
+      <icon-tabler-bell width="17" height="17"/>
+      <span>{{ message }}</span>
+    </div>
+    <template #actions>
+      <button type="button" class="px-btn" @click="visible = false">{{ t('close') }}</button>
+      <button v-if="renewUrl" type="button" class="px-btn px-btn--primary" @click="goRenew">{{ t('profiles.renew') }}</button>
+    </template>
+  </UiNotice>
 </template>
 
 <style scoped>
-.subscription-alert-modal__message {
-  margin: 0;
-  text-align: center;
-  font-size: 15px;
+.sub-alert-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  object-fit: contain;
+  margin-bottom: 4px;
+}
+
+.sub-alert-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  color: var(--warning);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sub-alert-pill svg {
+  flex-shrink: 0;
 }
 </style>

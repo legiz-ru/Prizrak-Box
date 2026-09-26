@@ -32,7 +32,7 @@ type DeviceHeaderDetails = {
 };
 
 const updateHTTPClientConfig = (proxy: any) => async function (config: any): Promise<DeviceHeaderDetails> {
-    return await proxy.$http.put<DeviceHeaderDetails>('/prizrak/httpClientConfig', config);
+    return await proxy.$http.put('/prizrak/httpClientConfig', config) as DeviceHeaderDetails;
 }
 
 export default function createPrizrakApi(proxy: any) {

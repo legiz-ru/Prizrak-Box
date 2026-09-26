@@ -12,39 +12,34 @@
 //   - service types  Direct, Reject, Dns, ...
 //   - protocols      Vless, Trojan, Hysteria2, ...
 //
-// Icons are MDI except for the few protocols with a usable brand mark; see
+// Icons are Tabler except for the protocols with a usable brand mark; see
 // src/assets/icons/proto/ATTRIBUTION.md.
 
-import IconGestureTap from '~icons/mdi/gesture-tap';
-import IconClockFast from '~icons/mdi/clock-fast';
-import IconBackupRestore from '~icons/mdi/backup-restore';
-import IconScaleBalance from '~icons/mdi/scale-balance';
-import IconTransitConnection from '~icons/mdi/transit-connection-variant';
-import IconBrain from '~icons/mdi/brain';
+import IconPointer from '~icons/tabler/pointer';
+import IconClock from '~icons/tabler/clock';
+import IconReload from '~icons/tabler/reload';
+import IconScale from '~icons/tabler/scale';
+import IconRoute from '~icons/tabler/route';
+import IconBrain from '~icons/tabler/brain';
 
-import IconArrowRightBold from '~icons/mdi/arrow-right-bold-outline';
-import IconCancel from '~icons/mdi/cancel';
-import IconCloseOctagon from '~icons/mdi/close-octagon-outline';
-import IconForward from '~icons/mdi/forward';
-import IconDebugStepOver from '~icons/mdi/debug-step-over';
-import IconSync from '~icons/mdi/sync';
-import IconDns from '~icons/mdi/dns-outline';
-import IconCog from '~icons/mdi/cog-outline';
+import IconArrowRight from '~icons/tabler/arrow-right';
+import IconBan from '~icons/tabler/ban';
+import IconCircleX from '~icons/tabler/circle-x';
+import IconTrackNext from '~icons/tabler/player-track-next';
+import IconForwardUp from '~icons/tabler/arrow-forward-up';
+import IconRefresh from '~icons/tabler/refresh';
+import IconServer from '~icons/tabler/server-2';
+import IconSettings from '~icons/tabler/settings';
 
-import IconAirplane from '~icons/mdi/airplane';
-import IconAlphaV from '~icons/mdi/alpha-v-box-outline';
-import IconLightningBolt from '~icons/mdi/lightning-bolt-outline';
-import IconRocket from '~icons/mdi/rocket-launch-outline';
-import IconWeb from '~icons/mdi/web';
-import IconConsole from '~icons/mdi/console';
-import IconNetwork from '~icons/mdi/network-outline';
-
-import IconDominoMask from '~icons/mdi/domino-mask';
-import IconSemanticWeb from '~icons/mdi/semantic-web';
-
-import IconShieldLock from '~icons/mdi/shield-lock-outline';
-import IconSourceBranch from '~icons/mdi/source-branch';
-import IconHelpCircle from '~icons/mdi/help-circle-outline';
+import IconActivity from '~icons/tabler/activity';
+import IconBolt from '~icons/tabler/bolt';
+import IconLetterV from '~icons/tabler/letter-v';
+import IconRocket from '~icons/tabler/rocket';
+import IconWorld from '~icons/tabler/world';
+import IconTerminal from '~icons/tabler/terminal-2';
+import IconNetwork from '~icons/tabler/network';
+import IconMask from '~icons/tabler/mask';
+import IconTopologyStar from '~icons/tabler/topology-star-3';
 
 import IconXray from '~icons/proto/xray';
 import IconTrojan from '~icons/proto/trojan';
@@ -55,28 +50,32 @@ import IconTrustTunnel from '~icons/proto/trusttunnel';
 import IconSudoku from '~icons/proto/sudoku';
 import IconGostRelay from '~icons/proto/gost-relay';
 
+import IconShieldLock from '~icons/tabler/shield-lock';
+import IconGitBranch from '~icons/tabler/git-branch';
+import IconHelpCircle from '~icons/tabler/help-circle';
+
 type IconComponent = any;
 
 // Group types. Keyed lowercase so a core that changes casing cannot break the
 // lookup silently.
 const GROUP_ICONS: Record<string, IconComponent> = {
-    selector: IconGestureTap,
-    urltest: IconClockFast,
-    fallback: IconBackupRestore,
-    loadbalance: IconScaleBalance,
-    relay: IconTransitConnection,
+    selector: IconPointer,
+    urltest: IconClock,
+    fallback: IconReload,
+    loadbalance: IconScale,
+    relay: IconRoute,
     smart: IconBrain,
 };
 
 const SERVICE_ICONS: Record<string, IconComponent> = {
-    direct: IconArrowRightBold,
-    reject: IconCancel,
-    rejectdrop: IconCloseOctagon,
-    pass: IconForward,
-    passrule: IconDebugStepOver,
-    rematch: IconSync,
-    dns: IconDns,
-    compatible: IconCog,
+    direct: IconArrowRight,
+    reject: IconBan,
+    rejectdrop: IconCircleX,
+    pass: IconTrackNext,
+    passrule: IconForwardUp,
+    rematch: IconRefresh,
+    dns: IconServer,
+    compatible: IconSettings,
 };
 
 // Only protocols with a non-arbitrary mapping are named. Inventing a glyph for
@@ -86,24 +85,20 @@ const PROTOCOL_ICONS: Record<string, IconComponent> = {
     vless: IconXray,
     trojan: IconTrojan,
     trusttunnel: IconTrustTunnel,
-    vmess: IconAlphaV,
-    shadowsocks: IconAirplane,
-    shadowsocksr: IconAirplane,
-    hysteria: IconLightningBolt,
-    hysteria2: IconLightningBolt,
+    vmess: IconLetterV,
+    shadowsocks: IconActivity,
+    shadowsocksr: IconActivity,
+    hysteria: IconBolt,
+    hysteria2: IconBolt,
     tuic: IconRocket,
     wireguard: IconWireGuard,
     tailscale: IconTailscale,
     openvpn: IconOpenVpn,
-    http: IconWeb,
+    http: IconWorld,
     socks5: IconNetwork,
-    ssh: IconConsole,
-    // A domino mask and a semantic-web glyph aren't literal depictions of
-    // either protocol — chosen deliberately (per product decision) over a
-    // brand mark, since neither Masque nor AnyTLS has one that reduces to a
-    // legible monochrome badge.
-    masque: IconDominoMask,
-    anytls: IconSemanticWeb,
+    ssh: IconTerminal,
+    masque: IconMask,
+    anytls: IconTopologyStar,
     sudoku: IconSudoku,
     gostrelay: IconGostRelay,
 };
@@ -129,9 +124,9 @@ export function proxyTypeIcon(type: string | undefined, isGroup = false): IconCo
     const key = (type ?? '').toLowerCase();
     switch (proxyTypeKind(type, isGroup)) {
         case 'group':
-            return GROUP_ICONS[key] ?? IconSourceBranch;
+            return GROUP_ICONS[key] ?? IconGitBranch;
         case 'service':
-            return SERVICE_ICONS[key] ?? IconCog;
+            return SERVICE_ICONS[key] ?? IconSettings;
         case 'protocol':
             return PROTOCOL_ICONS[key] ?? IconShieldLock;
         default:

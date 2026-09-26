@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import createApi from "@/api";
-import {useProxiesStore, type ProxyViewMode} from "@/store/proxiesStore";
+import {useProxiesStore} from "@/store/proxiesStore";
 import {useMenuStore} from "@/store/menuStore";
 import {useSettingStore} from "@/store/settingStore";
 import {useI18n} from "vue-i18n";
@@ -9,6 +9,11 @@ import {useWebStore} from "@/store/webStore";
 import {changeProxyAndCloseConnections} from "@/util/proxy";
 import {proxyNodeDelayLimiter} from "@/util/pLimit";
 import {proxyTypeIcon, proxyTypeTooltip} from "@/util/proxyType";
+import {withFlag} from "@/util/flag";
+import {delayColor, delayLabel} from "@/util/delay";
+import UiDropdown from "@/components/ui/UiDropdown.vue";
+import IconArrowRight from "~icons/tabler/arrow-right";
+import IconRocket from "~icons/tabler/rocket";
 
 // Delay-test timeouts (ms). Kept distinct: a single node's dial should fail
 // fast, while a group-level /group/:name/delay call needs enough budget for
@@ -129,7 +134,7 @@ const selectedProxies = computed<Record<string, string>>(() => {
 
 // 获取分组
 async function groups() {
-  if (!webStore.fProfile || !webStore.fProfile['id']) {
+  if (!webStore.fProfile || !(webStore.fProfile as any)['id']) {
     groupList.value = [];
     groupIcons.value = {};
     groupTypeMap.value = {};
@@ -238,7 +243,7 @@ async function updateNestedGroupSelections() {
 
 // 获取节点列表
 async function nodes(onlyGroup?: string) {
-  if (!webStore.fProfile || !webStore.fProfile['id']) {
+  if (!webStore.fProfile || !(webStore.fProfile as any)['id']) {
     nodeList.value = [];
     fullViewNodes.value = {};
     nestedGroupSelections.value = {};
@@ -343,41 +348,6 @@ async function setHide() {
 // 设置排序
 async function setSort() {
   proxiesStore.setSort(!proxiesStore.isSort);
-  await nodes();
-}
-
-// 设置分组
-const viewModeOrder: Record<ProxyViewMode, ProxyViewMode> = {
-  horizontal: 'dropdown',
-  dropdown: 'full',
-  full: 'horizontal',
-};
-
-const viewModeTooltip = computed(() => {
-  switch (proxiesStore.viewMode) {
-    case 'horizontal':
-      return t('proxies.vertical-off');
-    case 'dropdown':
-      return t('proxies.full-view');
-    case 'full':
-      return t('proxies.vertical-on');
-  }
-  return t('proxies.vertical-off');
-});
-
-async function cycleViewMode() {
-  const nextMode = viewModeOrder[proxiesStore.viewMode];
-  proxiesStore.setViewMode(nextMode);
-  if (nextMode !== 'horizontal') {
-    atStart.value = true;
-    atEnd.value = true;
-  }
-  if (nextMode !== 'dropdown') {
-    isDropdownOpen.value = false;
-  }
-  setTimeout(() => {
-    updateButtonVisibility();
-  }, 200);
   await nodes();
 }
 
@@ -570,123 +540,118 @@ async function testGroupDelay(groupName: string) {
   }
 }
 
-const proxyGroup = ref(null);
-const atStart = ref(true); // 标记是否在最左边
-const atEnd = ref(true); // 标记是否在最右边
-
-const updateButtonVisibility = () => {
-  if (proxiesStore.viewMode !== 'horizontal' || !proxyGroup.value) {
-    atStart.value = true;
-    atEnd.value = true;
-    return;
-  }
-
-  const scrollLeft = proxyGroup.value.scrollLeft;
-  const scrollWidth = proxyGroup.value.scrollWidth;
-  const clientWidth = proxyGroup.value.clientWidth;
-
-  atStart.value = scrollLeft === 0;
-  atEnd.value = scrollLeft + clientWidth >= scrollWidth;
-};
-
-const scrollLeft = () => {
-  if (proxyGroup.value) {
-    proxyGroup.value.scrollLeft -= proxyGroup.value.clientWidth + 15;
-  }
-};
-
-const scrollRight = () => {
-  if (proxyGroup.value) {
-    proxyGroup.value.scrollLeft += proxyGroup.value.clientWidth - 15;
-  }
-};
-
-const scrollGroupIntoView = async (groupName: string) => {
-  await nextTick();
-  const container = proxyGroup.value as HTMLElement | null;
-  if (!container) {
-    return;
-  }
-  const buttons = Array.from(container.querySelectorAll<HTMLButtonElement>('button[data-group]'));
-  const target = buttons.find((button) => button.dataset.group === groupName);
-  if (!target) {
-    return;
-  }
-  target.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'center'});
-};
-
-let wheelAccumulator = 0;
-let wheelResetTimer: ReturnType<typeof setTimeout> | null = null;
-const handleGroupWheel = async (event: WheelEvent) => {
-  if (proxiesStore.viewMode !== 'horizontal' || groupList.value.length === 0) {
-    return;
-  }
-  if (event.deltaY === 0) {
-    return;
-  }
-  wheelAccumulator += event.deltaY;
-  if (wheelResetTimer) {
-    clearTimeout(wheelResetTimer);
-  }
-  wheelResetTimer = setTimeout(() => {
-    wheelAccumulator = 0;
-  }, 150);
-  if (Math.abs(wheelAccumulator) < 40) {
-    return;
-  }
-  const direction = wheelAccumulator > 0 ? 1 : -1;
-  wheelAccumulator = 0;
-  const groups = groupList.value;
-  const currentIndex = Math.max(0, groups.indexOf(proxiesStore.active));
-  const nextIndex = Math.min(groups.length - 1, Math.max(0, currentIndex + direction));
-  if (nextIndex === currentIndex) {
-    return;
-  }
-  await setActive(groups[nextIndex]);
-  await scrollGroupIntoView(groups[nextIndex]);
-};
-
-let isScrolling: any;
-const handleScroll = () => {
-  clearTimeout(isScrolling);
-  isScrolling = setTimeout(() => {
-    updateButtonVisibility();
-  }, 200); // 200ms 延迟
-};
-
-const isDropdownOpen = ref(false);
 const toggleGroup = (group: string) => {
   const next = !expandedGroups.value[group];
   proxiesStore.setGroupExpansionState(group, next);
 };
 
-// 添加延时隐藏下拉菜单
-let isOvering: any;
-const hideDropdown = () => {
-  isOvering = setTimeout(() => {
-    isDropdownOpen.value = false;
-  }, 200); // 延迟 200 毫秒
-};
+// --- Full view presentation -------------------------------------------------
 
-// 鼠标进入下拉菜单时，清除延时隐藏
-const enterDropDown = () => {
-  clearTimeout(isOvering);
-  if (!isDropdownOpen.value) {
-    runDelayTestSilent(); // fire-and-forget: auto-test when dropdown first opens
+// First load: skeletons until the group list has been fetched once.
+const loaded = ref(false);
+
+const anyGroupOpen = computed(() => groupList.value.some(group => expandedGroups.value[group]));
+
+function toggleAllGroups() {
+  const open = !anyGroupOpen.value;
+  const result: Record<string, boolean> = {};
+  groupList.value.forEach(group => {
+    result[group] = open;
+  });
+  proxiesStore.replaceGroupExpansions(result);
+}
+
+// An expanded group is capped at the visible height minus ~150 px and scrolls
+// inside itself, so the next group header is always a short scroll away.
+const scrollBox = ref<HTMLElement | null>(null);
+const viewHeight = ref(640);
+let resizeObserver: ResizeObserver | null = null;
+const groupMaxHeight = computed(() => Math.max(180, viewHeight.value - 150) + 'px');
+
+// Nodes of an expanded group are rendered in chunks of 60; more are added when
+// the inner list is scrolled near its end or via "Show N more".
+const CHUNK = 60;
+const renderLimit = ref<Record<string, number>>({});
+const limitOf = (group: string) => renderLimit.value[group] ?? CHUNK;
+const visibleNodes = (group: string) => (fullViewNodes.value[group] ?? []).slice(0, limitOf(group));
+const hiddenCount = (group: string) => Math.max(0, (fullViewNodes.value[group]?.length ?? 0) - limitOf(group));
+
+function showMore(group: string) {
+  renderLimit.value = {...renderLimit.value, [group]: limitOf(group) + CHUNK * 2};
+}
+
+function onGroupScroll(group: string, e: Event) {
+  const el = e.currentTarget as HTMLElement;
+  if (hiddenCount(group) > 0 && el.scrollTop + el.clientHeight > el.scrollHeight - 200) {
+    showMore(group);
   }
-  isDropdownOpen.value = true;
-};
+}
+
+// "Jump to group" is only worth it when there are more than 7 visible groups.
+const showJump = computed(() => groupList.value.length > 7);
+
+async function jumpToGroup(group: string) {
+  proxiesStore.setGroupExpansionState(group, true);
+  await nextTick();
+  const box = scrollBox.value;
+  const el = box?.querySelector<HTMLElement>(`[data-group="${CSS.escape(group)}"]`);
+  if (box && el) {
+    box.scrollTo({top: el.offsetTop - 8, behavior: 'smooth'});
+    el.querySelector<HTMLElement>('.group-head')?.focus({preventScroll: true});
+  }
+}
+
+const nodeName = (node: any) => withFlag(node?.displayName ?? node?.name);
+
+// Weight badge: rank of a node inside a Smart group, or the "weights ready"
+// summary for a node that is itself a Smart group.
+function weightInfo(group: string, node: any): { icon: 'most' | 'occasional' | 'rarely' | 'none' | 'ready'; tip: string; tone: string } | null {
+  if (groupTypeMap.value[group] === 'Smart') {
+    const info = getNodeWeightInfo(group, node?.name);
+    switch (info?.rank) {
+      case 'MostUsed':
+        return {icon: 'most', tone: 'var(--success)', tip: t('proxies.smart.most-used-tip', {weight: info.weight})};
+      case 'OccasionalUsed':
+        return {icon: 'occasional', tone: 'var(--warning)', tip: t('proxies.smart.occasional-used-tip', {weight: info.weight})};
+      case 'RarelyUsed':
+        return {icon: 'rarely', tone: 'var(--text-3)', tip: t('proxies.smart.rarely-used-tip', {weight: info.weight})};
+      default:
+        return {icon: 'none', tone: 'var(--text-3)', tip: t('proxies.smart.no-data')};
+    }
+  }
+  if (node?.type === 'Smart') {
+    const data = smartGroupWeights.value[node.name];
+    if (!data?.hasData) {
+      return {icon: 'none', tone: 'var(--text-3)', tip: t('proxies.smart.no-data')};
+    }
+    const tip = data.weights.map(w => `${w.Name}: ${rankLabel(w.Rank)} (${w.Weight})`).join('\n');
+    return {icon: 'ready', tone: 'var(--accent)', tip};
+  }
+  return null;
+}
 
 let fresh: any = null;
 let weightsInterval: any = null;
 let earlyRetryInterval: any = null;
 onMounted(async () => {
-  await groups();
-  await nodes();
-  updateButtonVisibility();
+  // Only the full view exists in the redesign.
+  if (proxiesStore.viewMode !== 'full') {
+    proxiesStore.setViewMode('full');
+  }
+  if (scrollBox.value) {
+    viewHeight.value = scrollBox.value.clientHeight;
+    resizeObserver = new ResizeObserver(() => {
+      if (scrollBox.value) viewHeight.value = scrollBox.value.clientHeight;
+    });
+    resizeObserver.observe(scrollBox.value);
+  }
+  try {
+    await groups();
+    await nodes();
+  } finally {
+    loaded.value = true;
+  }
   runDelayTestSilent(); // fire-and-forget: auto-test on initial mount
-  // 监听 resize 事件
-  window.addEventListener("resize", updateButtonVisibility);
 
   // earlyRetry: если Mihomo ещё не загрузил pxd-template конфиг при старте —
   // повторяем каждые 3 секунды до 30 секунд, пока группы не появятся.
@@ -722,8 +687,7 @@ onBeforeUnmount(() => {
   clearInterval(fresh);
   clearInterval(weightsInterval);
   clearInterval(earlyRetryInterval);
-  // 移除 resize 事件监听
-  window.removeEventListener("resize", updateButtonVisibility);
+  resizeObserver?.disconnect();
 });
 
 // 监听具体状态
@@ -731,14 +695,12 @@ watch(() => menuStore.rule, // 监听 store 中的某个状态
     async () => {
       await groups();
       await nodes();
-      updateButtonVisibility();
     }
 );
 
 watch(() => webStore.fProfile, async () => {
   await groups();
   await nodes();
-  updateButtonVisibility();
   runDelayTestSilent(); // fire-and-forget: auto-test after profile switch
 })
 
@@ -759,856 +721,406 @@ watch(groupList, (list) => {
 </script>
 
 <template>
-  <MyLayout hr-show>
-    <template #top>
-      <el-space class="space">
-        <div class="title">
-          {{ $t("proxies.title") }}
-        </div>
-        <div class="proxy-option">
-          <el-tooltip :content="$t('proxies.test')" placement="top">
-            <el-icon
-                @click="testDelay"
-                class="proxy-option-btn"
-                :class="{ 'proxy-option-btn--testing': bulkTestRunning }"
-            >
-              <icon-ep-loading v-if="bulkTestRunning"/>
-              <icon-mdi-speedometer v-else/>
-            </el-icon>
-          </el-tooltip>
+  <div class="px-page">
+    <div class="px-page-head proxies-head">
+      <h1 class="px-page-title">{{ $t("proxies.title") }}</h1>
+      <div class="proxies-tools">
+        <UiIconButton :label="anyGroupOpen ? $t('proxies.collapse-all') : $t('proxies.expand-all')" @click="toggleAllGroups">
+          <icon-tabler-fold v-if="anyGroupOpen" width="17" height="17"/>
+          <icon-tabler-selector v-else width="17" height="17"/>
+        </UiIconButton>
+        <UiIconButton :label="$t('proxies.test')" :loading="bulkTestRunning" :active="bulkTestRunning" @click="testDelay">
+          <UiSpinner v-if="bulkTestRunning"/>
+          <icon-tabler-bolt v-else width="17" height="17"/>
+        </UiIconButton>
+        <UiIconButton :label="proxiesStore.isHide ? $t('proxies.hide-on') : $t('proxies.hide-off')"
+                      :active="proxiesStore.isHide"
+                      :pressed="proxiesStore.isHide"
+                      @click="setHide">
+          <icon-tabler-eye-off v-if="proxiesStore.isHide" width="17" height="17"/>
+          <icon-tabler-eye v-else width="17" height="17"/>
+        </UiIconButton>
+        <UiIconButton :label="proxiesStore.isSort ? $t('proxies.sort-on') : $t('proxies.sort-off')"
+                      :active="proxiesStore.isSort"
+                      :pressed="proxiesStore.isSort"
+                      @click="setSort">
+          <icon-tabler-sort-descending v-if="proxiesStore.isSort" width="17" height="17"/>
+          <icon-tabler-arrows-sort v-else width="17" height="17"/>
+        </UiIconButton>
+        <UiDropdown v-if="showJump" align="right" :min-width="240" :max-width="320" :max-height="360">
+          <template #trigger="{ open, toggle, attrs }">
+            <button type="button" v-bind="attrs" class="jump-btn" :class="{ 'is-open': open }" @click="toggle">
+              <icon-tabler-list width="15" height="15"/>
+              {{ $t('proxies.jump-to-group') }}
+              <icon-tabler-chevron-down class="jump-chev" :class="{ 'is-open': open }" width="13" height="13"/>
+            </button>
+          </template>
+          <template #default="{ close }">
+            <button v-for="group in groupList"
+                    :key="group + '-jump'"
+                    type="button"
+                    role="option"
+                    data-dd-item
+                    aria-selected="false"
+                    class="px-dd-item"
+                    @click="close(); jumpToGroup(group)">
+              <span class="ellipsis" style="flex:1" v-tip="withFlag(group)">{{ withFlag(group) }}</span>
+              <span class="jump-count tabular">{{ fullViewNodes[group]?.length ?? '' }}</span>
+            </button>
+          </template>
+        </UiDropdown>
+      </div>
+    </div>
 
-          <el-tooltip
-              :content="
-              proxiesStore.isHide
-                ? $t('proxies.hide-on')
-                : $t('proxies.hide-off')
-            "
-              placement="top"
-          >
-            <el-icon @click="setHide" class="proxy-option-btn">
-              <icon-mdi-eye-off v-if="proxiesStore.isHide"/>
-              <icon-mdi-eye v-else/>
-            </el-icon>
-          </el-tooltip>
+    <div ref="scrollBox" class="proxies-body">
+      <UiSkeleton v-if="!loaded && menuStore.rule != 'direct'" variant="group" :count="3"/>
 
-          <el-tooltip
-              :content="
-              proxiesStore.isSort
-                ? $t('proxies.sort-on')
-                : $t('proxies.sort-off')
-            "
-              placement="top"
-          >
-            <el-icon @click="setSort" class="proxy-option-btn">
-              <icon-mdi-sort-ascending v-if="proxiesStore.isSort"/>
-              <icon-mdi-sort v-else/>
-            </el-icon>
-          </el-tooltip>
+      <div v-else-if="menuStore.rule == 'direct'" class="proxies-direct">
+        <UiEmpty :icon="IconArrowRight" :title="$t('proxies.direct')"/>
+      </div>
 
-          <el-tooltip
-              :content="viewModeTooltip"
-              placement="top"
-          >
-            <el-icon @click="cycleViewMode" class="proxy-option-btn">
-              <icon-mdi-arrow-expand-horizontal v-if="proxiesStore.viewMode === 'horizontal'"/>
-              <icon-mdi-arrow-expand-vertical v-else-if="proxiesStore.viewMode === 'dropdown'"/>
-              <icon-mdi-format-list-bulleted v-else/>
-            </el-icon>
-          </el-tooltip>
-        </div>
-      </el-space>
+      <UiEmpty v-else-if="groupList.length === 0"
+               :icon="IconRocket"
+               :title="$t('empty.proxies.title')"
+               :text="$t('empty.proxies.text')"/>
 
-      <div
-          class="dropdown"
-          v-if="proxiesStore.viewMode === 'dropdown' && menuStore.rule != 'direct' && groupList.length > 0"
-      >
-        <button
-            class="dropdown-btn"
-            @mouseenter="enterDropDown"
-            @mouseleave="hideDropdown"
-        >
-            <span class="dropdown-btn-content">
-            <span
-                v-if="groupIcons[proxiesStore.active]"
-                class="proxy-icon-wrapper proxy-icon-wrapper--dropdown"
-            >
-              <img
-                  :src="groupIcons[proxiesStore.active]"
-                  alt=""
-                  class="dropdown-item-icon"
-                  @error="handleIconError"
-              />
-            </span>
-            <span class="dropdown-item-label">{{ proxiesStore.active }}</span>
-          </span>
-        </button>
-        <ul
-            v-if="isDropdownOpen"
-            @mouseenter="enterDropDown"
-            @mouseleave="hideDropdown"
-            class="dropdown-list"
-        >
-          <li
-              v-for="item in groupList"
-              :key="item + '-gv'"
-              @click="setActive(item)"
-              class="dropdown-item"
-          >
-            <span class="dropdown-btn-content">
-              <span
-                  v-if="groupIcons[item]"
-                  class="proxy-icon-wrapper proxy-icon-wrapper--dropdown"
-              >
-                <img
-                    :src="groupIcons[item]"
-                    alt=""
-                    class="dropdown-item-icon"
-                    @error="handleIconError"
-                />
+      <section v-for="group in groupList"
+               v-else
+               :key="group + '-full'"
+               class="group"
+               :data-group="group">
+        <div class="group-head"
+             role="button"
+             tabindex="0"
+             :aria-expanded="expandedGroups[group] ? 'true' : 'false'"
+             @click="toggleGroup(group)">
+          <div class="group-head__main">
+            <div class="group-icon">
+              <img v-if="groupIcons[group]" :src="groupIcons[group]" alt="" @error="handleIconError">
+              <span v-else class="group-type" v-tip="proxyTypeTooltip(groupTypeMap[group], true, t)">
+                <component :is="proxyTypeIcon(groupTypeMap[group], true)" width="17" height="17"/>
               </span>
-              <span class="dropdown-item-label">{{ item }}</span>
-            </span>
-          </li>
-        </ul>
-      </div>
-
-      <div
-          class="button-container"
-          v-if="proxiesStore.viewMode === 'horizontal' && menuStore.rule != 'direct' && groupList.length > 0"
-      >
-        <el-icon v-if="!atStart" @click="scrollLeft" class="scroll-left">
-          <icon-mdi-arrow-expand-left/>
-        </el-icon>
-        <div
-            @scroll="handleScroll"
-            @wheel.prevent="handleGroupWheel"
-            ref="proxyGroup"
-            class="proxy-group"
-        >
-          <button
-              :class="
-              proxiesStore.active == item
-                ? 'proxy-group-title proxy-group-title-select'
-                : 'proxy-group-title'
-            "
-              @click="setActive(item)"
-              v-for="item in groupList"
-              :key="item + '-g'"
-              :data-group="item"
-          >
-            <span class="proxy-group-content">
-              <span
-                  v-if="groupIcons[item]"
-                  class="proxy-icon-wrapper proxy-icon-wrapper--button"
-              >
-                <img
-                    :src="groupIcons[item]"
-                    alt=""
-                    class="proxy-group-icon"
-                    @error="handleIconError"
-                />
+            </div>
+            <div class="group-text">
+              <span class="group-name ellipsis" v-tip="withFlag(group)">{{ withFlag(group) }}</span>
+              <span v-if="selectedProxies[group] && groupTypeMap[group] !== 'Smart' && groupTypeMap[group] !== 'LoadBalance'"
+                    class="group-selected ellipsis">
+                {{ $t('proxies.selected-label') }}: {{ withFlag(selectedProxies[group]) }}
               </span>
-              <span class="proxy-group-label">{{ item }}</span>
-            </span>
-          </button>
-        </div>
-        <el-icon v-if="!atEnd" class="scroll-right" @click="scrollRight">
-          <icon-mdi-arrow-expand-right/>
-        </el-icon>
-      </div>
-    </template>
-
-
-    <template #bottom>
-      <div class="proxy-nodes" v-if="proxiesStore.viewMode !== 'full'">
-        <div
-            :class="
-            node['now']
-              ? 'proxy-nodes-card proxy-node-select'
-              : 'proxy-nodes-card'
-          "
-            v-for="node in nodeList"
-            @click="setProxy(node['now'], node['name'])"
-            :key="node['name']"
-        >
-          <div class="proxy-nodes-title">
-            <span class="proxy-node-name" :title="node['name']">
-              {{ node["displayName"] ?? node["name"] }}
-            </span>
-            <span v-if="node['origin']" class="proxy-origin" :title="node['origin']">
-              {{ node["origin"] }}
-            </span>
+            </div>
           </div>
-          <div class="proxy-nodes-tags">
-            <span class="proxy-nodes-tags-left">
-              <el-tooltip :content="typeTooltip(node)" placement="top">
-                <el-icon class="proxy-type-icon">
-                  <component :is="typeIcon(node)"/>
-                </el-icon>
-              </el-tooltip>
-              <span v-if="serverDescription(node)" class="proxy-type-desc">{{ serverDescription(node) }}</span>
-              <template v-if="nestedGroupSelections[node['name']] && node['type']?.toLowerCase() !== 'smart' && node['type']?.toLowerCase() !== 'loadbalance'">
-                <span v-if="serverDescription(node)" class="proxy-selected-separator">•</span>
-                <span class="proxy-selected-name" :title="nestedGroupSelections[node['name']]">
-                  {{ nestedGroupSelections[node['name']] }}
+          <div class="group-head__actions">
+            <UiIconButton :size="26"
+                          :label="$t('proxies.test-group')"
+                          :loading="groupLatencyTesting[group]"
+                          :active="groupLatencyTesting[group]"
+                          @click.stop="testGroupDelay(group)">
+              <UiSpinner v-if="groupLatencyTesting[group]"/>
+              <icon-tabler-bolt v-else width="16" height="16"/>
+            </UiIconButton>
+            <icon-tabler-chevron-down class="group-chev" :class="{ 'is-collapsed': !expandedGroups[group] }" width="16" height="16"/>
+          </div>
+        </div>
+
+        <!-- Collapsed groups render no nodes at all. -->
+        <template v-if="expandedGroups[group]">
+          <div v-if="!fullViewNodes[group]" class="group-loading">
+            <UiSpinner/>
+            {{ $t('proxies.loading') }}
+          </div>
+          <div v-else
+               class="group-nodes"
+               :style="{ maxHeight: groupMaxHeight }"
+               @scroll.passive="onGroupScroll(group, $event)">
+            <button v-for="node in visibleNodes(group)"
+                    :key="group + '-' + node['name']"
+                    type="button"
+                    class="node"
+                    :class="{ 'is-selected': node['now'] }"
+                    :aria-pressed="node['now'] ? 'true' : 'false'"
+                    @click="setProxy(node['now'], node['name'], group)">
+              <span class="node-name ellipsis" v-tip="nodeName(node)">{{ nodeName(node) }}</span>
+              <span class="node-meta">
+                <span class="node-type" v-tip="typeTooltip(node)">
+                  <component :is="typeIcon(node)" width="14" height="14"/>
                 </span>
-              </template>
-            </span>
-            <span class="proxy-nodes-tags-right">
-              <!-- Иконка ранга: прокси внутри Smart-группы -->
-              <template v-if="groupTypeMap[proxiesStore.active] === 'Smart'">
-                <el-tooltip v-if="getNodeWeightInfo(proxiesStore.active, node['name'])?.rank === 'MostUsed'" :content="t('proxies.smart.most-used-tip', { weight: getNodeWeightInfo(proxiesStore.active, node['name'])?.weight })" placement="top">
-                  <el-icon class="proxy-weight-icon"><icon-mdi-shield/></el-icon>
-                </el-tooltip>
-                <el-tooltip v-else-if="getNodeWeightInfo(proxiesStore.active, node['name'])?.rank === 'OccasionalUsed'" :content="t('proxies.smart.occasional-used-tip', { weight: getNodeWeightInfo(proxiesStore.active, node['name'])?.weight })" placement="top">
-                  <el-icon class="proxy-weight-icon"><icon-mdi-shield-half-full/></el-icon>
-                </el-tooltip>
-                <el-tooltip v-else-if="getNodeWeightInfo(proxiesStore.active, node['name'])?.rank === 'RarelyUsed'" :content="t('proxies.smart.rarely-used-tip', { weight: getNodeWeightInfo(proxiesStore.active, node['name'])?.weight })" placement="top">
-                  <el-icon class="proxy-weight-icon"><icon-mdi-shield-outline/></el-icon>
-                </el-tooltip>
-                <el-tooltip v-else :content="t('proxies.smart.no-data')" placement="top">
-                  <el-icon class="proxy-weight-icon"><icon-mdi-shield-sync-outline/></el-icon>
-                </el-tooltip>
-              </template>
-              <!-- Иконка сводки: сам прокси является Smart-группой -->
-              <template v-else-if="node['type'] === 'Smart'">
-                <el-tooltip v-if="!smartGroupWeights[node['name']]?.hasData" :content="t('proxies.smart.no-data')" placement="top">
-                  <el-icon class="proxy-weight-icon"><icon-mdi-shield-sync-outline/></el-icon>
-                </el-tooltip>
-                <el-tooltip v-else placement="top">
-                  <template #content>
-                    <div v-for="w in smartGroupWeights[node['name']].weights" :key="w.Name" class="weight-tooltip-row">
-                      {{ w.Name }}: {{ rankLabel(w.Rank) }} ({{ w.Weight }})
-                    </div>
-                  </template>
-                  <el-icon class="proxy-weight-icon"><icon-mdi-shield-check-outline/></el-icon>
-                </el-tooltip>
-              </template>
-              <span :class="node['toClass']">{{ node["delay"] }} ms</span>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div
-          class="full-view-groups"
-          v-else-if="menuStore.rule != 'direct' && groupList.length > 0"
-      >
-        <div
-            class="full-view-group"
-            v-for="group in groupList"
-            :key="group + '-full'"
-        >
-          <div class="full-view-header" @click="toggleGroup(group)">
-            <div class="full-view-info">
-              <span
-                  v-if="groupIcons[group]"
-                  class="proxy-icon-wrapper proxy-icon-wrapper--full"
-              >
-                <img
-                    :src="groupIcons[group]"
-                    alt=""
-                    class="full-view-icon"
-                    @error="handleIconError"
-                />
+                <span v-if="serverDescription(node) || node['origin'] || (nestedGroupSelections[node['name']] && node['type']?.toLowerCase() !== 'smart' && node['type']?.toLowerCase() !== 'loadbalance')"
+                      class="node-desc ellipsis"
+                      v-tip="[serverDescription(node), node['origin'], nestedGroupSelections[node['name']]].filter(Boolean).join(' • ')">
+                  {{ [serverDescription(node), node['origin'], (node['type']?.toLowerCase() !== 'smart' && node['type']?.toLowerCase() !== 'loadbalance') ? withFlag(nestedGroupSelections[node['name']]) : ''].filter(Boolean).join(' • ') }}
+                </span>
+                <span class="node-spacer"></span>
+                <template v-for="w in [weightInfo(group, node)]" :key="'w'">
+                  <span v-if="w" class="node-weight" :style="{ color: w.tone }" v-tip="w.tip">
+                    <icon-tabler-shield-half v-if="w.icon === 'occasional'" width="13" height="13"/>
+                    <icon-tabler-shield-question v-else-if="w.icon === 'none'" width="13" height="13"/>
+                    <icon-tabler-shield-check v-else-if="w.icon === 'ready'" width="13" height="13"/>
+                    <icon-tabler-shield v-else width="13" height="13"/>
+                  </span>
+                </template>
+                <span class="node-delay tabular" :style="{ color: delayColor(node['delay']) }">{{ delayLabel(node['delay']) }}</span>
               </span>
-              <div class="full-view-text">
-                <span class="full-view-title">
-                  {{ group }}
-                </span>
-                <span v-if="selectedProxies[group] && groupTypeMap[group] !== 'Smart' && groupTypeMap[group] !== 'LoadBalance'" class="full-view-selected">
-                  {{ $t('proxies.selected-label') }}: {{ selectedProxies[group] }}
-                </span>
-              </div>
-            </div>
-            <div class="full-view-header-actions">
-              <el-tooltip :content="$t('proxies.test-group')" placement="top">
-                <el-icon
-                    class="full-view-test-btn"
-                    :class="{ 'full-view-test-btn--testing': groupLatencyTesting[group] }"
-                    @click.stop="testGroupDelay(group)"
-                >
-                  <icon-ep-loading v-if="groupLatencyTesting[group]"/>
-                  <icon-mdi-speedometer v-else/>
-                </el-icon>
-              </el-tooltip>
-              <el-icon class="full-view-toggle">
-                <icon-ep-arrow-up v-if="expandedGroups[group]"/>
-                <icon-ep-arrow-down v-else/>
-              </el-icon>
-            </div>
+            </button>
+            <button v-if="hiddenCount(group) > 0" type="button" class="show-more" @click="showMore(group)">
+              {{ $t('proxies.show-more', {n: hiddenCount(group)}) }}
+            </button>
           </div>
-          <div class="full-view-content" v-show="expandedGroups[group]">
-            <div v-if="!fullViewNodes[group]" class="full-view-loading">
-              {{ $t('proxies.loading') }}
-            </div>
-            <div v-else class="proxy-nodes full-view-nodes">
-              <div
-                  :class="
-                  node['now']
-                    ? 'proxy-nodes-card proxy-node-select'
-                    : 'proxy-nodes-card'
-                "
-                  v-for="node in fullViewNodes[group]"
-                  @click="setProxy(node['now'], node['name'], group)"
-                  :key="group + '-' + node['name']"
-              >
-                <div class="proxy-nodes-title">
-                  <span class="proxy-node-name" :title="node['name']">
-                    {{ node["displayName"] ?? node["name"] }}
-                  </span>
-                  <span v-if="node['origin']" class="proxy-origin" :title="node['origin']">
-                    {{ node["origin"] }}
-                  </span>
-                </div>
-                <div class="proxy-nodes-tags">
-                  <span class="proxy-nodes-tags-left">
-                    <el-tooltip :content="typeTooltip(node)" placement="top">
-                      <el-icon class="proxy-type-icon">
-                        <component :is="typeIcon(node)"/>
-                      </el-icon>
-                    </el-tooltip>
-                    <span v-if="serverDescription(node)" class="proxy-type-desc">{{ serverDescription(node) }}</span>
-                    <template v-if="nestedGroupSelections[node['name']] && node['type']?.toLowerCase() !== 'smart' && node['type']?.toLowerCase() !== 'loadbalance'">
-                      <span v-if="serverDescription(node)" class="proxy-selected-separator">•</span>
-                      <span class="proxy-selected-name" :title="nestedGroupSelections[node['name']]">
-                        {{ nestedGroupSelections[node['name']] }}
-                      </span>
-                    </template>
-                  </span>
-                  <span class="proxy-nodes-tags-right">
-                    <!-- Иконка ранга: прокси внутри Smart-группы -->
-                    <template v-if="groupTypeMap[group] === 'Smart'">
-                      <el-tooltip v-if="getNodeWeightInfo(group, node['name'])?.rank === 'MostUsed'" :content="t('proxies.smart.most-used-tip', { weight: getNodeWeightInfo(group, node['name'])?.weight })" placement="top">
-                        <el-icon class="proxy-weight-icon"><icon-mdi-shield/></el-icon>
-                      </el-tooltip>
-                      <el-tooltip v-else-if="getNodeWeightInfo(group, node['name'])?.rank === 'OccasionalUsed'" :content="t('proxies.smart.occasional-used-tip', { weight: getNodeWeightInfo(group, node['name'])?.weight })" placement="top">
-                        <el-icon class="proxy-weight-icon"><icon-mdi-shield-half-full/></el-icon>
-                      </el-tooltip>
-                      <el-tooltip v-else-if="getNodeWeightInfo(group, node['name'])?.rank === 'RarelyUsed'" :content="t('proxies.smart.rarely-used-tip', { weight: getNodeWeightInfo(group, node['name'])?.weight })" placement="top">
-                        <el-icon class="proxy-weight-icon"><icon-mdi-shield-outline/></el-icon>
-                      </el-tooltip>
-                      <el-tooltip v-else :content="t('proxies.smart.no-data')" placement="top">
-                        <el-icon class="proxy-weight-icon"><icon-mdi-shield-sync-outline/></el-icon>
-                      </el-tooltip>
-                    </template>
-                    <!-- Иконка сводки: сам прокси является Smart-группой -->
-                    <template v-else-if="node['type'] === 'Smart'">
-                      <el-tooltip v-if="!smartGroupWeights[node['name']]?.hasData" :content="t('proxies.smart.no-data')" placement="top">
-                        <el-icon class="proxy-weight-icon"><icon-mdi-shield-sync-outline/></el-icon>
-                      </el-tooltip>
-                      <el-tooltip v-else placement="top">
-                        <template #content>
-                          <div v-for="w in smartGroupWeights[node['name']].weights" :key="w.Name" class="weight-tooltip-row">
-                            {{ w.Name }}: {{ rankLabel(w.Rank) }} ({{ w.Weight }})
-                          </div>
-                        </template>
-                        <el-icon class="proxy-weight-icon"><icon-mdi-shield-check-outline/></el-icon>
-                      </el-tooltip>
-                    </template>
-                    <span :class="node['toClass']">{{ node["delay"] }} ms</span>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="proxy-nodes" v-if="menuStore.rule == 'direct'">
-        {{ $t("proxies.direct") }}
-      </div>
-    </template>
-  </MyLayout>
+        </template>
+      </section>
+    </div>
+  </div>
 </template>
 
 <style scoped>
-:deep(.bottom) {
-  padding-bottom: 0;
-}
-
-.space {
-  margin-top: 15px;
-}
-
-.title {
-  font-size: 32px;
-  font-weight: bold;
-  margin-left: 10px;
-}
-
-.proxy-option {
-  margin-left: 10px;
-  font-size: 30px;
-  padding-top: 10px;
-}
-
-.proxy-option-btn {
-  margin-right: 15px;
-}
-
-.proxy-option-btn:hover {
-  cursor: pointer;
-  color: var(--hr-color);
-}
-
-.proxy-option-btn--testing {
-  animation: spin 1s linear infinite;
-  opacity: 0.4;
-  pointer-events: none;
-}
-
-.button-container {
-  display: flex;
-  align-items: center;
-  width: 95%;
-  margin-left: 10px;
-  min-height: 50px;
-}
-
-.proxy-group {
-  display: flex;
-  gap: 10px;
-  margin: 12px 0 3px 0;
-  overflow-x: hidden;
-  scroll-behavior: smooth;
-}
-
-.scroll-left {
-  cursor: pointer;
-  border: none;
-  margin-right: 10px;
-}
-
-.scroll-right {
-  cursor: pointer;
-  border: none;
-  margin-left: 10px;
-}
-
-.scroll-left[hidden],
-.scroll-right[hidden] {
-  display: none;
-}
-
-.proxy-group-title {
-  background-color: transparent;
-  color: var(--text-color);
-  border: 2px solid var(--hr-color);
-  border-radius: 20px;
-  padding: 6px 10px;
-  font-size: 15px;
-  font-family: inherit;
-  text-align: center;
-  cursor: pointer;
-  box-shadow: var(--left-nav-shadow);
-  white-space: nowrap;
-}
-
-.proxy-group-title:hover,
-.proxy-group-title-select {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
-  border-color: var(--text-color);
-}
-
-.proxy-group-title-select:hover {
-  cursor: default;
-}
-
-.proxy-group-content {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.proxy-group-icon {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-}
-
-.proxy-icon-wrapper--button {
-  padding: 2px;
-}
-
-.proxy-nodes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  padding: 0;
-  color: var(--text-color);
-  margin-left: 0;
-  width: 100%;
-}
-
-.proxy-nodes-card {
-  width: calc(33% - 41px);
-  max-width: 210px;
-  /* Без этого min-width остаётся `auto`, то есть min-content — а его задаёт имя
-     ноды с `white-space: nowrap`. В CSS min-width сильнее max-width, поэтому
-     длинное имя раздувало карточку за её же 210px здесь и за ширину дорожки
-     в сетке полного вида; ellipsis при этом не срабатывал, потому что внутри
-     переросшей карточки имени хватало места. */
-  min-width: 0;
-  border: 2px solid var(--sub-card-border);
-  border-radius: 20px;
-  padding: 8px 12px;
-  background: var(--sub-card-bg);
-  display: flex;
-  flex-direction: column;
+.proxies-head {
   justify-content: space-between;
-  line-height: 1.3;
-  box-shadow: var(--left-nav-shadow);
-  margin-top: 3px;
-  transition: background-color 0.15s, border-color 0.15s;
 }
 
-.proxy-nodes-card:hover,
-.proxy-node-select {
-  background-color: var(--left-item-selected-bg);
-  border: 2px solid var(--text-color);
-  cursor: pointer;
+.proxies-tools {
+  display: flex;
+  gap: 6px;
+  align-items: center;
 }
 
-.proxy-node-select:hover {
-  cursor: default;
-}
-
-.proxy-nodes-title {
-  font-size: 14px;
+.jump-btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  min-width: 0;
-}
-
-.proxy-node-name {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
-.proxy-origin {
-  font-size: 11px;
-  padding: 1px 6px;
+  height: 32px;
+  padding: 0 10px 0 12px;
   border-radius: 999px;
-  border: 1px solid var(--text-color);
-  opacity: 0.7;
+  border: none;
+  background: var(--panel-soft);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
   white-space: nowrap;
-  flex-shrink: 0;
 }
 
-.proxy-nodes-tags {
-  font-size: 14px;
-  display: flex;
-  margin-top: 10px;
-  justify-content: space-between;
+.jump-btn:hover, .jump-btn.is-open {
+  background: var(--hover-bg);
 }
 
-.proxy-nodes-tags-left {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  overflow: hidden;
-  min-width: 0;
+.jump-chev {
+  opacity: .7;
+  transition: transform .15s;
 }
 
-/* Описание сервера от панели (serverDescription, до 25 символов). Обрезается,
-   иначе распирает строку тегов и выдавливает задержку за край карточки. Сам тип
-   теперь показывает иконка слева, а не этот текст. */
-.proxy-type-desc {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
+.jump-chev.is-open {
+  transform: rotate(180deg);
 }
 
-/* Иконка типа: не сжимается, когда описание длинное, и приглушена, чтобы не
-   спорить с именем узла. */
-.proxy-type-icon {
-  flex-shrink: 0;
-  font-size: 15px;
-  opacity: 0.75;
-  cursor: help;
-}
-
-.proxy-nodes-tags-right {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.proxy-selected-separator {
-  color: var(--text-color);
-  opacity: 0.4;
-  margin: 0 2px;
-  flex-shrink: 0;
+.jump-count {
   font-size: 12px;
-}
-
-.proxy-selected-name {
-  font-size: 13px;
-  color: var(--text-color);
-  opacity: 0.75;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
-.proxy-weight-icon {
-  font-size: 13px;
-  cursor: help;
+  color: var(--text-3);
   flex-shrink: 0;
 }
 
-.weight-tooltip-row {
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.toHidden {
-  display: none;
-}
-
-.dropdown {
+.proxies-body {
   position: relative;
-  display: inline-block;
-  width: 95%;
-  margin: 12px 10px 5px 10px;
-}
-
-.dropdown-btn {
-  background-color: var(--left-item-selected-bg);
-  box-shadow: var(--left-nav-hover-shadow);
-  border: 2px solid var(--text-color);
-  color: var(--text-color);
-  font-family: inherit;
-  padding: 5px 10px;
-  cursor: pointer;
-  font-size: 15px;
-  outline: none;
-  border-radius: 20px;
-  min-width: 204px;
-  text-align: left;
-}
-
-.dropdown-btn:hover {
-  opacity: 0.8;
-}
-
-.dropdown-btn-content {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  justify-content: flex-start;
-  width: 100%;
-}
-
-.dropdown-list {
-  position: absolute;
-  background: var(--skin-bg-color);
-  border: 2px solid var(--text-color);
-  margin-top: 4px;
-  padding: 0;
-  list-style: none;
-  min-width: 200px;
-  z-index: 20;
-  border-radius: 20px;
-  font-size: 15px;
-  text-align: left;
-  max-height: calc(100vh - 230px);
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
-}
-
-.dropdown-item {
-  color: var(--text-color);
-  padding: 8px;
-  cursor: pointer;
-}
-
-.dropdown-item-icon {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-}
-
-.proxy-icon-wrapper {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  background-color: var(--left-nav-btn-active-bg);
-  box-shadow: var(--left-nav-shadow);
-  padding: 3px;
-  line-height: 0;
-}
-
-.proxy-icon-wrapper--dropdown {
-  padding: 4px;
-}
-
-.dropdown-item-label {
-  display: inline-flex;
-  align-items: center;
-}
-
-.dropdown-item:hover {
-  background: var(--skin-hover-color);
-}
-
-.full-view-groups {
-  width: 100%;
-  margin-left: 0;
+  padding: 8px 28px 28px;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.full-view-group {
-  border: 2px solid var(--sub-card-border);
-  border-radius: 20px;
-  background: var(--sub-card-bg);
-  box-shadow: var(--left-nav-shadow);
+.group {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--input-bg);
   overflow: hidden;
+  flex-shrink: 0;
 }
 
-.full-view-group:hover {
-  box-shadow: var(--left-nav-hover-shadow);
-}
-
-.full-view-header {
+.group-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   padding: 12px 16px;
-  color: var(--text-color);
   cursor: pointer;
 }
 
-.full-view-header:hover {
-  background: var(--skin-hover-color);
+.group-head:hover {
+  background: var(--hover-bg);
 }
 
-.full-view-title {
-  font-size: 16px;
+.group-head:focus-visible {
+  outline-offset: -2px;
+}
+
+.group-head__main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.group-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--panel-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.group-icon img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.group-type {
+  display: flex;
+  color: var(--text-2);
+}
+
+.group-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.group-name {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.group-selected {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.group-head__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.group-chev {
+  transition: transform .15s;
+  flex-shrink: 0;
+  color: var(--text-2);
+}
+
+.group-chev.is-collapsed {
+  transform: rotate(-90deg);
+}
+
+.group-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 16px 16px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.group-nodes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  align-content: start;
+  gap: 10px;
+  padding: 2px 6px 16px 16px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.node {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 11px 13px;
+  cursor: pointer;
+  background: var(--input-bg);
+  color: var(--text);
+}
+
+.node:hover {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+}
+
+.node.is-selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--input-bg));
+}
+
+.node-name {
+  font-size: 13px;
   font-weight: 600;
 }
 
-.full-view-info {
+.node-meta {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
+  min-width: 0;
 }
 
-.full-view-icon {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
-}
-
-.proxy-icon-wrapper--full {
-  padding: 5px;
-  border-radius: 12px;
-}
-
-.full-view-text {
+.node-type {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  color: var(--text-3);
+  flex-shrink: 0;
+  cursor: help;
 }
 
-.full-view-selected {
+.node-desc {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.node-spacer {
+  flex: 1;
+}
+
+.node-weight {
+  display: flex;
+  flex-shrink: 0;
+  cursor: help;
+}
+
+.node-delay {
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.show-more {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px dashed var(--border);
+  background: transparent;
   font-size: 13px;
-  color: var(--text-color);
-  opacity: 0.75;
-}
-
-.full-view-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.full-view-test-btn {
-  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-2);
   cursor: pointer;
-  color: var(--text-color);
-  opacity: 0.6;
-  transition: opacity 0.2s, color 0.2s;
 }
 
-.full-view-test-btn:hover {
-  opacity: 1;
-  color: var(--hr-color);
+.show-more:hover {
+  background: var(--hover-bg);
+  color: var(--text);
 }
 
-.full-view-test-btn--testing {
-  animation: spin 1s linear infinite;
-  opacity: 0.4;
-  pointer-events: none;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.full-view-toggle {
-  font-size: 16px;
-  transition: transform 0.2s;
-  flex-shrink: 0;
-}
-
-.full-view-content {
-  /* card(8) + padding(8) = group(16) */
-  padding: 8px;
-}
-
-.full-view-loading {
-  padding: 12px 0;
-  color: var(--text-color);
-  opacity: 0.8;
-}
-
-.full-view-nodes {
-  /* Grid rather than flex-wrap: 1fr distributes the exact remaining space, so a
-     row always ends flush with the right edge instead of leaving the gutter the
-     old `calc(33% - 41px)` + `max-width: 210px` combination always left behind. */
-  display: grid;
-  /* minmax(0, …), а не голый 1fr: `1fr` разворачивается в `minmax(auto, 1fr)`,
-     и нижней границей дорожки становится min-content самой длинной карточки —
-     из-за чего три колонки суммарно вылезали за правый край панели. */
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px; /* = padding контента */
-  width: 100%;
-  margin-left: 0;
-}
-
-/* Past this width three columns would stretch every card beyond ~400px, so fit
-   as many ~260px columns as the panel allows instead.
-   auto-fill (never auto-fit) is deliberate: it keeps the empty tracks, so a
-   group with two nodes gets cards exactly as wide as a group with twenty — the
-   column width depends only on the panel, which is identical for every group. */
-@media (min-width: 1400px) {
-  .full-view-nodes {
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  }
-}
-
-.full-view-nodes .proxy-nodes-card {
-  /* The grid owns sizing now; the inherited width/max-width would re-introduce
-     the 210px cap and with it the empty space on the right. margin-top would
-     add an uneven 3px to every row on top of the row gap. */
-  width: auto;
-  max-width: none;
-  margin-top: 0;
-  border-radius: 12px; /* concentric: group(20) - padding(8) = 12 */
-  box-sizing: border-box;
+.proxies-direct {
+  display: flex;
+  justify-content: center;
 }
 </style>

@@ -12,12 +12,15 @@ declare module '@/api' {
 declare module '@vue/runtime-core' {
     export interface ComponentCustomProperties {
         $http: AxiosRequest; // 声明全局 $http 的类型
-        $t: (key: string) => string; // i18n
+        $t: (key: string, values?: Record<string, unknown>) => string; // i18n
     }
 }
 
 // 绑定函数
 declare global {
+    /** Prizrak-Core version from src-go/go.mod, injected by vite.config.ts. */
+    const __CORE_VERSION__: string;
+
     interface Window {
         pxOs: () => string;
         pxDeepLink?: {

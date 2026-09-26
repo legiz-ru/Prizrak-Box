@@ -5,14 +5,29 @@ import IconsResolver from "unplugin-icons/resolver";
 import {FileSystemIconLoader} from 'unplugin-icons/loaders';
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
-import {ElementPlusResolver} from 'unplugin-vue-components/resolvers'
 import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite'
 import path from 'path'
+import fs from 'fs'
 
 const pathSrc = path.resolve(__dirname, 'src')
 
+// Prizrak-Core version, read from src-go/go.mod at build time (the
+// `replace ... => github.com/legiz-ru/Prizrak-Core vX.Y.Z` line), the same way
+// the Android app does. Empty when the line is missing — the UI then hides it.
+function readCoreVersion(): string {
+    try {
+        const goMod = fs.readFileSync(path.resolve(__dirname, 'src-go/go.mod'), 'utf8')
+        return /legiz-ru\/Prizrak-Core\s+(v[\w.\-]+)/.exec(goMod)?.[1] ?? ''
+    } catch {
+        return ''
+    }
+}
+
 // https://vitejs.dev/config/
 export default defineConfig({
+    define: {
+        __CORE_VERSION__: JSON.stringify(readCoreVersion()),
+    },
     resolve: {
         alias: {
             '@': pathSrc,
@@ -44,7 +59,6 @@ export default defineConfig({
         AutoImport({
             imports: ["vue"],
             resolvers: [
-                ElementPlusResolver(),
                 IconsResolver({
                     prefix: "Icon",
                 }),
@@ -55,21 +69,21 @@ export default defineConfig({
             resolvers: [
                 IconsResolver({
                     prefix: 'icon',
-                    enabledCollections: ["ep", "mdi", "proto"],
-                    // "proto" is the local collection below; its files are not
-                    // in an Iconify package, so the resolver needs to be told
-                    // which names belong to it.
+                    // Tabler for UI icons; "proto" is the local collection of
+                    // protocol brand marks below. Its files are not in an
+                    // Iconify package, so the resolver needs to be told which
+                    // names belong to it.
+                    enabledCollections: ["tabler", "proto"],
                     customCollections: ["proto"],
                 }),
-                ElementPlusResolver()
             ],
             dts: path.resolve(pathSrc, 'components.d.ts'),
         }),
         Icons({
-            autoInstall: true,
+            autoInstall: false,
             compiler: "vue3",
             customCollections: {
-                // Protocol brand marks, normalised to MDI's 24x24 box and to
+                // Protocol brand marks, normalised to a 24x24 box and to
                 // currentColor so one asset serves both themes. See
                 // src/assets/icons/proto/ATTRIBUTION.md for sources, licences
                 // and the normalisation pipeline. Used as <icon-proto-xray/>.

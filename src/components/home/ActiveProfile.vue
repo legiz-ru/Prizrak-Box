@@ -124,126 +124,85 @@ const showRenewButton = computed(() => shouldShowRenewButton(activeProfile.value
 </script>
 
 <template>
-  <div class="active-profile-container">
-    <div class="home-cards">
-      <div v-if="activeProfile" class="profile-card">
-        <ProfileToolbar
-          :profile="activeProfile"
-          @refresh="refreshProfile"
-        />
+  <div v-if="activeProfile" class="px-card profile-card">
+    <ProfileToolbar
+      :profile="activeProfile"
+      @refresh="refreshProfile"
+    />
 
-        <ProfileStats :profile="activeProfile" />
+    <div class="px-divider"></div>
 
-        <!-- Announce -->
-        <div
-          v-if="hasValue(activeProfile?.announce)"
-          class="announce-container"
-          :class="{ 'announce-clickable': hasValue(activeProfile?.announceUrl) }"
-          @click="hasValue(activeProfile?.announceUrl) && openAnnounceUrl()"
-        >
-          <AnnounceText
-            :text="activeProfile.announce"
-            :url="activeProfile.announceUrl"
-            :clickable="hasValue(activeProfile?.announceUrl)"
-          />
-        </div>
+    <ProfileStats :profile="activeProfile" />
 
-        <!-- Продлить подписку — ненавязчивая подсказка, тот же акцент, что у
-             активных пунктов бокового меню / кнопки "Открыть релиз" -->
-        <div v-if="showRenewButton" class="renew-button-container">
-          <el-button class="renew-button" @click="goRenew">
-            <el-icon><icon-mdi-credit-card-outline/></el-icon>
-            <span>{{ t('profiles.renew') }}</span>
-          </el-button>
-        </div>
-      </div>
+    <button
+      v-if="hasValue(activeProfile?.announce)"
+      type="button"
+      class="announce"
+      :class="{ 'is-clickable': hasValue(activeProfile?.announceUrl) }"
+      :disabled="!hasValue(activeProfile?.announceUrl)"
+      @click="openAnnounceUrl()"
+    >
+      <AnnounceText
+        :text="activeProfile.announce"
+        :url="activeProfile.announceUrl"
+        :clickable="hasValue(activeProfile?.announceUrl)"
+      />
+    </button>
 
-      <!-- Нижняя панель IP и Система -->
-      <MyIp class="home-ip" />
-    </div>
+    <button v-if="showRenewButton" type="button" class="renew-button" @click="goRenew">
+      <icon-tabler-credit-card width="15" height="15"/>
+      <span>{{ t('profiles.renew') }}</span>
+    </button>
   </div>
+
+  <MyIp />
 </template>
 
 <style scoped>
-.active-profile-container {
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  padding-top: 15px;
-  padding-bottom: 0;
-  position: relative;
-  gap: 16px;
-  --home-card-width: 95%;
-  box-sizing: border-box;
-  overflow-x: hidden;
-}
-
-.home-cards {
-  margin-left: 10px;
-  margin-right: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
 .profile-card {
-  width: 100%;
-  padding: 12px 0;
-  border-radius: 20px;
-  background: var(--sub-card-bg);
-  border: 1px solid var(--sub-card-border);
-  box-shadow: var(--right-box-shadow);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
 }
 
-.announce-container {
-  width: 100%;
-  padding: 12px 30px;
-  font-size: 14px;
-  color: var(--text-color);
+.announce {
+  border: none;
+  background: transparent;
+  padding: 0 6px;
+  font-size: 13px;
+  color: var(--text-2);
   text-align: center;
-  word-wrap: break-word;
-  /* Без border-box ширина 100% складывается с горизонтальными padding,
-     блок вылезает вправо и центрованный текст уезжает на 30px. */
-  box-sizing: border-box;
+  cursor: default;
+  overflow-wrap: anywhere;
 }
 
-.announce-clickable {
+.announce.is-clickable {
   cursor: pointer;
 }
 
-.announce-clickable:hover {
-  opacity: 0.8;
+.announce.is-clickable:hover {
+  color: var(--text);
 }
 
-.renew-button-container {
-  width: 100%;
-  padding: 2px 30px 0;
-  box-sizing: border-box;
-}
-
+/* Readable over any background: same text colour as the card values, on a
+   light accent tint. */
 .renew-button {
   width: 100%;
-  display: inline-flex;
+  border: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 0;
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  --el-button-bg-color: var(--left-item-selected-bg);
-  --el-button-hover-bg-color: var(--left-item-selected-bg);
-  --el-button-active-bg-color: var(--left-item-selected-bg);
-  --el-button-border-color: transparent;
-  --el-button-hover-border-color: transparent;
-  --el-button-active-border-color: transparent;
-  --el-button-text-color: var(--text-color);
-  --el-button-hover-text-color: var(--text-color);
-  --el-button-active-text-color: var(--text-color);
-  --el-border-radius-base: 999px;
-  border-radius: 999px;
+  cursor: pointer;
+}
+
+.renew-button:hover {
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
 }
 </style>

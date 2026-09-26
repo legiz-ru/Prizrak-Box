@@ -15,6 +15,16 @@ export const useMenuStore = defineStore('menu', {
         useWhite: true,
         settingTab: 'app',
         providersView: 'cards' as 'cards' | 'table',
+        // Theme dialog (sidebar → palette button)
+        themePref: 'auto' as 'auto' | 'light' | 'dark',
+        useBgImage: true,
+        // Percentages / px, defaults from the old styles/basic.css look
+        uiTrans: 78,
+        uiBlur: 1,
+        bgDim: 18,
+        // Accent used when no background image drives it
+        accent: '#5b67e8',
+        bgTheme: 'default',
     }),
     actions: {
         setMenu(menu: string) {
@@ -52,6 +62,15 @@ export const useMenuStore = defineStore('menu', {
         },
         setProvidersView(view: 'cards' | 'table') {
             this.providersView = view;
+        },
+        resetThemeTweaks() {
+            this.themePref = 'auto';
+            this.useBgImage = true;
+            this.uiTrans = 78;
+            this.uiBlur = 1;
+            this.bgDim = 18;
+            this.bgTheme = 'default';
+            this.background = 'url("/images/default.jpg")';
         },
     },
     persist: defaultPersist,

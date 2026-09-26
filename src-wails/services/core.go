@@ -255,7 +255,10 @@ func requestPxExit(info ConnInfo) {
 	}
 }
 
-// Stop terminates px and the callback server (Wails lifecycle hook).
+// Stop terminates px and the callback server, waiting for both to actually go
+// away. This is the "full" shutdown used by tests and anywhere else that runs
+// off the platform's main UI thread; the real app-shutdown hook below does
+// NOT use this — see ServiceShutdown.
 func (c *CoreService) Stop() {
 	c.KillPx()
 	c.mu.Lock()
@@ -268,9 +271,36 @@ func (c *CoreService) Stop() {
 	}
 }
 
-// ServiceShutdown is the Wails lifecycle hook called on app shutdown.
+// ServiceShutdown is the Wails lifecycle hook called on app shutdown. Unlike
+// Stop, it must return almost immediately and never block: on Windows it runs
+// synchronously on the same OS thread as the WM_CLOSE/WM_DESTROY handler and
+// the WebView2 COM apartment (App.Quit -> InvokeSync -> cleanup ->
+// shutdownServices, all inline once already on that thread — see Wails v3's
+// application_windows.go/mainthread_windows.go). KillPx's multi-second wait
+// for px to exit (HTTP request + grace period + a possible force-kill) used
+// to run right here, starving that thread's message pump for up to ~12s while
+// the window/webview were mid-teardown — observed on Windows as a native Fail
+// Fast crash (0xC0000409) instead of a normal exit, on every close path.
+//
+// Correctness does not depend on waiting here. px is spawned with no Job
+// Object tying its lifetime to ours (see proc_windows.go), so it keeps
+// running after this process exits; its own /pxAlive watchdog
+// (src-go/api/job/alive.go) notices within ~3s that the callback server has
+// gone away and runs the same DisableProxy cleanup on its own. The explicit
+// exit request below is only a best-effort nudge to make that happen sooner
+// — main.go's quit() already fires one before native teardown even starts,
+// so this mainly covers a shutdown reached some other way.
 func (c *CoreService) ServiceShutdown() error {
-	c.Stop()
+	go c.RequestExit()
+
+	c.mu.Lock()
+	srv := c.cbServer
+	c.mu.Unlock()
+	if srv != nil {
+		// Close, not Shutdown(ctx): Close is immediate (no draining wait) and
+		// that is the whole point here.
+		_ = srv.Close()
+	}
 	return nil
 }
 
