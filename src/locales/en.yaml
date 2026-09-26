@@ -164,6 +164,7 @@ setting:
     groupName: Group name
     addGroupUrl: Add
     testUrlPlaceholder: 'https://example.com'
+    core-version-tip: Prizrak-Core version in use
   px:
     auth: Auth Tip
     startup: Boot Startup

@@ -412,11 +412,19 @@ const dnsTypeOptions = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS'].map(value => ({
 
 const ageKeypairDialogVisible = ref(false);
 
+// Prizrak-Core version, baked in at build time from src-go/go.mod.
+const coreVersion = __CORE_VERSION__;
+
 </script>
 
 <template>
   <section v-if="props.section !== 'app'" class="px-card cfg-card">
-    <div class="px-card-title">Mihomo</div>
+    <div class="cfg-head">
+      <span class="px-card-title">Mihomo</span>
+      <span v-if="coreVersion"
+            class="px-tag tabular"
+            v-tip="$t('setting.mihomo.core-version-tip')">{{ coreVersion }}</span>
+    </div>
     <div class="px-divider cfg-divider"></div>
     <div class="px-rows">
       <MyPort/>

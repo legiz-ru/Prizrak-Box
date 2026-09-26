@@ -164,6 +164,7 @@ setting:
     groupName: Имя группы
     addGroupUrl: Добавить
     testUrlPlaceholder: 'https://example.com'
+    core-version-tip: Используемая версия Prizrak-Core
   px:
     auth: Совет по аутентификации
     startup: Автозапуск

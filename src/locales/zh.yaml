@@ -164,6 +164,7 @@ setting:
     groupName: 分组名称
     addGroupUrl: 添加
     testUrlPlaceholder: 'https://example.com'
+    core-version-tip: 当前使用的 Prizrak-Core 版本
   px:
     auth: 授权提示
     startup: 开机自启

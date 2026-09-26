@@ -18,6 +18,9 @@ declare module '@vue/runtime-core' {
 
 // 绑定函数
 declare global {
+    /** Prizrak-Core version from src-go/go.mod, injected by vite.config.ts. */
+    const __CORE_VERSION__: string;
+
     interface Window {
         pxOs: () => string;
         pxDeepLink?: {

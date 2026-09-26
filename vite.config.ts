@@ -7,11 +7,27 @@ import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite'
 import path from 'path'
+import fs from 'fs'
 
 const pathSrc = path.resolve(__dirname, 'src')
 
+// Prizrak-Core version, read from src-go/go.mod at build time (the
+// `replace ... => github.com/legiz-ru/Prizrak-Core vX.Y.Z` line), the same way
+// the Android app does. Empty when the line is missing — the UI then hides it.
+function readCoreVersion(): string {
+    try {
+        const goMod = fs.readFileSync(path.resolve(__dirname, 'src-go/go.mod'), 'utf8')
+        return /legiz-ru\/Prizrak-Core\s+(v[\w.\-]+)/.exec(goMod)?.[1] ?? ''
+    } catch {
+        return ''
+    }
+}
+
 // https://vitejs.dev/config/
 export default defineConfig({
+    define: {
+        __CORE_VERSION__: JSON.stringify(readCoreVersion()),
+    },
     resolve: {
         alias: {
             '@': pathSrc,
