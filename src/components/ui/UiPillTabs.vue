@@ -10,7 +10,8 @@ const props = withDefaults(defineProps<{
   size?: 'sm' | 'md';
   ariaLabel?: string;
   stretch?: boolean;
-}>(), {size: 'sm', stretch: false});
+  disabled?: boolean;
+}>(), {size: 'sm', stretch: false, disabled: false});
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: T): void;
@@ -18,20 +19,21 @@ const emit = defineEmits<{
 }>();
 
 function pick(value: T) {
-  if (value === props.modelValue) return;
+  if (props.disabled || value === props.modelValue) return;
   emit('update:modelValue', value);
   emit('change', value);
 }
 </script>
 
 <template>
-  <div class="px-seg" :class="{ 'is-md': size === 'md', 'is-stretch': stretch }" role="group" :aria-label="ariaLabel">
+  <div class="px-seg" :class="{ 'is-md': size === 'md', 'is-stretch': stretch, 'is-disabled': disabled }" role="group" :aria-label="ariaLabel" :aria-disabled="disabled ? 'true' : undefined">
     <button v-for="option in options"
             :key="String(option.value)"
             type="button"
             class="px-seg__item"
             :class="{ 'is-active': option.value === modelValue, 'px-seg__item--icon': !option.label }"
             :aria-pressed="option.value === modelValue ? 'true' : 'false'"
+            :disabled="disabled"
             :aria-label="option.label ? undefined : (option.tip || String(option.value))"
             v-tip="option.tip"
             @click="pick(option.value)">
@@ -49,5 +51,13 @@ function pick(value: T) {
 
 .is-stretch .px-seg__item {
   flex: 1;
+}
+
+.is-disabled {
+  opacity: .55;
+}
+
+.is-disabled .px-seg__item {
+  cursor: not-allowed;
 }
 </style>

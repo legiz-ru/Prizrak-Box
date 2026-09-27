@@ -166,21 +166,54 @@ const extractImageUrl = (style: string): string | null => {
     return match?.[1] || null;
 };
 
-let isBgLoading = false;
+// Every request gets a number; only the latest one may apply its result.
+// (A newer background — e.g. the active profile's theme arriving while the
+// user's own background is still loading — must win, not be dropped.)
+let bgRequestSeq = 0;
+
+/** Path of the Wails shell's same-origin proxy for remote backgrounds. */
+export const SHELL_IMAGE_PROXY = '/remote-image';
+
+/**
+ * Wails on macOS/Linux: cross-origin images without CORS headers taint the
+ * canvas in WKWebView/WebKitGTK, so pixels can't be read for the accent colour
+ * or the background cache. The shell re-serves them from the app's own origin
+ * (src-wails/services/remoteimage.go). Not used in Electron (webSecurity is
+ * off) or on Windows (WebView2 runs with --disable-web-security).
+ */
+function viaShellProxy(url: string): string | null {
+    const w = window as any;
+    if (!w.pxIsWails || !/^https?:\/\//i.test(url)) return null;
+    let os = '';
+    try {
+        os = String(w.pxOs?.() ?? '');
+    } catch {
+        /* ignore */
+    }
+    if (/^Windows/i.test(os)) return null;
+    return `${SHELL_IMAGE_PROXY}?url=${encodeURIComponent(url)}`;
+}
 
 /**
  * Loads a background (CSS `url(...)` value) and analyses it. Falls back to the
  * default image on error/timeout. A cross-origin image without CORS headers is
- * still shown, just without analysis (theme = null).
+ * still shown, just without analysis (theme = null), unless the shell proxy
+ * above can serve it from the app's own origin.
  */
 export function preloadBackgroundImage(
     bg: string,
     cb: (bg: string, theme: ImageTheme | null, img?: HTMLImageElement) => void
 ): void {
-    if (isBgLoading) {
-        console.warn("Background is loading, ignore new request:", bg);
-        return;
-    }
+    loadBackground(bg, cb, ++bgRequestSeq);
+}
+
+function loadBackground(
+    bg: string,
+    cb: (bg: string, theme: ImageTheme | null, img?: HTMLImageElement) => void,
+    seq: number,
+): void {
+    const current = () => seq === bgRequestSeq;
+    if (!current()) return;
 
     if (!bg.startsWith("url(")) {
         cb(bg, null);
@@ -189,61 +222,69 @@ export function preloadBackgroundImage(
 
     const imgUrl = extractImageUrl(bg);
     if (!imgUrl) {
-        return preloadBackgroundImage(DEFAULT_BACKGROUND_IMAGE, cb);
+        return loadBackground(DEFAULT_BACKGROUND_IMAGE, cb, seq);
     }
 
-    isBgLoading = true;
-    let isResolved = false;
-    let triedWithoutCors = false;
+    // Tried in order: the shell proxy (when available), then the image itself
+    // with CORS (pixels readable if the host allows it), then without CORS
+    // (shown only). The proxied URL is also what gets displayed, so the
+    // picture on screen is the one that was analysed — random-image hosts
+    // return a different picture per request.
+    const proxied = viaShellProxy(imgUrl);
+    const attempts: { src: string; cors: boolean; bg: string }[] = [
+        ...(proxied ? [{src: proxied, cors: false, bg: `url('${proxied}')`}] : []),
+        {src: imgUrl, cors: true, bg},
+        {src: imgUrl, cors: false, bg},
+    ];
 
-    const finish = (img: HTMLImageElement) => {
+    let isResolved = false;
+
+    const finish = (img: HTMLImageElement, shownBg: string) => {
         if (isResolved) return;
         isResolved = true;
-        isBgLoading = false;
+        if (!current()) return; // superseded by a newer background
         let theme: ImageTheme | null = null;
         try {
             theme = analyzeImage(img);
         } catch (e) {
             console.warn("Theme color analysis failed (tainted canvas?); applying background without recolor:", e);
         }
-        cb(bg, theme, img);
+        cb(shownBg, theme, img);
     };
 
-    const load = (withCors: boolean) => {
+    const load = (index: number) => {
+        const attempt = attempts[index];
         const img = new Image();
-        if (withCors) img.crossOrigin = "anonymous";
+        if (attempt.cors) img.crossOrigin = "anonymous";
 
         img.onload = () => {
             if (isResolved) return;
             clearTimeout(timeoutId);
-            finish(img);
+            finish(img, attempt.bg);
         };
 
         img.onerror = () => {
             if (isResolved) return;
-            if (withCors && !triedWithoutCors) {
-                triedWithoutCors = true;
-                load(false);
+            if (index + 1 < attempts.length) {
+                load(index + 1);
                 return;
             }
             clearTimeout(timeoutId);
             isResolved = true;
             console.error(`Failed to load background image: ${imgUrl}`);
-            isBgLoading = false;
-            preloadBackgroundImage(DEFAULT_BACKGROUND_IMAGE, cb);
+            loadBackground(DEFAULT_BACKGROUND_IMAGE, cb, seq);
         };
 
-        img.src = imgUrl;
+        img.src = attempt.src;
     };
 
     const timeoutId = setTimeout(() => {
         if (!isResolved) {
             console.error(`Background image load timed out: ${imgUrl}`);
             isResolved = true;
-            isBgLoading = false;
-            preloadBackgroundImage(DEFAULT_BACKGROUND_IMAGE, cb);
+            loadBackground(DEFAULT_BACKGROUND_IMAGE, cb, seq);
         }
     }, IMAGE_LOAD_TIMEOUT);
 
-    load(true);
+    load(0);
 }

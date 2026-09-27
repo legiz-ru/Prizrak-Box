@@ -8,6 +8,10 @@
  */
 :root,
 [data-theme="dark"] {
+    /* Backdrop behind every modal, notice and blocking overlay — one look app-wide. */
+    --scrim: rgba(0, 0, 0, .5);
+    --scrim-blur: blur(4px);
+
     color-scheme: dark;
     --accent: #5b67e8;
     --on-accent: #fff;

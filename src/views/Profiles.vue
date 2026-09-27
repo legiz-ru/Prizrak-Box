@@ -1059,6 +1059,9 @@ watch(() => webStore.dProfile, async (pList) => {
       <span v-if="editForm.hwidActive" class="edit-indicator edit-indicator--accent" v-tip="t('hwid.active.tooltip')" tabindex="0" :aria-label="t('hwid.active.tooltip')">
         <icon-tabler-shield-check width="18" height="18"/>
       </span>
+      <span v-if="editForm.theme" class="edit-indicator edit-indicator--accent" v-tip="t('profiles.has-theme')" tabindex="0" :aria-label="t('profiles.has-theme')">
+        <icon-tabler-palette width="18" height="18"/>
+      </span>
       <UiIconButton v-if="editForm.notifyExpireDays?.length || editForm.notifyTrafficPercent?.length"
                     class="edit-bell"
                     :size="30"

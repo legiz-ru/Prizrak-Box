@@ -42,6 +42,11 @@ type Profile struct {
 	FallbackDomain     string `json:"fallbackDomain,omitempty"`
 	GlobalModeDisabled bool   `json:"globalModeDisabled,omitempty"`
 
+	// Theme — pxd-theme: the provider's look for the desktop app (background
+	// image, panel transparency/blur, background dimming, mode, accent). Nil
+	// when the header is absent; the app then uses the user's own settings.
+	Theme *ProfileTheme `json:"theme,omitempty"`
+
 	// RenewUrl — subscription-renew-url. Absent header means every renew-related
 	// UI element (profile editor, toolbar/list icons, the renew button under the
 	// announce) is simply not shown.
@@ -128,4 +133,16 @@ func (p *Profile) ExpireMillis() int64 {
 	}
 
 	return t.UnixMilli()
+}
+
+// ProfileTheme is the parsed pxd-theme header. Every field is optional: an
+// unset one falls back to the user's own setting. Numbers are pointers so that
+// an explicit 0 (e.g. blur=0) is kept apart from "not set".
+type ProfileTheme struct {
+	Image        string `json:"image,omitempty"`        // http(s) URL of the background image
+	Transparency *int   `json:"transparency,omitempty"` // interface transparency, 5..85 %
+	Blur         *int   `json:"blur,omitempty"`         // blur under panels, 0..30 px
+	Dim          *int   `json:"dim,omitempty"`          // background dimming, 0..80 %
+	Mode         string `json:"mode,omitempty"`         // auto | light | dark
+	Accent       string `json:"accent,omitempty"`       // #rrggbb, or "auto" = from the image
 }

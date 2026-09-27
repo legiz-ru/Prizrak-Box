@@ -568,6 +568,58 @@ If the profile is currently in **Global** mode when this header hides the switch
 
 </details>
 
+<details>
+<summary>**`pxd-theme`**</summary>
+
+Sets the desktop client's look for the profile: background image, interface transparency, blur under panels, background dimming, mode (light / dark) and accent colour.
+
+| Property | Value |
+|----------|-------|
+| Type | `string` (key=value pairs separated by semicolons) |
+| Encoding | UTF-8 or Base64 (`base64:` prefix) |
+| Applies to | the active profile (primary, or otherwise selected) |
+
+| Parameter | Values | Description |
+|-----------|--------|-------------|
+| `image` | URL (`http`, `https`) | Background image |
+| `transparency` | `5`–`85` (%) | Interface transparency |
+| `blur` | `0`–`30` (px) | Blur under panels |
+| `dim` | `0`–`80` (%) | Background dimming |
+| `mode` | `auto`, `light`, `dark` | Appearance mode. `auto` follows the background image, or the system theme without one |
+| `accent` | `#RRGGBB` or `auto` | Accent colour. `auto` picks it from the background image |
+
+Every parameter is optional. A parameter missing from the header comes from the user's own settings. Numbers outside their range are clamped to the nearest bound; unknown parameters and invalid values are ignored.
+
+**Image:**
+
+- Formats: **JPEG**, **PNG**, **WebP** (JPEG recommended).
+- Recommended size: about **1920×1080** and no more than **~2 MB** — the image is downloaded every time the theme is applied.
+- If the URL contains `;`, encode it as `%3B`.
+
+**Full example:**
+
+```http
+pxd-theme: image=https://cdn.example.com/theme/bg-1920x1080.jpg; transparency=30; blur=4; dim=20; mode=dark; accent=auto
+```
+
+**Only a fixed accent colour and a fixed mode, without an image:**
+
+```http
+pxd-theme: mode=light; accent=#1f9e7a
+```
+
+Here the background stays whatever the user chose; the profile sets the mode and the accent colour.
+
+**The same header in Base64:**
+
+```http
+pxd-theme: base64:bW9kZT1saWdodDsgYWNjZW50PSMxZjllN2E=
+```
+
+Parameters set by the profile are shown in the **Theme** dialog and cannot be changed there. The user can turn the profile theme off with the **"Profile theme"** switch in the same dialog, which brings back their own settings. Switching to a profile without this header also brings back the user's settings (or the defaults if they never changed them). If the header disappears on the next subscription update, the profile theme is removed.
+
+</details>
+
 ---
 
 ## HWID Authentication

@@ -31,33 +31,65 @@ function bindSystemMode() {
     }
 }
 
+/**
+ * The look actually in effect: the active profile's pxd-theme (unless the user
+ * switched it off) on top of the user's own settings. Fields the profile does
+ * not set — or a profile without the header — fall back to the user's values,
+ * which are never overwritten.
+ */
+export function useEffectiveTheme() {
+    const menuStore = useMenuStore();
+    const profile = computed(() => (menuStore.useProfileTheme ? menuStore.profileTheme : null) ?? null);
+    return {
+        /** The applied profile theme, or null. */
+        profile,
+        themePref: computed(() => profile.value?.mode || menuStore.themePref),
+        useImage: computed(() => (profile.value?.image ? true : menuStore.useBgImage)),
+        background: computed(() => {
+            const image = profile.value?.image;
+            return image ? `url('${image.replace(/'/g, '%27')}')` : menuStore.background;
+        }),
+        uiTrans: computed(() => profile.value?.transparency ?? menuStore.uiTrans),
+        uiBlur: computed(() => profile.value?.blur ?? menuStore.uiBlur),
+        bgDim: computed(() => profile.value?.dim ?? menuStore.bgDim),
+        /** A fixed accent from the profile ('#rrggbb'); null = image or user accent. */
+        fixedAccent: computed(() => {
+            const value = profile.value?.accent;
+            return value && value !== 'auto' ? value : null;
+        }),
+    };
+}
+
 export function useAppTheme() {
     bindSystemMode();
     const menuStore = useMenuStore();
+    const effective = useEffectiveTheme();
 
-    const useImage = computed(() => menuStore.useBgImage);
+    const useImage = effective.useImage;
 
     const mode = computed<'dark' | 'light'>(() => {
-        if (menuStore.themePref === 'light' || menuStore.themePref === 'dark') return menuStore.themePref;
+        const pref = effective.themePref.value;
+        if (pref === 'light' || pref === 'dark') return pref;
         if (useImage.value && imageTheme.value) return imageTheme.value.white ? 'dark' : 'light';
         return systemDark.value ? 'dark' : 'light';
     });
 
-    const accentFromImage = computed(() => useImage.value && !!imageTheme.value);
+    const accentFromImage = computed(() => !effective.fixedAccent.value && useImage.value && !!imageTheme.value);
 
     const vars = computed<Record<string, string | null>>(() => {
         const dark = mode.value === 'dark';
         const out: Record<string, string | null> = {};
         if (useImage.value) {
             const base = dark ? '20,21,27' : '255,255,255';
-            const alpha = dark ? 1 - menuStore.uiTrans / 100 : Math.max(0.74, 1 - menuStore.uiTrans / 100);
+            const trans = effective.uiTrans.value, blur = effective.uiBlur.value, dim = effective.bgDim.value;
+            const alpha = dark ? 1 - trans / 100 : Math.max(0.74, 1 - trans / 100);
             out['--panel-bg'] = `rgba(${base},${alpha.toFixed(2)})`;
             out['--overlay'] = dark
-                ? `rgba(6,7,11,${(menuStore.bgDim / 100).toFixed(2)})`
-                : `rgba(255,255,255,${(Math.max(30, menuStore.bgDim) / 100).toFixed(2)})`;
-            out['--ui-blur'] = menuStore.uiBlur + 'px';
+                ? `rgba(6,7,11,${(dim / 100).toFixed(2)})`
+                : `rgba(255,255,255,${(Math.max(30, dim) / 100).toFixed(2)})`;
+            out['--ui-blur'] = blur + 'px';
             out['--side-bg'] = out['--panel-bg'];
-            out['--side-blur'] = `blur(${menuStore.uiBlur}px)`;
+            out['--side-blur'] = `blur(${blur}px)`;
             out['--title-bg'] = out['--panel-bg'];
             out['--title-shadow'] = dark ? '0 1px 3px rgba(0,0,0,.55)' : '0 1px 3px rgba(255,255,255,.7)';
             out['--logo-shadow'] = 'drop-shadow(0 2px 6px rgba(0,0,0,.35))';
@@ -70,8 +102,9 @@ export function useAppTheme() {
             out['--accent'] = accentFor(imageTheme.value, dark);
             out['--on-accent'] = dark ? '#fff' : '#000';
         } else {
-            out['--accent'] = menuStore.accent;
-            out['--on-accent'] = onColor(menuStore.accent);
+            const accent = effective.fixedAccent.value ?? menuStore.accent;
+            out['--accent'] = accent;
+            out['--on-accent'] = onColor(accent);
         }
         return out;
     });
@@ -99,5 +132,5 @@ export function useAppTheme() {
         }
     });
 
-    return {mode, useImage, accentFromImage};
+    return {mode, useImage, accentFromImage, effective};
 }

@@ -711,6 +711,9 @@ func ParseHeaders(header http.Header, url string, profile *models.Profile) {
 	globalMode := strings.ToLower(strings.TrimSpace(header.Get("global-mode")))
 	profile.GlobalModeDisabled = globalMode == "false" || globalMode == "0"
 
+	// pxd-theme — оформление десктопного клиента от провайдера (см. profiletheme.go).
+	profile.Theme = parseProfileTheme(header.Get("Pxd-Theme"))
+
 	// subscription-renew-url — прямая ссылка на продление подписки.
 	if val := strings.TrimSpace(header.Get("Subscription-Renew-Url")); val != "" {
 		profile.RenewUrl = val

@@ -47,9 +47,10 @@ type customBackgroundResponse struct {
 	Error string `json:"error,omitempty"`
 }
 
-// CustomBackgroundMiddleware serves the two endpoints the theme picker's
-// custom-background upload depends on and delegates everything else to the
-// normal asset server. Wired via application.Options.Assets.Middleware.
+// CustomBackgroundMiddleware serves the endpoints the theme picker's
+// custom-background upload depends on, plus the same-origin proxy for remote
+// backgrounds (remoteimage.go), and delegates everything else to the normal
+// asset server. Wired via application.Options.Assets.Middleware.
 func CustomBackgroundMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -57,6 +58,8 @@ func CustomBackgroundMiddleware(next http.Handler) http.Handler {
 			handleCustomBackgroundUpload(w, r)
 		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, userImagesPrefix):
 			handleCustomBackgroundGet(w, r)
+		case r.Method == http.MethodGet && r.URL.Path == remoteImagePath:
+			handleRemoteImage(w, r)
 		default:
 			next.ServeHTTP(w, r)
 		}
