@@ -18,7 +18,6 @@ const props = withDefaults(defineProps<{
   /** Header and footer separated from the body by hairlines. */
   divided?: boolean;
   /** No overlay blur (the theme dialog must show the background it edits). */
-  clearOverlay?: boolean;
   bodyClass?: string;
   zIndex?: number;
   ariaLabel?: string;
@@ -30,7 +29,6 @@ const props = withDefaults(defineProps<{
   closeOnOverlay: true,
   showClose: true,
   divided: false,
-  clearOverlay: false,
   bodyClass: '',
   zIndex: 60,
   ariaLabel: '',
@@ -75,7 +73,6 @@ const hasHeader = computed(() => !!(props.title || props.icon || slots.header));
     <Transition name="px-modal">
       <div v-if="modelValue"
            class="px-modal-overlay"
-           :class="{ 'is-clear': clearOverlay }"
            :style="{ zIndex }"
            @mousedown="onOverlayDown"
            @mouseup="onOverlayUp">
@@ -124,19 +121,14 @@ const hasHeader = computed(() => !!(props.title || props.icon || slots.header));
 .px-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, .5);
-  backdrop-filter: blur(4px);
+  background: var(--scrim);
+  backdrop-filter: var(--scrim-blur);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
   -webkit-app-region: no-drag;
   --wails-draggable: no-drag;
-}
-
-.px-modal-overlay.is-clear {
-  background: rgba(0, 0, 0, .28);
-  backdrop-filter: none;
 }
 
 .px-modal {

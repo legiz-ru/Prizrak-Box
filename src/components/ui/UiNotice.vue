@@ -89,8 +89,8 @@ const onOverlayUp = (e: MouseEvent) => {
 .px-notice-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, .5);
-  backdrop-filter: blur(4px);
+  background: var(--scrim);
+  backdrop-filter: var(--scrim-blur);
   display: flex;
   align-items: center;
   justify-content: center;

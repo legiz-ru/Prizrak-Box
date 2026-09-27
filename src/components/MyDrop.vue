@@ -235,8 +235,8 @@ function handleDrop(e: any) {
   position: fixed;
   inset: 0;
   z-index: 75;
-  background: rgba(0, 0, 0, .5);
-  backdrop-filter: blur(4px);
+  background: var(--scrim);
+  backdrop-filter: var(--scrim-blur);
   display: flex;
   align-items: center;
   justify-content: center;

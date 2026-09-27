@@ -10,7 +10,6 @@
   <UiModal v-model="dialogOpen"
            :width="580"
            :z-index="65"
-           clear-overlay
            :aria-label="t('theme.label')"
            body-class="theme-body">
     <template #header>
