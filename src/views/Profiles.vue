@@ -963,9 +963,6 @@ watch(() => webStore.dProfile, async (pList) => {
               </button>
               <span class="card-spacer"></span>
               <div class="card-actions">
-                <span v-if="data.theme" class="card-theme" :aria-label="$t('profiles.has-theme')" v-tip="$t('profiles.has-theme')">
-                  <icon-tabler-palette width="14" height="14"/>
-                </span>
                 <UiIconButton v-if="data.content && isHttpOrHttps(data.content)" :size="26" :label="$t('profiles.tv-send')" @click.stop="openTvDialog(data)">
                   <icon-tabler-device-tv width="14" height="14"/>
                 </UiIconButton>
@@ -1061,6 +1058,9 @@ watch(() => webStore.dProfile, async (pList) => {
     <template #footer-left>
       <span v-if="editForm.hwidActive" class="edit-indicator edit-indicator--accent" v-tip="t('hwid.active.tooltip')" tabindex="0" :aria-label="t('hwid.active.tooltip')">
         <icon-tabler-shield-check width="18" height="18"/>
+      </span>
+      <span v-if="editForm.theme" class="edit-indicator edit-indicator--accent" v-tip="t('profiles.has-theme')" tabindex="0" :aria-label="t('profiles.has-theme')">
+        <icon-tabler-palette width="18" height="18"/>
       </span>
       <UiIconButton v-if="editForm.notifyExpireDays?.length || editForm.notifyTrafficPercent?.length"
                     class="edit-bell"
@@ -1289,15 +1289,6 @@ watch(() => webStore.dProfile, async (pList) => {
 
 .card-spacer {
   flex: 1;
-}
-
-.card-theme {
-  width: 26px;
-  height: 26px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--accent);
 }
 
 .card-actions {
