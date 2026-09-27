@@ -81,6 +81,12 @@ theme:
   accent-fallback: 无法从图片中取色 — 使用所选强调色
   reset: 重置
   done: 完成
+  profile:
+    title: 配置主题
+    desc: “{name}” 设置了界面外观
+    locked: 当前正在使用配置主题。关闭后可选择自己的主题。
+    locked-value: 由配置主题设定
+  accent-from-profile: 强调色由配置设定
 mini: 最小化
 max: 最大化
 restore: 还原
@@ -355,6 +361,7 @@ profiles:
     error: 向 Prizrak-Box Android TV 设备导入配置失败
 
   deleted-select-new: 配置已删除，请选择新的活动配置
+  has-theme: 此配置设定了应用主题
 rule:
   title: 规则
   success: 保存成功

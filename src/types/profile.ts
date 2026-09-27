@@ -15,6 +15,7 @@ export class Profile {
     expire?: string; // 可选
     interval?: string; // 可选
     intervalFromHeader?: boolean; // interval задан заголовком profile-update-interval
+    theme?: ProfileTheme; // pxd-theme — оформление десктопа от провайдера
     home?: string; // 可选
     support?: string; // 可选
     logo?: string; // 可选
@@ -35,6 +36,16 @@ export class Profile {
     pendingAlerts?: SubscriptionAlert[]; // 可选 — ещё не показанные напоминания
     clockSkewSeconds?: number; // 可选 — рассинхрон часов панели/устройства (заголовок Date)
     clockSkewAtSeconds?: number; // 可选 — когда измерено (unix seconds устройства)
+}
+
+/** pxd-theme: every field optional; an unset one falls back to the user's setting. */
+export interface ProfileTheme {
+    image?: string;        // http(s) URL of the background image
+    transparency?: number; // interface transparency, 5..85 %
+    blur?: number;         // blur under panels, 0..30 px
+    dim?: number;          // background dimming, 0..80 %
+    mode?: 'auto' | 'light' | 'dark';
+    accent?: string;       // '#rrggbb', or 'auto' = from the image
 }
 
 export interface SubscriptionAlert {

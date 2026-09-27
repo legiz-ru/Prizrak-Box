@@ -166,7 +166,10 @@ const extractImageUrl = (style: string): string | null => {
     return match?.[1] || null;
 };
 
-let isBgLoading = false;
+// Every request gets a number; only the latest one may apply its result.
+// (A newer background — e.g. the active profile's theme arriving while the
+// user's own background is still loading — must win, not be dropped.)
+let bgRequestSeq = 0;
 
 /** Path of the Wails shell's same-origin proxy for remote backgrounds. */
 export const SHELL_IMAGE_PROXY = '/remote-image';
@@ -201,10 +204,16 @@ export function preloadBackgroundImage(
     bg: string,
     cb: (bg: string, theme: ImageTheme | null, img?: HTMLImageElement) => void
 ): void {
-    if (isBgLoading) {
-        console.warn("Background is loading, ignore new request:", bg);
-        return;
-    }
+    loadBackground(bg, cb, ++bgRequestSeq);
+}
+
+function loadBackground(
+    bg: string,
+    cb: (bg: string, theme: ImageTheme | null, img?: HTMLImageElement) => void,
+    seq: number,
+): void {
+    const current = () => seq === bgRequestSeq;
+    if (!current()) return;
 
     if (!bg.startsWith("url(")) {
         cb(bg, null);
@@ -213,7 +222,7 @@ export function preloadBackgroundImage(
 
     const imgUrl = extractImageUrl(bg);
     if (!imgUrl) {
-        return preloadBackgroundImage(DEFAULT_BACKGROUND_IMAGE, cb);
+        return loadBackground(DEFAULT_BACKGROUND_IMAGE, cb, seq);
     }
 
     // Tried in order: the shell proxy (when available), then the image itself
@@ -228,13 +237,12 @@ export function preloadBackgroundImage(
         {src: imgUrl, cors: false, bg},
     ];
 
-    isBgLoading = true;
     let isResolved = false;
 
     const finish = (img: HTMLImageElement, shownBg: string) => {
         if (isResolved) return;
         isResolved = true;
-        isBgLoading = false;
+        if (!current()) return; // superseded by a newer background
         let theme: ImageTheme | null = null;
         try {
             theme = analyzeImage(img);
@@ -264,8 +272,7 @@ export function preloadBackgroundImage(
             clearTimeout(timeoutId);
             isResolved = true;
             console.error(`Failed to load background image: ${imgUrl}`);
-            isBgLoading = false;
-            preloadBackgroundImage(DEFAULT_BACKGROUND_IMAGE, cb);
+            loadBackground(DEFAULT_BACKGROUND_IMAGE, cb, seq);
         };
 
         img.src = attempt.src;
@@ -275,8 +282,7 @@ export function preloadBackgroundImage(
         if (!isResolved) {
             console.error(`Background image load timed out: ${imgUrl}`);
             isResolved = true;
-            isBgLoading = false;
-            preloadBackgroundImage(DEFAULT_BACKGROUND_IMAGE, cb);
+            loadBackground(DEFAULT_BACKGROUND_IMAGE, cb, seq);
         }
     }, IMAGE_LOAD_TIMEOUT);
 

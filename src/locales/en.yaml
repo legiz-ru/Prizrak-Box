@@ -81,6 +81,12 @@ theme:
   accent-fallback: Could not read a colour from the image — the chosen accent is used
   reset: Reset
   done: Done
+  profile:
+    title: Profile theme
+    desc: “{name}” sets the look
+    locked: The profile theme is in use. Turn it off to choose your own.
+    locked-value: Set by the profile theme
+  accent-from-profile: The accent colour is set by the profile
 mini: Minimize
 max: Maximize
 restore: Restore
@@ -355,6 +361,7 @@ profiles:
     error: Failed to import profile on Prizrak-Box Android TV device
 
   deleted-select-new: Profile deleted, pick a new active profile
+  has-theme: This profile sets the app theme
 rule:
   title: Rule
   success: Save success

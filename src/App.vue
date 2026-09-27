@@ -1,6 +1,6 @@
 <template>
   <div class="app-root" key="prizrak-box-body">
-    <div v-if="menuStore.useBgImage" class="app-bg" aria-hidden="true">
+    <div v-if="bgImageOn" class="app-bg" aria-hidden="true">
       <div class="app-bg__image" :style="{ backgroundImage: currentBackground }"></div>
       <div class="app-bg__overlay"></div>
     </div>
@@ -55,6 +55,7 @@
 <script setup lang="ts">
 import {useMenuStore} from "@/store/menuStore";
 import {preloadBackgroundImage, analyzeImage, SHELL_IMAGE_PROXY, type ImageTheme} from "@/util/theme";
+import {profileDisplayTitle} from "@/util/profileView";
 import {imageTheme, useAppTheme} from "@/composables/useAppTheme";
 import IconDownload from "~icons/tabler/download";
 import {getCachedBg, setCachedBg, clearCachedBg} from "@/util/bgCache";
@@ -98,7 +99,11 @@ const {hasVisibleUpdate, latestUrl} = storeToRefs(updateStore);
 // version (the old sidebar banner did the same with its × button).
 const showUpdateDialog = computed(() => hasVisibleUpdate.value);
 
-useAppTheme();
+const {effective: effectiveTheme} = useAppTheme();
+// Background actually shown: the active profile's pxd-theme image, else the
+// user's own choice (menuStore.background is never overwritten by a profile).
+const bgImageOn = effectiveTheme.useImage;
+const effectiveBackground = effectiveTheme.background;
 const defaultTitle = "Prizrak-Box";
 const defaultLogo = new URL("@/assets/images/appicon.png", import.meta.url).href;
 
@@ -204,7 +209,7 @@ function captureAndCache(img: HTMLImageElement, storageKey: string): void {
     if (!ctx) return;
     ctx.drawImage(img, 0, 0, w, h);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-    if (menuStore.background === storageKey) {
+    if (effectiveBackground.value === storageKey) {
       setCachedBg(storageKey, dataUrl);
     }
   } catch (e) {
@@ -212,7 +217,11 @@ function captureAndCache(img: HTMLImageElement, storageKey: string): void {
   }
 }
 
+// Only the latest applyBackground call may apply its result (see util/theme.ts).
+let bgApplySeq = 0;
+
 const applyBackground = (value: string) => {
+  const seq = ++bgApplySeq;
   const normalized = normalizeCustomBackground(value, rendererOrigin);
 
   if (normalized && normalized.storageValue !== value) {
@@ -224,6 +233,7 @@ const applyBackground = (value: string) => {
 
   const loadExternal = () => {
     preloadBackgroundImage(cssValue, (bg: string, theme: ImageTheme | null, img?: HTMLImageElement) => {
+      if (seq !== bgApplySeq) return;
       changeBg(bg, theme);
       // img is the already-loaded element — capture it without a second request
       if (img && isExternalBg(bg)) {
@@ -237,6 +247,7 @@ const applyBackground = (value: string) => {
   if (cachedDataUrl) {
     const img = new Image();
     img.onload = () => {
+      if (seq !== bgApplySeq) return;
       let theme: ImageTheme | null = null;
       try {
         theme = analyzeImage(img);
@@ -246,6 +257,7 @@ const applyBackground = (value: string) => {
       changeBg(`url('${cachedDataUrl}')`, theme);
     };
     img.onerror = () => {
+      if (seq !== bgApplySeq) return;
       clearCachedBg();
       loadExternal();
     };
@@ -257,11 +269,16 @@ const applyBackground = (value: string) => {
 };
 
 onMounted(() => {
-  applyBackground(menuStore.background);
+  applyBackground(effectiveBackground.value);
 });
 
 const applyProfile = (data: any | null) => {
   activeProfile.value = data;
+  // pxd-theme of the active profile; null (a profile without the header, or
+  // no profile) brings back the user's own look.
+  const theme = data?.theme && typeof data.theme === 'object' ? data.theme : null;
+  menuStore.profileTheme = theme;
+  menuStore.profileThemeTitle = theme ? profileDisplayTitle(data) : '';
   // Keep the logo cache in sync: store on apply/refresh, clear on rollback
   // (profile without a custom logo) so the next launch shows the right thing.
   const logo = typeof data?.logo === "string" ? data.logo.trim() : "";
@@ -392,7 +409,7 @@ watch(
 );
 
 // 监控背景切换
-watch(() => menuStore.background, (nextBackground) => {
+watch(effectiveBackground, (nextBackground) => {
   applyBackground(nextBackground);
 });
 

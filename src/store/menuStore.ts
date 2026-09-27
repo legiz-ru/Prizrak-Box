@@ -1,5 +1,6 @@
 import {defineStore} from 'pinia';
 import {defaultPersist} from "@/types/persist";
+import type {ProfileTheme} from "@/types/profile";
 
 export const useMenuStore = defineStore('menu', {
     state: () => ({
@@ -25,6 +26,12 @@ export const useMenuStore = defineStore('menu', {
         // Accent used when no background image drives it
         accent: '#5b67e8',
         bgTheme: 'default',
+        // pxd-theme of the active profile (kept here so it is restored before
+        // the profile list loads — no flash of the user's own look on start).
+        profileTheme: null as ProfileTheme | null,
+        profileThemeTitle: '',
+        // The user can switch the profile's theme off in the theme dialog.
+        useProfileTheme: true,
     }),
     actions: {
         setMenu(menu: string) {

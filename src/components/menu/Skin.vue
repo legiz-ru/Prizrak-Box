@@ -18,14 +18,25 @@
       <span class="theme-title">{{ t('theme.label') }}</span>
     </template>
 
+    <div v-if="menuStore.profileTheme" class="theme-profile">
+      <icon-tabler-photo-star class="theme-profile__icon" width="18" height="18"/>
+      <div class="theme-row__text">
+        <span class="theme-row__title">{{ t('theme.profile.title') }}</span>
+        <span class="theme-row__desc">{{ t('theme.profile.desc', {name: menuStore.profileThemeTitle}) }}</span>
+      </div>
+      <UiSwitch v-model="menuStore.useProfileTheme" :aria-label="t('theme.profile.title')"/>
+    </div>
+
     <div class="theme-row">
       <span class="theme-row__label">{{ t('theme.mode') }}</span>
-      <UiPillTabs v-model="menuStore.themePref"
+      <UiPillTabs :model-value="effective.themePref.value"
                   :options="modeOptions"
+                  :disabled="locked.mode"
                   size="md"
                   stretch
                   class="theme-mode"
-                  :aria-label="t('theme.mode')"/>
+                  :aria-label="t('theme.mode')"
+                  @update:model-value="menuStore.themePref = $event"/>
     </div>
 
     <div class="px-divider"></div>
@@ -35,15 +46,22 @@
         <span class="theme-row__title">{{ t('theme.use-image') }}</span>
         <span class="theme-row__desc">{{ t('theme.use-image-desc') }}</span>
       </div>
-      <UiSwitch v-model="menuStore.useBgImage" :aria-label="t('theme.use-image')"/>
+      <UiSwitch :model-value="effective.useImage.value"
+                :disabled="locked.image"
+                :aria-label="t('theme.use-image')"
+                @update:model-value="menuStore.useBgImage = $event"/>
     </div>
 
-    <template v-if="menuStore.useBgImage">
-      <div class="theme-tiles" role="radiogroup" :aria-label="t('theme.use-image')">
+    <template v-if="effective.useImage.value">
+      <div class="theme-tiles"
+           :class="{ 'is-locked': locked.image }"
+           role="radiogroup"
+           :aria-label="t('theme.use-image')"
+           :aria-disabled="locked.image ? 'true' : undefined">
         <div v-for="item in tiles"
              :key="item.id"
              role="radio"
-             tabindex="0"
+             :tabindex="locked.image ? -1 : 0"
              class="theme-tile"
              :class="{ 'is-on': menuStore.bgTheme === item.id, 'is-custom-empty': item.custom && !item.uploaded }"
              :aria-checked="menuStore.bgTheme === item.id ? 'true' : 'false'"
@@ -64,35 +82,42 @@
           </button>
         </div>
       </div>
+      <div v-if="locked.image" class="px-alert px-alert--info theme-locked-note">
+        <icon-tabler-info-circle width="15" height="15"/>
+        <span>{{ t('theme.profile.locked') }}</span>
+      </div>
       <span v-if="bgError" class="theme-error" role="alert">{{ bgError }}</span>
 
       <div class="theme-sliders">
-        <label class="theme-slider">
-          <span>{{ t('theme.transparency') }}</span>
-          <input v-model.number="menuStore.uiTrans" type="range" min="5" max="85" step="1">
-          <span class="theme-slider__val tabular">{{ menuStore.uiTrans }}%</span>
-        </label>
-        <label class="theme-slider">
-          <span>{{ t('theme.blur') }}</span>
-          <input v-model.number="menuStore.uiBlur" type="range" min="0" max="30" step="1">
-          <span class="theme-slider__val tabular">{{ menuStore.uiBlur }} px</span>
-        </label>
-        <label class="theme-slider">
-          <span>{{ t('theme.dim') }}</span>
-          <input v-model.number="menuStore.bgDim" type="range" min="0" max="80" step="1">
-          <span class="theme-slider__val tabular">{{ menuStore.bgDim }}%</span>
+        <label v-for="slider in sliders" :key="slider.key" class="theme-slider" :class="{ 'is-locked': slider.locked }">
+          <span>{{ slider.label }}</span>
+          <input type="range"
+                 :min="slider.min"
+                 :max="slider.max"
+                 step="1"
+                 :value="slider.value"
+                 :disabled="slider.locked"
+                 @input="setSlider(slider.key, ($event.target as HTMLInputElement).valueAsNumber)">
+          <span class="theme-slider__val tabular">
+            {{ slider.value }}{{ slider.unit }}
+            <icon-tabler-lock v-if="slider.locked" width="12" height="12" v-tip="t('theme.profile.locked-value')"/>
+          </span>
         </label>
       </div>
 
       <div class="theme-accent-note">
         <span class="theme-accent-chip"></span>
-        <span>{{ imageTheme ? t('theme.accent-from-image') : t('theme.accent-fallback') }}</span>
+        <span>{{ accentNote }}</span>
       </div>
     </template>
 
     <div v-else class="theme-row">
       <span class="theme-row__label">{{ t('theme.accent') }}</span>
-      <div class="theme-swatches" role="radiogroup" :aria-label="t('theme.accent')">
+      <span v-if="locked.accent" class="theme-accent-note">
+        <span class="theme-accent-chip"></span>
+        <span>{{ t('theme.accent-from-profile') }}</span>
+      </span>
+      <div v-else class="theme-swatches" role="radiogroup" :aria-label="t('theme.accent')">
         <button v-for="color in swatches"
                 :key="color"
                 type="button"
@@ -122,7 +147,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n';
 import {useMenuStore} from "@/store/menuStore";
-import {imageTheme} from "@/composables/useAppTheme";
+import {imageTheme, useEffectiveTheme} from "@/composables/useAppTheme";
 import type {UiPillOption} from "@/components/ui";
 import IconCircleHalf from "~icons/tabler/circle-half-2";
 import IconSun from "~icons/tabler/sun";
@@ -163,6 +188,38 @@ const MAX_UPLOAD_BYTES = 1024 * 1024;
 const uploadableThemeIds = new Set(['custom']);
 const supportsUpload = (id: string) => uploadableThemeIds.has(id);
 const swatches = ['#5b67e8', '#1f9e7a', '#c9484f', '#c98a2e', '#2f7fbf'];
+
+// The active profile's pxd-theme on top of the user's settings. Whatever the
+// profile sets is shown but locked; the user's own values stay untouched and
+// come back when the profile theme is switched off or another profile is used.
+const effective = useEffectiveTheme();
+const locked = computed(() => {
+  const p = effective.profile.value;
+  return {
+    mode: !!p?.mode,
+    image: !!p?.image,
+    transparency: p?.transparency != null,
+    blur: p?.blur != null,
+    dim: p?.dim != null,
+    accent: !!effective.fixedAccent.value,
+  };
+});
+
+type SliderKey = 'uiTrans' | 'uiBlur' | 'bgDim';
+const sliders = computed(() => [
+  {key: 'uiTrans' as SliderKey, label: t('theme.transparency'), min: 5, max: 85, unit: '%', value: effective.uiTrans.value, locked: locked.value.transparency},
+  {key: 'uiBlur' as SliderKey, label: t('theme.blur'), min: 0, max: 30, unit: ' px', value: effective.uiBlur.value, locked: locked.value.blur},
+  {key: 'bgDim' as SliderKey, label: t('theme.dim'), min: 0, max: 80, unit: '%', value: effective.bgDim.value, locked: locked.value.dim},
+]);
+
+function setSlider(key: SliderKey, value: number) {
+  if (Number.isFinite(value)) menuStore[key] = value;
+}
+
+const accentNote = computed(() => {
+  if (locked.value.accent) return t('theme.accent-from-profile');
+  return imageTheme.value ? t('theme.accent-from-image') : t('theme.accent-fallback');
+});
 
 const rendererOrigin = getRendererOrigin();
 const customBackgroundApiUrl = buildRendererUrl('/api/custom-background', rendererOrigin);
@@ -263,6 +320,7 @@ const tiles = computed(() => theme.value.map(option => {
 
 // 切换背景
 const changeBackground = (item: ThemeOption) => {
+  if (locked.value.image) return;
   bgError.value = '';
   if (supportsUpload(item.id)) {
     if (applyStoredCustomBackground(item.id)) {
@@ -300,6 +358,7 @@ const fileInput = ref<HTMLInputElement | null>(null);
 const pendingThemeId = ref<string | null>(null);
 
 const triggerUpload = (item: ThemeOption) => {
+  if (locked.value.image) return;
   pendingThemeId.value = item.id;
   fileInput.value?.click();
 };
@@ -441,6 +500,30 @@ onMounted(async () => {
   padding: 6px 22px 18px;
 }
 
+.theme-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel-soft));
+}
+
+.theme-profile__icon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.theme-tiles.is-locked {
+  opacity: .45;
+  pointer-events: none;
+}
+
+.theme-locked-note {
+  margin-top: -8px;
+}
+
 .theme-row {
   display: flex;
   align-items: center;
@@ -574,7 +657,7 @@ onMounted(async () => {
 
 .theme-slider {
   display: grid;
-  grid-template-columns: 200px minmax(0, 1fr) 52px;
+  grid-template-columns: 200px minmax(0, 1fr) 64px;
   align-items: center;
   gap: 12px;
   font-size: 13px;
@@ -590,7 +673,15 @@ onMounted(async () => {
 .theme-slider__val {
   font-size: 12px;
   color: var(--text-2);
-  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.theme-slider.is-locked input {
+  cursor: not-allowed;
+  opacity: .6;
 }
 
 .theme-accent-note {

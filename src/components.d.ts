@@ -81,6 +81,7 @@ declare module 'vue' {
     IconTablerMinus: typeof import('~icons/tabler/minus')['default']
     IconTablerPalette: typeof import('~icons/tabler/palette')['default']
     IconTablerPencil: typeof import('~icons/tabler/pencil')['default']
+    IconTablerPhotoStar: typeof import('~icons/tabler/photo-star')['default']
     IconTablerPlayerPauseFilled: typeof import('~icons/tabler/player-pause-filled')['default']
     IconTablerPlayerPlayFilled: typeof import('~icons/tabler/player-play-filled')['default']
     IconTablerPlus: typeof import('~icons/tabler/plus')['default']
