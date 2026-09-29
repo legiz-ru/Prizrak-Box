@@ -35,7 +35,7 @@ declare module 'vue' {
     IconTablerArrowUp: typeof import('~icons/tabler/arrow-up')['default']
     IconTablerBan: typeof import('~icons/tabler/ban')['default']
     IconTablerBell: typeof import('~icons/tabler/bell')['default']
-    IconTablerBolt: typeof import('~icons/tabler/bolt')['default']
+    IconTablerBrandSpeedtest: typeof import('~icons/tabler/brand-speedtest')['default']
     IconTablerCalendarDue: typeof import('~icons/tabler/calendar-due')['default']
     IconTablerCalendarExclamation: typeof import('~icons/tabler/calendar-exclamation')['default']
     IconTablerChartLine: typeof import('~icons/tabler/chart-line')['default']

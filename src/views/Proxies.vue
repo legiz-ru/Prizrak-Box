@@ -729,9 +729,9 @@ watch(groupList, (list) => {
           <icon-tabler-fold v-if="anyGroupOpen" width="17" height="17"/>
           <icon-tabler-selector v-else width="17" height="17"/>
         </UiIconButton>
-        <UiIconButton :label="$t('proxies.test')" :loading="bulkTestRunning" :active="bulkTestRunning" @click="testDelay">
+        <UiIconButton :label="$t('proxies.test')" :loading="bulkTestRunning" @click="testDelay">
           <UiSpinner v-if="bulkTestRunning"/>
-          <icon-tabler-bolt v-else width="17" height="17"/>
+          <icon-tabler-brand-speedtest v-else width="17" height="17"/>
         </UiIconButton>
         <UiIconButton :label="proxiesStore.isHide ? $t('proxies.hide-on') : $t('proxies.hide-off')"
                       :active="proxiesStore.isHide"
@@ -813,10 +813,9 @@ watch(groupList, (list) => {
             <UiIconButton :size="26"
                           :label="$t('proxies.test-group')"
                           :loading="groupLatencyTesting[group]"
-                          :active="groupLatencyTesting[group]"
                           @click.stop="testGroupDelay(group)">
               <UiSpinner v-if="groupLatencyTesting[group]"/>
-              <icon-tabler-bolt v-else width="16" height="16"/>
+              <icon-tabler-brand-speedtest v-else width="16" height="16"/>
             </UiIconButton>
             <icon-tabler-chevron-down class="group-chev" :class="{ 'is-collapsed': !expandedGroups[group] }" width="16" height="16"/>
           </div>
