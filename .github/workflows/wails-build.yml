@@ -78,7 +78,8 @@ jobs:
           # Same names and formats as the release workflow's build_linux_wails job.
           "$NFPM" pkg -p deb       -f "$CFG" -t "linux-${{ matrix.arch }}-wails.deb"
           "$NFPM" pkg -p rpm       -f "$CFG" -t "linux-${{ matrix.arch }}-wails.rpm"
-          "$NFPM" pkg -p archlinux -f "$CFG" -t "linux-${{ matrix.arch }}-aur-wails.tar.zst"
+          # pacman rejects '-' in pkgver: 1.0.21-beta03 -> 1.0.21_beta03.
+          PKG_VERSION="${PKG_VERSION//-/_}" "$NFPM" pkg -p archlinux -f "$CFG" -t "linux-${{ matrix.arch }}-aur-wails.tar.zst"
       - uses: actions/upload-artifact@v4
         with:
           name: wails-linux-${{ matrix.arch }}

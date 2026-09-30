@@ -154,13 +154,21 @@ func main() {
 			WebviewUserDataPath: locate.WebviewDataDir(),
 		},
 		Linux: application.LinuxOptions{
-			// GTK derives the window's WM_CLASS from g_get_prgname(), which
-			// defaults to the executable name (prizrak-box-wails). The installed
-			// desktop entry declares StartupWMClass=Prizrak-Box, and while the
-			// two disagree the shell cannot match the window to the .desktop
-			// file: the taskbar/dock shows a generic icon instead of the app's
-			// and treats the window as a separate, unlaunchable application.
-			ProgramName: "Prizrak-Box",
+			// The desktop shell matches a window to its .desktop file — and so
+			// to its taskbar/dock icon — by the Wayland app_id (the GTK
+			// application id) or, on X11, by WM_CLASS (from g_get_prgname()).
+			// GTK4 has no API to set a window icon from the program, so this
+			// match is the only way the app gets its own icon. Without an id
+			// Wails registers "org.wails.prizrak-box", which no installed
+			// .desktop file carries, and the taskbar shows a foreign icon.
+			//
+			// The installed entry is named after this id
+			// (/usr/share/applications/com.legiz-ru.prizrak-box.desktop) and
+			// sets StartupWMClass to it; ProgramName is left empty so Wails
+			// uses the same id for g_set_prgname (WM_CLASS on X11). It differs
+			// from the single-instance D-Bus name, which is UniqueID plus
+			// ".SingleInstance".
+			ApplicationID: "com.legiz-ru.prizrak-box",
 		},
 		SingleInstance: &application.SingleInstanceOptions{
 			UniqueID: "com.legiz-ru.prizrak-box",

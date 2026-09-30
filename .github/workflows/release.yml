@@ -1321,7 +1321,10 @@ jobs:
           # A real pacman package (.PKGINFO with depends + install hooks), so
           # `pacman -U` pulls the GTK4/WebKitGTK runtime in itself. It is published
           # as a release asset only — nothing is pushed to the AUR.
-          "$NFPM" pkg -p archlinux -f "$CFG" -t "linux-${{ matrix.arch }}-aur-wails.tar.zst"
+          # pacman rejects '-' in pkgver ("package version contains invalid
+          # characters"), so a pre-release like 1.0.21-beta03 becomes
+          # 1.0.21_beta03 here — the same form the Electron AUR package uses.
+          PKG_VERSION="${PKG_VERSION//-/_}" "$NFPM" pkg -p archlinux -f "$CFG" -t "linux-${{ matrix.arch }}-aur-wails.tar.zst"
       - name: Validate Release Assets
         run: |
           set -e

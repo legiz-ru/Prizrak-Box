@@ -7,4 +7,4 @@ Icon=prizrak-box
 Terminal=false
 Categories=Network;Utility;
 MimeType=x-scheme-handler/prizrak-box;
-StartupWMClass=Prizrak-Box
+StartupWMClass=com.legiz-ru.prizrak-box
