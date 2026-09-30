@@ -147,3 +147,18 @@ func TestBuildUserAgent(t *testing.T) {
 
 	_ = runtime.GOOS // убеждаемся что пакет runtime используется
 }
+
+func TestBuildUserAgentCoreVersion(t *testing.T) {
+	saved := coreVersion
+	defer func() { coreVersion = saved }()
+
+	coreVersion = "v1.19.32-r1"
+	if got, want := buildUserAgent("1.2.3", "Windows"), "Clash-Meta/Prizrak-Box (Desktop Build 1.2.3 Windows Prizrak-Core v1.19.32-r1)"; got != want {
+		t.Errorf("buildUserAgent = %q, want %q", got, want)
+	}
+
+	coreVersion = ""
+	if got, want := buildUserAgent("1.2.3", "Windows"), "Clash-Meta/Prizrak-Box (Desktop Build 1.2.3 Windows)"; got != want {
+		t.Errorf("buildUserAgent = %q, want %q", got, want)
+	}
+}
