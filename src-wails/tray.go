@@ -51,6 +51,14 @@ func setupTray(app *application.App, win *application.WebviewWindow) *trayContro
 
 	c.tray = app.SystemTray.New()
 	c.tray.SetTooltip("Prizrak-Box")
+	if runtime.GOOS == "linux" {
+		// Wails' Linux tray (StatusNotifierItem) ignores SetTooltip and takes
+		// the item's Id, Title and ToolTip from the label, which defaults to
+		// "Wails". It must be set before app.Run(): the Id is read-only once the
+		// item is registered. Not on macOS, where the label is drawn as text
+		// next to the menu-bar icon.
+		c.tray.SetLabel("Prizrak-Box")
+	}
 	switch runtime.GOOS {
 	case "darwin":
 		c.tray.SetTemplateIcon(trayIconMac)

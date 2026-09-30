@@ -93,8 +93,9 @@ const tipText = computed(() => props.noTip ? '' : (props.tip ?? props.label));
   cursor: not-allowed;
 }
 
+/* Loading keeps the normal icon colour: the spinner is neutral, like the
+   icon it replaces, not an accent highlight. */
 .px-icon-btn.is-loading {
-  color: var(--accent);
   cursor: progress;
 }
 </style>

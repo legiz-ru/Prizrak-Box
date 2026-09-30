@@ -3,6 +3,9 @@
 #   PKG_ARCH=amd64 PKG_VERSION=1.0.1 nfpm pkg -p deb       -f src-wails/build/linux/nfpm.yaml -t out.deb
 #   PKG_ARCH=amd64 PKG_VERSION=1.0.1 nfpm pkg -p rpm       -f src-wails/build/linux/nfpm.yaml -t out.rpm
 #   PKG_ARCH=amd64 PKG_VERSION=1.0.1 nfpm pkg -p archlinux -f src-wails/build/linux/nfpm.yaml -t out.tar.zst
+# pacman does not allow '-' in pkgver, so for the Arch package CI passes the
+# version with '-' replaced by '_' (1.0.21-beta03 -> 1.0.21_beta03), the same
+# form the Electron AUR package (prizrak-box-bin) uses.
 #
 # The package name is deliberately the same as the Electron build's, so installing
 # one replaces the other: both shells are the same application and share the data
@@ -31,8 +34,11 @@ contents:
     file_info: { mode: 0755 }
   - src: build/appicon.png
     dst: /usr/share/icons/hicolor/512x512/apps/prizrak-box.png
-  - src: src-wails/build/linux/prizrak-box.desktop
-    dst: /usr/share/applications/prizrak-box.desktop
+  # Named after the GTK application id (main.go, Linux.ApplicationID): on
+  # Wayland the taskbar finds the window's .desktop file — and its icon — by
+  # that id.
+  - src: src-wails/build/linux/com.legiz-ru.prizrak-box.desktop
+    dst: /usr/share/applications/com.legiz-ru.prizrak-box.desktop
   # Shipped as a package file rather than copied in postinstall, so the package
   # manager owns it and removes it on uninstall.
   - src: src-wails/build/linux/com.legiz-ru.prizrak-box.policy
@@ -77,6 +83,7 @@ overrides:
   archlinux:
     depends:
       - gtk4
-      - webkit2gtk-6.0
+      # The Arch package is webkitgtk-6.0 (webkit2gtk-* is the older 4.x API).
+      - webkitgtk-6.0
       - polkit
       - xdg-utils

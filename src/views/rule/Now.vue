@@ -179,7 +179,7 @@ watch(() => webStore.fProfile, async () => {
 }
 
 .now-proxy {
-  color: var(--accent);
+  color: var(--text);
   font-weight: 600;
 }
 
