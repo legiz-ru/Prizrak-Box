@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -46,15 +47,42 @@ var (
 	globalConfig   = &HTTPClientConfig{}
 )
 
-// buildUserAgent формирует единый UA вида:
-// Clash-Meta/Prizrak-Box (Desktop Build {version} {OS})
-// независимо от настройки HWID.
-func buildUserAgent(version, deviceOS string) string {
-	osName := normalizeOSName(deviceOS)
-	if version != "" {
-		return fmt.Sprintf("Clash-Meta/Prizrak-Box (Desktop Build %s %s)", version, osName)
+// coreVersion — версия Prizrak-Core, вшитая в бинарник (из replace модуля mihomo).
+// Пустая строка, если определить не удалось. Переменная, чтобы тесты могли подменить.
+var coreVersion = detectCoreVersion()
+
+func detectCoreVersion() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return ""
 	}
-	return fmt.Sprintf("Clash-Meta/Prizrak-Box (Desktop Build %s)", osName)
+	for _, dep := range info.Deps {
+		if dep.Path != "github.com/metacubex/mihomo" {
+			continue
+		}
+		if dep.Replace != nil && dep.Replace.Version != "" {
+			return dep.Replace.Version
+		}
+		if dep.Version != "" && dep.Version != "(devel)" {
+			return dep.Version
+		}
+	}
+	return ""
+}
+
+// buildUserAgent формирует единый UA вида:
+// Clash-Meta/Prizrak-Box (Desktop Build {version} {OS} Prizrak-Core {coreVersion})
+// независимо от настройки HWID. Суффикс ядра опускается, если версия неизвестна.
+func buildUserAgent(version, deviceOS string) string {
+	parts := []string{"Desktop Build"}
+	if version != "" {
+		parts = append(parts, version)
+	}
+	parts = append(parts, normalizeOSName(deviceOS))
+	if coreVersion != "" {
+		parts = append(parts, "Prizrak-Core", coreVersion)
+	}
+	return fmt.Sprintf("Clash-Meta/Prizrak-Box (%s)", strings.Join(parts, " "))
 }
 
 func hashString(input string) string {
