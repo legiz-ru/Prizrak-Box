@@ -29,6 +29,20 @@ Remnawave поддерживает два способа применения HT
 Полная документация по Правилам ответов Remnawave: [docs.rw/learn-en/routing-rules](https://docs.rw/learn-en/routing-rules)
 </Aside>
 
+Prizrak-Box представляется заголовком `User-Agent` следующего формата на всех платформах:
+
+| Платформа | User-Agent |
+|-----------|------------|
+| Desktop | `prizrak-box/{версия} (Desktop Build; {ОС} OS; Prizrak-Core {ядро})` |
+| Android | `prizrak-box/{версия} (Android Build; Prizrak-Core {ядро})` |
+| Apple | `prizrak-box/{версия} (Apple Build; Prizrak-Core {ядро})` |
+
+Например, `prizrak-box/1.0.21-beta06 (Desktop Build; Windows OS; Prizrak-Core v1.19.32-r1)`.
+
+Условие `prizrak-box/` подходит для всех платформ. В старых версиях строка начиналась
+с префикса `Clash-Meta/` (`Clash-Meta/Prizrak-Box (...)`), поэтому правило с условием `Clash-Meta/Prizrak-Box (` перестанет
+срабатывать на новых версиях — используйте `prizrak-box/`.
+
 Используйте следующий JSON как шаблон — он охватывает все заголовки, поддерживаемые Prizrak-Box:
 
 ```json
@@ -41,7 +55,7 @@ Remnawave поддерживает два способа применения HT
     {
       "headerName": "user-agent",
       "operator": "CONTAINS",
-      "value": "Clash-Meta/Prizrak-Box (",
+      "value": "prizrak-box/",
       "caseSensitive": false
     }
   ],
@@ -105,7 +119,7 @@ Remnawave поддерживает два способа применения HT
     {
       "headerName": "user-agent",
       "operator": "CONTAINS",
-      "value": "Clash-Meta/Prizrak-Box (",
+      "value": "prizrak-box/",
       "caseSensitive": false
     }
   ],
@@ -145,3 +159,46 @@ Remnawave поддерживает специальные ключи, расши
 Эти ключи позволяют гибко управлять прокси группами и провайдерами напрямую из шаблона.
 
 Полная документация: [docs.rw/guides/templates/mihomo](https://docs.rw/guides/templates/mihomo)
+
+---
+
+## 5. Описания прокси и групп
+
+Prizrak-Box показывает короткое описание рядом с сервером или прокси группой в списке прокси.
+Делайте его не длиннее **30 символов** — таков лимит поля в панели Remnawave.
+
+### Описание сервера (прокси)
+
+Задаётся в настройках хоста в панели Remnawave:
+
+<Steps>
+
+1. Откройте хост на редактирование.
+2. В блоке **Опции** нажмите **Добавить**.
+3. В разделе **Подписка** выберите пункт **Описание сервера**.
+4. Введите текст (не больше 30 символов) и сохраните хост.
+
+</Steps>
+
+Prizrak-Box читает его из ключа `serverDescription` прокси в подписке.
+Remnawave отправляет этот ключ только клиентам, которых он узнаёт, а `User-Agent`, начинающийся с
+`prizrak-box/`, входит в их число, поэтому дополнительная настройка не нужна.
+
+### Описание группы
+
+Описание прокси группы добавляется в шаблон Mihomo, как и другие параметры групп,
+с помощью ключа `description`:
+
+```yaml
+proxy-groups:
+  - name: 👻 Prizrak
+    type: select
+    description: Лучшая локация автоматически
+    proxies:
+      - 🇩🇪 Germany
+      - 🇫🇮 Finland
+```
+
+Описание группы показывается в строке группы, если она вложена в другую прокси группу.
+
+Все ключи и правила отображения описаны в разделе [Описания прокси и групп](/ru/for-devs/proxy-descriptions/).

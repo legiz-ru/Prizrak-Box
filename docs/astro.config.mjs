@@ -76,6 +76,11 @@ export default defineConfig({
               translations: { ru: 'Прокси группа Smart' },
               link: '/for-devs/smart-proxy-group/',
             },
+            {
+              label: 'Proxy and Group Descriptions',
+              translations: { ru: 'Описания прокси и групп' },
+              link: '/for-devs/proxy-descriptions/',
+            },
           ],
         },
         {

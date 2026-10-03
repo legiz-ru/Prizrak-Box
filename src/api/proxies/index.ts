@@ -228,9 +228,11 @@ const getDisplayType = (proxy: any, fallbackDescription?: string) => {
         ?? proxy?.extra?.['server-description']
         ?? fallbackDescription;
     if (typeof serverDescription === 'string') {
+        // No length limit: the UI shows it on one line and ellipsizes by width,
+        // the full text is available in the tooltip.
         const trimmed = serverDescription.trim();
         if (trimmed.length > 0) {
-            return trimmed.slice(0, 25);
+            return trimmed;
         }
     }
 
@@ -241,6 +243,21 @@ export interface ProxyGroupInfo {
     name: string;
     icon?: string;
     type?: string;
+}
+
+// name -> description for the proxies and proxy-groups of the selected profile,
+// read by the backend from the profile YAML. Never throws: a missing map just
+// means no descriptions are shown.
+const fetchDescriptions = async (proxy: any): Promise<Record<string, string>> => {
+    try {
+        const descriptions = await proxy.$http.get('/profile/serverDescriptions')
+        if (descriptions && typeof descriptions === 'object') {
+            return descriptions
+        }
+    } catch (e) {
+        // ignore
+    }
+    return {}
 }
 
 export default function createProxiesApi(proxy: any) {
@@ -338,15 +355,7 @@ export default function createProxiesApi(proxy: any) {
             // 获取所有节点分组列表
             const data = await proxy.$http.get('/proxies')
             const proxies = data?.['proxies']
-            let serverDescriptions: Record<string, string> = {}
-            try {
-                const descriptions = await proxy.$http.get('/profile/serverDescriptions')
-                if (descriptions && typeof descriptions === 'object') {
-                    serverDescriptions = descriptions
-                }
-            } catch (e) {
-                serverDescriptions = {}
-            }
+            const serverDescriptions = await fetchDescriptions(proxy)
 
             // 判空 — proxies может быть null пока Mihomo загружает pxd-template конфиг
             if (!proxies?.[active]) {

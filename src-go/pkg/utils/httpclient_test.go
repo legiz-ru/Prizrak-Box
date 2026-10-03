@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -89,7 +90,7 @@ func TestUpdateHTTPClientConfig(t *testing.T) {
 	UpdateHTTPClientConfig(config)
 
 	ua := globalConfig.UserAgent
-	expectedPrefix := "Clash-Meta/Prizrak-Box (Desktop Build 1.0.1 "
+	expectedPrefix := "prizrak-box/1.0.1 (Desktop Build; "
 	if !strings.HasPrefix(ua, expectedPrefix) {
 		t.Errorf("Expected UA to start with %q, got %q", expectedPrefix, ua)
 	}
@@ -109,15 +110,15 @@ func TestUpdateHTTPClientConfig(t *testing.T) {
 		t.Errorf("Expected UA to start with %q even when HWID disabled, got %q", expectedPrefix, ua)
 	}
 
-	// Test: UA без версии — должен содержать только ОС
+	// Test: UA без версии — версия "unknown", слэш после имени сохраняется
 	config = &HTTPClientConfig{
 		EnableHWID: false,
 	}
 	UpdateHTTPClientConfig(config)
 
 	ua = globalConfig.UserAgent
-	if !strings.HasPrefix(ua, "Clash-Meta/Prizrak-Box (Desktop Build ") {
-		t.Errorf("Expected UA to start with 'Clash-Meta/Prizrak-Box (Desktop Build ', got %q", ua)
+	if !strings.HasPrefix(ua, "prizrak-box/unknown (Desktop Build; ") {
+		t.Errorf("Expected UA to start with 'prizrak-box/unknown (Desktop Build; ', got %q", ua)
 	}
 	if !strings.Contains(ua, expectedOS) {
 		t.Errorf("Expected UA to contain OS %q, got %q", expectedOS, ua)
@@ -130,10 +131,10 @@ func TestBuildUserAgent(t *testing.T) {
 		deviceOS string
 		wantContains []string
 	}{
-		{"1.2.3", "Windows", []string{"Clash-Meta/Prizrak-Box", "Desktop Build", "1.2.3", "Windows"}},
-		{"2.0.0", "Linux", []string{"Clash-Meta/Prizrak-Box", "Desktop Build", "2.0.0", "Linux"}},
-		{"", "macOS", []string{"Clash-Meta/Prizrak-Box", "Desktop Build", "macOS"}},
-		{"1.0.0", "", []string{"Clash-Meta/Prizrak-Box", "Desktop Build", "1.0.0", defaultOSName()}},
+		{"1.2.3", "Windows", []string{"prizrak-box/1.2.3 (", "Desktop Build", "Windows OS"}},
+		{"2.0.0", "Linux", []string{"prizrak-box/2.0.0 (", "Desktop Build", "Linux OS"}},
+		{"", "macOS", []string{"prizrak-box/unknown (", "Desktop Build", "macOS OS"}},
+		{"1.0.0", "", []string{"prizrak-box/1.0.0 (", "Desktop Build", defaultOSName() + " OS"}},
 	}
 
 	for _, c := range cases {
@@ -153,12 +154,24 @@ func TestBuildUserAgentCoreVersion(t *testing.T) {
 	defer func() { coreVersion = saved }()
 
 	coreVersion = "v1.19.32-r1"
-	if got, want := buildUserAgent("1.2.3", "Windows"), "Clash-Meta/Prizrak-Box (Desktop Build 1.2.3 Windows Prizrak-Core v1.19.32-r1)"; got != want {
+	if got, want := buildUserAgent("1.2.3", "Windows"), "prizrak-box/1.2.3 (Desktop Build; Windows OS; Prizrak-Core v1.19.32-r1)"; got != want {
 		t.Errorf("buildUserAgent = %q, want %q", got, want)
 	}
 
 	coreVersion = ""
-	if got, want := buildUserAgent("1.2.3", "Windows"), "Clash-Meta/Prizrak-Box (Desktop Build 1.2.3 Windows)"; got != want {
+	if got, want := buildUserAgent("1.2.3", "Windows"), "prizrak-box/1.2.3 (Desktop Build; Windows OS)"; got != want {
 		t.Errorf("buildUserAgent = %q, want %q", got, want)
+	}
+}
+
+// Remnawave sends serverDescription only to "extended" clients, recognised by
+// the regex /^prizrak-box\// on the User-Agent (remnawave/backend,
+// extended-clients.ts). The UA must keep matching it.
+func TestBuildUserAgentMatchesRemnawaveExtendedClient(t *testing.T) {
+	extended := regexp.MustCompile(`^prizrak-box/`)
+	for _, version := range []string{"1.0.21-beta06", ""} {
+		if ua := buildUserAgent(version, "Windows"); !extended.MatchString(ua) {
+			t.Errorf("buildUserAgent(%q) = %q does not match %v", version, ua, extended)
+		}
 	}
 }

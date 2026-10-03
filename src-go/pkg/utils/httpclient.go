@@ -71,18 +71,20 @@ func detectCoreVersion() string {
 }
 
 // buildUserAgent формирует единый UA вида:
-// Clash-Meta/Prizrak-Box (Desktop Build {version} {OS} Prizrak-Core {coreVersion})
-// независимо от настройки HWID. Суффикс ядра опускается, если версия неизвестна.
+// prizrak-box/{version} (Desktop Build; {OS} OS; Prizrak-Core {coreVersion})
+// независимо от настройки HWID. Версия приложения стоит сразу после
+// "prizrak-box/": по этому префиксу панель Remnawave узнаёт расширенного клиента
+// (и отдаёт serverDescription), поэтому слэш и версия есть всегда — "unknown",
+// если версия не задана. Суффикс ядра опускается, если его версия неизвестна.
 func buildUserAgent(version, deviceOS string) string {
-	parts := []string{"Desktop Build"}
-	if version != "" {
-		parts = append(parts, version)
+	if version == "" {
+		version = "unknown"
 	}
-	parts = append(parts, normalizeOSName(deviceOS))
+	parts := []string{"Desktop Build", normalizeOSName(deviceOS) + " OS"}
 	if coreVersion != "" {
-		parts = append(parts, "Prizrak-Core", coreVersion)
+		parts = append(parts, "Prizrak-Core "+coreVersion)
 	}
-	return fmt.Sprintf("Clash-Meta/Prizrak-Box (%s)", strings.Join(parts, " "))
+	return fmt.Sprintf("prizrak-box/%s (%s)", version, strings.Join(parts, "; "))
 }
 
 func hashString(input string) string {

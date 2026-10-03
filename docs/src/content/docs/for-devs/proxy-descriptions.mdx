@@ -1,0 +1,59 @@
+---
+title: Proxy and Group Descriptions
+description: Short descriptions of proxies and proxy groups in Prizrak-Box — supported keys, priority and display rules.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Prizrak-Box can show a short text next to a proxy or a proxy group in the proxy list.
+The text is taken from the profile YAML, next to the icon of the proxy type.
+
+---
+
+## Keys
+
+| Item | Key | Notes |
+|------|-----|-------|
+| Proxy (`proxies`) | `serverDescription` | Main key, written by the Remnawave panel |
+| Proxy (`proxies`) | `server_description`, `server-description`, `description` | Fallbacks, used in this order if the previous key is missing or empty |
+| Group (`proxy-groups`) | `description` | The only key for groups |
+
+The first non-empty value is used. Leading and trailing spaces are removed.
+
+```yaml
+proxies:
+  - name: 🇩🇪 Germany
+    type: vless
+    serverDescription: Fast, 1 Gbps
+    # ...
+
+proxy-groups:
+  - name: 👻 Prizrak
+    type: select
+    description: Auto-pick the best location
+    proxies:
+      - 🇩🇪 Germany
+      - 🇫🇮 Finland
+```
+
+---
+
+## How it is shown
+
+- The description is shown in one line next to the icon of the proxy type, in the row of the proxy inside a proxy group.
+- A group description is shown the same way, in its row, when the group is nested in another proxy group (is one of its members). It is not shown in the list of groups on the main screen.
+- If the text does not fit the width, it is cut with `…`. The full text is available in the tooltip (or by long press on mobile).
+- The app does not limit the length of the text. Keep it up to **30 characters** (the limit of the field in the Remnawave panel) so it fits on most screens.
+- The description takes priority over the text extracted by `ui-subtitle-pattern` on Android.
+
+---
+
+## Limitations
+
+- Only proxies listed in the `proxies` block and groups from `proxy-groups` get a description.
+  Proxies loaded from `proxy-providers` have no description.
+
+<Aside type="note">
+How to set the description in the Remnawave panel and in the Mihomo template:
+[Remnawave Integration](/for-devs/remnawave-integration/).
+</Aside>

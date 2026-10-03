@@ -29,6 +29,20 @@ Go to **Subscription → Response Rules** and create a new rule.
 Full Remnawave Response Rules documentation: [docs.rw/learn-en/routing-rules](https://docs.rw/learn-en/routing-rules)
 </Aside>
 
+Prizrak-Box identifies itself with a `User-Agent` of the following format on every platform:
+
+| Platform | User-Agent |
+|----------|------------|
+| Desktop | `prizrak-box/{version} (Desktop Build; {OS} OS; Prizrak-Core {core})` |
+| Android | `prizrak-box/{version} (Android Build; Prizrak-Core {core})` |
+| Apple | `prizrak-box/{version} (Apple Build; Prizrak-Core {core})` |
+
+For example, `prizrak-box/1.0.21-beta06 (Desktop Build; Windows OS; Prizrak-Core v1.19.32-r1)`.
+
+The condition `prizrak-box/` matches all of them. Older versions sent a string with a `Clash-Meta/` prefix
+(`Clash-Meta/Prizrak-Box (...)`), so a rule written as `Clash-Meta/Prizrak-Box (` no longer matches new versions —
+use `prizrak-box/` instead.
+
 Use the following JSON as a template — it covers all headers supported by Prizrak-Box:
 
 ```json
@@ -41,7 +55,7 @@ Use the following JSON as a template — it covers all headers supported by Priz
     {
       "headerName": "user-agent",
       "operator": "CONTAINS",
-      "value": "Clash-Meta/Prizrak-Box (",
+      "value": "prizrak-box/",
       "caseSensitive": false
     }
   ],
@@ -105,7 +119,7 @@ one with the **Smart** proxy group — specify a `subscriptionTemplate` in the R
     {
       "headerName": "user-agent",
       "operator": "CONTAINS",
-      "value": "Clash-Meta/Prizrak-Box (",
+      "value": "prizrak-box/",
       "caseSensitive": false
     }
   ],
@@ -145,3 +159,46 @@ and are available inside subscription templates.
 These keys allow fine-grained control over proxy groups and providers directly from the template.
 
 Full reference: [docs.rw/guides/templates/mihomo](https://docs.rw/guides/templates/mihomo)
+
+---
+
+## 5. Proxy and Group Descriptions
+
+Prizrak-Box shows a short description next to a server or a proxy group in the proxy list.
+Keep it up to **30 characters** — that is the limit of the field in the Remnawave panel.
+
+### Server description (proxies)
+
+Set it in the host settings of the Remnawave panel:
+
+<Steps>
+
+1. Open the host for editing.
+2. In the **Options** block press **Add**.
+3. In the **Subscription** section choose **Server description**.
+4. Enter the text (up to 30 characters) and save the host.
+
+</Steps>
+
+Prizrak-Box reads it from the `serverDescription` key of the proxy in the subscription.
+Remnawave sends this key only to the clients it recognises, and a `User-Agent` that starts with
+`prizrak-box/` is one of them, so no extra setup is needed.
+
+### Group description
+
+The description of a proxy group is added to the Mihomo template, like the other group parameters,
+with the `description` key:
+
+```yaml
+proxy-groups:
+  - name: 👻 Prizrak
+    type: select
+    description: Auto-pick the best location
+    proxies:
+      - 🇩🇪 Germany
+      - 🇫🇮 Finland
+```
+
+The group description is shown in the row of the group when it is nested in another proxy group.
+
+All keys and display rules are described in [Proxy and Group Descriptions](/for-devs/proxy-descriptions/).

@@ -17,7 +17,6 @@ import (
 	"github.com/metacubex/http"
 	"github.com/metacubex/mihomo/hub/route"
 	"github.com/metacubex/mihomo/log"
-	"gopkg.in/yaml.v3"
 )
 
 func Profile(r chi.Router) {
@@ -267,50 +266,7 @@ func getProxyServerDescriptions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rawConfig := map[string]any{}
-	if err := yaml.Unmarshal([]byte(content), &rawConfig); err != nil {
-		render.JSON(w, r, map[string]string{})
-		return
-	}
-
-	proxiesRaw, ok := rawConfig["proxies"]
-	if !ok {
-		render.JSON(w, r, map[string]string{})
-		return
-	}
-
-	proxiesSlice, ok := proxiesRaw.([]any)
-	if !ok {
-		render.JSON(w, r, map[string]string{})
-		return
-	}
-
-	descriptions := map[string]string{}
-	for _, proxy := range proxiesSlice {
-		proxyMap, ok := proxy.(map[string]any)
-		if !ok {
-			continue
-		}
-		name, ok := proxyMap["name"].(string)
-		if !ok || name == "" {
-			continue
-		}
-		desc := ""
-		if value, ok := proxyMap["serverDescription"].(string); ok {
-			desc = value
-		} else if value, ok := proxyMap["server_description"].(string); ok {
-			desc = value
-		} else if value, ok := proxyMap["server-description"].(string); ok {
-			desc = value
-		}
-		desc = strings.TrimSpace(desc)
-		if desc == "" {
-			continue
-		}
-		descriptions[name] = desc
-	}
-
-	render.JSON(w, r, descriptions)
+	render.JSON(w, r, parseProxyDescriptions(content))
 }
 
 func addFromFile(w http.ResponseWriter, r *http.Request) {
