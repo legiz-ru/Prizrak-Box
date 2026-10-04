@@ -90,9 +90,14 @@ export interface SubscriptionAlert {
     percent?: number;
 }
 
-// Builds the (title, body) pair for a native OS notification, and the same
-// body text is reused as the click-response modal's message.
-export function formatAlertText(t: (key: string, params?: any) => string, alert: SubscriptionAlert): string {
+type Translate = (key: string, params?: any) => string;
+
+// The text of an alert as it was raised: built from the threshold that fired
+// ("expires in 4 days", "80% of traffic used"). It is only the fallback now,
+// for a profile whose expiry or traffic numbers are not known — everything
+// shown to the user comes from the live numbers below, because by the time a
+// notification is opened the threshold can be a day or a few percent behind.
+export function formatAlertText(t: Translate, alert: SubscriptionAlert): string {
     switch (alert.kind) {
         case 'expired':
             return t('subscriptionAlert.expired');
@@ -103,6 +108,107 @@ export function formatAlertText(t: (key: string, params?: any) => string, alert:
         default:
             return '';
     }
+}
+
+const HOUR_MS = 60 * 60 * 1000;
+const MINUTE_MS = 60 * 1000;
+
+// "05.10.2026, 14:30" in the interface language — an absolute moment, so it
+// never goes stale the way "in 4 days" does.
+export function formatExpireDate(ms: number, locale?: string): string {
+    return new Date(ms).toLocaleString(locale, {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
+// Time left, as a sentence: "in 4 d", "in 1 d 2 h", "in 5 h 20 min", "in 12 min".
+// Only meaningful for remainingMs > 0.
+export function formatRemaining(t: Translate, remainingMs: number): string {
+    const days = Math.floor(remainingMs / DAY_MS);
+    if (days >= 3) {
+        return t('subscriptionAlert.remainingDays', {days});
+    }
+    if (days >= 1) {
+        const hours = Math.floor((remainingMs % DAY_MS) / HOUR_MS);
+        return t('subscriptionAlert.remainingDaysHours', {days, hours});
+    }
+    const hours = Math.floor(remainingMs / HOUR_MS);
+    if (hours >= 1) {
+        const minutes = Math.floor((remainingMs % HOUR_MS) / MINUTE_MS);
+        return t('subscriptionAlert.remainingHoursMinutes', {hours, minutes});
+    }
+    return t('subscriptionAlert.remainingMinutes', {minutes: Math.max(1, Math.floor(remainingMs / MINUTE_MS))});
+}
+
+// Percent of traffic used right now, or null when the quota is unknown.
+// Integer arithmetic first (used * 100 / total) so 29 of 100 is 29, not 28.
+export function currentTrafficPercent(profile: any): number | null {
+    const total = Number(profile?.total ?? 0);
+    if (!(total > 0)) {
+        return null;
+    }
+    const used = Math.max(0, Number(profile?.used ?? 0));
+    return Math.floor((used * 100) / total);
+}
+
+export interface AlertTexts {
+    // The headline: what is true right now.
+    message: string;
+    // An extra line with the exact expiry moment, when there is one.
+    detail?: string;
+}
+
+// The text shown when a notification is opened: computed from the profile as
+// it is now, not from the threshold that raised the alert.
+export function describeAlert(
+    t: Translate,
+    alert: SubscriptionAlert,
+    profile: any,
+    locale?: string,
+): AlertTexts {
+    if (alert.kind === 'traffic_used') {
+        const percent = currentTrafficPercent(profile) ?? alert.percent;
+        return {message: t('subscriptionAlert.trafficUsed', {percent})};
+    }
+
+    const expireAt = expireMillis(profile);
+    if (!expireAt) {
+        return {message: formatAlertText(t, alert)};
+    }
+
+    const remaining = expireAt - (Date.now() + clockSkewMillis(profile));
+    if (remaining <= 0) {
+        return {message: t('subscriptionAlert.expired')};
+    }
+    return {
+        message: formatRemaining(t, remaining),
+        detail: t('subscriptionAlert.expiresOn', {date: formatExpireDate(expireAt, locale)}),
+    };
+}
+
+// The title of the native notification. A notification is frozen when it is
+// posted, so it carries the exact expiry moment instead of "in N days", and
+// the traffic percent measured at that moment.
+export function notificationTitle(
+    t: Translate,
+    alert: SubscriptionAlert,
+    profile: any,
+    locale?: string,
+): string {
+    if (alert.kind === 'traffic_used') {
+        const percent = currentTrafficPercent(profile) ?? alert.percent;
+        return t('subscriptionAlert.trafficUsed', {percent});
+    }
+
+    const expireAt = expireMillis(profile);
+    if (alert.kind === 'expires_in' && expireAt) {
+        return t('subscriptionAlert.expiresAt', {date: formatExpireDate(expireAt, locale)});
+    }
+    return formatAlertText(t, alert);
 }
 
 // --- Click round-trip ------------------------------------------------------

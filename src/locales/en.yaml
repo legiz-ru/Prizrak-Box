@@ -602,6 +602,12 @@ subscriptionAlert:
   infoDisabledLocally: Showing these reminders is currently turned off in the app's settings.
   expired: Subscription expired
   expiresIn: "Subscription expires in {days} days"
+  expiresAt: "Subscription expires {date}"
+  expiresOn: "Expires {date}"
+  remainingDays: "Subscription expires in {days} d"
+  remainingDaysHours: "Subscription expires in {days} d {hours} h"
+  remainingHoursMinutes: "Subscription expires in {hours} h {minutes} min"
+  remainingMinutes: "Subscription expires in {minutes} min"
   trafficUsed: "{percent}% of traffic used"
 
 hwid:

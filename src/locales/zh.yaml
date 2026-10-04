@@ -602,6 +602,12 @@ subscriptionAlert:
   infoDisabledLocally: 此类提醒目前已在应用设置中关闭。
   expired: 订阅已到期
   expiresIn: "订阅将在 {days} 天后到期"
+  expiresAt: "订阅将于 {date} 到期"
+  expiresOn: "到期时间：{date}"
+  remainingDays: "订阅将在 {days} 天后到期"
+  remainingDaysHours: "订阅将在 {days} 天 {hours} 小时后到期"
+  remainingHoursMinutes: "订阅将在 {hours} 小时 {minutes} 分钟后到期"
+  remainingMinutes: "订阅将在 {minutes} 分钟后到期"
   trafficUsed: "已使用 {percent}% 流量"
 
 hwid:

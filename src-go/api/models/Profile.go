@@ -40,6 +40,10 @@ type Profile struct {
 	AgeSecretKey       string `json:"ageSecretKey,omitempty"`
 	FallbackUrl        string `json:"fallbackUrl,omitempty"`
 	FallbackDomain     string `json:"fallbackDomain,omitempty"`
+	// SubscriptionRoute — the route the last subscription fetch took when a
+	// local proxy was available: "direct" or "proxy" (utils.SubscriptionRoute*).
+	// Tried first next time. Empty = no preference (direct).
+	SubscriptionRoute  string `json:"subscriptionRoute,omitempty"`
 	GlobalModeDisabled bool   `json:"globalModeDisabled,omitempty"`
 
 	// Theme — pxd-theme: the provider's look for the desktop app (background

@@ -79,7 +79,7 @@ import {BACKEND_CONN_UPDATED_EVENT} from "@/util/backendConn";
 import {
   checkPendingSubscriptionAlerts,
   notifySubscriptionAlertClicked,
-  formatAlertText,
+  notificationTitle,
   type SubscriptionAlert,
 } from "@/util/subscriptionAlerts";
 
@@ -87,7 +87,7 @@ const menuStore = useMenuStore();
 const updateStore = useUpdateStore();
 const webStore = useWebStore();
 const settingStore = useSettingStore();
-const {t} = useI18n();
+const {t, locale} = useI18n();
 const {proxy} = getCurrentInstance()!;
 const api = createApi(proxy);
 
@@ -328,7 +328,7 @@ const handleVueProfilesUpdate = (event: Event) => {
 // Notification API fires the click callback directly in this same renderer,
 // so it dispatches the click event itself.
 function notifySubscriptionAlertOs(profileData: any, alert: SubscriptionAlert) {
-  const title = formatAlertText(t, alert);
+  const title = notificationTitle(t, alert, profileData, locale.value);
   const body = profileData?.title || profileData?.headerTitle || '';
   const clickDetail = {
     profileId: profileData?.id,

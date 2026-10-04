@@ -282,6 +282,10 @@ If `true` and `Notify-Expire-Days` is absent, the app enables expiry reminders u
 Expiry and traffic notifications only fire when the panel sends **at least one** of `Notify-Expire-Days`, `Notify-Traffic-Percent`, or `Notification-Subs-Expire`. This is true even if `Subscription-Userinfo` already carries `expire`/`total` — the app does not invent reminder thresholds on its own. If none of the three headers are sent, no reminder notifications are shown, regardless of the user's local "Subscription reminders" setting (that setting is a permission to show them, not a source of thresholds).
 </Aside>
 
+<Aside type="note" title="Notifications show the actual time left">
+The thresholds only decide **when** a reminder is raised. The text is not the threshold: the notification carries the exact expiry date and time (for example, "Subscription expires 05.10.2026, 14:30"), and the window that opens when you click it is recalculated from the profile at that moment ("expires in 1 d 2 h", "expired", the current percent of traffic used). A reminder that has been waiting for a day therefore never says "4 days" when a day is left.
+</Aside>
+
 <Aside type="note" title="The renew button uses the furthest threshold">
 The "Renew subscription" button (see `Subscription-Renew-Url`) reacts to the **largest** value in `Notify-Expire-Days`. For example, with `Notify-Expire-Days: 1,5,10` the button appears 10 days before expiry and stays visible through the 10 → 5 → 1 → expired countdown, not only at the exact 1/5/10-day marks. Unlike push notifications, the button also works with **no** `Notify-Expire-Days` header at all — it falls back to the built-in 1/3/7-day defaults as a courtesy — but for traffic it never invents a percentage: without an explicit `Notify-Traffic-Percent`, the button ignores traffic usage entirely.
 </Aside>

@@ -48,8 +48,10 @@ func isValidHost(s string) bool {
 }
 
 // FetchSubscription tries source, then fallbackUrl, then source-with-fallbackDomain in order.
-// Returns (result, successURL) for the first 2xx response, or (nil, "") if all fail.
-func FetchSubscription(source, fallbackUrl, fallbackDomain string) (*utils.ResponseResult, string) {
+// Returns (result, successURL, route) for the first 2xx response, or (nil, "", "") if all fail.
+// preferredRoute is the route that worked last time (utils.SubscriptionRoute*); route is the one
+// that worked now, "" when no local proxy was configured and there was nothing to choose.
+func FetchSubscription(source, fallbackUrl, fallbackDomain, preferredRoute string) (*utils.ResponseResult, string, string) {
 	candidates := []string{source}
 	if fallbackUrl != "" {
 		candidates = append(candidates, fallbackUrl)
@@ -62,13 +64,13 @@ func FetchSubscription(source, fallbackUrl, fallbackDomain string) (*utils.Respo
 
 	proxyURL := proxy.GetProxyUrl()
 	for _, candidate := range candidates {
-		result, err := utils.FetchSubscriptionCandidate(candidate, proxyURL)
+		result, route, err := utils.FetchSubscriptionCandidate(candidate, proxyURL, preferredRoute)
 		if err == nil && result != nil {
-			return result, candidate
+			return result, candidate, route
 		}
 		log.Warnln("[FetchSubscription] candidate %s: %v", candidate, err)
 	}
-	return nil, ""
+	return nil, "", ""
 }
 
 // UpdateSubscriptionSource runs the full fetch+migration algorithm from the spec.
@@ -83,9 +85,14 @@ func FetchSubscription(source, fallbackUrl, fallbackDomain string) (*utils.Respo
 func UpdateSubscriptionSource(profile *models.Profile, onMigration func(*models.Profile)) (*utils.ResponseResult, error) {
 	migrations := 0
 	for {
-		result, _ := FetchSubscription(profile.Content, profile.FallbackUrl, profile.FallbackDomain)
+		result, _, route := FetchSubscription(profile.Content, profile.FallbackUrl, profile.FallbackDomain, profile.SubscriptionRoute)
 		if result == nil {
 			return nil, fmt.Errorf("subscription unreachable: %s", profile.Content)
+		}
+		// Remember the route that worked, so the next update tries it first
+		// and does not have to wait for the other one to take over.
+		if route != "" {
+			profile.SubscriptionRoute = route
 		}
 
 		headers := result.Headers

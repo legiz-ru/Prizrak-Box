@@ -242,6 +242,12 @@ func newHttpClient(proxyURL string, timeout time.Duration) (*http.Client, error)
 
 // sendRequest 发送 HTTP 请求，返回响应对象，由调用方负责关闭 Body
 func sendRequest(method, requestURL string, headers map[string]string, proxyURL string, timeout time.Duration) (*http.Response, error) {
+	return sendRequestCtx(context.Background(), method, requestURL, headers, proxyURL, timeout)
+}
+
+// sendRequestCtx is sendRequest whose request can be cancelled through ctx —
+// a cancelled request is dropped before (or while) it reaches the server.
+func sendRequestCtx(ctx context.Context, method, requestURL string, headers map[string]string, proxyURL string, timeout time.Duration) (*http.Response, error) {
 	// Снимаем конфиг один раз, чтобы все заголовки запроса
 	// были согласованы даже при параллельной смене globalConfig.
 	cfg := getConfigSnapshot()
@@ -251,7 +257,7 @@ func sendRequest(method, requestURL string, headers map[string]string, proxyURL 
 		return nil, err
 	}
 
-	req, err := http.NewRequest(method, requestURL, nil)
+	req, err := http.NewRequestWithContext(ctx, method, requestURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("创建请求失败: %w", err)
 	}
@@ -394,74 +400,133 @@ func FastGet(requestURL string, headers map[string]string, proxyURL string) (*Re
 // SubscriptionTimeout is the per-candidate timeout for fallback subscription fetching.
 const SubscriptionTimeout = 9 * time.Second
 
-// FetchSubscriptionCandidate fetches rawURL, treating HTTP 300-599 as failure.
-// Runs direct and proxy connections concurrently; first 2xx response wins.
-// Returns (nil, err) on timeout, network error, or non-2xx status from all attempts.
-func FetchSubscriptionCandidate(rawURL, proxyURL string) (*ResponseResult, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), SubscriptionTimeout)
-	defer cancel()
+// Subscription routes: how a request reaches the panel.
+const (
+	SubscriptionRouteDirect = "direct"
+	SubscriptionRouteProxy  = "proxy"
+)
 
-	results := make(chan *ResponseResult, 2)
-	errs := make(chan error, 2)
+// subscriptionRouteDelay is how long the preferred route has to answer before
+// the other one is started as well. A variable so tests can shorten it.
+var subscriptionRouteDelay = 1500 * time.Millisecond
 
-	send := func(useProxy bool) {
-		pURL := ""
-		if useProxy {
-			pURL = proxyURL
+type routeOutcome struct {
+	result *ResponseResult
+	route  string
+	err    error
+}
+
+// fetchSubscriptionRoute fetches rawURL over one route, treating anything but
+// 2xx and an empty body as a failure.
+func fetchSubscriptionRoute(ctx context.Context, rawURL, route, proxyURL string) routeOutcome {
+	pURL := ""
+	if route == SubscriptionRouteProxy {
+		pURL = proxyURL
+	}
+
+	resp, err := sendRequestCtx(ctx, "GET", rawURL, map[string]string{}, pURL, SubscriptionTimeout)
+	if err != nil {
+		return routeOutcome{route: route, err: err}
+	}
+	defer closeResponseBody(resp.Body)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return routeOutcome{route: route, err: fmt.Errorf("HTTP %d", resp.StatusCode)}
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil || len(bodyBytes) == 0 {
+		if err == nil {
+			err = fmt.Errorf("empty response body")
 		}
-		resp, err := sendRequest("GET", rawURL, map[string]string{}, pURL, SubscriptionTimeout)
-		if err != nil {
-			errs <- err
-			return
-		}
-		defer closeResponseBody(resp.Body)
+		return routeOutcome{route: route, err: err}
+	}
 
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			errs <- fmt.Errorf("HTTP %d", resp.StatusCode)
-			return
-		}
-
-		bodyBytes, err := io.ReadAll(resp.Body)
-		if err != nil || len(bodyBytes) == 0 {
-			if err == nil {
-				err = fmt.Errorf("empty response body")
-			}
-			errs <- err
-			return
-		}
-
-		select {
-		case results <- &ResponseResult{
+	return routeOutcome{
+		route: route,
+		result: &ResponseResult{
 			Body:       html.UnescapeString(string(bodyBytes)),
 			Headers:    resp.Header,
 			StatusCode: resp.StatusCode,
-		}:
-		case <-ctx.Done():
+		},
+	}
+}
+
+// FetchSubscriptionCandidate fetches rawURL, treating HTTP 300-599 as failure,
+// and sends ONE request to the panel in the normal case.
+//
+// There are two routes: direct, and through the local proxy (proxyURL, empty =
+// none). The preferred one — the route that worked last time, "" = direct —
+// goes first; the other starts only if the first fails or has not answered
+// within subscriptionRouteDelay, and the first success cancels whatever is
+// still in flight. (It used to start both at once and let the loser finish,
+// so the panel saw every update twice — once from the user's own address, once
+// from the VPN's exit.)
+//
+// Returns the response and the route that produced it. The route is "" when
+// no proxy was configured: there was nothing to choose between, so there is
+// nothing worth remembering.
+func FetchSubscriptionCandidate(rawURL, proxyURL, preferred string) (*ResponseResult, string, error) {
+	routes := []string{SubscriptionRouteDirect}
+	if proxyURL != "" {
+		if preferred == SubscriptionRouteProxy {
+			routes = []string{SubscriptionRouteProxy, SubscriptionRouteDirect}
+		} else {
+			routes = []string{SubscriptionRouteDirect, SubscriptionRouteProxy}
 		}
 	}
 
-	go send(true)
-	go send(false)
+	ctx, cancel := context.WithTimeout(context.Background(), SubscriptionTimeout)
+	defer cancel()
+
+	outcomes := make(chan routeOutcome, len(routes))
+	start := func(route string) {
+		go func() { outcomes <- fetchSubscriptionRoute(ctx, rawURL, route, proxyURL) }()
+	}
+
+	started := 1
+	start(routes[0])
+
+	var delay <-chan time.Time
+	if len(routes) > 1 {
+		timer := time.NewTimer(subscriptionRouteDelay)
+		defer timer.Stop()
+		delay = timer.C
+	}
 
 	var errList []string
-	for i := 0; i < 2; i++ {
+	finished := 0
+	for finished < started || started < len(routes) {
 		select {
-		case result := <-results:
-			return result, nil
-		case err := <-errs:
-			errList = append(errList, err.Error())
-			if len(errList) == 2 {
-				return nil, fmt.Errorf("%s", strings.Join(errList, " | "))
+		case o := <-outcomes:
+			finished++
+			if o.err == nil {
+				cancel()
+				if proxyURL == "" {
+					return o.result, "", nil
+				}
+				return o.result, o.route, nil
 			}
+			errList = append(errList, fmt.Sprintf("%s: %v", o.route, o.err))
+			// The first route failed outright: no point waiting out the delay.
+			if started < len(routes) {
+				start(routes[started])
+				started++
+				delay = nil
+			}
+		case <-delay:
+			start(routes[started])
+			started++
+			delay = nil
 		case <-ctx.Done():
 			if len(errList) == 0 {
-				return nil, fmt.Errorf("timed out after 9s")
+				return nil, "", fmt.Errorf("timed out after %s", SubscriptionTimeout)
 			}
-			return nil, fmt.Errorf("timed out: %s", strings.Join(errList, " | "))
+			return nil, "", fmt.Errorf("timed out: %s", strings.Join(errList, " | "))
 		}
 	}
 
-	return nil, fmt.Errorf("request failed")
+	return nil, "", fmt.Errorf("%s", strings.Join(errList, " | "))
 }
 
 // SendHead 根据 URL 内容判断用 HEAD 还是 GET 请求，返回状态码

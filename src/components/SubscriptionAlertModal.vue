@@ -11,12 +11,12 @@ import createApi from '@/api';
 import {
   SUBSCRIPTION_ALERT_CLICKED_EVENT,
   notifySubscriptionAlertClicked,
-  formatAlertText,
+  describeAlert,
   type SubscriptionAlert,
   type SubscriptionAlertClickDetail,
 } from '@/util/subscriptionAlerts';
 
-const {t} = useI18n();
+const {t, locale} = useI18n();
 const webStore = useWebStore();
 const {proxy} = getCurrentInstance()!;
 const api = createApi(proxy);
@@ -24,6 +24,7 @@ const api = createApi(proxy);
 const visible = ref(false);
 const profileName = ref('');
 const message = ref('');
+const expireDetail = ref('');
 const renewUrl = ref('');
 const logo = ref('');
 
@@ -51,7 +52,11 @@ async function handleClick(detail: SubscriptionAlertClickDetail) {
   const alert: SubscriptionAlert = {kind: detail.kind, days: detail.days, percent: detail.percent};
 
   profileName.value = profile?.title || profile?.headerTitle || '';
-  message.value = formatAlertText(t, alert);
+  // Computed from the profile as it is now: the notification may have sat
+  // unopened for a day, and "4 days" must not outlive the 4 days.
+  const texts = describeAlert(t, alert, profile, locale.value);
+  message.value = texts.message;
+  expireDetail.value = texts.detail ?? '';
   renewUrl.value = profile?.renewUrl || '';
   logo.value = typeof profile?.logo === 'string' ? profile.logo.trim() : '';
   visible.value = true;
@@ -106,6 +111,7 @@ function goRenew() {
       <icon-tabler-bell width="17" height="17"/>
       <span>{{ message }}</span>
     </div>
+    <div v-if="expireDetail" class="sub-alert-detail">{{ expireDetail }}</div>
     <template #actions>
       <button type="button" class="px-btn" @click="visible = false">{{ t('close') }}</button>
       <button v-if="renewUrl" type="button" class="px-btn px-btn--primary" @click="goRenew">{{ t('profiles.renew') }}</button>
@@ -134,6 +140,13 @@ function goRenew() {
   color: var(--warning);
   font-size: 14px;
   font-weight: 600;
+}
+
+.sub-alert-detail {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-2);
 }
 
 .sub-alert-pill svg {
