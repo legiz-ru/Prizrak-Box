@@ -202,3 +202,146 @@ proxy-groups:
 The group description is shown in the row of the group when it is nested in another proxy group.
 
 All keys and display rules are described in [Proxy and Group Descriptions](/for-devs/proxy-descriptions/).
+
+---
+
+## 6. Prizrak-Core Feature Support
+
+Prizrak-Box runs on the [Prizrak-Core](/prizrak-core/) core, which has features that regular Mihomo does not. To deliver them to users through the subscription, add the required options to the proxy with the Remnawave **host mapper**, in the `mihomo` list.
+
+- Only the Mihomo subscription changes. Xray JSON and base64 subscriptions stay as they are while their lists in the mapper are empty.
+- Clients on regular Mihomo ignore unknown keys and keep working as before.
+
+### Setting up the host mapper
+
+<Steps>
+
+1. Open **Hosts** and select the host to edit.
+2. In the **Options** block, click **Add** and pick **Mapper** in the **Advanced** group.
+3. A **Mapper** row with the status **Not set** appears in the **Advanced** section. Click it to open the mapper JSON editor.
+4. Paste the JSON from the examples below and click **Save** in the host card. The mapper status changes to **Configured**.
+
+</Steps>
+
+<Aside type="note">
+Make sure **Mihomo** is not checked in **Exclude from subscription type**, otherwise the host does not reach the Mihomo subscription together with the mapper options.
+</Aside>
+
+### mux.cool Multiplexing
+
+Prizrak-Core supports [mux.cool multiplexing](/prizrak-core/#muxcool-xray-mux), compatible with Xray. Xray servers managed by Remnawave need no extra setup: they accept mux.cool on their own.
+
+```json
+{
+  "xrayJson": [],
+  "mihomo": [
+    {
+      "op": "set",
+      "value": {
+        "enabled": true,
+        "max-carriers": 4,
+        "max-concurrency": 8,
+        "max-connections": 3,
+        "xudp-concurrency": 16,
+        "xudp-proxy-udp443": "reject"
+      },
+      "to": "['mux.cool']"
+    }
+  ],
+  "base64": []
+}
+```
+
+The `set` rule writes the `value` object into the `mux.cool` key of this host's proxy. In the Mihomo subscription the proxy gets this block:
+
+```yaml
+proxies:
+  - name: 🇩🇪 Germany
+    type: vless
+    # ...
+    mux.cool:
+      enabled: true
+      max-carriers: 4
+      max-concurrency: 8
+      max-connections: 3
+      xudp-concurrency: 16
+      xudp-proxy-udp443: reject
+```
+
+<Aside type="caution">
+Do not enable `mux.cool` and `smux` on the same proxy. Clients on regular Mihomo ignore the `mux.cool` key and connect without multiplexing.
+</Aside>
+
+### REALITY ML-DSA-65
+
+If `mldsa65Seed` is set in the REALITY inbound of an Xray server, the server signs the REALITY certificate with a post-quantum ML-DSA-65 signature. Prizrak-Core [verifies this signature](/prizrak-core/#reality-ml-dsa-65-and-xray-compatibility) when the proxy's `reality-opts` contain the public key `mldsa65-verify`.
+
+Put the ML-DSA-65 public key in base64url format into `value`. It is the `mldsa65Verify` value that `xray mldsa65` prints together with the inbound's `mldsa65Seed`.
+
+```json
+{
+  "xrayJson": [],
+  "mihomo": [
+    {
+      "op": "set",
+      "value": "<mldsa65Verify>",
+      "to": "['reality-opts']['mldsa65-verify']"
+    }
+  ],
+  "base64": []
+}
+```
+
+The rule writes the key into the `reality-opts` of this host's proxy:
+
+```yaml
+proxies:
+  - name: 🇩🇪 Germany
+    type: vless
+    # ...
+    reality-opts:
+      public-key: <X25519 public key>
+      short-id: <short id>
+      mldsa65-verify: <mldsa65Verify>
+```
+
+<Aside type="caution">
+The key must match the server's `mldsa65Seed`. If the key is wrong or ML-DSA-65 is not enabled on the server, Prizrak-Core rejects the REALITY certificate and does not connect.
+</Aside>
+
+### XHTTP Flow Control (h2-flow-control)
+
+For hosts with the XHTTP transport, Prizrak-Core can enable the [HTTP/2 flow governor](/prizrak-core/#http2-flow-governor-h2-flow-control). With it, the server sends data no faster than the client reads it and does not fill large HTTP/2 windows. This lowers memory use on the client and helps on weak devices. The Xray server needs no setup: the governor works on the client side through standard HTTP/2 flow control.
+
+The governor is off by default and works only in h2 mode, that is ALPN `h2` or an empty ALPN. With ALPN `h3` or `http/1.1` the option has no effect.
+
+```json
+{
+  "xrayJson": [],
+  "mihomo": [
+    {
+      "op": "set",
+      "value": true,
+      "to": "['xhttp-opts']['h2-flow-control']"
+    }
+  ],
+  "base64": []
+}
+```
+
+The rule writes the key into the `xhttp-opts` of this host's proxy:
+
+```yaml
+proxies:
+  - name: 🇩🇪 Germany
+    type: vless
+    network: xhttp
+    # ...
+    xhttp-opts:
+      # ...
+      h2-flow-control: true
+```
+
+<Aside type="note">
+Add the rule only to hosts with the XHTTP transport. Proxies with other transports do not use the `xhttp-opts` key.
+</Aside>

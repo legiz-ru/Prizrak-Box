@@ -1,0 +1,161 @@
+---
+title: Ядро Prizrak-Core
+description: Prizrak-Core — ядро Prizrak-Box на базе mihomo. Чем оно отличается от mihomo и какие возможности добавляет.
+---
+
+**Prizrak-Core** — прокси-ядро, на котором работает Prizrak-Box на всех платформах. Оно основано на [mihomo](https://github.com/MetaCubeX/mihomo) (бывший Clash.Meta).
+
+Конфигурации для mihomo работают в Prizrak-Core без изменений. Сверху ядро добавляет возможности, которых нет в mihomo: они описаны ниже.
+
+- Исходный код: [legiz-ru/Prizrak-Core](https://github.com/legiz-ru/Prizrak-Core)
+- **Скачать ядро:** [последний релиз](https://github.com/legiz-ru/Prizrak-Core/releases/latest), все версии — на странице [Releases](https://github.com/legiz-ru/Prizrak-Core/releases)
+- Docker: `ghcr.io/legiz-ru/prizrak-core`
+
+---
+
+## Где можно использовать
+
+Prizrak-Core входит в состав Prizrak-Box, но работает и без него. Это самостоятельный бинарник, совместимый с mihomo, поэтому его можно подставить везде, где используется mihomo.
+
+- **Prizrak-Box.** Ядро уже встроено, ничего настраивать не нужно.
+- **Отдельно.** Скачайте архив под свою платформу из [релизов](https://github.com/legiz-ru/Prizrak-Core/releases/latest) и запускайте как обычный mihomo: `mihomo -d <папка с config.yaml>`. Также можно использовать Docker-образ.
+- **[TrayClash](https://github.com/q0wqex/TrayClash).** Очень лёгкое приложение для Windows, подходит для устройств с Windows 7.
+- **[OpenWrt-exodus](https://prettyleaf.github.io/OpenWrt-exodus/).** Инструмент для установки на роутеры: OpenWrt, Asus, Keenetic. Чтобы установилось именно Prizrak-Core, при установке нужно задать специальную переменную. Какую именно — смотрите в документации OpenWrt-exodus.
+
+---
+
+## Отличия от mihomo
+
+| Возможность | mihomo | Prizrak-Core |
+|-------------|--------|--------------|
+| Группа `smart` (выбор узла с ML) | — | ✅ |
+| Библиотека uTLS | `metacubex/utls` v1.8.8 | `prizrak-utls`: свежий uTLS, Chrome 155 / Firefox 148 / Safari 26.3 |
+| Мультиплексирование mux.cool (Xray Mux, XUDP) | — | ✅ клиент и сервер |
+| REALITY с ML-DSA-65 и синхронизацией с Xray | — | ✅ |
+| XHTTP: регулятор потока HTTP/2 (`h2-flow-control`) | — | ✅ (выключен по умолчанию) |
+| HTTP/2: буфер отправки 32 КиБ вместо 512 КиБ | — | ✅ |
+
+---
+
+## Группа Smart
+
+Тип группы `smart` взят из [vernesong/mihomo](https://github.com/vernesong/mihomo). Группа сама выбирает узел по весам, которые считаются из реальной работы узлов: задержки, доли успешных подключений и трафика. Можно включить предсказание весов моделью LightGBM.
+
+Подробнее о настройке — на странице [Прокси группа Smart](/ru/for-devs/smart-proxy-group/).
+
+---
+
+## uTLS: prizrak-utls
+
+uTLS — библиотека, которая подделывает TLS-отпечаток (ClientHello) под настоящий браузер. От неё зависит, каким браузером выглядит подключение для `client-fingerprint` и REALITY.
+
+mihomo использует [metacubex/utls](https://github.com/metacubex/utls) v1.8.8. Prizrak-Core использует свой форк [legiz-ru/prizrak-utls](https://github.com/legiz-ru/prizrak-utls) (ветка `v1.9.0-mod-meta-mldsa-chr155`). Он состоит из трёх частей:
+
+1. **Основа** — ветка `v1.9.0-mod-meta` от metacubex. Это более новая линия, чем v1.8.8 в mihomo, со всеми доработками metacubex.
+2. **Свежий апстрим [refraction-networking/utls](https://github.com/refraction-networking/utls)**: синхронизация с `crypto/tls` из Go 1.27.1, отпечаток Chrome 155, исправления распаковки сжатых сертификатов, исправления GREASE и PSK, обмен ключами MLKEM1024. Форк при этом по-прежнему собирается на Go 1.20.
+3. **REALITY ML-DSA-65** — см. раздел [REALITY](#reality-ml-dsa-65-и-совместимость-с-xray).
+
+### Какой браузер означает `client-fingerprint`
+
+| `client-fingerprint` | mihomo | Prizrak-Core |
+|----------------------|--------|--------------|
+| `chrome` | Chrome 133 | **Chrome 155** |
+| `firefox` | Firefox 120 | **Firefox 148** |
+| `safari` | Safari 16.0 | **Safari 26.3** |
+| `ios`, `android`, `edge`, `360`, `qq` | без изменений | без изменений |
+
+В Prizrak-Core отпечатки `firefox` и `safari` тоже содержат постквантовый обмен ключами `X25519MLKEM768`, как у настоящих браузеров этих версий. В mihomo он есть только у `chrome`.
+
+:::note
+Если сервер не понимает новые отпечатки, можно явно указать старый: `chrome120`, `firefox120` или `safari16`.
+:::
+
+---
+
+## mux.cool (Xray Mux)
+
+В Prizrak-Core есть мультиплексирование **mux.cool**, совместимое с Xray. Это тот же протокол, что `mux` в Xray-core: TCP-потоки и UDP/XUDP-сессии идут поверх общих TCP-соединений. Используется реализация из [MetaCubeX/mihomo#2980](https://github.com/MetaCubeX/mihomo/pull/2980). Она расширеннее, чем в Xray-core, но полностью с ним совместима.
+
+- **Клиент.** Включается у прокси отдельно от `smux`. Включать их вместе нельзя.
+- **Сервер.** Входящие VLESS и VMess принимают mux.cool от клиентов Xray.
+- **XUDP.** Отдельные UDP-сессии с управлением их количеством и политикой для UDP/443.
+- **Ограничение соединений.** Можно ограничить, сколько TCP-соединений открывается всего, сколько сессий идёт по каждому одновременно и сколько сессий соединение проводит за время жизни. Потом соединение заменяется новым.
+
+```yaml
+proxies:
+  - name: vless-mux
+    type: vless
+    # ...
+    mux.cool:
+      enabled: true
+      # max-carriers: 0           # максимум TCP-соединений, 0 — без ограничения
+      # max-concurrency: 8        # активных сессий на одно соединение
+      # max-connections: 128      # сессий за время жизни соединения до ротации
+      # xudp-concurrency: 4       # отдельных XUDP-сессий на соединение, 0 — общий пул
+      # xudp-proxy-udp443: reject # reject | allow | skip — что делать с UDP/443
+```
+
+Включить mux.cool для пользователей подписки Remnawave можно через маппер хоста Remnawave, см. раздел [Мультиплексирование mux.cool](/ru/for-devs/remnawave-integration/#мультиплексирование-muxcool) на странице интеграции с Remnawave.
+
+---
+
+## REALITY: ML-DSA-65 и совместимость с Xray
+
+REALITY приведён в соответствие с текущим Xray-core. Используется реализация из [MetaCubeX/mihomo#2983](https://github.com/MetaCubeX/mihomo/pull/2983).
+
+- **ML-DSA-65.** Проверка постквантовой подписи сертификата REALITY, как в Xray. Клиент указывает публичный ключ `mldsa65-verify`, сервер — `mldsa65-seed`.
+- **ML-KEM, как в Xray.** REALITY всегда сохраняет отпечаток выбранного браузера, включая `X25519MLKEM768`. Опция `support-x25519mlkem768` больше не нужна и игнорируется. Для старых серверов укажите явный старый отпечаток, например `chrome120`.
+- **Новые параметры клиента** (названия как в Xray):
+  - `password` — синоним `public-key`;
+  - `spider-x`;
+  - `show`;
+  - `master-key-log`.
+- **Новые параметры сервера:**
+  - `target` — синоним `dest`;
+  - `type`;
+  - `xver`;
+  - `min-client-ver` / `max-client-ver`;
+  - `mldsa65-seed`;
+  - `show`;
+  - `master-key-log`.
+
+```yaml
+proxies:
+  - name: vless-reality
+    type: vless
+    # ...
+    client-fingerprint: chrome
+    reality-opts:
+      public-key: <X25519 public key>
+      short-id: <short id>
+      mldsa65-verify: <ML-DSA-65 public key, base64url>  # необязательно
+```
+
+Добавить `mldsa65-verify` для пользователей подписки Remnawave можно через маппер хоста Remnawave, см. раздел [REALITY ML-DSA-65](/ru/for-devs/remnawave-integration/#reality-ml-dsa-65) на странице интеграции с Remnawave.
+
+---
+
+## XHTTP и HTTP/2
+
+Две доработки по идеям [Medium1992](https://github.com/Medium1992) из [mihomo-proxy-ros](https://github.com/Medium1992/mihomo-proxy-ros).
+
+### Регулятор потока HTTP/2 (`h2-flow-control`)
+
+Клиентская часть регулятора потока HTTP/2 для XHTTP в режиме h2. Сервер присылает данные с той скоростью, с какой клиент их читает. Без регулятора сервер заполняет большие окна HTTP/2, и в памяти копятся данные, которые никто не читает. Регулятор показывает серверу окно 64 КиБ, ограничивает размер кадра 16 КиБ и раз в секунду измеряет RTT своим PING.
+
+Выключен по умолчанию, включается в каждом прокси отдельно:
+
+```yaml
+xhttp-opts:
+  h2-flow-control: true
+  # download-settings:
+  #   h2-flow-control: false  # отдельно для download, по умолчанию как выше
+```
+
+Работает только в режиме h2. Для h3 и http/1.1 не действует.
+
+Включить `h2-flow-control` для пользователей подписки Remnawave можно через маппер хоста Remnawave, см. раздел [Регулятор потока XHTTP](/ru/for-devs/remnawave-integration/#регулятор-потока-xhttp-h2-flow-control) на странице интеграции с Remnawave.
+
+### Буфер отправки HTTP/2: 32 КиБ
+
+Долгоживущие HTTP/2-потоки держат буфер отправки открытым всё время соединения. Это XHTTP в режимах stream-one/stream-up и gRPC. Его размер снижен с 512 КиБ до **32 КиБ**, через форк [legiz-ru/prizrak-http](https://github.com/legiz-ru/prizrak-http) поверх `metacubex/http` v0.1.8. При большом числе одновременных туннелей это заметно экономит память при той же скорости. Настраивать ничего не нужно.

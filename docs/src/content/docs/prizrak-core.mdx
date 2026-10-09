@@ -1,0 +1,161 @@
+---
+title: Prizrak-Core
+description: Prizrak-Core is the Prizrak-Box core based on mihomo. How it differs from mihomo and what it adds.
+---
+
+**Prizrak-Core** is the proxy core that powers Prizrak-Box on every platform. It is based on [mihomo](https://github.com/MetaCubeX/mihomo) (formerly Clash.Meta).
+
+Configurations written for mihomo work in Prizrak-Core unchanged. On top of that, the core adds features that mihomo does not have; they are described below.
+
+- Source code: [legiz-ru/Prizrak-Core](https://github.com/legiz-ru/Prizrak-Core)
+- **Download the core:** [latest release](https://github.com/legiz-ru/Prizrak-Core/releases/latest), all versions on the [Releases](https://github.com/legiz-ru/Prizrak-Core/releases) page
+- Docker: `ghcr.io/legiz-ru/prizrak-core`
+
+---
+
+## Where to use it
+
+Prizrak-Core ships with Prizrak-Box, but it also works on its own. It is a standalone binary compatible with mihomo, so it can be used anywhere mihomo is used.
+
+- **Prizrak-Box.** The core is built in, nothing to set up.
+- **Standalone.** Download the archive for your platform from the [releases](https://github.com/legiz-ru/Prizrak-Core/releases/latest) and run it like regular mihomo: `mihomo -d <folder with config.yaml>`. The Docker image works too.
+- **[TrayClash](https://github.com/q0wqex/TrayClash).** A very lightweight Windows app, suitable for Windows 7 devices.
+- **[OpenWrt-exodus](https://prettyleaf.github.io/OpenWrt-exodus/).** A tool for routers: OpenWrt, Asus, Keenetic. To install Prizrak-Core specifically, set a special variable during installation; see the OpenWrt-exodus documentation for which one.
+
+---
+
+## Differences from mihomo
+
+| Feature | mihomo | Prizrak-Core |
+|---------|--------|--------------|
+| `smart` group (ML-based node selection) | — | ✅ |
+| uTLS library | `metacubex/utls` v1.8.8 | `prizrak-utls`: up-to-date uTLS, Chrome 155 / Firefox 148 / Safari 26.3 |
+| mux.cool multiplexing (Xray Mux, XUDP) | — | ✅ client and server |
+| REALITY with ML-DSA-65, in sync with Xray | — | ✅ |
+| XHTTP: HTTP/2 flow governor (`h2-flow-control`) | — | ✅ (off by default) |
+| HTTP/2: 32 KiB send buffer instead of 512 KiB | — | ✅ |
+
+---
+
+## Smart group
+
+The `smart` group type comes from [vernesong/mihomo](https://github.com/vernesong/mihomo). The group picks a node by weights computed from how the nodes actually perform: latency, connection success rate and traffic. Weight prediction by a LightGBM model can be enabled.
+
+Configuration details are on the [Smart Proxy Group](/for-devs/smart-proxy-group/) page.
+
+---
+
+## uTLS: prizrak-utls
+
+uTLS is the library that makes the TLS fingerprint (ClientHello) look like a real browser. It decides which browser a connection looks like for `client-fingerprint` and REALITY.
+
+mihomo uses [metacubex/utls](https://github.com/metacubex/utls) v1.8.8. Prizrak-Core uses its own fork [legiz-ru/prizrak-utls](https://github.com/legiz-ru/prizrak-utls) (branch `v1.9.0-mod-meta-mldsa-chr155`). It consists of three parts:
+
+1. **Base**: the metacubex `v1.9.0-mod-meta` branch. It is a newer line than v1.8.8 in mihomo and carries all metacubex changes.
+2. **Up-to-date upstream [refraction-networking/utls](https://github.com/refraction-networking/utls)**: sync with `crypto/tls` from Go 1.27.1, the Chrome 155 fingerprint, fixes for compressed certificate decompression, GREASE and PSK fixes, MLKEM1024 key exchange. The fork still builds with Go 1.20.
+3. **REALITY ML-DSA-65**: see [REALITY](#reality-ml-dsa-65-and-xray-compatibility).
+
+### Which browser `client-fingerprint` means
+
+| `client-fingerprint` | mihomo | Prizrak-Core |
+|----------------------|--------|--------------|
+| `chrome` | Chrome 133 | **Chrome 155** |
+| `firefox` | Firefox 120 | **Firefox 148** |
+| `safari` | Safari 16.0 | **Safari 26.3** |
+| `ios`, `android`, `edge`, `360`, `qq` | unchanged | unchanged |
+
+In Prizrak-Core the `firefox` and `safari` fingerprints also carry the post-quantum `X25519MLKEM768` key exchange, as real browsers of these versions do. In mihomo only `chrome` has it.
+
+:::note
+If a server does not understand the new fingerprints, pick an older one explicitly: `chrome120`, `firefox120` or `safari16`.
+:::
+
+---
+
+## mux.cool (Xray Mux)
+
+Prizrak-Core supports **mux.cool** multiplexing compatible with Xray. It is the same protocol as `mux` in Xray-core: TCP streams and UDP/XUDP sessions share TCP connections. The implementation comes from [MetaCubeX/mihomo#2980](https://github.com/MetaCubeX/mihomo/pull/2980); it is more extensive than the one in Xray-core and fully compatible with it.
+
+- **Client.** Enabled per proxy, separately from `smux`. Do not enable both.
+- **Server.** VLESS and VMess inbounds accept mux.cool from Xray clients.
+- **XUDP.** Dedicated UDP sessions, with control over their number and a policy for UDP/443.
+- **Connection limits.** You can limit how many TCP connections are opened in total, how many sessions run on each at once and how many sessions a connection carries over its lifetime, after which it is replaced with a new one.
+
+```yaml
+proxies:
+  - name: vless-mux
+    type: vless
+    # ...
+    mux.cool:
+      enabled: true
+      # max-carriers: 0           # maximum TCP connections, 0 means no limit
+      # max-concurrency: 8        # active sessions per connection
+      # max-connections: 128      # sessions over a connection's lifetime before rotation
+      # xudp-concurrency: 4       # dedicated XUDP sessions per connection, 0 shares the pool
+      # xudp-proxy-udp443: reject # reject | allow | skip: what to do with UDP/443
+```
+
+To enable mux.cool for Remnawave subscription users, use the Remnawave host mapper; see [mux.cool Multiplexing](/for-devs/remnawave-integration/#muxcool-multiplexing) on the Remnawave integration page.
+
+---
+
+## REALITY: ML-DSA-65 and Xray compatibility
+
+REALITY is aligned with current Xray-core. The implementation comes from [MetaCubeX/mihomo#2983](https://github.com/MetaCubeX/mihomo/pull/2983).
+
+- **ML-DSA-65.** Verification of the post-quantum signature on the REALITY certificate, as in Xray. The client sets the public key `mldsa65-verify`, the server sets `mldsa65-seed`.
+- **ML-KEM as in Xray.** REALITY always keeps the fingerprint of the selected browser, including `X25519MLKEM768`. The `support-x25519mlkem768` option is no longer needed and is ignored. For older servers, set an older fingerprint explicitly, for example `chrome120`.
+- **New client options** (named as in Xray):
+  - `password`: alias of `public-key`;
+  - `spider-x`;
+  - `show`;
+  - `master-key-log`.
+- **New server options:**
+  - `target`: alias of `dest`;
+  - `type`;
+  - `xver`;
+  - `min-client-ver` / `max-client-ver`;
+  - `mldsa65-seed`;
+  - `show`;
+  - `master-key-log`.
+
+```yaml
+proxies:
+  - name: vless-reality
+    type: vless
+    # ...
+    client-fingerprint: chrome
+    reality-opts:
+      public-key: <X25519 public key>
+      short-id: <short id>
+      mldsa65-verify: <ML-DSA-65 public key, base64url>  # optional
+```
+
+To add `mldsa65-verify` for Remnawave subscription users, use the Remnawave host mapper; see [REALITY ML-DSA-65](/for-devs/remnawave-integration/#reality-ml-dsa-65) on the Remnawave integration page.
+
+---
+
+## XHTTP and HTTP/2
+
+Two improvements based on ideas by [Medium1992](https://github.com/Medium1992) from [mihomo-proxy-ros](https://github.com/Medium1992/mihomo-proxy-ros).
+
+### HTTP/2 flow governor (`h2-flow-control`)
+
+The client side of an HTTP/2 flow governor for XHTTP in h2 mode. The server sends data only as fast as the client reads it. Without the governor the server fills large HTTP/2 windows and data nobody reads piles up in memory. The governor shows the server a 64 KiB window, caps the frame size at 16 KiB and measures RTT with its own PING once a second.
+
+Off by default, enabled per proxy:
+
+```yaml
+xhttp-opts:
+  h2-flow-control: true
+  # download-settings:
+  #   h2-flow-control: false  # separately for download, defaults to the value above
+```
+
+Works only in h2 mode; it has no effect for h3 and http/1.1.
+
+To enable `h2-flow-control` for Remnawave subscription users, use the Remnawave host mapper; see [XHTTP Flow Control](/for-devs/remnawave-integration/#xhttp-flow-control-h2-flow-control) on the Remnawave integration page.
+
+### HTTP/2 send buffer: 32 KiB
+
+Long-lived HTTP/2 streams keep their send buffer open for the whole connection: XHTTP in stream-one/stream-up modes and gRPC. Its size is reduced from 512 KiB to **32 KiB** through the [legiz-ru/prizrak-http](https://github.com/legiz-ru/prizrak-http) fork on top of `metacubex/http` v0.1.8. With many concurrent tunnels this saves noticeable memory at the same speed. Nothing to configure.
