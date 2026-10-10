@@ -1,21 +1,11 @@
 <template>
-  <UiDropdown hover placement="top" align="right" role="menu">
-    <template #trigger="{ attrs }">
-      <button type="button"
-              class="side-round side-round--quit"
-              v-bind="attrs"
-              :aria-label="t('quit.label')"
-              v-tip="t('quit.label')"
-              @click="askQuit">
-        <icon-tabler-power width="17" height="17"/>
-      </button>
-    </template>
-    <template #default="{ close }">
-      <button type="button" role="menuitem" data-dd-item class="px-dd-item quit-item" @click="close(); askQuit()">
-        {{ t('quit.label') }}
-      </button>
-    </template>
-  </UiDropdown>
+  <button type="button"
+          class="side-round side-round--quit"
+          :aria-label="t('quit.label')"
+          v-tip="t('quit.label')"
+          @click="askQuit">
+    <icon-tabler-power width="17" height="17"/>
+  </button>
 
   <UiNotice v-model="dialogOpen"
             tone="error"
@@ -68,11 +58,5 @@ onMounted(() => Events.On("readyToQuit", quit))
 .side-round--quit:hover {
   background: var(--error) !important;
   color: #fff !important;
-}
-
-.quit-item {
-  font-weight: 600;
-  white-space: nowrap;
-  padding: 7px 14px;
 }
 </style>

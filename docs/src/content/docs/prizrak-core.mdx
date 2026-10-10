@@ -32,7 +32,7 @@ Prizrak-Core ships with Prizrak-Box, but it also works on its own. It is a stand
 | uTLS library | `metacubex/utls` v1.8.8 | `prizrak-utls`: up-to-date uTLS, Chrome 155 / Firefox 148 / Safari 26.3 |
 | mux.cool multiplexing (Xray Mux, XUDP) | — | ✅ client and server |
 | REALITY with ML-DSA-65, in sync with Xray | — | ✅ |
-| XHTTP: HTTP/2 flow governor (`h2-flow-control`) | — | ✅ (off by default) |
+| XHTTP: HTTP/2 flow governor (`h2-flow`) | — | ✅ (off by default) |
 | HTTP/2: 32 KiB send buffer instead of 512 KiB | — | ✅ |
 
 ---
@@ -139,22 +139,38 @@ To add `mldsa65-verify` for Remnawave subscription users, use the Remnawave host
 
 Two improvements based on ideas by [Medium1992](https://github.com/Medium1992) from [mihomo-proxy-ros](https://github.com/Medium1992/mihomo-proxy-ros).
 
-### HTTP/2 flow governor (`h2-flow-control`)
+### HTTP/2 flow governor (`h2-flow`)
 
-The client side of an HTTP/2 flow governor for XHTTP in h2 mode. The server sends data only as fast as the client reads it. Without the governor the server fills large HTTP/2 windows and data nobody reads piles up in memory. The governor shows the server a 64 KiB window, caps the frame size at 16 KiB and measures RTT with its own PING once a second.
+The client side of an HTTP/2 flow governor for XHTTP in h2 mode. The server sends data only as fast as the client reads it. Without the governor the server fills large HTTP/2 windows (4 MiB per stream in Go) and data nobody reads piles up in memory. The server needs no setup: the governor uses standard HTTP/2 flow control and works with any server.
 
-Off by default, enabled per proxy:
+How it works:
+
+- **Window by consumption.** The governor shows the server a 64 KiB window, caps the frame size at 16 KiB and measures RTT with its own PING once a second. The server gets credit back only while unread data stays below what the client reads in a couple of round trips.
+- **Fast start.** A new stream starts with a 256 KiB window or the window the connection recently needed. Until the first RTT is measured, the window opens with every credit.
+- **Path model from `min_rtt`.** On Linux and Android the governor reads TCP_INFO from the kernel (`rtt`, `min_rtt`, `rttvar`) and holds a download window to at most `1.25 × highest read rate × min_rtt`. On other systems it uses its PING measurements.
+
+Off by default, enabled per proxy with an `h2-flow` block:
 
 ```yaml
 xhttp-opts:
-  h2-flow-control: true
-  # download-settings:
-  #   h2-flow-control: false  # separately for download, defaults to the value above
+  h2-flow:
+    enabled: true
+    max-stream-receive-window: 16777216      # receive window per stream, bytes
+    max-connection-receive-window: 33554432  # receive window per connection, bytes
 ```
+
+- `enabled` turns the governor on.
+- **Receive windows:**
+  - optional, from 65535 bytes to 1 GiB;
+  - unset, Go's default windows apply (4 MiB per stream);
+  - with the governor they are a ceiling and the real window follows reading;
+  - without it they are fixed windows.
+- `h2-flow-control: true` still works as a shorthand for `h2-flow.enabled: true`. When both are set, `h2-flow.enabled` wins.
+- Downloads through `download-settings` use the same `h2-flow` block.
 
 Works only in h2 mode; it has no effect for h3 and http/1.1.
 
-To enable `h2-flow-control` for Remnawave subscription users, use the Remnawave host mapper; see [XHTTP Flow Control](/for-devs/remnawave-integration/#xhttp-flow-control-h2-flow-control) on the Remnawave integration page.
+To enable `h2-flow` for Remnawave subscription users, use the Remnawave host mapper; see [XHTTP Flow Control](/for-devs/remnawave-integration/#xhttp-flow-control-h2-flow) on the Remnawave integration page.
 
 ### HTTP/2 send buffer: 32 KiB
 

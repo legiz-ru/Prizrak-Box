@@ -309,9 +309,9 @@ proxies:
 The key must match the server's `mldsa65Seed`. If the key is wrong or ML-DSA-65 is not enabled on the server, Prizrak-Core rejects the REALITY certificate and does not connect.
 </Aside>
 
-### XHTTP Flow Control (h2-flow-control)
+### XHTTP Flow Control (h2-flow)
 
-For hosts with the XHTTP transport, Prizrak-Core can enable the [HTTP/2 flow governor](/prizrak-core/#http2-flow-governor-h2-flow-control). With it, the server sends data no faster than the client reads it and does not fill large HTTP/2 windows. This lowers memory use on the client and helps on weak devices. The Xray server needs no setup: the governor works on the client side through standard HTTP/2 flow control.
+For hosts with the XHTTP transport, Prizrak-Core can enable the [HTTP/2 flow governor](/prizrak-core/#http2-flow-governor-h2-flow). With it, the server sends data no faster than the client reads it and does not fill large HTTP/2 windows. This lowers memory use on the client and helps on weak devices. The Xray server needs no setup: the governor works on the client side through standard HTTP/2 flow control.
 
 The governor is off by default and works only in h2 mode, that is ALPN `h2` or an empty ALPN. With ALPN `h3` or `http/1.1` the option has no effect.
 
@@ -321,15 +321,19 @@ The governor is off by default and works only in h2 mode, that is ALPN `h2` or a
   "mihomo": [
     {
       "op": "set",
-      "value": true,
-      "to": "['xhttp-opts']['h2-flow-control']"
+      "value": {
+        "enabled": true,
+        "max-stream-receive-window": 16777216,
+        "max-connection-receive-window": 33554432
+      },
+      "to": "['xhttp-opts']['h2-flow']"
     }
   ],
   "base64": []
 }
 ```
 
-The rule writes the key into the `xhttp-opts` of this host's proxy:
+The rule writes the `h2-flow` block into the `xhttp-opts` of this host's proxy:
 
 ```yaml
 proxies:
@@ -339,9 +343,14 @@ proxies:
     # ...
     xhttp-opts:
       # ...
-      h2-flow-control: true
+      h2-flow:
+        enabled: true
+        max-stream-receive-window: 16777216
+        max-connection-receive-window: 33554432
 ```
 
+`max-stream-receive-window` and `max-connection-receive-window` are optional HTTP/2 receive windows in bytes, per stream and per connection, from 65535 to 1 GiB. With the governor they cap the window. Leave them out to keep Go's default windows (4 MiB per stream); then `"enabled": true` alone is enough in `value`.
+
 <Aside type="note">
-Add the rule only to hosts with the XHTTP transport. Proxies with other transports do not use the `xhttp-opts` key.
+Add the rule only to hosts with the XHTTP transport. Proxies with other transports do not use the `xhttp-opts` key. The older `h2-flow-control: true` key still works, but the `h2-flow` block is the main one.
 </Aside>

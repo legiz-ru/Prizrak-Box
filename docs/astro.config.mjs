@@ -1,13 +1,30 @@
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
-import starlightThemeNord from 'starlight-theme-nord';
 
 export default defineConfig({
   site: 'https://docs.prizrak.app',
   integrations: [
     starlight({
-      plugins: [starlightThemeNord()],
       title: 'Prizrak-Box',
+      // The app's design tokens (a copy of src/styles/tokens.css) and their
+      // mapping onto Starlight; see the comments at the top of each file.
+      customCss: ['./src/styles/tokens.css', './src/styles/theme.css'],
+      expressiveCode: {
+        themes: ['github-dark', 'github-light'],
+        useStarlightUiThemeColors: true,
+        styleOverrides: {
+          borderRadius: '8px',
+          borderColor: 'var(--border)',
+          codeBackground: 'var(--input-bg)',
+          frames: {
+            shadowColor: 'transparent',
+            editorTabBarBackground: 'var(--panel-soft)',
+            editorActiveTabBackground: 'var(--input-bg)',
+            terminalTitlebarBackground: 'var(--panel-soft)',
+            terminalBackground: 'var(--input-bg)',
+          },
+        },
+      },
       defaultLocale: 'root',
       locales: {
         root: {
@@ -20,10 +37,8 @@ export default defineConfig({
         },
       },
       logo: {
-        light: './src/assets/logo-dark.svg',
-        dark: './src/assets/logo-light.svg',
+        src: './src/assets/appicon.png',
         alt: 'Prizrak-Box',
-        replacesTitle: false,
       },
       social: [
         { icon: 'github', label: 'GitHub', href: 'https://github.com/legiz-ru/Prizrak-Box' },
@@ -96,7 +111,13 @@ export default defineConfig({
       },
       lastUpdated: true,
       components: {
+        PageFrame: './src/components/PageFrame.astro',
+        Header: './src/components/Header.astro',
+        SiteTitle: './src/components/SiteTitle.astro',
         Sidebar: './src/components/CustomSidebar.astro',
+        TwoColumnContent: './src/components/TwoColumnContent.astro',
+        ThemeSelect: './src/components/ThemeSelect.astro',
+        LanguageSelect: './src/components/LanguageSelect.astro',
       },
     }),
   ],

@@ -1,0 +1,96 @@
+---
+// Auto / Light / Dark as icon pills, like the mode switch in the app's theme
+// dialog (Skin.vue + UiPillTabs). Keeps Starlight's contract: the choice lives in
+// localStorage['starlight-theme'] ('' = auto) and ThemeProvider applies it to
+// <html data-theme> before first paint.
+import TablerIcon from './TablerIcon.astro';
+
+const options = [
+	{ value: 'auto', icon: 'circle-half-2', label: Astro.locals.t('themeSelect.auto') },
+	{ value: 'light', icon: 'sun', label: Astro.locals.t('themeSelect.light') },
+	{ value: 'dark', icon: 'moon', label: Astro.locals.t('themeSelect.dark') },
+] as const;
+---
+
+<px-theme-select>
+	<div class="px-seg" role="group" aria-label={Astro.locals.t('themeSelect.accessibleLabel')}>
+		{
+			options.map(({ value, icon, label }) => (
+				<button
+					type="button"
+					class="px-seg__item"
+					data-theme-value={value}
+					aria-pressed={value === 'auto' ? 'true' : 'false'}
+					aria-label={label}
+					title={label}
+				>
+					<TablerIcon name={icon} size={16} />
+				</button>
+			))
+		}
+	</div>
+</px-theme-select>
+
+{/* Inlined so the stored choice is highlighted before first paint. */}
+<script is:inline>
+	(() => {
+		let theme = 'auto';
+		try {
+			theme = localStorage.getItem('starlight-theme') || 'auto';
+		} catch {}
+		document.querySelectorAll('px-theme-select [data-theme-value]').forEach((btn) => {
+			btn.setAttribute('aria-pressed', String(btn.dataset.themeValue === theme));
+		});
+	})();
+</script>
+
+<script>
+	type Theme = 'auto' | 'dark' | 'light';
+
+	const storageKey = 'starlight-theme';
+
+	const parseTheme = (theme: unknown): Theme =>
+		theme === 'dark' || theme === 'light' ? theme : 'auto';
+
+	function loadTheme(): Theme {
+		try {
+			return parseTheme(localStorage.getItem(storageKey));
+		} catch {
+			return 'auto';
+		}
+	}
+
+	const systemTheme = (): 'dark' | 'light' =>
+		matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+
+	function applyTheme(theme: Theme): void {
+		document.documentElement.dataset.theme = theme === 'auto' ? systemTheme() : theme;
+		try {
+			localStorage.setItem(storageKey, theme === 'auto' ? '' : theme);
+		} catch {}
+		document.querySelectorAll<HTMLButtonElement>('px-theme-select [data-theme-value]').forEach((btn) => {
+			btn.setAttribute('aria-pressed', String(btn.dataset.themeValue === theme));
+		});
+	}
+
+	matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+		if (loadTheme() === 'auto') applyTheme('auto');
+	});
+
+	class PxThemeSelect extends HTMLElement {
+		constructor() {
+			super();
+			this.querySelectorAll<HTMLButtonElement>('[data-theme-value]').forEach((btn) => {
+				btn.addEventListener('click', () => applyTheme(parseTheme(btn.dataset.themeValue)));
+			});
+		}
+	}
+
+	customElements.define('px-theme-select', PxThemeSelect);
+</script>
+
+<style>
+	px-theme-select {
+		display: block;
+	}
+</style>

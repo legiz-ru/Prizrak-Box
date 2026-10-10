@@ -1,0 +1,57 @@
+---
+// Page content and its table of contents, both inside the main panel. Wide:
+// the TOC is a sticky column on the right. Narrower: Starlight's collapsible
+// "On this page" bar sticks to the top of the panel.
+---
+
+<div class:list={['px-cols', { 'has-toc': Boolean(Astro.locals.starlightRoute.toc) }]}>
+	{
+		Astro.locals.starlightRoute.toc && (
+			<aside class="px-toc print:hidden">
+				<slot name="right-sidebar" />
+			</aside>
+		)
+	}
+	<div class="px-content"><slot /></div>
+</div>
+
+<style>
+	.px-cols {
+		position: relative;
+	}
+
+	.px-content {
+		isolation: isolate;
+		min-width: 0;
+	}
+
+	.px-toc {
+		position: sticky;
+		top: var(--sl-nav-height);
+		z-index: var(--sl-z-index-toc);
+	}
+
+	@media (min-width: 72rem) {
+		.px-cols.has-toc {
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) 15rem;
+			align-items: start;
+		}
+
+		.px-toc {
+			grid-column: 2;
+			grid-row: 1;
+			top: calc(var(--sl-nav-height) + 8px);
+			max-height: calc(100vh - var(--sl-nav-height) - 24px);
+			overflow-y: auto;
+			scrollbar-width: thin;
+			border-inline-start: 1px solid var(--border);
+			margin-block: 16px;
+		}
+
+		.px-content {
+			grid-column: 1;
+			grid-row: 1;
+		}
+	}
+</style>
