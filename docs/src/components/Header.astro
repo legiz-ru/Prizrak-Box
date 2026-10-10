@@ -1,0 +1,56 @@
+---
+// Top bar over the main panel (the app's .app-top): search pill on the left,
+// social links on the right. On narrow screens the brand moves up here and the
+// menu button (rendered by PageFrame) sits at the far end.
+import config from 'virtual:starlight/user-config';
+import Search from 'virtual:starlight/components/Search';
+import SiteTitle from 'virtual:starlight/components/SiteTitle';
+import SocialIcons from 'virtual:starlight/components/SocialIcons';
+
+const shouldRenderSearch =
+	config.pagefind || config.components.Search !== '@astrojs/starlight/components/Search.astro';
+---
+
+<div class="px-header">
+	<div class="px-header__brand md:sl-hidden">
+		<SiteTitle />
+	</div>
+	<div class="px-header__search print:hidden">
+		{shouldRenderSearch && <Search />}
+	</div>
+	<div class="px-header__social sl-hidden md:sl-flex print:hidden">
+		<SocialIcons />
+	</div>
+</div>
+
+<style>
+	.px-header {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		height: 100%;
+	}
+
+	.px-header__brand {
+		min-width: 0;
+		margin-inline-end: auto;
+	}
+
+	.px-header__search {
+		display: flex;
+		align-items: center;
+	}
+
+	.px-header__social {
+		margin-inline-start: auto;
+		align-items: center;
+		gap: 6px;
+	}
+
+	@media (min-width: 50rem) {
+		.px-header__search {
+			flex: 1;
+			max-width: 320px;
+		}
+	}
+</style>

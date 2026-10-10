@@ -1,0 +1,40 @@
+---
+// Language switch as pills (same look as the theme switch) linking to the
+// current page in each locale.
+import config from 'virtual:starlight/user-config';
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const { locale: current } = Astro.locals.starlightRoute;
+
+// The page path without base and locale prefix, e.g. "/for-devs/".
+let rest = Astro.url.pathname.slice(base.length) || '/';
+if (current) rest = rest.slice(current.length + 1) || '/';
+
+const options = Object.entries(config.locales ?? {}).map(([code, locale]) => {
+	const prefix = code === 'root' ? '' : '/' + code;
+	return {
+		href: base + prefix + rest,
+		lang: locale?.lang,
+		label: locale?.label ?? code,
+		active: (current ?? 'root') === code,
+	};
+});
+---
+
+{
+	config.isMultilingual && (
+		<nav class="px-seg" aria-label={Astro.locals.t('languageSelect.accessibleLabel')}>
+			{options.map(({ href, lang, label, active }) => (
+				<a
+					class="px-seg__item"
+					href={href}
+					hreflang={lang}
+					lang={lang}
+					aria-current={active ? 'true' : undefined}
+				>
+					{label}
+				</a>
+			))}
+		</nav>
+	)
+}

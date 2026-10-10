@@ -1,0 +1,189 @@
+---
+// Page skeleton after the app window (src/App.vue): a 228px left column without
+// a background (brand, nav pills, language and theme at the bottom), a top bar,
+// and the content in one rounded panel. Below 50rem the column becomes a
+// drawer opened by Starlight's menu button.
+//
+// The page itself scrolls (not the panel), so anchors, search and the mobile
+// browser chrome behave as usual; the column and the top bar stay fixed.
+import LanguageSelect from 'virtual:starlight/components/LanguageSelect';
+import MobileMenuToggle from 'virtual:starlight/components/MobileMenuToggle';
+import Sidebar from 'virtual:starlight/components/Sidebar';
+import SiteTitle from 'virtual:starlight/components/SiteTitle';
+import SocialIcons from 'virtual:starlight/components/SocialIcons';
+import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
+---
+
+<div class="px-frame">
+	<header class="px-top"><slot name="header" /></header>
+
+	<nav class="px-side print:hidden" aria-label={Astro.locals.t('sidebarNav.accessibleLabel')}>
+		<MobileMenuToggle />
+		<div class="px-scrim md:sl-hidden" data-px-close-menu></div>
+		<div id="starlight__sidebar" class="px-side__pane">
+			<div class="px-side__brand sl-hidden md:sl-flex">
+				<SiteTitle />
+			</div>
+			{/* Rendered here rather than from the "sidebar" slot so pages without a
+			    sidebar (404) keep the same frame. */}
+			<Sidebar />
+			<div class="px-side__spacer"></div>
+			<div class="px-side__bottom">
+				<LanguageSelect />
+				<ThemeSelect />
+				<div class="px-side__social md:sl-hidden">
+					<SocialIcons />
+				</div>
+			</div>
+		</div>
+	</nav>
+
+	<div class="px-main">
+		<div class="px-panel"><slot /></div>
+	</div>
+</div>
+
+<script>
+	// Tapping the scrim closes the drawer (the menu button handles Escape).
+	document.querySelector('[data-px-close-menu]')?.addEventListener('click', () => {
+		const toggle = document.querySelector('starlight-menu-button') as
+			| (HTMLElement & { setExpanded?: (expanded: boolean) => void })
+			| null;
+		toggle?.setExpanded?.(false);
+	});
+</script>
+
+<style>
+	.px-frame {
+		min-height: 100vh;
+	}
+
+	/* ---- top bar ---- */
+	.px-top {
+		position: fixed;
+		z-index: var(--sl-z-index-navbar);
+		inset-block-start: 0;
+		inset-inline: 0;
+		height: var(--sl-nav-height);
+		padding-inline: 12px calc(12px + var(--sl-menu-button-size) + 10px);
+		background: var(--app-bg);
+	}
+
+	/* ---- left column / drawer ---- */
+	.px-side__pane {
+		visibility: var(--px-drawer-visibility, hidden);
+		position: fixed;
+		z-index: var(--sl-z-index-menu);
+		inset-block: var(--sl-nav-height) 0;
+		inset-inline-start: 0;
+		width: min(300px, 86vw);
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+		padding: 14px 14px 16px;
+		overflow-y: auto;
+		scrollbar-width: none;
+		background: var(--dialog-bg);
+		border-inline-end: 1px solid var(--border);
+	}
+
+	.px-side__pane::-webkit-scrollbar {
+		display: none;
+	}
+
+	.px-scrim {
+		visibility: var(--px-drawer-visibility, hidden);
+		position: fixed;
+		z-index: var(--sl-z-index-menu);
+		inset: var(--sl-nav-height) 0 0 0;
+		background: var(--scrim);
+		backdrop-filter: var(--scrim-blur);
+	}
+
+	:global(starlight-menu-button[aria-expanded='true']) ~ .px-side__pane,
+	:global(starlight-menu-button[aria-expanded='true']) ~ .px-scrim {
+		--px-drawer-visibility: visible;
+	}
+
+	.px-side__brand {
+		justify-content: center;
+		padding-bottom: 4px;
+	}
+
+	.px-side__spacer {
+		flex: 1;
+	}
+
+	.px-side__bottom {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	.px-side__social {
+		gap: 18px;
+		align-items: center;
+		padding: 6px 4px 0;
+	}
+
+	.px-side__bottom :global(.px-seg) {
+		width: 100%;
+	}
+
+	.px-side__bottom :global(.px-seg__item) {
+		flex: 1;
+	}
+
+	/* ---- main panel ---- */
+	.px-main {
+		padding: var(--sl-nav-height) 8px 8px;
+	}
+
+	.px-panel {
+		min-height: calc(100vh - var(--sl-nav-height) - 8px);
+		background: var(--px-panel-fill);
+		border: 1px solid var(--border);
+		border-radius: 12px;
+		box-shadow: var(--px-panel-shadow);
+	}
+
+	@media (min-width: 50rem) {
+		.px-top {
+			inset-inline-start: var(--px-side-width);
+			padding-inline: 0 14px;
+		}
+
+		.px-side__pane {
+			--px-drawer-visibility: visible;
+			inset-block: 0;
+			width: var(--px-side-width);
+			padding: 24px 14px 16px;
+			background: transparent;
+			border-inline-end: none;
+		}
+
+		.px-main {
+			padding: var(--sl-nav-height) 14px 14px var(--px-side-width);
+		}
+
+		.px-panel {
+			min-height: calc(100vh - var(--sl-nav-height) - 14px);
+		}
+	}
+
+	@media print {
+		.px-top {
+			display: none;
+		}
+
+		.px-main {
+			padding: 0;
+		}
+
+		.px-panel {
+			border: none;
+			box-shadow: none;
+			background: none;
+		}
+	}
+</style>

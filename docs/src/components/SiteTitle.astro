@@ -1,0 +1,69 @@
+---
+// The app's brand block (.app-brand in src/App.vue): rounded app icon with the
+// name under it in the sidebar, a compact row in the mobile top bar.
+import { logos } from 'virtual:starlight/user-images';
+import config from 'virtual:starlight/user-config';
+
+const { siteTitle, siteTitleHref } = Astro.locals.starlightRoute;
+const logo = logos.dark;
+---
+
+<a href={siteTitleHref} class="site-title">
+	{
+		logo && (
+			<img
+				class="site-title__logo"
+				alt={config.logo?.alt ?? ''}
+				src={logo.src}
+				width={logo.width}
+				height={logo.height}
+			/>
+		)
+	}
+	<span class="site-title__name" translate="no">{siteTitle}</span>
+</a>
+
+<style>
+	.site-title {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		min-width: 0;
+		color: var(--text);
+		text-decoration: none;
+		border-radius: 12px;
+	}
+
+	.site-title__logo {
+		width: 32px;
+		height: 32px;
+		border-radius: 8px;
+		object-fit: contain;
+		flex-shrink: 0;
+	}
+
+	.site-title__name {
+		font-size: 15px;
+		font-weight: 700;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	/* In the left column: centred, 56px icon over the name. */
+	:global(.px-side) .site-title {
+		flex-direction: column;
+		padding: 4px;
+	}
+
+	:global(.px-side) .site-title__logo {
+		width: 56px;
+		height: 56px;
+		border-radius: 12px;
+	}
+
+	:global(.px-side) .site-title__name {
+		max-width: 100%;
+		font-size: 14px;
+	}
+</style>

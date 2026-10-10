@@ -37,10 +37,8 @@ export default defineConfig({
         },
       },
       logo: {
-        light: './src/assets/logo-dark.svg',
-        dark: './src/assets/logo-light.svg',
+        src: './src/assets/appicon.png',
         alt: 'Prizrak-Box',
-        replacesTitle: false,
       },
       social: [
         { icon: 'github', label: 'GitHub', href: 'https://github.com/legiz-ru/Prizrak-Box' },
@@ -113,7 +111,13 @@ export default defineConfig({
       },
       lastUpdated: true,
       components: {
+        PageFrame: './src/components/PageFrame.astro',
+        Header: './src/components/Header.astro',
+        SiteTitle: './src/components/SiteTitle.astro',
         Sidebar: './src/components/CustomSidebar.astro',
+        TwoColumnContent: './src/components/TwoColumnContent.astro',
+        ThemeSelect: './src/components/ThemeSelect.astro',
+        LanguageSelect: './src/components/LanguageSelect.astro',
       },
     }),
   ],

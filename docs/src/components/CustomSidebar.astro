@@ -1,14 +1,195 @@
 ---
-import MobileMenuFooter from 'virtual:starlight/components/MobileMenuFooter';
+// Sidebar as the app's nav pills (src/components/menu/MyNav.vue): a Tabler
+// icon per top-level page, the current page filled with the accent. Groups
+// fold with <details>; SidebarPersister/SidebarRestorePoint keep Starlight's
+// remembered open state and scroll position.
 import SidebarPersister from '@astrojs/starlight/components/SidebarPersister.astro';
-import SidebarSublist from '@astrojs/starlight/components/SidebarSublist.astro';
+import SidebarRestorePoint from '@astrojs/starlight/components/SidebarRestorePoint.astro';
+import TablerIcon from './TablerIcon.astro';
+import type { IconName } from './icons';
 
-const { sidebar } = Astro.locals.starlightRoute;
+type Entry = (typeof Astro.locals.starlightRoute.sidebar)[number];
+
+const { sidebar, locale } = Astro.locals.starlightRoute;
+
+/** Icons by link path (locale prefix stripped) or by full URL for external links. */
+const iconByPath: Record<string, IconName> = {
+	'/': 'home',
+	'/install/': 'download',
+	'/about/': 'info-circle',
+	'/prizrak-core/': 'cpu',
+	'/links/': 'link',
+	'/important-note/': 'shield-lock',
+	'/terms/': 'file-text',
+	'/faq/': 'help-circle',
+	'https://t.me/crazy_day_admin/168': 'video',
+};
+
+const localePrefix = locale ? '/' + locale : '';
+
+function iconFor(entry: Entry): IconName {
+	if (entry.type === 'group') return 'code';
+	const path = entry.href.startsWith(localePrefix + '/')
+		? entry.href.slice(localePrefix.length)
+		: entry.href;
+	return iconByPath[path] ?? (/^https?:/.test(entry.href) ? 'external-link' : 'file-text');
+}
+
+/** Link attributes without `class`, which goes through class:list instead. */
+function linkAttrs(entry: Entry) {
+	if (entry.type !== 'link') return {};
+	const { class: _class, ...rest } = entry.attrs;
+	return rest;
+}
+
+const hasCurrent = (entries: Entry[]): boolean =>
+	entries.some((e) => (e.type === 'link' ? e.isCurrent : hasCurrent(e.entries)));
 ---
 
-<div class="md:sl-hidden">
-	<MobileMenuFooter />
-</div>
 <SidebarPersister>
-	<SidebarSublist sublist={sidebar} />
+	<ul class="px-nav">
+		{
+			sidebar.map((entry) => (
+				<li>
+					{entry.type === 'link' ? (
+						<a
+							href={entry.href}
+							aria-current={entry.isCurrent ? 'page' : undefined}
+							class:list={['px-nav__item', entry.attrs.class]}
+							{...linkAttrs(entry)}
+						>
+							<TablerIcon name={iconFor(entry)} />
+							<span class="px-nav__label">{entry.label}</span>
+						</a>
+					) : (
+						<details open={hasCurrent(entry.entries) || !entry.collapsed}>
+							<summary class="px-nav__item">
+								<TablerIcon name={iconFor(entry)} />
+								<span class="px-nav__label">{entry.label}</span>
+								<TablerIcon name="chevron-right" size={16} class="px-nav__caret" />
+							</summary>
+							<SidebarRestorePoint />
+							<ul class="px-nav__sub">
+								{entry.entries.map(
+									(sub) =>
+										sub.type === 'link' && (
+											<li>
+												<a
+													href={sub.href}
+													aria-current={sub.isCurrent ? 'page' : undefined}
+													class:list={['px-nav__subitem', sub.attrs.class]}
+													{...linkAttrs(sub)}
+												>
+													{sub.label}
+												</a>
+											</li>
+										)
+								)}
+							</ul>
+						</details>
+					)}
+				</li>
+			))
+		}
+	</ul>
 </SidebarPersister>
+
+<style>
+	.px-nav,
+	.px-nav__sub {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.px-nav {
+		gap: 8px;
+	}
+
+	.px-nav__item {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		width: 100%;
+		padding: 10px 14px;
+		border-radius: 999px;
+		font-size: 14px;
+		font-weight: 600;
+		line-height: 1.25;
+		color: var(--text);
+		text-decoration: none;
+		background: var(--side-bg);
+		cursor: pointer;
+		transition: background 0.15s;
+		user-select: none;
+	}
+
+	.px-nav__item:hover {
+		background: var(--hover-bg);
+	}
+
+	.px-nav__item[aria-current='page'],
+	.px-nav__item[aria-current='page']:hover {
+		background: var(--accent);
+		color: var(--on-accent);
+	}
+
+	.px-nav__label {
+		flex: 1;
+		min-width: 0;
+		overflow-wrap: break-word;
+		hyphens: auto;
+	}
+
+	summary.px-nav__item {
+		list-style: none;
+	}
+
+	summary.px-nav__item::-webkit-details-marker,
+	summary.px-nav__item::marker {
+		display: none;
+	}
+
+	.px-nav__caret {
+		color: var(--text-2);
+		transition: transform 0.2s;
+	}
+
+	details[open] > summary .px-nav__caret {
+		transform: rotate(90deg);
+	}
+
+	.px-nav__sub {
+		gap: 2px;
+		margin: 6px 0 2px 22px;
+		padding-inline-start: 10px;
+		border-inline-start: 1px solid var(--border);
+	}
+
+	.px-nav__subitem {
+		display: block;
+		padding: 7px 12px;
+		border-radius: 999px;
+		font-size: 13px;
+		font-weight: 600;
+		line-height: 1.3;
+		color: var(--text-2);
+		text-decoration: none;
+		transition: background 0.15s, color 0.15s;
+		overflow-wrap: break-word;
+		hyphens: auto;
+	}
+
+	.px-nav__subitem:hover {
+		background: var(--hover-bg);
+		color: var(--text);
+	}
+
+	.px-nav__subitem[aria-current='page'],
+	.px-nav__subitem[aria-current='page']:hover {
+		background: var(--accent);
+		color: var(--on-accent);
+	}
+</style>
