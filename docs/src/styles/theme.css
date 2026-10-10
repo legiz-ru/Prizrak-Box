@@ -352,7 +352,9 @@ starlight-tabs .tab [role='tab'][aria-selected='true'] {
 
 /* ==== app frame (see components/PageFrame.astro) ==== */
 :root {
-    --px-side-width: 228px;
+    /* The app's column is 228px; the docs' labels are longer (Russian ones
+       especially), so it is a little wider here. */
+    --px-side-width: 240px;
     --sl-sidebar-width: var(--px-side-width);
     --sl-nav-height: 56px;
     --sl-menu-button-size: 36px;
@@ -512,7 +514,10 @@ site-search button[data-close-modal] {
 starlight-menu-button button {
     top: calc((var(--sl-nav-height) - var(--sl-menu-button-size)) / 2);
     inset-inline-end: 12px;
-    padding: 8px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 20px;
     border-radius: 999px;
     background: var(--panel-soft);
     color: var(--text);

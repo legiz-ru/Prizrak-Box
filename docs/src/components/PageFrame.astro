@@ -31,7 +31,7 @@ import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
 			<div class="px-side__bottom">
 				<LanguageSelect />
 				<ThemeSelect />
-				<div class="px-side__social md:sl-hidden">
+				<div class="px-side__social">
 					<SocialIcons />
 				</div>
 			</div>
@@ -120,10 +120,12 @@ import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
 		gap: 10px;
 	}
 
+	/* Social links live in the top bar on wide screens, here in the drawer. */
 	.px-side__social {
-		gap: 18px;
+		display: flex;
 		align-items: center;
-		padding: 6px 4px 0;
+		gap: 6px;
+		padding-top: 2px;
 	}
 
 	.px-side__bottom :global(.px-seg) {
@@ -168,6 +170,10 @@ import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
 
 		.px-panel {
 			min-height: calc(100vh - var(--sl-nav-height) - 14px);
+		}
+
+		.px-side__social {
+			display: none;
 		}
 	}
 
