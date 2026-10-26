@@ -1896,10 +1896,17 @@ jobs:
               : (release.body ? release.body.replace(/\n*<div align=center>[\s\S]*<\/div>\s*$/, '') : '');
             const newBody = (baseBody ? baseBody + '\n\n' : '') + downloadLinks;
 
+            // A draft has no tag yet, and an update that leaves tag_name out makes
+            // GitHub rename it to 'untagged-…': on publish the release then gets
+            // no tag and its download links are dead. Every update of the draft
+            // therefore repeats the tag and the commit that was built.
+            const draftTarget = deferred ? { tag_name: tag, target_commitish: context.sha } : {};
+
             await github.rest.repos.updateRelease({
               owner,
               repo,
               release_id: release.id,
+              ...draftTarget,
               body: newBody,
             });
             core.info(`Successfully updated release body.`);
@@ -1952,10 +1959,27 @@ jobs:
             core.info('All assets uploaded successfully.');
 
             if (deferred) {
-              await github.rest.repos.updateRelease({
+              const { data: published } = await github.rest.repos.updateRelease({
                 owner, repo,
                 release_id: release.id,
+                ...draftTarget,
                 draft: false,
               });
-              core.info(`Published release ${tag}.`);
+              if (published.tag_name !== tag || published.draft) {
+                core.setFailed(`Release ${published.id} was published as '${published.tag_name}' (draft: ${published.draft}), not as tag '${tag}'. Fix it with: gh api -X PATCH repos/${owner}/${repo}/releases/${published.id} -f tag_name=${tag} -f target_commitish=${context.sha}`);
+                return;
+              }
+              try {
+                const { data: ref } = await github.rest.git.getRef({ owner, repo, ref: `tags/${tag}` });
+                if (ref.object.type === 'commit' && ref.object.sha !== context.sha) {
+                  core.warning(`Tag ${tag} already existed and points to ${ref.object.sha}, not to the built commit ${context.sha}.`);
+                }
+              } catch (error) {
+                if (error.status === 404) {
+                  core.setFailed(`Release ${tag} is published, but the tag '${tag}' was not created; its download links do not work.`);
+                  return;
+                }
+                throw error;
+              }
+              core.info(`Published release ${tag} on tag ${tag}.`);
             }
