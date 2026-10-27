@@ -1,6 +1,6 @@
 ---
 title: "XHTTP и HTTP/2"
-description: "XHTTP и HTTP/2 в Prizrak-Core: регулятор потока h2-flow и буфер отправки 32 КиБ."
+description: "XHTTP и HTTP/2 в Prizrak-Core: регулятор потока h2-flow, буфер отправки 32 КиБ и метод аплоада GET в режиме packet-up."
 ---
 
 Две доработки по идеям [Medium1992](https://github.com/Medium1992) из [mihomo-proxy-ros](https://github.com/Medium1992/mihomo-proxy-ros).
@@ -42,3 +42,30 @@ xhttp-opts:
 ## Буфер отправки HTTP/2: 32 КиБ
 
 Долгоживущие HTTP/2-потоки держат буфер отправки открытым всё время соединения. Это XHTTP в режимах stream-one/stream-up и gRPC. Его размер снижен с 512 КиБ до **32 КиБ**, через форк [legiz-ru/prizrak-http](https://github.com/legiz-ru/prizrak-http) поверх `metacubex/http` v0.1.8. При большом числе одновременных туннелей это заметно экономит память при той же скорости. Настраивать ничего не нужно.
+
+## Метод аплоада GET в режиме packet-up
+
+В режиме `packet-up` Prizrak-Core умеет отправлять аплоад-запросы методом `GET`, как Xray с `"uplinkHTTPMethod": "GET"`. Данные при этом идут в теле запроса, в заголовке или в cookie, это задаёт `uplink-data-placement`. Листенер Prizrak-Core тоже принимает такие запросы от клиентов Xray.
+
+```yaml
+xhttp-opts:
+  path: /x
+  mode: packet-up
+  uplink-http-method: GET
+  uplink-data-placement: header   # body, header или cookie
+```
+
+- `GET` работает только в режиме `packet-up`. В `stream-one` и `stream-up` конфиг не загрузится, ядро вернёт ошибку.
+- Регистр метода не важен: `get` и `GET` равнозначны.
+- `uplink-data-key` по умолчанию как в Xray: `X-Data` для header и `x_data` для cookie. Задавать его нужно, только если на сервере другое имя.
+- Для header и cookie размер одного аплоада без `sc-max-each-post-bytes` равен 4 КиБ: сервер Xray принимает заголовки до 8 КиБ. В клиенте Xray значение по умолчанию 1 МБ, там его нужно уменьшать вручную.
+
+Соответствие параметрам Xray:
+
+| Xray (`xhttpSettings`) | Prizrak-Core (`xhttp-opts`) |
+| --- | --- |
+| `"mode": "packet-up"` | `mode: packet-up` |
+| `"uplinkHTTPMethod": "GET"` | `uplink-http-method: GET` |
+| `"uplinkDataPlacement": "header"` | `uplink-data-placement: header` |
+| `"uplinkDataKey": "X-Data"` | `uplink-data-key: X-Data` |
+| `"scMaxEachPostBytes": "4000"` | `sc-max-each-post-bytes: 4000` |
