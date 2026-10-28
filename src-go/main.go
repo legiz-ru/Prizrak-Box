@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"github.com/metacubex/mihomo/hub/executor"
 	"github.com/metacubex/mihomo/log"
 	"github.com/legiz-ru/prizrak-box/prizrak"
@@ -22,9 +23,21 @@ func main() {
 	// 回调地址
 	addr := flag.String("addr", "", "callback address")
 	home := flag.String("home", "", "home directory")
+	// 以新会话重新启动自身并退出（macOS 提权用）
+	detachFlag := flag.Bool("detach", false, "re-exec in a new session and exit (used for macOS privilege escalation)")
 
 	// 解析命令行参数
 	flag.Parse()
+
+	if *detachFlag {
+		pid, err := detach()
+		if err != nil {
+			_, _ = fmt.Fprintln(os.Stderr, "detach:", err)
+			os.Exit(1)
+		}
+		fmt.Println(pid)
+		return
+	}
 
 	if addr == nil || *addr == "" {
 		panic("callback address is required")

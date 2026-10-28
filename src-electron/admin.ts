@@ -4,9 +4,30 @@ import {app, dialog} from "electron";
 import fs from "node:fs";
 import log from './log';
 import {storeGet} from "./store";
+import {storeInfo} from "./server";
 
 // 是否在开发模式
 const isDev = !app.isPackaged;
+
+// macOS: how long to wait for the detached root px to report its port back
+// before falling back to a normal (non-root) start.
+const ADMIN_READY_TIMEOUT_MS = 15000;
+
+// Resolves true once px has called back with its port, false on timeout.
+function waitForBackendReady(timeoutMs: number): Promise<boolean> {
+    return new Promise((resolve) => {
+        const startedAt = Date.now();
+        const timer = setInterval(() => {
+            if (storeInfo.port()) {
+                clearInterval(timer);
+                resolve(true);
+            } else if (Date.now() - startedAt >= timeoutMs) {
+                clearInterval(timer);
+                resolve(false);
+            }
+        }, 500);
+    });
+}
 
 // 获取提示词
 function getAuthTip(): string {
@@ -126,14 +147,39 @@ function tryRunAsAdmin(executable: string, args: string[], callback: (success: b
     switch (process.platform) {
         case 'darwin': {
             // macOS 使用 AppleScript 提权
-            const command = `${[executable, ...args].map(escapeShell).join(' ')}`;
+            //
+            // `do shell script` waits for its child to exit and, while waiting, keeps
+            // polling WindowServer for a user cancel (Cmd-.). With a long-running px
+            // that leaves osascript alive for the whole session burning CPU and
+            // buffering px's stdout in memory. So run px with -detach: it re-execs
+            // itself in a new session and exits at once, and osascript returns right
+            // after the authorization. A plain `... &` is not enough: authtrampoline
+            // kills the shell's process group when the shell exits, only a new
+            // session survives. px lifecycle is unaffected: it exits on its own when
+            // the /pxAlive poll to Electron fails, and the px-server.pid lock
+            // prevents duplicates.
+            const command = [executable, '-detach', ...args].map(escapeShell).join(' ');
             // 使用 `with prompt` 来直接在授权对话框中显示提示信息
             const script = `
                 do shell script "${command}" with administrator privileges with prompt "${getAuthTip()}"
             `;
             const osa = spawn('osascript', ['-e', script]);
             log.info("[Admin] 启动px命令行：", osa.spawnargs);
-            osa.on('exit', (code) => callback(code === 0));
+            osa.on('exit', (code) => {
+                if (code !== 0) {
+                    // authorization cancelled or failed
+                    callback(false);
+                    return;
+                }
+                // osascript exiting only means px was launched, not that it is up.
+                // Wait for px to call back with its port; otherwise fall back.
+                waitForBackendReady(ADMIN_READY_TIMEOUT_MS).then((ready) => {
+                    if (!ready) {
+                        log.warn(`[Admin] px did not report back within ${ADMIN_READY_TIMEOUT_MS}ms`);
+                    }
+                    callback(ready);
+                });
+            });
             osa.on('error', () => callback(false));
             break;
         }
