@@ -22,7 +22,9 @@ A template is of one of two kinds:
 | Where from | built in, a file, a link, base64, a subscription | a `happ://`, `incy://`, `prizrak-box://` link, autorouting over https, the builder |
 | How it is applied | the proxies are written into the template's groups | the routing is first made a YAML template, then as a template |
 
-In the app templates and routings are one list, **Templates and Routings**. Each row is marked "template" or "routing", with where it came from and when it was updated.
+In the app templates and routings are one list, **Templates and Routings**. Each row is marked "template" or "routing", with where it came from, its fallback addresses and when it was updated; when a fallback answered last, the row says "updated from …". A row's menu (long press) has **Copy Link** and **QR Code**: the `…/add/…` link with every address, `name` and `update-interval`.
+
+**A running profile.** Changing the template or routing of the profile that is connected now asks first: the profile reloads its configuration (the VPN stays on, new connections wait a few seconds, open ones usually go on). So do **Update**, **Reset**, **Update Geodata** and an `onadd` link. A background update (the subscription, a template's or routing's interval, geodata) reloads the profile by itself only when the YAML changed, its new files fetched first. When the routing is heavy for iOS, the profile's `tun` settings changed or the reload failed, Home shows a **Restart the profile?** card; the next connect takes the change anyway.
 
 <Aside type="note">
 A template applies to profiles made of keys, and to YAML subscriptions that send the `prizrak-routing` header (see [A YAML subscription with prizrak-routing](#a-yaml-subscription-with-prizrak-routing)). A YAML subscription without that header is used as it is.
@@ -146,9 +148,15 @@ A template with no `remnawave` anywhere whose groups use `include-all`, `include
 ```yaml
 prizrak-box:
   template-update-interval: 24   # hours between updates of the template
+  primary-group: VPN             # the subscription's main group
 ```
 
-- Only the app reads the key; it is taken out of the profile.
+| Field | Read from | What it means |
+|---|---|---|
+| `template-update-interval` | a template's YAML | hours between updates of the template |
+| `primary-group` (or `primary_group`) | the YAML of a subscription `prizrak-routing` is put over | the subscription's main group, see [A YAML subscription with prizrak-routing](#a-yaml-subscription-with-prizrak-routing) |
+
+- Only the app reads the key; it is taken out of the profile, and out of the Subscription Template too.
 - An anchor in it that the rest of the template refers to is written in where it is used before the key goes.
 
 ### Built-in templates
@@ -241,13 +249,13 @@ The JSON's keys are case-insensitive; `true` may be a string or a value; an empt
   - **`IPIfNonMatch`** — every site rule before any IP rule.
   - **`AsIs`** — addresses are not resolved (`no-resolve`).
   - **`IPOnDemand`** — the order as it is.
-  - The last rule is `MATCH` to "PROXY" or "🔓 Без VPN" by `GlobalProxy`.
+  - The last rule is `MATCH` to "👻PROXY" or "👻NO_VPN" by `GlobalProxy`.
 - **Groups.**
   - **🛡️ VPN** — the choice: "⚡️ Авто" and every proxy.
   - **⚡️ Авто** — a `url-test` of every proxy.
-  - **PROXY**, **🔓 Без VPN**, **⛔ Блок** — hidden groups for the rules; no proxies are written into them.
+  - **👻PROXY**, **👻NO_VPN**, **⛔👻BLOCK** — hidden groups for the rules; no proxies are written into them.
 - **DNS.**
-  - `nameserver` — the remote DNS, through PROXY. DoU and TCP go as TCP, to work through a proxy without UDP.
+  - `nameserver` — the remote DNS, through 👻PROXY. DoU and TCP go as TCP, to work through a proxy without UDP.
   - `proxy-server-nameserver` and `direct-nameserver` — the domestic DNS.
   - `default-nameserver` — the addresses of the domestic and remote DNS.
   - `nameserver-policy`: the `ProxySites` to the remote DNS, the `DirectSites` to the domestic one. A site in both is the remote's, as in Happ.
@@ -301,9 +309,9 @@ On top of Happ's and INCY's fields Prizrak-Box reads four more. They are read fr
 
 | Field | Its rules go to |
 |---|---|
-| `DirectRules` | 🔓 Без VPN |
-| `ProxyRules` | PROXY |
-| `BlockRules` | ⛔ Блок |
+| `DirectRules` | 👻NO_VPN |
+| `ProxyRules` | 👻PROXY |
+| `BlockRules` | ⛔👻BLOCK |
 | `RuleSetUrls` | the rule-providers of `RULE-SET` |
 
 **Rules.**
@@ -489,13 +497,14 @@ Links typed with the address when the subscription is added are applied once, an
 
 ### `prizrak-routing-override`
 
-What the subscription lets the user change in its profile:
+What the subscription lets the user change in its profile, and its main group:
 
 ```http
-prizrak-routing-override: rule=subonly; keys=false
+prizrak-routing-override: rule=subonly; keys=false; primary-group=VPN
 ```
 
 - **Format.** `key=value` pairs separated by `;`, in any order. Unknown keys are left out; a missing key is its default.
+- **`primary-group`** — a YAML subscription's main group (see [A YAML subscription with prizrak-routing](#a-yaml-subscription-with-prizrak-routing)). The name as written, case matters. A name with emoji, non-ASCII letters or `;` goes in an HTTP header as `base64:` of its UTF-8, as `profile-title` does: `primary-group=base64:8J+boe+4jyBWUE4=` ("🛡️ VPN"). A `#prizrak-routing-override: …` body line can carry it as it is.
 - **A body line.** Also as `#prizrak-routing-override: …`.
 
 **`rule` — the profile's template or routing:**
@@ -530,14 +539,38 @@ Hours between checks of a routing's geodata, 0 to 8760; 0 is never. The order is
 
 ## A YAML subscription with prizrak-routing
 
-When a subscription answers with YAML and sends `prizrak-routing`, Prizrak-Box makes the profile so:
+When a subscription answers with YAML and sends `prizrak-routing`, Prizrak-Box takes of it not only `proxies:` but all it is built on: `proxy-providers`, hidden and visible groups, chains (`dialer-proxy`, `override`).
 
-- **Proxies.** Only `proxies:` is taken of the YAML — whole, as it is. `proxy-groups`, `rules`, `proxy-providers` and the rest do not go into the profile.
-- **Template.** The template or routing of `prizrak-routing` is applied to these proxies — or, when `rule` allows, any other, the built-in and Happ / INCY ones too.
-- **Subscription Template.** The subscription's YAML itself is one of the choices: chosen, the profile is exactly what the subscription sent. With `rule=subonly` it is the default.
-- **Keys of one's own** (with `keys=true`) come after the YAML's proxies.
+### The main group
 
-When the subscription sends `prizrak-routing` no more, the profile is its YAML as it is again.
+The first of:
+
+1. `primary-group` of the `prizrak-routing-override` header;
+2. `prizrak-box: primary-group` of the subscription's YAML;
+3. its first group without `hidden: true` — usually where its main servers are.
+
+A name of 1–2 that is no group of the subscription is passed over, with a note on the subscription's key on the Keys page. The subscription's `MATCH` is not used for this: it may lead to `DIRECT`.
+
+### A routing came (Happ / INCY / the extended JSON)
+
+- **Kept of the subscription as they are:** `proxies`, `proxy-providers`, every `proxy-groups` entry, and `tun`, `sniffer`, `profile`, the ports and the rest.
+- **Taken of the routing:** `rules`, `rule-providers`, `dns`, `hosts` and geodata. The subscription's own `rules` and `rule-providers` go.
+- **The routing's groups** `👻PROXY`, `👻NO_VPN`, `⛔👻BLOCK` follow the subscription's, hidden; `👻PROXY` leads to the main group. No "🛡️ VPN" or "⚡️ Авто" is added. When the subscription has a group of such a name, the routing's is numbered.
+- **Keys of one's own** (with `keys=true`) go into the main group after its members.
+
+### A template came (YAML)
+
+- **The template's keys** are the main group's members in order: its `proxies` (country groups, servers) and, when it has `use`, those providers' servers. `DIRECT`, `REJECT` and `type: direct` proxies are no keys. The template's groups get the keys by the usual rules (`remnawave`, `filter`, `exclude-filter`); a filter sees the member's name, "🇳🇱 Нидерланды" say.
+- **Brought along of the subscription as they are:** every `proxies` entry, and the `proxy-providers` and groups the keys need — by `proxies`, by `use`, by `dialer-proxy`. The main group itself is not: the template's groups take its place. Country fallbacks and chains work as in the subscription.
+- **An http provider of the main group** goes into the `use` of the template's groups that get the keys, with their `filter`.
+- **With no main group** the keys are the subscription's servers: `proxies:` and its inline providers' servers as the core makes them (the filter on the name as written, then `dialer-proxy` and `override`); the groups chains dial through come along.
+- **The same name.** A name of the subscription's group or proxy that the template has too is numbered, every mention of it with it.
+- **Keys of one's own** (with `keys=true`) come after the main group's members.
+
+### Also
+
+- **Subscription Template.** The subscription's YAML itself is one of the choices: chosen, the profile is what the subscription sent (without the `prizrak-box:` key). With `rule=subonly` it is the default.
+- **The subscription sends `prizrak-routing` no more** — the profile is its YAML as it is again.
 
 **A Remnawave example.** The subscription sends the panel's Mihomo template and offers two more:
 
