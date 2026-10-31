@@ -5,8 +5,8 @@ description: "fallback-urls in Prizrak-Core — backup addresses for http rule-p
 
 import { Aside } from '@astrojs/starlight/components';
 
-<Aside type="caution" title="Not released yet">
-`fallback-urls` comes with the next Prizrak-Core release after v1.19.33-r6. In v1.19.33-r6 and older the field does not work.
+<Aside type="note" title="Since v1.19.33-r7">
+`fallback-urls` works from Prizrak-Core v1.19.33-r7. In v1.19.33-r6 and older the field is ignored.
 </Aside>
 
 Providers with `type: http` (`rule-providers` and `proxy-providers`) have two fields for the request:
@@ -47,6 +47,17 @@ proxy-providers:
 ## `fallback-urls`
 
 A list of backup addresses. The core asks `url` first, then each fallback in order, and keeps the first that answers.
+
+A single backup can also be written as a plain string:
+
+```yaml
+fallback-urls: https://cdn.jsdelivr.net/gh/legiz-ru/mihomo-rule-sets@main/ru-bundle/rule.mrs
+```
+
+<Aside type="caution">
+- In v1.19.33-r7 a plain string fails the provider with `'fallback-urls' is not a slice`: write a list there. The string form works from the next release.
+- The field is `fallback-urls`, with an **s**. The core does not know `fallback-url` and skips it without an error, so no backup is used.
+</Aside>
 
 **When the core moves on to the next address:**
 

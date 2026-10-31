@@ -5,8 +5,8 @@ description: "fallback-urls в Prizrak-Core — запасные адреса д
 
 import { Aside } from '@astrojs/starlight/components';
 
-<Aside type="caution" title="Пока не в релизе">
-`fallback-urls` войдёт в следующий релиз Prizrak-Core после v1.19.33-r6. В v1.19.33-r6 и более старых версиях это поле не работает.
+<Aside type="note" title="С версии v1.19.33-r7">
+`fallback-urls` работает с Prizrak-Core v1.19.33-r7. В v1.19.33-r6 и более старых версиях поле игнорируется.
 </Aside>
 
 У провайдеров с `type: http` (`rule-providers` и `proxy-providers`) есть два поля для запроса:
@@ -47,6 +47,17 @@ proxy-providers:
 ## `fallback-urls`
 
 Список запасных адресов. Сначала запрашивается `url`, затем запасные адреса по порядку. Берётся первый, который ответил.
+
+Один запасной адрес можно записать и просто строкой:
+
+```yaml
+fallback-urls: https://cdn.jsdelivr.net/gh/legiz-ru/mihomo-rule-sets@main/ru-bundle/rule.mrs
+```
+
+<Aside type="caution">
+- В v1.19.33-r7 строка вместо списка даёт ошибку провайдера `'fallback-urls' is not a slice`: там пишите списком. Запись строкой работает со следующего релиза.
+- Поле называется `fallback-urls`, с **s** на конце. Поле `fallback-url` ядро не знает и пропускает без ошибки, поэтому запасной адрес не используется.
+</Aside>
 
 **Когда ядро переходит к следующему адресу:**
 
