@@ -92,6 +92,11 @@ export default defineConfig({
               link: '/for-devs/supported-headers/',
             },
             {
+              label: 'Routing',
+              translations: { ru: 'Роутинг' },
+              link: '/for-devs/routing/',
+            },
+            {
               label: 'AGE Encryption',
               translations: { ru: 'Шифрование AGE' },
               link: '/for-devs/age-encryption/',

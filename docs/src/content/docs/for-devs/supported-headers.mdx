@@ -715,12 +715,84 @@ Parameters set by the profile are shown in the **Theme** dialog and cannot be ch
 
 ---
 
-## Happ / INCY Routing <Badge text="iOS only" variant="note" />
+## Routing
+
+The templates and routings a subscription offers its profile. How they are applied: the [Routing](/for-devs/routing/) page.
+
+<details>
+<summary>**`Prizrak-Routing`**</summary>
+
+The profile's templates and routings in any combination: `prizrak-box://template/…`, `prizrak-box://routing/…`, `prizrak-box://autorouting/…`, `happ://` and `incy://` links, separated by `;`.
+
+| Property | Value |
+|----------|-------|
+| Type | `string` |
+| Encoding | UTF-8 or Base64 (`base64:` prefix) |
+| Separator | `;` |
+
+**Example:**
+
+```http
+Prizrak-Routing: prizrak-box://template/onadd/https://example.com/t.yaml#fallback=https://mirror.example.com/t.yaml; happ://routing/add/eyJOYW1lIjoi…
+```
+
+- Everything listed is added to the templates and routings; the **first** is applied to the profile.
+- It comes before the `Routing` header and the routing links of the body: when it is there, they are not looked at.
+- It is applied again only when its value changed; until then the user's choice stays, when `Prizrak-Routing-Override` allows one.
+- It works for a YAML subscription too: only its `proxies:` are taken, the header's template or routing is applied to them, and the YAML itself stays a choice, the "Subscription Template".
+
+<Aside type="caution" title="Header size">
+Most proxy servers pass headers up to ~8 KB. Give a template as an `https://` link, not whole in base64.
+</Aside>
+
+</details>
+
+<details>
+<summary>**`Prizrak-Routing-Override`**</summary>
+
+What the subscription lets the user change in its profile.
+
+| Property | Value |
+|----------|-------|
+| Type | `key=value` pairs separated by `;` |
+| `rule` | `true` (default), `false`, `subonly` |
+| `keys` | `true`, `false` |
+
+**Example:**
+
+```http
+Prizrak-Routing-Override: rule=subonly; keys=false
+```
+
+| `rule` | Applied by default | Can be changed |
+|---|---|---|
+| `true` | the first of `Prizrak-Routing` | to any template or routing |
+| `false` | the first of `Prizrak-Routing`, always | no |
+| `subonly` | a YAML subscription: its YAML ("Subscription Template"); a subscription of keys: the first of `Prizrak-Routing` | only to the Subscription Template and what `Prizrak-Routing` brought |
+
+`keys` — whether keys of the user's own may be added. `false` by default when the subscription sends `Prizrak-Routing`, else `true`. With `keys=false` the keys added before are kept but not used, and come back when the subscription allows them again.
+
+</details>
+
+<details>
+<summary>**`Routing`**</summary>
+
+Happ / INCY routing links (`happ://routing/…`, `incy://routing/…`, `incy://autorouting/…`), several separated by `;`. The first is applied.
+
+**Example:**
+
+```http
+Routing: happ://routing/onadd/eyJOYW1lIjoi…
+```
+
+Only when there is no `Prizrak-Routing`. Without either header the routing links among the body's lines are taken.
+
+</details>
 
 <details>
 <summary>**`Routing-Geo-Update-Interval`**</summary>
 
-How often the geodata files (`geosite.dat`, `geoip.dat`) of the Happ / INCY routing a subscription sends — by the `routing` header or a `happ://routing/…` / `incy://routing/…` line in its body — are checked.
+How often the geodata files (`geosite.dat`, `geoip.dat`) of the Happ / INCY routing a subscription sends are checked.
 
 | Property | Value |
 |----------|-------|
@@ -734,15 +806,34 @@ How often the geodata files (`geosite.dat`, `geoip.dat`) of the Happ / INCY rout
 Routing-Geo-Update-Interval: 24
 ```
 
-Inline in the subscription body: `#routing-geo-update-interval: 24`; the response header wins over the body line.
-
-The interval applies while "As the Provider Says" is chosen in the routing editor: the user's choice wins. With `geosite.dat.sha256` / `geoip.dat.sha256` next to a file, it is downloaded again only when the hash changed, and a file that does not match its hash is not taken.
-
-<Aside type="caution" title="Subscriptions of keys only">
-The header works only when the subscription answers with keys — `vless://`, `trojan://`, `ss://`… links or a base64 list of them: Prizrak-Box then builds the profile itself from the Happ / INCY routing. When the subscription answers with a ready mihomo (Prizrak-Core) YAML, neither the Happ / INCY routing nor this header applies — the YAML sets the rules.
-</Aside>
+It applies while "As the provider says" is chosen in the routing's menu: the user's choice comes first. When a `geosite.dat.sha256` / `geoip.dat.sha256` lies beside a file, the file is downloaded again only when the hash changed, and a file not matching the hash is not taken.
 
 </details>
+
+<details>
+<summary>**`Template-Update-Interval`**</summary>
+
+A header of the **template server's** answer, not the subscription's: how often a YAML template added by its address is updated.
+
+| Property | Value |
+|----------|-------|
+| Type | `integer` |
+| Unit | Hours |
+| Range | 0–8760 (`0` — never) |
+
+**Example:**
+
+```http
+Template-Update-Interval: 24
+```
+
+The `update-interval` of a `prizrak-box://template/…` link comes before it, and it before the template's own `prizrak-box: template-update-interval`. With none of them: 24 hours.
+
+</details>
+
+<Aside type="caution" title="Subscriptions of keys only">
+These headers work only when the subscription answers with keys — `vless://`, `trojan://`, `ss://`… links, `vpn://`, WireGuard / AmneziaWG configurations or their base64 — or with YAML and `Prizrak-Routing`. A plain mihomo (Prizrak-Core) YAML subscription is used as it is: the YAML sets the rules.
+</Aside>
 
 ---
 

@@ -1,0 +1,559 @@
+---
+title: Routing
+description: Prizrak-Box templates and routings — how a subscription becomes a profile, the Remnawave template format, Happ / INCY routings and the extended format, links and the prizrak-routing headers.
+---
+
+import { Aside, Badge } from '@astrojs/starlight/components';
+
+Prizrak-Box makes a profile of two parts:
+
+- **proxies** — the keys of a subscription, or ones added by hand;
+- **a template** — everything else: groups, rules, DNS, TUN, geodata.
+
+A template is of one of two kinds:
+
+| | Template | Routing |
+|---|---|---|
+| What it is | a mihomo YAML template in Remnawave's format | a Happ / INCY routing profile (JSON) |
+| Where from | built in, a file, a link, base64, a subscription | a `happ://`, `incy://`, `prizrak-box://` link, autorouting over https, the builder |
+| How it is applied | the proxies are written into the template's groups | the routing is first made a YAML template, then as a template |
+
+In the app templates and routings are one list, **Templates and Routings**. Each row is marked "template" or "routing", with where it came from and when it was updated.
+
+<Aside type="note">
+A template applies to profiles made of keys, and to YAML subscriptions that send the `prizrak-routing` header (see [A YAML subscription with prizrak-routing](#a-yaml-subscription-with-prizrak-routing)). A YAML subscription without that header is used as it is.
+</Aside>
+
+---
+
+## How a subscription becomes a profile
+
+```
+The address in the "URL" field
+│
+├─ routing/template links only (prizrak-box:// happ:// incy://) → to "Templates and Routings", no profile made
+├─ keys (vless://…, vpn://, AWG/WireGuard .conf, several subscriptions) → a profile of those keys, nothing fetched
+│
+└─ a subscription's address → GET
+     ├─ unreachable → fallback-url → fallback-domain;  new-url / new-domain → to the new address
+     ▼ answer → age-encrypted → decrypted with the profile's key
+     ▼
+     the profile's headers = the HTTP headers, and those missing from the "#name: value" lines of the body
+     ▼
+     the format:
+      1. proxy links or vpn:// (the first line not "#" is a link)      → KEYS
+      2. an AmneziaWG / WireGuard configuration ([Interface] … [Peer]) → KEYS
+      3. one base64 line holding any of 1–2                           → KEYS
+      4. YAML (proxies:, proxy-groups:, rules: …)                      → YAML
+      5. anything else (Xray JSON too)                                 → error "format not supported"
+     │
+     ├─ YAML without prizrak-routing → checked by the core → the profile as it is
+     ├─ YAML with prizrak-routing    → proxies: of the YAML + the template of prizrak-routing → checked by the core
+     └─ KEYS → proxies (the core's converter; vpn:// and .conf read as AmneziaWG)
+               → the template of prizrak-routing / routing / links of the body → checked by the core
+```
+
+**The request.**
+
+- **One request.** The panel picks the answer's format by the `prizrak-box/…` User-Agent; the app only tells it from the content.
+- **HWID.** When sending it is on in Settings, the request carries `x-hwid`, `x-device-os`, `x-ver-os` and `x-device-model`.
+
+**What keys are:**
+
+- proxy links: `vless://`, `trojan://`, `ss://`, `vmess://`, `hysteria2://` / `hy2://`, `tuic://` and the others the core reads;
+- `vpn://` — Amnezia links;
+- AmneziaWG and WireGuard configurations (`.conf`);
+- base64 of any of these (standard or URL-safe, padding optional).
+
+Proxies are named as their keys. A name met again gets a number: "NL", "NL 2".
+
+**Headers in the body.**
+
+- Any supported header can be sent as a `#name: value` line at the top of the subscription's body.
+- This works for keys, base64 (once decoded), YAML and decrypted age.
+- When a header is both in HTTP and in the body, HTTP wins.
+
+```
+#profile-title: My VPN
+#prizrak-routing: prizrak-box://template/onadd/https://example.com/t.yaml
+#prizrak-routing-override: rule=subonly; keys=false
+vless://…
+```
+
+---
+
+## Templates
+
+### The template format
+
+A template is a mihomo configuration in the format of [Remnawave's templates](https://github.com/remnawave/templates) (Mihomo). The profile's proxies are written by name into the groups' `proxies`, after the ones a group lists, in the keys' order. The template's own proxies (a `type: direct` or `type: dns` one) are not written into groups — as in Remnawave.
+
+No `proxy-providers` are needed: the profile has none, the proxies are always under `proxies:`.
+
+**What each group gets:**
+
+| Group | Gets the profile's proxies |
+|---|---|
+| without a `remnawave` field | all |
+| `remnawave: { include-proxies: false }` | none |
+| `remnawave: { shuffle-proxies-order: true }` | all, in a random order |
+| `remnawave: { select-random-proxy: true }` | one, at random |
+| with `use:` of a provider marked `remnawave: { include-proxies: true }` | all |
+
+```yaml
+proxy-groups:
+  - name: 🚫 Blocked sites             # gets every proxy after its two
+    type: select
+    proxies:
+      - 🎲 Any available server
+      - 🇷🇺 No VPN
+
+  - name: ⚪🔵🔴 RU sites                # gets none
+    type: select
+    remnawave:
+      include-proxies: false
+    proxies:
+      - 🇷🇺 No VPN
+
+  - name: 🎲 Any available server       # every proxy, shuffled
+    type: fallback
+    hidden: true
+    url: https://www.gstatic.com/generate_204
+    remnawave:
+      shuffle-proxies-order: true
+```
+
+**Details:**
+
+- **Shuffle and random pick.** The random order (`shuffle-proxies-order`) and the random proxy (`select-random-proxy`) are picked anew each time the profile is made: on a subscription update, a change of keys or of the template.
+- **Group filters.** `filter`, `exclude-filter` and `exclude-type` pick which proxies a group gets.
+  - Regular expressions as the core reads them (regexp2); several are separated by a backtick.
+  - Remnawave does not apply `filter` to proxies listed by name. Prizrak-Box does: groups by country work without `include-all`.
+- **An empty group.** A group left with nothing gets its `empty-fallback`, else `COMPATIBLE`, as in the core.
+- **Service fields.** The `remnawave` field at the template's root and in groups, `include-all`, `include-all-proxies`, `include-all-providers` and `use` do not go into the profile.
+- **YAML anchors.** Anchors and references to them (`&name`, `*name`, `<<: *name`) work wherever the anchor is — RU-Bundle's `x-anchors:`, for example. The core leaves the holder key alone.
+
+<Aside type="tip" title="Templates with the older include-all">
+A template with no `remnawave` anywhere whose groups use `include-all`, `include-all-proxies` or `use` gives the proxies to those groups alone — the template's own proxies too, as the core would. The other groups stay as they are. Templates written for proxy-providers keep working.
+</Aside>
+
+### The `prizrak-box:` key of a template
+
+```yaml
+prizrak-box:
+  template-update-interval: 24   # hours between updates of the template
+```
+
+- Only the app reads the key; it is taken out of the profile.
+- An anchor in it that the rest of the template refers to is written in where it is used before the key goes.
+
+### Built-in templates
+
+| Template | Address | Fallback address | Updated |
+|---|---|---|---|
+| **Ultimate by Davoyan** (default) | `https://github.com/remnawave/templates/raw/main/by-davoyan/subscription-templates/ultimate-mihomo-ru.yaml` | `https://cdn.jsdelivr.net/gh/remnawave/templates@main/by-davoyan/subscription-templates/ultimate-mihomo-ru.yaml` | every 24 h |
+| **RU-Bundle by Legiz** | `https://github.com/remnawave/templates/raw/main/by-legiz/subscription-templates/mihomo-ru-bundle.yaml` | `https://cdn.jsdelivr.net/gh/remnawave/templates@main/by-legiz/subscription-templates/mihomo-ru-bundle.yaml` | every 24 h |
+
+**How a built-in template is updated:**
+
+- **When the app is built.** Its current version is downloaded into the app — from the fallback address when the first does not answer.
+- **In the app.** It is downloaded again from the same addresses every 24 hours. Its menu has Update and Reset to Built-in.
+- **After an app update.** The copy in the app is taken when it is newer than the downloaded one.
+- **Profiles.** The profiles on a template are made anew when it changes.
+
+Profiles on the built-in templates of before move to the new ones: RU-Bundle and RU-Bundle + smart to RU-Bundle, the others to Ultimate.
+
+### Your own templates
+
+A template is added under **Templates and Routings → Add**:
+
+- paste from the clipboard;
+- enter a link;
+- scan a QR code;
+- choose a file.
+
+**What it can be:**
+
+- a YAML file or its text;
+- an `https://` address of a YAML;
+- a `prizrak-box://template/…` link (see [Links](#links));
+- base64 of a YAML.
+
+A template added by an address keeps all its addresses and is updated every interval. One of the same address replaces it.
+
+**The template's update interval, the first that is set:**
+
+1. `update-interval` of the `prizrak-box://template/…` link;
+2. the `Template-Update-Interval` header of the template server's answer;
+3. `prizrak-box: template-update-interval` in the YAML;
+4. 24 hours.
+
+Hours from 0 to 8760; 0 is never. A template given in base64 is not updated by itself; one that came in `prizrak-routing` changes with that header.
+
+---
+
+## Happ / INCY routings
+
+A routing is a routing profile in Happ's and INCY's JSON format ([docs.happ.info](https://docs.happ.info), Routing). Prizrak-Box reads it as Happ does and makes it a YAML template for the core.
+
+The JSON's keys are case-insensitive; `true` may be a string or a value; an empty or missing field is Happ's default. The JSON is strict: trailing commas and comments are errors.
+
+### The routing's fields
+
+| Field | What it does | Default |
+|---|---|---|
+| `Name` | the name | `Default` |
+| `GlobalProxy` | where everything not in a list goes: `true` through the VPN, `false` direct | `true` |
+| `RouteOrder` | the order the categories are checked in, e.g. `block-direct-proxy` | `block-direct-proxy` |
+| `DomainStrategy` | `AsIs`, `IPIfNonMatch`, `IPOnDemand` | `IPIfNonMatch` |
+| `DirectSites`, `DirectIp` | direct | — |
+| `ProxySites`, `ProxyIp` | through the VPN | — |
+| `BlockSites`, `BlockIp` | blocked | — |
+| `RemoteDNSType`, `RemoteDNSDomain`, `RemoteDNSIP` | the remote DNS (`DoH`, `DoT`, `DoU`, `TCP`) | DoH `cloudflare-dns.com`, `1.1.1.1` |
+| `DomesticDNSType`, `DomesticDNSDomain`, `DomesticDNSIP` | the domestic DNS | DoH `dns.google`, `8.8.8.8` |
+| `DnsHosts` | hosts entries | `cloudflare-dns.com` → `1.1.1.1`, `dns.google` → `8.8.8.8` |
+| `FakeDNS` | fake-ip for the sites of the lists | `false` |
+| `Geositeurl`, `Geoipurl` | its own `geosite.dat` and `geoip.dat` | Loyalsoldier v2ray-rules-dat |
+| `UseChunkFiles` | `true` cuts the files to the lists used, `false` keeps them whole | `true` |
+| `GeositeHash`, `GeoipHash` | the files' SHA-256 (INCY): a new one means a new download | — |
+| `LastUpdated` | the version's date: Unix time or an ISO date (INCY) | — |
+| `geoUpdateIntervalHours` | hours between checks of the geodata | — |
+
+**Entries of the site lists:**
+
+- `geosite:code` — a `GEOSITE` rule over the routing's file;
+- `domain:` and `full:` — an inline rule-provider;
+- `keyword:`, `regexp:` and an entry without a prefix — `DOMAIN-KEYWORD` / `DOMAIN-REGEX`.
+
+**Entries of the IP lists:**
+
+- `geoip:code` — a `GEOIP` rule;
+- addresses and ranges — an inline rule-provider.
+
+### What the YAML is
+
+- **Rules.**
+  - In the `RouteOrder`: a category's sites, then its IPs, as Happ writes them.
+  - **`IPIfNonMatch`** — every site rule before any IP rule.
+  - **`AsIs`** — addresses are not resolved (`no-resolve`).
+  - **`IPOnDemand`** — the order as it is.
+  - The last rule is `MATCH` to "PROXY" or "🔓 Без VPN" by `GlobalProxy`.
+- **Groups.**
+  - **🛡️ VPN** — the choice: "⚡️ Авто" and every proxy.
+  - **⚡️ Авто** — a `url-test` of every proxy.
+  - **PROXY**, **🔓 Без VPN**, **⛔ Блок** — hidden groups for the rules; no proxies are written into them.
+- **DNS.**
+  - `nameserver` — the remote DNS, through PROXY. DoU and TCP go as TCP, to work through a proxy without UDP.
+  - `proxy-server-nameserver` and `direct-nameserver` — the domestic DNS.
+  - `default-nameserver` — the addresses of the domestic and remote DNS.
+  - `nameserver-policy`: the `ProxySites` to the remote DNS, the `DirectSites` to the domestic one. A site in both is the remote's, as in Happ.
+  - `hosts` — `DnsHosts` and the DoH servers' addresses.
+- **Fake DNS.** Only the sites of the proxy and direct lists get fake addresses (`198.18.0.1/16`), as from Happ's fakedns.
+- **Geodata.** The profile reads the routing's own files (`geox-url`, `geodata-mode`); the core does not update them itself.
+
+### Geodata files
+
+- **When they are downloaded.** When the routing is added, and on schedule.
+- **Cutting.** Unless `UseChunkFiles` is `false`, the files keep only the lists used, so that big files fit the iOS tunnel's memory.
+- **The `.sha256` beside a file.** When the provider publishes `geosite.dat.sha256`, the app checks it first; a file of the same hash is not downloaded again.
+- **The routing's hashes.** A new `GeositeHash` / `GeoipHash` or a newer `LastUpdated` means the files are downloaded again.
+- **Missing lists.** A list the routing names that is not in the file has its rule left out, with a note on the routing's row.
+- **A heavy routing.** Lists taking more than ~12 MB of memory mark the routing "heavy for iOS".
+
+**How often the geodata is checked, the first that is set:**
+
+1. the user's choice in the routing's menu;
+2. the subscription's `Routing-Geo-Update-Interval` header;
+3. a `#routing-geo-update-interval:` line of the subscription's body;
+4. the routing's `geoUpdateIntervalHours`;
+5. none — by hand only.
+
+### Prizrak-Box's extended format
+
+On top of Happ's and INCY's fields Prizrak-Box reads four more. They are read from routings added by a `prizrak-box://routing/…` or `prizrak-box://autorouting/…` link (one that came in `prizrak-routing` / `routing` too), as JSON text in the app and in the builder. `happ://` and `incy://` links leave them out. Happ and INCY do not know these fields and leave them: the same JSON works there without these rules.
+
+```json
+{
+  "Name": "My routing",
+  "GlobalProxy": "true",
+  "DirectSites": ["geosite:category-ru"],
+  "DirectRules": [
+    "SRC-IP-CIDR,192.168.1.201/32"
+  ],
+  "ProxyRules": [
+    "PROCESS-NAME,discord.exe",
+    "RULE-SET,rule1",
+    "OR,((NETWORK,UDP),(DOMAIN,baidu.com))"
+  ],
+  "BlockRules": [
+    "DOMAIN-SUFFIX,ads.example.com"
+  ],
+  "RuleSetUrls": {
+    "rule1": "https://example.com/rule1.yaml",
+    "rule2": { "url": "https://example.com/rule2.mrs", "behavior": "domain" }
+  }
+}
+```
+
+| Field | Its rules go to |
+|---|---|
+| `DirectRules` | 🔓 Без VPN |
+| `ProxyRules` | PROXY |
+| `BlockRules` | ⛔ Блок |
+| `RuleSetUrls` | the rule-providers of `RULE-SET` |
+
+**Rules.**
+
+- **Syntax.** Any mihomo rule ([reference](https://wiki.metacubex.one/en/config/rules/)), written **without a target**: the field gives it.
+- **Parameters after the target are kept.** `IP-CIDR,1.2.3.0/24,no-resolve` becomes `IP-CIDR,1.2.3.0/24,PROXY,no-resolve`.
+- **Logical rules** `AND`, `OR` and `NOT` are written as they are.
+- **Order.**
+  - These rules come before every `…Sites` and `…Ip`, in the `RouteOrder`.
+  - `DomainStrategy` does not touch them: write `no-resolve` on IP rules yourself.
+- **`GEOSITE` and `GEOIP`** read the routing's geodata; their codes are kept when the files are cut.
+- **Checked by the core.** Each rule is read by the core's parser; one it refuses is left out, with a note on the routing's row. The rest of the routing works.
+- **Not taken:**
+  - `MATCH` — `GlobalProxy` is the last rule;
+  - `SUB-RULE`;
+  - a rule with a target of its own.
+
+**`RULE-SET` and `RuleSetUrls`.**
+
+`RULE-SET,name` works only when `name` is in `RuleSetUrls` — inside `AND` / `OR` / `NOT` too; otherwise the rule is left out with a note. Only the rule-sets a rule names go into the profile.
+
+**A rule-set's name.**
+
+- Latin letters, digits, `-` and `_`.
+- Not one the routing uses itself: `block-domains`, `block-keywords`, `block-ips`, `proxy-domains`, `proxy-keywords`, `proxy-ips`, `direct-domains`, `direct-keywords`, `direct-ips`.
+
+**Its value — an address, or an object.**
+
+```json
+"RuleSetUrls": {
+  "discord":   "https://example.com/discord.yaml",
+  "ru-sites":  { "url": "https://example.com/ru.mrs", "behavior": "domain" },
+  "ru-ips":    { "url": "https://example.com/ru-ip.mrs", "behavior": "ipcidr", "interval": 43200 },
+  "local":     { "url": "https://example.com/local.list", "format": "text", "behavior": "classical", "proxy": "DIRECT" }
+}
+```
+
+| Field | Values | Default |
+|---|---|---|
+| `url` | an `https://` or `http://` address | required |
+| `behavior` | `domain`, `ipcidr`, `classical` | `classical` |
+| `format` | `yaml`, `text`, `mrs` | by the address: `.yaml` / `.yml` → `yaml`, `.mrs` → `mrs`, else `text` |
+| `interval` | seconds between updates; `0` — downloaded once | `86400` |
+| `proxy` | how it is downloaded: `PROXY` or `DIRECT` | `PROXY` |
+| `header` | request headers, e.g. `{"User-Agent": ["Mozilla/5.0"], "Authorization": "Bearer …"}`; a string or a list of strings | — |
+| `size-limit` | the largest file in bytes, `0` — no limit | `0` |
+| `fallback` | fallback addresses `["https://…", "https://…"]` | — |
+
+A string is an object of its `url` alone.
+
+**Which go together:**
+
+| `format` | `behavior` |
+|---|---|
+| `yaml`, `text` | `domain`, `ipcidr`, `classical` |
+| `mrs` | `domain`, `ipcidr` (mrs is never classical) |
+
+So an `.mrs` file needs an object with its `behavior`.
+
+**Fallback addresses.**
+
+- When the address does not answer or answers with an error, the `fallback` ones are tried in turn.
+- A `304 Not Modified` from the address is an answer: no fallback is tried.
+- They need a Prizrak-Core with `fallback-urls` on http providers. With an older core the field is left out and only `url` is used, with a note on the routing's row.
+
+**Errors.** A rule-set with a bad address, name, field or pair is left out, with every rule that names it, and a note on the routing's row.
+
+**What goes into the profile** — `ru-sites` of the example:
+
+```yaml
+rule-providers:
+  ru-sites:
+    type: http
+    url: https://example.com/ru.mrs
+    behavior: domain
+    format: mrs
+    interval: 86400
+    proxy: PROXY
+    path: ./rule-sets/ru-sites.mrs
+```
+
+The app sets `path`; a routing cannot.
+
+<Aside type="tip" title="The link of an extended routing">
+Copy Link of a routing with these fields always gives `prizrak-box://routing/…`: a `happ://` link would lose the rules.
+</Aside>
+
+---
+
+## Links
+
+### Routings
+
+| Link | What it does |
+|---|---|
+| `prizrak-box://routing/add/{base64 JSON}` | adds the routing to the list |
+| `prizrak-box://routing/onadd/{base64 JSON}` | adds it and applies it |
+| `prizrak-box://autorouting/onadd/https://…/routing.json` | autorouting: the JSON at the address, updated from it, applied |
+| `happ://routing/…`, `incy://routing/…`, `incy://autorouting/…` | the same as `prizrak-box://` |
+| `…/routing/off` | not followed |
+
+A routing of the same name replaces the one there.
+
+### Templates
+
+| Link | What it does |
+|---|---|
+| `prizrak-box://template/add/{base64 YAML}` | adds the template to the list |
+| `prizrak-box://template/onadd/{base64 YAML}` | adds it and applies it |
+| `prizrak-box://template/add/https://…/template.yaml` | adds the template at the address, updated from it |
+| `prizrak-box://template/onadd/https://…/template.yaml` | the same, applied |
+
+### Parameters after `#`
+
+Written after `#`, they never reach the server. For `template/…` and `autorouting/…` links.
+
+| Parameter | Value |
+|---|---|
+| `name` | the name in the list |
+| `update-interval` | hours between updates, 0–8760, `0` — never |
+| `fallback` | a fallback address; repeated for more, tried in order |
+
+```
+prizrak-box://template/onadd/https://github.com/remnawave/templates/raw/main/by-davoyan/subscription-templates/ultimate-mihomo-ru.yaml#name=Ultimate&update-interval=24&fallback=https://cdn.jsdelivr.net/gh/remnawave/templates@main/by-davoyan/subscription-templates/ultimate-mihomo-ru.yaml
+```
+
+- **The template's address.** Its own `?` and `&` do no harm: our parameters are after `#`.
+- **`fallback` addresses** are written as they are; only `&` and `#` are encoded.
+- **Copy Link** of a template or routing gives the link with all its fallback addresses.
+
+### `add` and `onadd`
+
+- **`add`** — added to the list only.
+- **`onadd`** — added and applied:
+  - to the active profile made of keys;
+  - to this profile, when the link is opened in its template window.
+- **The subscription decides.** It is applied only when the profile's subscription allows it (`rule`, below); otherwise it is only added to the list.
+
+### Where links come from
+
+- opened as a link, pasted, typed or scanned;
+- typed in the address field with the subscription's address;
+- sent by a subscription: the `prizrak-routing` and `routing` headers, or lines of its body.
+
+---
+
+## Subscription headers
+
+### `prizrak-routing`
+
+One or more templates and routings separated by `;`, in any combination:
+
+```http
+prizrak-routing: prizrak-box://template/onadd/https://example.com/t.yaml#fallback=https://mirror.example.com/t.yaml; happ://routing/add/eyJOYW1lIjoi…
+```
+
+- **Encoding.** The value may be sent in base64 with a `base64:` prefix, as `profile-title`.
+- **A body line.** Also as a `#prizrak-routing: …` line of the body.
+- **Added and applied.**
+  - Everything listed is added to the list, in order.
+  - The **first** is applied to the profile — but with `rule=subonly` on a YAML subscription, below.
+- **When it is applied again.** Only when the value is new or changed. Until then the user's choice stays (when `rule` allows one).
+
+<Aside type="caution" title="Header size">
+Most proxy servers pass headers up to ~8 KB. A whole template in base64 is usually more: give a template in the header as an `https://` link.
+</Aside>
+
+### `routing`
+
+Happ / INCY routing links, several separated by `;`. The first is applied. Only for subscriptions of keys.
+
+### Which source is taken
+
+At every update of the subscription the first source that is there is taken, the others not looked at. Each header is looked for in HTTP first, then as a line of the body.
+
+| # | Source | For subscriptions of |
+|---|---|---|
+| 1 | `prizrak-routing` | keys and YAML |
+| 2 | `routing` | keys only |
+| 3 | routing links among the lines of the answer | keys only |
+
+Links typed with the address when the subscription is added are applied once, and only with `rule=true`.
+
+### `prizrak-routing-override`
+
+What the subscription lets the user change in its profile:
+
+```http
+prizrak-routing-override: rule=subonly; keys=false
+```
+
+- **Format.** `key=value` pairs separated by `;`, in any order. Unknown keys are left out; a missing key is its default.
+- **A body line.** Also as `#prizrak-routing-override: …`.
+
+**`rule` — the profile's template or routing:**
+
+| `rule` | Applied by default | Can be changed on the profile's page |
+|---|---|---|
+| `true` (default) | the first of `prizrak-routing` | to any template or routing, the user's own too |
+| `false` | the first of `prizrak-routing`, always | no: the profile's page has no template choice |
+| `subonly` | a YAML subscription: its own YAML ("Subscription Template"); a subscription of keys: the first of `prizrak-routing` | only to the Subscription Template and what `prizrak-routing` brought |
+
+**`keys` — keys of the user's own (links, subscriptions, AWG `.conf`, `vpn://`):**
+
+| The subscription | Default |
+|---|---|
+| sent `prizrak-routing` | `false` |
+| sent no `prizrak-routing` (`routing` alone too) | `true` |
+
+- **`keys=false`.**
+  - No keys of one's own can be added; only the subscription's are used.
+  - Keys added before are kept but not used; they come back when the subscription allows `keys=true` again.
+- **`keys=true`.** The user's keys come after the subscription's proxies.
+
+### `Template-Update-Interval`
+
+A header of the **template server's** answer, not the subscription's: hours between updates of the template, 0 to 8760. The order is under [Your own templates](#your-own-templates).
+
+### `Routing-Geo-Update-Interval`
+
+Hours between checks of a routing's geodata, 0 to 8760; 0 is never. The order is under [Geodata files](#geodata-files).
+
+---
+
+## A YAML subscription with prizrak-routing
+
+When a subscription answers with YAML and sends `prizrak-routing`, Prizrak-Box makes the profile so:
+
+- **Proxies.** Only `proxies:` is taken of the YAML — whole, as it is. `proxy-groups`, `rules`, `proxy-providers` and the rest do not go into the profile.
+- **Template.** The template or routing of `prizrak-routing` is applied to these proxies — or, when `rule` allows, any other, the built-in and Happ / INCY ones too.
+- **Subscription Template.** The subscription's YAML itself is one of the choices: chosen, the profile is exactly what the subscription sent. With `rule=subonly` it is the default.
+- **Keys of one's own** (with `keys=true`) come after the YAML's proxies.
+
+When the subscription sends `prizrak-routing` no more, the profile is its YAML as it is again.
+
+**A Remnawave example.** The subscription sends the panel's Mihomo template and offers two more:
+
+```http
+prizrak-routing: prizrak-box://template/add/https://example.com/ru.yaml; prizrak-box://template/add/https://example.com/full.yaml
+prizrak-routing-override: rule=subonly; keys=false
+```
+
+The user sees three choices: the Subscription Template (the default) and the two templates of the header. No other templates or keys can be added.
+
+---
+
+## Every order on one page
+
+| What | Order |
+|---|---|
+| A subscription's header | HTTP → a `#name:` line of the body |
+| The template/routing source | `prizrak-routing` → `routing` → links of the body |
+| Which of the list applies | the first; for a YAML subscription with `rule=subonly` the Subscription Template |
+| A routing's rules | `DirectRules` / `ProxyRules` / `BlockRules` (by `RouteOrder`) → sites → IPs → `MATCH` by `GlobalProxy` |
+| A template's update interval | `update-interval` of the link → `Template-Update-Interval` → `prizrak-box: template-update-interval` → 24 h |
+| A routing's geodata interval | the user's choice → `Routing-Geo-Update-Interval` → `#routing-geo-update-interval:` → `geoUpdateIntervalHours` → by hand |
+| A template's / autorouting's addresses | the address → `fallback` in order |
