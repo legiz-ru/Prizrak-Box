@@ -38,6 +38,7 @@ Prizrak-Core входит в состав Prizrak-Box, но работает и 
 | HTTP/2: буфер отправки 32 КиБ вместо 512 КиБ | — | ✅ |
 | `freedom`: DIRECT с фрагментацией TLS и параметрами сокета (`freedom` из Xray-core) | — | ✅ |
 | `fallback-urls`: запасные адреса для http rule-providers и proxy-providers | — | ✅ |
+| `ping-config`: url-test / fallback / load-balance / smart считают узел живым, только если он реально скачивает данные | — | ✅ |
 | `finalmask`: маски трафика из Xray-core (fragment, header-custom, sudoku, xmc, noise, udphop, xdns, xicmp) для vless и trojan | — | ✅ клиент и сервер |
 | mKCP для VLESS, как в Xray-core после finalmask (в том числе DNS-туннели через xdns) | только VMess | ✅ клиент |
 
@@ -87,5 +88,10 @@ Prizrak-Core входит в состав Prizrak-Box, но работает и 
     title="Провайдеры: запасные адреса и заголовки"
     description="fallback-urls — запасные адреса для http rule-providers и proxy-providers, и header — заголовки запроса к провайдеру."
     href="/ru/prizrak-core/provider-fallback/"
+  />
+  <LinkCard
+    title="ping-config: проверка узлов по-настоящему"
+    description="Вторая проверка после url: узел жив, только если реально скачивает данные; проверки идут в случайные моменты."
+    href="/ru/prizrak-core/ping-config/"
   />
 </CardGrid>

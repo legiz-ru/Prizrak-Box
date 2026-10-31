@@ -55,7 +55,7 @@ fallback-urls: https://cdn.jsdelivr.net/gh/legiz-ru/mihomo-rule-sets@main/ru-bun
 ```
 
 <Aside type="caution">
-- In v1.19.33-r7 a plain string fails the provider with `'fallback-urls' is not a slice`: write a list there. The string form works from the next release.
+- The string form works since v1.19.33-r8. In v1.19.33-r7 a plain string fails the provider with `'fallback-urls' is not a slice`: write a list there.
 - The field is `fallback-urls`, with an **s**. The core does not know `fallback-url` and skips it without an error, so no backup is used.
 </Aside>
 
@@ -63,11 +63,14 @@ fallback-urls: https://cdn.jsdelivr.net/gh/legiz-ru/mihomo-rule-sets@main/ru-bun
 
 - a connection error: DNS, TLS, timeout;
 - a status other than 2xx and 304;
-- a broken body.
+- the body is cut short: a dropped connection or a read error.
+
+**When it does not.** A `200` with the wrong content, such as an ISP's stub page or HTML instead of a list. The core checks the content only after an address has answered and asks no fallback. The provider keeps its old file, or stays empty when it has none yet.
 
 **Details:**
 
-- **Timeout.** Each attempt has its own.
+- **Timeout.** Each attempt has its own, 20 s. When the main address does not answer at all, the fallback is asked after 20 s.
+- **Order.** Every update starts at the main address, even when a fallback answered last time.
 - **`304 Not Modified`** from the main address counts as an answer: the old data stays and no fallback is asked.
 - **ETag** is kept for each address separately.
 - **`header`, `proxy` and `size-limit`** apply to every address alike.
@@ -98,4 +101,4 @@ This is a regular mihomo field and works without Prizrak-Core too. With `fallbac
 
 ## In Prizrak-Box
 
-A Prizrak-Box routing sets both fields on its rule-sets: `header` and `fallback` in `RuleSetUrls`. See [Routing → Prizrak-Box's extended format](/for-devs/routing/#prizrak-boxs-extended-format).
+A Prizrak-Box routing sets both fields on its rule-sets in `RuleSetUrls`: `header` and `fallback`. `header` always reaches the rule-provider. `fallback` becomes `fallback-urls` only when the app is built on Prizrak-Core v1.19.33-r7 or newer; on an older core the addresses are kept in the routing but not written into the profile. See [Routing → Prizrak-Box's extended format](/for-devs/routing/#prizrak-boxs-extended-format).

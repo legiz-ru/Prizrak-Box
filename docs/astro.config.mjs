@@ -62,6 +62,7 @@ export default defineConfig({
             { label: 'XHTTP and HTTP/2', translations: { ru: 'XHTTP и HTTP/2' }, link: '/prizrak-core/xhttp/' },
             { label: 'freedom: TLS fragmentation', translations: { ru: 'freedom: фрагментация TLS' }, link: '/prizrak-core/freedom/' },
             { label: 'Providers: fallback-urls', translations: { ru: 'Провайдеры: fallback-urls' }, link: '/prizrak-core/provider-fallback/' },
+            { label: 'ping-config', link: '/prizrak-core/ping-config/' },
           ],
         },
         { label: 'Links', translations: { ru: 'Ссылки' }, link: '/links/' },
