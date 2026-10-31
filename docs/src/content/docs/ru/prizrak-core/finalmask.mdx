@@ -1,6 +1,6 @@
 ---
 title: "finalmask: маски трафика из Xray-core"
-description: "finalmask из Xray-core в Prizrak-Core: fragment, header-custom, sudoku, xmc, noise, udphop, xdns, xicmp для vless и trojan."
+description: "finalmask из Xray-core в Prizrak-Core: fragment, header-custom, sudoku, xmc, noise, udphop, xdns, xicmp для vless и trojan, а также VLESS поверх mKCP."
 ---
 
 import { Aside } from '@astrojs/starlight/components';
@@ -32,8 +32,8 @@ import { Aside } from '@astrojs/starlight/components';
 
 - Только у прокси **`vless`** и **`trojan`** и у одноимённых входящих (listeners).
 - **TCP-маски** оборачивают соединение под TLS, REALITY, ShadowTLS, Restls и JLS и работают со всеми транспортами: `tcp`, `ws`, `grpc`, `h2`, `http`, `xhttp` (включая `download-settings`).
-- **UDP-маски** оборачивают QUIC-сокет **xhttp по HTTP/3** (`network: xhttp`, `alpn: [h3]`). На других транспортах они не используются, и такая конфигурация отклоняется с ошибкой.
-- У входящих (listeners) поддерживаются только TCP-маски: у них нет HTTP/3-сокета.
+- **UDP-маски** оборачивают сокет **VLESS поверх mKCP** (`network: mkcp`, см. [ниже](#vless-поверх-mkcp)) и QUIC-сокет **xhttp по HTTP/3** (`network: xhttp`, `alpn: [h3]`). На других транспортах они не используются, и такая конфигурация отклоняется с ошибкой.
+- У входящих (listeners) поддерживаются только TCP-маски: у них нет сокета HTTP/3 или mKCP.
 - Если блока `finalmask` нет — прокси работает как обычно, без каких-либо обёрток.
 
 **Порядок масок такой же, как в Xray:** первая в списке стоит ближе всего к TLS, последняя — ближе всего к сети, именно её видно на проводе. Маски, которые открывают сеть сами (`udphop`, `xdns`, `xicmp`), должны быть последними в списке `udp`.
@@ -213,7 +213,7 @@ finalmask:
 
 ## Маски UDP
 
-Работают только для `xhttp` по HTTP/3 (`alpn: [h3]`).
+Работают для [VLESS поверх mKCP](#vless-поверх-mkcp) (`network: mkcp`) и для `xhttp` по HTTP/3 (`alpn: [h3]`).
 
 ### `noise`
 
@@ -294,6 +294,21 @@ finalmask:
 
 Ёмкость ответа зависит от типа записи: с `edns0: 4096` TXT вмещает ~3800 байт, AAAA и CNAME — около 2000, A — не больше 764 байт. Для QUIC используйте TXT.
 
+#### Первый xdns: компактная запись
+
+Xray-core с v26.1.31 по v26.9.9 записывал резолвер одной строкой: зона, тип записи и резолвер.
+
+```yaml
+- type: xdns
+  resolvers:
+    - "t.example.com:aaaa+udp://1.1.1.1:53"   # тип записи: txt (по умолчанию), a, aaaa
+    - "t.example.com:aaaa+udp://8.8.8.8:53"
+```
+
+У того xdns свой формат на проводе, который нынешний xdns не читает, а панели и серверы того времени им пользуются до сих пор. Маска в такой записи получает клиент того времени и работает с такими серверами. Две записи в одной маске не смешиваются. Перенесена только клиентская сторона.
+
+Пакет первого xdns несёт не больше 223 байт и должен поместиться в имя запроса: около 120 байт при короткой зоне. Он рассчитан на [mKCP](#vless-поверх-mkcp) с маленьким MTU.
+
 ### `xicmp`
 
 Датаграммы передаются как ICMP echo. Нужны raw-сокеты или, с `dgram: true`, непривилегированные ICMP-сокеты (Linux с `net.ipv4.ping_group_range`, macOS, iOS). На Android без root, как правило, недоступно.
@@ -303,6 +318,49 @@ finalmask:
   dgram: true
   ips: ["203.0.113.1"]            # адреса сервера; обязательно, если server — домен
 ```
+
+## VLESS поверх mKCP
+
+`network: mkcp` (или `kcp`) передаёт прокси VLESS поверх mKCP так, как этого ждёт входящее `kcp` в Xray-core. Кадры такие же, как в Xray-core после finalmask (v26.1.31): у mKCP нет своего заголовка и аутентификации, потому что прежние `seed` и `header` стали масками finalmask. Поэтому у VLESS в `mkcp-opts` нет `seed` и `header`. Список `udp` блока `finalmask` стоит под mKCP. Без него mKCP обращается к серверу напрямую.
+
+| Параметр | По умолчанию | Что делает |
+|----------|--------------|------------|
+| `mtu` | `1350` | Наибольший пакет, байт. С `xdns` держите его маленьким, см. ниже |
+| `tti` | `50` | Интервал отправки, мс |
+| `uplink-capacity` | `5` | Предел отдачи, МБ/с |
+| `downlink-capacity` | `20` | Предел загрузки, МБ/с |
+| `congestion` | `false` | Управление перегрузкой |
+| `write-buffer`, `read-buffer` | `2097152` | Буферы, байт (в Xray их пишут в МБ) |
+
+### Пример: DNS-туннель
+
+Пакеты mKCP идут как DNS-запросы к зоне сервера через публичные резолверы. `server` и `port` пишутся как в конфигурации Xray: туннель доходит до сервера только через резолверы.
+
+```yaml
+proxies:
+  - name: dns-tunnel
+    type: vless
+    server: 77.88.8.8
+    port: 53
+    uuid: <uuid>
+    udp: true
+    packet-encoding: xudp
+    network: mkcp
+    mkcp-opts:
+      mtu: 77
+      tti: 100
+      congestion: false
+    finalmask:
+      udp:
+        - type: xdns
+          resolvers:
+            - "t.example.com:aaaa+udp://77.88.8.8:53"
+            - "t.example.com:aaaa+udp://8.8.8.8:53"
+```
+
+Пакет должен поместиться в один DNS-запрос, поэтому MTU остаётся маленьким: панели Remnawave ставят 77. Такой туннель даёт десятки КБ/с, этого хватает мессенджерам в текстовом режиме. Резолверы здесь записаны в [компактной записи](#первый-xdns-компактная-запись) первого xdns, как их отдают такие панели.
+
+Prizrak-Core сам превращает в такой прокси подписки Xray JSON (их получает Happ) и ссылки `vless://` с `type=kcp`, `mtu`, `tti` и `fm`. VMess поверх mKCP сохраняет mKCP до finalmask, с `seed` и `header` в `mkcp-opts`.
 
 ---
 
@@ -361,6 +419,31 @@ listeners:
 
 В подписке Mihomo прокси получит блок `finalmask` с этим `fragment`. Маски должны совпадать с `finalmask` входящего соединения на сервере Xray этого хоста. Клиенты на обычном Mihomo ключ `finalmask` проигнорируют и подключатся без масок, то есть к серверу с масками они не подключатся: включайте finalmask только для хостов, которыми пользуются клиенты на Prizrak-Core.
 
+### Хост с kcp (VLESS поверх mKCP)
+
+Для хоста на входящем `kcp`, например DNS-туннеля через `xdns`, маппер собирает весь прокси из настроек самого хоста: сеть, `mkcp-opts` и `finalmask`.
+
+```json
+{
+  "xrayJson": [],
+  "mihomo": [
+    { "op": "set", "to": "network", "value": "mkcp" },
+    { "op": "copy", "from": "$host.transportOptions.clientMtu", "to": "mkcp-opts.mtu" },
+    { "op": "copy", "from": "$host.transportOptions.clientTti", "to": "mkcp-opts.tti" },
+    { "op": "copy", "from": "$host.transportOptions.congestion", "to": "mkcp-opts.congestion" },
+    { "op": "copy", "from": "$host.streamOverrides.finalMask", "to": "finalmask" },
+    { "op": "unset", "to": "client-fingerprint" }
+  ],
+  "base64": []
+}
+```
+
+Прокси получится таким же, как в [примере DNS-туннеля](#пример-dns-туннель).
+
+<Aside type="caution">
+Remnawave не включает хосты с `kcp` в подписку Mihomo. Хост с маппером Mihomo попадает в неё только с правкой бэкенда [remnawave/backend#233](https://github.com/remnawave/backend/pull/233). У клиентов на обычном Mihomo нет mKCP для VLESS: они получат прокси, который не подключится.
+</Aside>
+
 ---
 
 ## Ограничения
@@ -368,5 +451,7 @@ listeners:
 - `xicmp` на стороне Prizrak-Core проверен только модульными тестами: серверу нужны raw-сокеты.
 - `udphop` в режимах `intervalRemote` / `perConnRemote` требует, чтобы сервер принимал все порты из списка.
 - `xdns` без `edns0` непригоден для QUIC; тип A ограничен 764 байтами на ответ.
+- Первый xdns (компактная запись) перенесён только для клиента; его пакет несёт не больше 223 байт.
+- VLESS поверх mKCP использует кадры Xray-core после finalmask. Серверы с `seed` или `header` у mKCP (до v26.1.31) не поддерживаются: маски `mkcp-original` и `mkcp-aes128gcm` не перенесены.
 - `sudoku` и `xmc` заметно нагружают процессор и увеличивают трафик.
 - Параметр, неизвестный маске, игнорируется (как и везде в mihomo); опечатка в ключе не вызывает ошибку, а маска работает без него.

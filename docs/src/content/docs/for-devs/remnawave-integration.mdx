@@ -355,6 +355,8 @@ proxies:
 Clients on regular Mihomo ignore the `finalmask` key and cannot connect to a masked server. Enable the masks only on hosts used by Prizrak-Core clients.
 </Aside>
 
+A host on a `kcp` inbound, such as an `xdns` DNS tunnel, needs a mapper that builds the whole proxy: see [a kcp host](/prizrak-core/finalmask/#a-kcp-host-vless-over-mkcp) on the finalmask page.
+
 ### XHTTP Flow Control (h2-flow)
 
 For hosts with the XHTTP transport, Prizrak-Core can enable the [HTTP/2 flow governor](/prizrak-core/xhttp/#http2-flow-governor-h2-flow). With it, the server sends data no faster than the client reads it and does not fill large HTTP/2 windows. This lowers memory use on the client and helps on weak devices. The Xray server needs no setup: the governor works on the client side through standard HTTP/2 flow control. If the server runs [Jolymmiles/Xray-core](https://github.com/Jolymmiles/Xray-core) with its own governor (`h2Flow`), the two work together, and the governor can be on either side or on both.

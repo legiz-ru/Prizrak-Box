@@ -1,6 +1,6 @@
 ---
 title: "finalmask: traffic masks from Xray-core"
-description: "Xray-core's finalmask in Prizrak-Core: fragment, header-custom, sudoku, xmc, noise, udphop, xdns, xicmp for vless and trojan."
+description: "Xray-core's finalmask in Prizrak-Core: fragment, header-custom, sudoku, xmc, noise, udphop, xdns, xicmp for vless and trojan, and VLESS over mKCP."
 ---
 
 import { Aside } from '@astrojs/starlight/components';
@@ -32,8 +32,8 @@ Not ported: `mkcp-legacy`, `salamander` (including `gecko`) and `realm`. A confi
 
 - On **`vless`** and **`trojan`** proxies and on the listeners of the same types only.
 - **TCP masks** wrap the connection under TLS, REALITY, ShadowTLS, Restls and JLS and work with every transport: `tcp`, `ws`, `grpc`, `h2`, `http`, `xhttp` (including `download-settings`).
-- **UDP masks** wrap the QUIC socket of **xhttp over HTTP/3** (`network: xhttp`, `alpn: [h3]`). Other transports do not use them, and such a configuration is rejected with an error.
-- Listeners take TCP masks only: they have no HTTP/3 socket.
+- **UDP masks** wrap the socket of **VLESS over mKCP** (`network: mkcp`, see [below](#vless-over-mkcp)) and the QUIC socket of **xhttp over HTTP/3** (`network: xhttp`, `alpn: [h3]`). Other transports do not use them, and such a configuration is rejected with an error.
+- Listeners take TCP masks only: they have no HTTP/3 or mKCP socket.
 - Without a `finalmask` block the proxy works as before, with no wrapper at all.
 
 **The order is Xray's:** the first mask in the list is nearest to TLS, the last one is nearest to the network and is what the wire shows. Masks that open the network themselves (`udphop`, `xdns`, `xicmp`) must be the last entry of the `udp` list.
@@ -213,7 +213,7 @@ The stream looks like a Minecraft 26.1.2 client logging in: handshake, Login Sta
 
 ## UDP masks
 
-They work for `xhttp` over HTTP/3 only (`alpn: [h3]`).
+They work for [VLESS over mKCP](#vless-over-mkcp) (`network: mkcp`) and for `xhttp` over HTTP/3 (`alpn: [h3]`).
 
 ### `noise`
 
@@ -294,6 +294,21 @@ Datagrams travel as DNS queries and answers for a zone the server is authoritati
 
 The answer's capacity depends on the record type: with `edns0: 4096` TXT holds about 3800 bytes, AAAA and CNAME about 2000, A no more than 764. Use TXT for QUIC.
 
+#### The first xdns: compact spelling
+
+Xray-core from v26.1.31 to v26.9.9 wrote a resolver as one string: the zone, the record type and the resolver.
+
+```yaml
+- type: xdns
+  resolvers:
+    - "t.example.com:aaaa+udp://1.1.1.1:53"   # record type: txt (default), a, aaaa
+    - "t.example.com:aaaa+udp://8.8.8.8:53"
+```
+
+That xdns has its own wire format, which the current xdns does not read, and panels and servers of that time still use it. A mask written in this spelling gets the client of that time and works with such servers. The two spellings do not mix in one mask. Only the client side is ported.
+
+A packet of the first xdns carries at most 223 bytes and has to fit a query name: about 120 bytes with a short zone. It is meant for [mKCP](#vless-over-mkcp) with a small MTU.
+
 ### `xicmp`
 
 Datagrams travel as ICMP echoes. It needs raw sockets or, with `dgram: true`, unprivileged ICMP sockets (Linux with `net.ipv4.ping_group_range`, macOS, iOS). On Android without root it is usually unavailable.
@@ -303,6 +318,49 @@ Datagrams travel as ICMP echoes. It needs raw sockets or, with `dgram: true`, un
   dgram: true
   ips: ["203.0.113.1"]            # the server's addresses; required when server is a domain
 ```
+
+## VLESS over mKCP
+
+`network: mkcp` (or `kcp`) carries a VLESS proxy over mKCP, the way an Xray-core `kcp` inbound expects it. The framing is that of Xray-core since finalmask (v26.1.31): mKCP adds no header or authentication of its own, because its old `seed` and `header` became finalmask masks. So `mkcp-opts` takes no `seed` or `header` for VLESS. The `udp` list of `finalmask` goes under mKCP. Without it, mKCP talks to the server directly.
+
+| Parameter | Default | What it does |
+|-----------|---------|--------------|
+| `mtu` | `1350` | Largest packet, bytes. Keep it small with `xdns`, see below |
+| `tti` | `50` | Send interval, ms |
+| `uplink-capacity` | `5` | Upload limit, MB/s |
+| `downlink-capacity` | `20` | Download limit, MB/s |
+| `congestion` | `false` | Congestion control |
+| `write-buffer`, `read-buffer` | `2097152` | Buffers, bytes (Xray writes them in MB) |
+
+### Example: a DNS tunnel
+
+mKCP packets travel as DNS queries for the server's zone through public resolvers. `server` and `port` are written as in the Xray config: the tunnel reaches the server through the resolvers only.
+
+```yaml
+proxies:
+  - name: dns-tunnel
+    type: vless
+    server: 77.88.8.8
+    port: 53
+    uuid: <uuid>
+    udp: true
+    packet-encoding: xudp
+    network: mkcp
+    mkcp-opts:
+      mtu: 77
+      tti: 100
+      congestion: false
+    finalmask:
+      udp:
+        - type: xdns
+          resolvers:
+            - "t.example.com:aaaa+udp://77.88.8.8:53"
+            - "t.example.com:aaaa+udp://8.8.8.8:53"
+```
+
+A packet must fit one DNS query, so the MTU stays small: Remnawave panels set 77. Such a tunnel gives tens of KB/s, enough for messengers in text mode. The resolvers here are written in the [compact spelling](#the-first-xdns-compact-spelling) of the first xdns, as such panels give them.
+
+Prizrak-Core converts Xray JSON subscriptions (the format Happ gets) and `vless://` links with `type=kcp`, `mtu`, `tti` and `fm` into such a proxy by itself. VMess over mKCP keeps the mKCP before finalmask, with `seed` and `header` in `mkcp-opts`.
 
 ---
 
@@ -361,6 +419,31 @@ To deliver `finalmask` to Remnawave subscription users, add it to the host's pro
 
 In the Mihomo subscription the proxy gets a `finalmask` block with this `fragment`. The masks must match the `finalmask` of the inbound on the host's Xray server. Clients on regular Mihomo ignore the `finalmask` key and connect without masks, so they cannot reach a masked server: enable finalmask only on hosts used by Prizrak-Core clients.
 
+### A kcp host (VLESS over mKCP)
+
+For a host on a `kcp` inbound, such as an `xdns` DNS tunnel, the mapper builds the whole proxy from the host's own settings: the network, `mkcp-opts` and `finalmask`.
+
+```json
+{
+  "xrayJson": [],
+  "mihomo": [
+    { "op": "set", "to": "network", "value": "mkcp" },
+    { "op": "copy", "from": "$host.transportOptions.clientMtu", "to": "mkcp-opts.mtu" },
+    { "op": "copy", "from": "$host.transportOptions.clientTti", "to": "mkcp-opts.tti" },
+    { "op": "copy", "from": "$host.transportOptions.congestion", "to": "mkcp-opts.congestion" },
+    { "op": "copy", "from": "$host.streamOverrides.finalMask", "to": "finalmask" },
+    { "op": "unset", "to": "client-fingerprint" }
+  ],
+  "base64": []
+}
+```
+
+The proxy comes out as in the [DNS tunnel example](#example-a-dns-tunnel).
+
+<Aside type="caution">
+Remnawave leaves `kcp` hosts out of the Mihomo subscription. A host with a Mihomo mapper gets in only with the backend change [remnawave/backend#233](https://github.com/remnawave/backend/pull/233). Clients on regular Mihomo have no mKCP for VLESS: they get a proxy that does not connect.
+</Aside>
+
 ---
 
 ## Limitations
@@ -368,5 +451,7 @@ In the Mihomo subscription the proxy gets a `finalmask` block with this `fragmen
 - `xicmp` on the Prizrak-Core side is covered by unit tests only: the server needs raw sockets.
 - `udphop` in the `intervalRemote` / `perConnRemote` modes needs a server that accepts every port of the list.
 - `xdns` without `edns0` cannot carry QUIC; type A is limited to 764 bytes per answer.
+- The first xdns (compact spelling) is ported for the client only; its packet carries at most 223 bytes.
+- VLESS over mKCP speaks the framing of Xray-core since finalmask. Servers with mKCP `seed` or `header` (before v26.1.31) are not supported: the `mkcp-original` and `mkcp-aes128gcm` masks are not ported.
 - `sudoku` and `xmc` cost noticeable CPU and traffic.
 - A key a mask does not know is ignored (as everywhere in mihomo); a typo in a key raises no error, the mask works without it.

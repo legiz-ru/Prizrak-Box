@@ -38,6 +38,7 @@ Prizrak-Core ships with Prizrak-Box, but it also works on its own. It is a stand
 | HTTP/2: 32 KiB send buffer instead of 512 KiB | — | ✅ |
 | `freedom`: DIRECT with TLS fragmentation and socket options (Xray-core `freedom`) | — | ✅ |
 | `finalmask`: traffic masks from Xray-core (fragment, header-custom, sudoku, xmc, noise, udphop, xdns, xicmp) for vless and trojan | — | ✅ client and server |
+| mKCP for VLESS, as in Xray-core since finalmask (xdns DNS tunnels included) | VMess only | ✅ client |
 
 ---
 
@@ -68,7 +69,7 @@ The core's features are described on separate pages:
   />
   <LinkCard
     title="finalmask: traffic masks from Xray-core"
-    description="Xray-core's finalmask in Prizrak-Core: fragment, header-custom, sudoku, xmc, noise, udphop, xdns, xicmp for vless and trojan."
+    description="Xray-core's finalmask in Prizrak-Core: fragment, header-custom, sudoku, xmc, noise, udphop, xdns, xicmp for vless and trojan, and VLESS over mKCP."
     href="/prizrak-core/finalmask/"
   />
   <LinkCard
