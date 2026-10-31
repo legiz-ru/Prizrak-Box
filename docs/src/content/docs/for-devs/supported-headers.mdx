@@ -715,6 +715,37 @@ Parameters set by the profile are shown in the **Theme** dialog and cannot be ch
 
 ---
 
+## Happ / INCY Routing <Badge text="iOS only" variant="note" />
+
+<details>
+<summary>**`Routing-Geo-Update-Interval`**</summary>
+
+How often the geodata files (`geosite.dat`, `geoip.dat`) of the Happ / INCY routing a subscription sends — by the `routing` header or a `happ://routing/…` / `incy://routing/…` line in its body — are checked.
+
+| Property | Value |
+|----------|-------|
+| Type | `integer` |
+| Unit | Hours |
+| Range | 0–8760 (`0` — never) |
+
+**Example:**
+
+```http
+Routing-Geo-Update-Interval: 24
+```
+
+Inline in the subscription body: `#routing-geo-update-interval: 24`; the response header wins over the body line.
+
+The interval applies while "As the Provider Says" is chosen in the routing editor: the user's choice wins. With `geosite.dat.sha256` / `geoip.dat.sha256` next to a file, it is downloaded again only when the hash changed, and a file that does not match its hash is not taken.
+
+<Aside type="caution" title="Subscriptions of keys only">
+The header works only when the subscription answers with keys — `vless://`, `trojan://`, `ss://`… links or a base64 list of them: Prizrak-Box then builds the profile itself from the Happ / INCY routing. When the subscription answers with a ready mihomo (Prizrak-Core) YAML, neither the Happ / INCY routing nor this header applies — the YAML sets the rules.
+</Aside>
+
+</details>
+
+---
+
 ## HWID Authentication
 
 Prizrak-Box supports the RemnaWave HWID Device Limit header format. When a subscription uses hardware-based device authentication, two groups of headers are involved: headers **sent by the client** with every request, and headers **returned by the server** in the response.
