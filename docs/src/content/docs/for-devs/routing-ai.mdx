@@ -6,7 +6,7 @@ description: How to ask an AI to build a Prizrak-Box routing or template — a r
 import { Aside, Code, LinkButton } from '@astrojs/starlight/components';
 import prompt from '../../../../public/ai/prizrak-box-routing.en.txt?raw';
 
-export const ask = encodeURIComponent('Read the instructions at https://docs.prizrak.app/ai/prizrak-box-routing.en.txt and follow them. My task: ');
+export const ask = encodeURIComponent('Read the instructions at https://docs.prizrak.app/ai/prizrak-box-routing.en.txt and follow them. If you cannot open the link, do not go on without it: tell me so and ask me to paste the instructions from https://docs.prizrak.app/for-devs/routing-ai/ My task: ');
 
 You don't have to understand [routing](/for-devs/routing/) yourself. Ask an AI: it asks what you need and builds the routing or template. At the end it gives a link to import into Prizrak-Box.
 

@@ -6,7 +6,7 @@ description: Как попросить ИИ собрать роутинг или
 import { Aside, Code, LinkButton } from '@astrojs/starlight/components';
 import prompt from '../../../../../public/ai/prizrak-box-routing.ru.txt?raw';
 
-export const ask = encodeURIComponent('Прочитай инструкцию https://docs.prizrak.app/ai/prizrak-box-routing.ru.txt и действуй по ней. Моя задача: ');
+export const ask = encodeURIComponent('Прочитай инструкцию https://docs.prizrak.app/ai/prizrak-box-routing.ru.txt и действуй по ней. Если открыть ссылку не получается, не продолжай без неё: скажи мне об этом и попроси вставить текст инструкции со страницы https://docs.prizrak.app/ru/for-devs/routing-ai/ Моя задача: ');
 
 Не обязательно разбираться в [роутинге](/ru/for-devs/routing/) самому. Попросите ИИ: он расспросит, что вам нужно, и соберёт роутинг или шаблон. В конце он выдаст ссылку для импорта в Prizrak-Box.
 
