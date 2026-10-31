@@ -1,0 +1,90 @@
+---
+title: "Providers: fallback addresses and headers"
+description: "fallback-urls in Prizrak-Core — backup addresses for http rule-providers and proxy-providers, and header — request headers sent to a provider."
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+<Aside type="caution" title="Not released yet">
+`fallback-urls` comes with the next Prizrak-Core release after v1.19.33-r6. In v1.19.33-r6 and older the field does not work.
+</Aside>
+
+Providers with `type: http` (`rule-providers` and `proxy-providers`) have two fields for the request:
+
+| Field | What it does | Where |
+|---|---|---|
+| `fallback-urls` | backup addresses when the main one does not answer | Prizrak-Core only |
+| `header` | HTTP request headers | mihomo and Prizrak-Core |
+
+```yaml
+rule-providers:
+  ru-blocked:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://github.com/legiz-ru/mihomo-rule-sets/raw/main/ru-bundle/rule.mrs
+    fallback-urls:
+      - https://cdn.jsdelivr.net/gh/legiz-ru/mihomo-rule-sets@main/ru-bundle/rule.mrs
+    header:
+      User-Agent:
+        - "Mozilla/5.0"
+    path: ./rule-sets/ru-blocked.mrs
+    interval: 86400
+    proxy: DIRECT
+
+proxy-providers:
+  my-sub:
+    type: http
+    url: https://sub.example.com/sub
+    fallback-urls:
+      - https://mirror.example.com/sub
+    path: ./proxies/my-sub.yaml
+    interval: 3600
+```
+
+---
+
+## `fallback-urls`
+
+A list of backup addresses. The core asks `url` first, then each fallback in order, and keeps the first that answers.
+
+**When the core moves on to the next address:**
+
+- a connection error: DNS, TLS, timeout;
+- a status other than 2xx and 304;
+- a broken body.
+
+**Details:**
+
+- **Timeout.** Each attempt has its own.
+- **`304 Not Modified`** from the main address counts as an answer: the old data stays and no fallback is asked.
+- **ETag** is kept for each address separately.
+- **`header`, `proxy` and `size-limit`** apply to every address alike.
+- **`subscription-userinfo`** of a proxy-provider comes from the address that answered.
+- **Accepted addresses.** Only `http://` and `https://`. Empty and repeated entries are dropped; anything else fails the provider.
+- **Log.** A switch to a fallback is a warning naming the provider, the address that failed and why. When none answers, the error lists every reason. Addresses are logged without user info or query.
+- **API.** A provider's `url` is still the main address. Providers with `fallback-urls` also report `lastUrl`, the address that answered last, without its query.
+
+Without `fallback-urls` a provider works as before: one request to one address.
+
+---
+
+## `header`
+
+HTTP request headers sent to the provider. The key is the header name, the value a list of strings.
+
+```yaml
+header:
+  User-Agent:
+    - "Mozilla/5.0"
+  Authorization:
+    - "Bearer token"
+```
+
+This is a regular mihomo field and works without Prizrak-Core too. With `fallback-urls` the same headers go to every address.
+
+---
+
+## In Prizrak-Box
+
+A Prizrak-Box routing sets both fields on its rule-sets: `header` and `fallback` in `RuleSetUrls`. See [Routing → Prizrak-Box's extended format](/for-devs/routing/#prizrak-boxs-extended-format).

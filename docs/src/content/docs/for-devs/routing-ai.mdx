@@ -1,0 +1,44 @@
+---
+title: Routing with AI
+description: How to ask an AI to build a Prizrak-Box routing or template — a ready prompt for ChatGPT, Claude, Grok, Perplexity and others.
+---
+
+import { Aside, Code, LinkButton } from '@astrojs/starlight/components';
+import prompt from '../../../../public/ai/prizrak-box-routing.en.txt?raw';
+
+export const ask = encodeURIComponent('Read the instructions at https://docs.prizrak.app/ai/prizrak-box-routing.en.txt and follow them. My task: ');
+
+You don't have to understand [routing](/for-devs/routing/) yourself. Ask an AI: it asks what you need and builds the routing or template. At the end it gives a link to import into Prizrak-Box.
+
+## How it works
+
+1. Press the button of the AI you want below. A chat opens with "Read the instructions… My task:".
+2. Add in your own words what you need and send it. ChatGPT and Perplexity send the phrase at once — then write the task in the next message. For example:
+   - "Russian sites and banks direct, YouTube, Discord and blocked sites via VPN, block ads. My phone is an iPhone."
+   - "Everything via the USA, YouTube via Albania, Discord via Belarus, the rest as usual."
+3. The AI introduces itself as Glushik and asks a few questions.
+4. If you ask for particular countries or servers, the AI asks for a **screenshot of the server list** in Prizrak-Box, to write their names right. Send it.
+5. At the end the AI gives a `prizrak-box://…` link. Copy it and in Prizrak-Box open **Templates and Routings → Add → Paste from Clipboard**.
+
+## Open in a chat
+
+<div class="sl-flex" style="flex-wrap: wrap; gap: 0.75rem;">
+  <LinkButton href={`https://chatgpt.com/?q=${ask}`} target="_blank" rel="noopener" variant="secondary">ChatGPT</LinkButton>
+  <LinkButton href={`https://claude.ai/new?q=${ask}`} target="_blank" rel="noopener" variant="secondary">Claude</LinkButton>
+  <LinkButton href={`https://grok.com/?q=${ask}`} target="_blank" rel="noopener" variant="secondary">Grok</LinkButton>
+  <LinkButton href={`https://www.perplexity.ai/search?q=${ask}`} target="_blank" rel="noopener" variant="secondary">Perplexity</LinkButton>
+</div>
+
+For Claude, sign in before pressing the button, or the phrase is lost. The AI must be able to open links: search or web reading has to be on in the chat. If the AI says it cannot open the link, or you use another AI (DeepSeek, Gemini and so on), copy the prompt below and paste it into the chat whole.
+
+<Aside type="tip">
+An AI that can run code and open sites works best. With code it encodes the link right by itself; with sites it checks that the lists it picks exist.
+</Aside>
+
+<Aside type="caution">
+An AI can be wrong. A rule marked ⚠️ is not from the standard set, and we do not know what is in it. Prizrak-Box checks every rule with the core: a wrong one is left out, with a note on the routing's row.
+</Aside>
+
+## The prompt
+
+<Code code={prompt} lang="text" title="prizrak-box-routing.en.txt" />

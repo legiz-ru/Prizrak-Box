@@ -5,6 +5,10 @@ description: Prizrak-Box templates and routings — how a subscription becomes a
 
 import { Aside, Badge } from '@astrojs/starlight/components';
 
+<Aside type="tip" title="You don't need to understand all of this">
+There are many technical details here. Describe in your own words what should go through the VPN, what goes direct, what to block and through which countries — and an AI will build the routing or template for you. [How →](/for-devs/routing-ai/)
+</Aside>
+
 Prizrak-Box makes a profile of two parts:
 
 - **proxies** — the keys of a subscription, or ones added by hand;
@@ -363,7 +367,7 @@ So an `.mrs` file needs an object with its `behavior`.
 
 - When the address does not answer or answers with an error, the `fallback` ones are tried in turn.
 - A `304 Not Modified` from the address is an answer: no fallback is tried.
-- They need a Prizrak-Core with `fallback-urls` on http providers. With an older core the field is left out and only `url` is used, with a note on the routing's row.
+- They need a Prizrak-Core with [`fallback-urls`](/prizrak-core/provider-fallback/) on http providers. With an older core the field is left out and only `url` is used, with a note on the routing's row.
 
 **Errors.** A rule-set with a bad address, name, field or pair is left out, with every rule that names it, and a note on the routing's row.
 

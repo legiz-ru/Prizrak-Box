@@ -61,6 +61,7 @@ export default defineConfig({
             { label: 'finalmask', link: '/prizrak-core/finalmask/' },
             { label: 'XHTTP and HTTP/2', translations: { ru: 'XHTTP и HTTP/2' }, link: '/prizrak-core/xhttp/' },
             { label: 'freedom: TLS fragmentation', translations: { ru: 'freedom: фрагментация TLS' }, link: '/prizrak-core/freedom/' },
+            { label: 'Providers: fallback-urls', translations: { ru: 'Провайдеры: fallback-urls' }, link: '/prizrak-core/provider-fallback/' },
           ],
         },
         { label: 'Links', translations: { ru: 'Ссылки' }, link: '/links/' },

@@ -37,6 +37,7 @@ Prizrak-Core ships with Prizrak-Box, but it also works on its own. It is a stand
 | XHTTP: HTTP/2 flow governor (`h2-flow`) | — | ✅ (off by default) |
 | HTTP/2: 32 KiB send buffer instead of 512 KiB | — | ✅ |
 | `freedom`: DIRECT with TLS fragmentation and socket options (Xray-core `freedom`) | — | ✅ |
+| `fallback-urls`: backup addresses for http rule-providers and proxy-providers | — | ✅ |
 | `finalmask`: traffic masks from Xray-core (fragment, header-custom, sudoku, xmc, noise, udphop, xdns, xicmp) for vless and trojan | — | ✅ client and server |
 | mKCP for VLESS, as in Xray-core since finalmask (xdns DNS tunnels included) | VMess only | ✅ client |
 
@@ -81,5 +82,10 @@ The core's features are described on separate pages:
     title="freedom: TLS fragmentation and socket options"
     description="The freedom proxy type: DIRECT with TLS ClientHello fragmentation and socket options from Xray-core."
     href="/prizrak-core/freedom/"
+  />
+  <LinkCard
+    title="Providers: fallback addresses and headers"
+    description="fallback-urls — backup addresses for http rule-providers and proxy-providers, and header — request headers sent to a provider."
+    href="/prizrak-core/provider-fallback/"
   />
 </CardGrid>

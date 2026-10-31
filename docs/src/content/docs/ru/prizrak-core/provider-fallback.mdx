@@ -1,0 +1,90 @@
+---
+title: "Провайдеры: запасные адреса и заголовки"
+description: "fallback-urls в Prizrak-Core — запасные адреса для http rule-providers и proxy-providers, и header — заголовки запроса к провайдеру."
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+<Aside type="caution" title="Пока не в релизе">
+`fallback-urls` войдёт в следующий релиз Prizrak-Core после v1.19.33-r6. В v1.19.33-r6 и более старых версиях это поле не работает.
+</Aside>
+
+У провайдеров с `type: http` (`rule-providers` и `proxy-providers`) есть два поля для запроса:
+
+| Поле | Что делает | Где есть |
+|---|---|---|
+| `fallback-urls` | запасные адреса, если основной не ответил | только Prizrak-Core |
+| `header` | заголовки HTTP-запроса | mihomo и Prizrak-Core |
+
+```yaml
+rule-providers:
+  ru-blocked:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://github.com/legiz-ru/mihomo-rule-sets/raw/main/ru-bundle/rule.mrs
+    fallback-urls:
+      - https://cdn.jsdelivr.net/gh/legiz-ru/mihomo-rule-sets@main/ru-bundle/rule.mrs
+    header:
+      User-Agent:
+        - "Mozilla/5.0"
+    path: ./rule-sets/ru-blocked.mrs
+    interval: 86400
+    proxy: DIRECT
+
+proxy-providers:
+  my-sub:
+    type: http
+    url: https://sub.example.com/sub
+    fallback-urls:
+      - https://mirror.example.com/sub
+    path: ./proxies/my-sub.yaml
+    interval: 3600
+```
+
+---
+
+## `fallback-urls`
+
+Список запасных адресов. Сначала запрашивается `url`, затем запасные адреса по порядку. Берётся первый, который ответил.
+
+**Когда ядро переходит к следующему адресу:**
+
+- ошибка соединения: DNS, TLS, таймаут;
+- ответ с кодом не 2xx и не 304;
+- тело ответа оборвалось.
+
+**Подробности:**
+
+- **Таймаут.** У каждой попытки свой.
+- **`304 Not Modified`** от основного адреса — это успех: старые данные остаются, запасные адреса не запрашиваются.
+- **ETag** хранится отдельно для каждого адреса.
+- **`header`, `proxy` и `size-limit`** действуют на все адреса одинаково.
+- **`subscription-userinfo`** у proxy-provider берётся из ответа того адреса, который ответил.
+- **Допустимые адреса.** Только `http://` и `https://`. Пустые строки и повторы пропускаются, всё остальное — ошибка провайдера.
+- **Лог.** При переходе на запасной адрес в лог пишется предупреждение: какой провайдер, какой адрес не ответил и почему. Если не ответил ни один, ошибка перечисляет все причины. Адреса в лог пишутся без логина, пароля и параметров запроса.
+- **API.** `url` провайдера — по-прежнему основной адрес. У провайдеров с `fallback-urls` появляется `lastUrl` — адрес, который ответил последним, без параметров запроса.
+
+Без `fallback-urls` провайдер работает как раньше: один запрос на один адрес.
+
+---
+
+## `header`
+
+Заголовки HTTP-запроса к провайдеру. Ключ — имя заголовка, значение — список строк.
+
+```yaml
+header:
+  User-Agent:
+    - "Mozilla/5.0"
+  Authorization:
+    - "Bearer token"
+```
+
+Это обычное поле mihomo, оно работает и без Prizrak-Core. С `fallback-urls` те же заголовки уходят на каждый адрес.
+
+---
+
+## В Prizrak-Box
+
+Роутинг Prizrak-Box задаёт оба поля у своих rule-set'ов: `header` и `fallback` в `RuleSetUrls`. Подробнее — в разделе [Роутинг → Расширенный формат Prizrak-Box](/ru/for-devs/routing/#расширенный-формат-prizrak-box).

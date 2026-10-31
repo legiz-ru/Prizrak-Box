@@ -1,0 +1,44 @@
+---
+title: Роутинг с помощью ИИ
+description: Как попросить ИИ собрать роутинг или шаблон для Prizrak-Box — готовая подсказка для ChatGPT, Claude, Grok, Perplexity и других.
+---
+
+import { Aside, Code, LinkButton } from '@astrojs/starlight/components';
+import prompt from '../../../../../public/ai/prizrak-box-routing.ru.txt?raw';
+
+export const ask = encodeURIComponent('Прочитай инструкцию https://docs.prizrak.app/ai/prizrak-box-routing.ru.txt и действуй по ней. Моя задача: ');
+
+Не обязательно разбираться в [роутинге](/ru/for-devs/routing/) самому. Попросите ИИ: он расспросит, что вам нужно, и соберёт роутинг или шаблон. В конце он выдаст ссылку для импорта в Prizrak-Box.
+
+## Как это работает
+
+1. Нажмите кнопку нужного ИИ ниже. Откроется чат с фразой «Прочитай инструкцию… Моя задача:».
+2. Допишите своими словами, что нужно, и отправьте. ChatGPT и Perplexity отправляют фразу сразу — тогда напишите задачу следующим сообщением. Например:
+   - «Российские сайты и банки напрямую, YouTube, Discord и заблокированное — через VPN, рекламу блокировать. Телефон — iPhone».
+   - «Всё через США, YouTube через Албанию, Discord через Беларусь, остальное как обычно».
+3. ИИ представится Глушиком и задаст несколько уточняющих вопросов.
+4. Если вы просите конкретные страны или серверы, ИИ попросит **скриншот списка серверов** из Prizrak-Box, чтобы правильно записать их имена. Пришлите его.
+5. В конце ИИ выдаст ссылку `prizrak-box://…`. Скопируйте её и в Prizrak-Box откройте **«Шаблоны и роутинги» → «Добавить» → «Вставить из буфера»**.
+
+## Открыть в чате
+
+<div class="sl-flex" style="flex-wrap: wrap; gap: 0.75rem;">
+  <LinkButton href={`https://chatgpt.com/?q=${ask}`} target="_blank" rel="noopener" variant="secondary">ChatGPT</LinkButton>
+  <LinkButton href={`https://claude.ai/new?q=${ask}`} target="_blank" rel="noopener" variant="secondary">Claude</LinkButton>
+  <LinkButton href={`https://grok.com/?q=${ask}`} target="_blank" rel="noopener" variant="secondary">Grok</LinkButton>
+  <LinkButton href={`https://www.perplexity.ai/search?q=${ask}`} target="_blank" rel="noopener" variant="secondary">Perplexity</LinkButton>
+</div>
+
+Для Claude нужно войти в аккаунт до нажатия кнопки, иначе фраза потеряется. ИИ должен уметь открывать ссылки: в чате должны быть включены поиск или чтение сайтов. Если ИИ отвечает, что открыть ссылку не может, или у вас другой ИИ (DeepSeek, Gemini и т. п.), скопируйте подсказку ниже и вставьте её в чат целиком.
+
+<Aside type="tip">
+Лучше всего подходит ИИ, который умеет запускать код и открывать сайты. С кодом он сам правильно закодирует ссылку, с сайтами — проверит, что нужные списки существуют.
+</Aside>
+
+<Aside type="caution">
+ИИ может ошибаться. Если правило помечено ⚠️, оно взято не из стандартного набора, и что в нём, мы не знаем. Prizrak-Box проверяет каждое правило ядром: неверное пропускается, а в карточке роутинга появляется пометка.
+</Aside>
+
+## Подсказка для ИИ
+
+<Code code={prompt} lang="text" title="prizrak-box-routing.ru.txt" />
