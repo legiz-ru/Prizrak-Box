@@ -34,7 +34,7 @@ Prizrak-Core ships with Prizrak-Box, but it also works on its own. It is a stand
 | uTLS library | `metacubex/utls` v1.8.8 | `prizrak-utls`: up-to-date uTLS, Chrome 155 / Firefox 148 / Safari 26.3 |
 | mux.cool multiplexing (Xray Mux, XUDP) | — | ✅ client and server |
 | REALITY with ML-DSA-65, in sync with Xray | — | ✅ |
-| XHTTP: HTTP/2 flow governor (`h2-flow`) | — | ✅ (off by default) |
+| XHTTP: HTTP/2 flow governor (`h2-flow`) | — | ✅ client and server (off by default) |
 | HTTP/2: 32 KiB send buffer instead of 512 KiB | — | ✅ |
 | `freedom`: DIRECT with TLS fragmentation and socket options (Xray-core `freedom`) | — | ✅ |
 | `fallback-urls`: backup addresses for http rule-providers and proxy-providers | — | ✅ |
@@ -76,7 +76,7 @@ The core's features are described on separate pages:
   />
   <LinkCard
     title="XHTTP and HTTP/2"
-    description="XHTTP and HTTP/2 in Prizrak-Core: the h2-flow governor and the 32 KiB send buffer."
+    description="XHTTP and HTTP/2 in Prizrak-Core: the h2-flow governor on the client and the listener, one HTTP/2 connection at a time, the 32 KiB send buffer, GET and OPTIONS uploads, Mux.Cool KeepAlive."
     href="/prizrak-core/xhttp/"
   />
   <LinkCard

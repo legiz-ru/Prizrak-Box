@@ -1,9 +1,9 @@
 ---
 title: "XHTTP и HTTP/2"
-description: "XHTTP и HTTP/2 в Prizrak-Core: регулятор потока h2-flow, буфер отправки 32 КиБ и метод аплоада GET в режиме packet-up."
+description: "XHTTP и HTTP/2 в Prizrak-Core: регулятор потока h2-flow на клиенте и листенере, одно HTTP/2-соединение за раз, буфер отправки 32 КиБ, аплоад методами GET и OPTIONS, KeepAlive для Mux.Cool."
 ---
 
-Две доработки по идеям [Medium1992](https://github.com/Medium1992) из [mihomo-proxy-ros](https://github.com/Medium1992/mihomo-proxy-ros).
+Доработки XHTTP в Prizrak-Core. Регулятор потока и буфер отправки сделаны по идеям [Medium1992](https://github.com/Medium1992) из [mihomo-proxy-ros](https://github.com/Medium1992/mihomo-proxy-ros), параметры листенера повторяют [Jolymmiles/Xray-core](https://github.com/Jolymmiles/Xray-core) и Xray-core.
 
 ## Регулятор потока HTTP/2 (`h2-flow`)
 
@@ -14,7 +14,7 @@ description: "XHTTP и HTTP/2 в Prizrak-Core: регулятор потока h
 - **Окно по потреблению.** Регулятор показывает серверу окно 64 КиБ, ограничивает размер кадра 16 КиБ и раз в секунду измеряет RTT своим PING. Серверу возвращается кредит, только пока непрочитанных данных меньше, чем клиент успевает прочитать за пару кругов RTT.
 - **Быстрый разгон.** Новый поток стартует с окном 256 КиБ или с тем, что недавно понадобилось соединению. До первого замера RTT окно открывается на каждый кредит.
 - **Модель канала по `min_rtt`.** На Linux и Android регулятор читает из ядра TCP_INFO (`rtt`, `min_rtt`, `rttvar`) и держит окно скачивания не больше `1,25 × максимальная скорость чтения × min_rtt`. На других системах используются замеры PING.
-- **Совместимость с регулятором на сервере.** Такой же регулятор есть на стороне сервера в [Jolymmiles/Xray-core](https://github.com/Jolymmiles/Xray-core) (параметр `h2Flow`). Клиент с регулятором объявляет стандартное окно 65535, по нему сервер понимает, что на другой стороне тоже регулятор, и не ограничивает отправку. Поэтому включать регулятор можно на клиенте, на сервере или на обеих сторонах: скачивание не застопорится, скорость та же.
+- **Совместимость с регулятором на сервере.** Такой же регулятор есть на стороне сервера в [Jolymmiles/Xray-core](https://github.com/Jolymmiles/Xray-core) (параметр `h2Flow`). Клиент с регулятором объявляет стандартное окно 65535, по нему сервер понимает, что на другой стороне тоже регулятор, и не ограничивает отправку. Поэтому включать регулятор можно на клиенте, на сервере или на обеих сторонах: скачивание не застопорится, скорость та же. Серверную часть умеет запускать и листенер Prizrak-Core, см. раздел [Листенер](#листенер-регулятор-настройки-http2-и-keepalive-для-muxcool) ниже.
 
 Выключен по умолчанию, включается в каждом прокси отдельно блоком `h2-flow`:
 
@@ -69,3 +69,57 @@ xhttp-opts:
 | `"uplinkDataPlacement": "header"` | `uplink-data-placement: header` |
 | `"uplinkDataKey": "X-Data"` | `uplink-data-key: X-Data` |
 | `"scMaxEachPostBytes": "4000"` | `sc-max-each-post-bytes: 4000` |
+
+## Одно HTTP/2-соединение за раз
+
+Клиент XHTTP в режиме h2 открывает к серверу одно HTTP/2-соединение за раз. Раньше запросы, начатые одновременно, например при открытии страницы, открывали каждый своё соединение: 16 запросов на свежем подключении давали 13 соединений, а пока висело TLS-рукопожатие (цензор режет поток после ClientHello), все 16. Пачка рукопожатий — заметный признак для DPI, и она обходила `reuse-settings.max-connections`. Теперь такие запросы ждут одного дозвона и делят его соединение, новое открывается, только когда исчерпан лимит потоков сервера. Настраивать ничего не нужно. Это то же исправление, что `-tags http2legacy` в сборках Xray ([XTLS/Xray-core#6797](https://github.com/XTLS/Xray-core/issues/6797)).
+
+В режиме `packet-up` аплоад теперь также переотправляется по новому соединению, если сервер или CDN закрыл старое кадром GOAWAY. Раньше аплоад падал и соединение рвалось (так делает и Xray после [XTLS/Xray-core#6632](https://github.com/XTLS/Xray-core/pull/6632)).
+
+## Аплоад методом OPTIONS
+
+`uplink-http-method: OPTIONS` работает с листенером Prizrak-Core так же, как с Xray начиная с v26.10.31 ([XTLS/Xray-core#7290](https://github.com/XTLS/Xray-core/pull/7290)): запрос `OPTIONS` с заголовком `Access-Control-Request-Method` — это CORS-preflight, без него — аплоад. Раньше листенер отвечал на любой `OPTIONS` как на preflight и терял данные. Клиент отправляет любой заданный метод, в том числе `OPTIONS`; сервер должен быть Xray v26.10.31 или новее либо Prizrak-Core после v1.19.33-r8.
+
+## Листенер: регулятор, настройки HTTP/2 и KeepAlive для Mux.Cool
+
+`xhttp-config` листенера VLESS принимает три серверных параметра, как в [Jolymmiles/Xray-core](https://github.com/Jolymmiles/Xray-core) и Xray-core:
+
+```yaml
+listeners:
+  - name: vless-xhttp
+    type: vless
+    # ...
+    xhttp-config:
+      path: /x
+      mux-keep-alive-secs: "20-25"   # будить простаивающее скачивание packet-up / stream-up
+      mux-keep-alive-bytes: "100-500"
+      h2-flow:
+        enabled: true
+        # max-stream-receive-window: 6291456
+        # max-connection-receive-window: 6291456
+        # max-connection-send-window: 4194304   # -1 — без ограничения
+        # queue-cuts: true
+      h2-params:
+        max-concurrent-streams: 256
+        # max-read-frame-size: 16384
+        # send-ping-timeout: 30s
+```
+
+- **`h2-flow` — серверная часть регулятора потока.** Выключен по умолчанию, работает только для HTTP/2 (TLS, REALITY и h2c).
+  - Окна аплоада `max-stream-receive-window` и `max-connection-receive-window`: от 65535 байт до 1 ГиБ; если не заданы, 6 МиБ с регулятором и 1 МиБ Go без него.
+  - `max-connection-send-window` ограничивает, сколько данных сервера держит клиент одного соединения, непрочитанными или как открытое окно: 4 МиБ по умолчанию, `-1` снимает ограничение. Клиента со своим регулятором это не касается.
+  - `queue-cuts` (включено по умолчанию) держит скорость скачивания рядом с другим трафиком на том же канале; `false` отключает эти срезы.
+- **`h2-params` — настройки HTTP/2 сервера**, как `h2Params` в Xray ([XTLS/Xray-core#7295](https://github.com/XTLS/Xray-core/pull/7295)): `max-concurrent-streams`, `max-read-frame-size`, `max-receive-buffer-per-connection`, `max-receive-buffer-per-stream`, `max-decoder-header-table-size`, `max-encoder-header-table-size`, `send-ping-timeout`, `ping-timeout`, `write-byte-timeout` (длительности вида `30s` или число секунд), `strict-max-concurrent-requests`, `permit-prohibited-cipher-suites`. Незаданные поля остаются как в Go. Окно, заданное в `h2-flow`, важнее заданного здесь. С включённым `h2-flow` `max-concurrent-streams` не больше 4096.
+- **`mux-keep-alive-secs` и `mux-keep-alive-bytes`.** Если клиент идёт через XHTTP с [mux.cool](/ru/prizrak-core/mux-cool/) и его скачивание в packet-up или stream-up столько секунд ничего не несёт, сервер шлёт кадр KeepAlive со случайным паддингом такого размера (не больше 1024 байт). Клиенты его отбрасывают, а CDN и обратные прокси не обрывают скачивание как простаивающее. Выключено по умолчанию; `stream-one` не трогается.
+- Неверное значение не даёт листенеру запуститься при загрузке конфига, до открытия порта.
+
+Соответствие параметрам Xray:
+
+| Xray (`xhttpSettings`) | Prizrak-Core (`xhttp-config`) |
+| --- | --- |
+| `"h2Flow": {"enabled": true}` | `h2-flow: {enabled: true}` |
+| `"h2Flow": {"maxConnectionSendWindow": -1}` | `h2-flow: {max-connection-send-window: -1}` |
+| `"h2Flow": {"queueCuts": false}` | `h2-flow: {queue-cuts: false}` |
+| `"h2Params": {"MaxConcurrentStreams": 256}` | `h2-params: {max-concurrent-streams: 256}` |
+| `"muxKeepAliveSecs": "20-25"` | `mux-keep-alive-secs: "20-25"` |
+| `"muxKeepAliveBytes": "100-500"` | `mux-keep-alive-bytes: "100-500"` |

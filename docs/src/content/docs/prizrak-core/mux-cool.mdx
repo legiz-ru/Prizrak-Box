@@ -6,7 +6,7 @@ description: "mux.cool multiplexing (Xray Mux, XUDP) in Prizrak-Core: client, se
 Prizrak-Core supports **mux.cool** multiplexing compatible with Xray. It is the same protocol as `mux` in Xray-core: TCP streams and UDP/XUDP sessions share TCP connections. The implementation comes from [MetaCubeX/mihomo#2980](https://github.com/MetaCubeX/mihomo/pull/2980); it is more extensive than the one in Xray-core and fully compatible with it.
 
 - **Client.** Enabled per proxy, separately from `smux`. Do not enable both.
-- **Server.** VLESS and VMess inbounds accept mux.cool from Xray clients.
+- **Server.** VLESS and VMess inbounds accept mux.cool from Xray clients, over any transport, XHTTP included. Over XHTTP the server can keep an idle download alive for CDNs, see `mux-keep-alive-secs` on the [XHTTP](/prizrak-core/xhttp/#listener-governor-http2-settings-and-muxcool-keepalive) page.
 - **XUDP.** Dedicated UDP sessions, with control over their number and a policy for UDP/443.
 - **Connection limits.** You can limit how many TCP connections are opened in total, how many sessions run on each at once and how many sessions a connection carries over its lifetime, after which it is replaced with a new one.
 
@@ -25,3 +25,7 @@ proxies:
 ```
 
 To enable mux.cool for Remnawave subscription users, use the Remnawave host mapper; see [mux.cool Multiplexing](/for-devs/remnawave-integration/#muxcool-multiplexing) on the Remnawave integration page.
+
+:::note[VLESS server]
+Up to v1.19.33-r8 a VLESS inbound served mux.cool with the simpler server of sing-vmess; only VMess used this implementation. Later releases use it for VLESS too, with its XUDP handling and limits.
+:::
