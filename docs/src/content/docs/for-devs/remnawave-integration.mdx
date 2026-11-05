@@ -138,7 +138,7 @@ The `subscriptionTemplate` value (`SmartPrizrak` in the example) must match the 
 configured in your Remnawave panel.
 
 For details on the Smart proxy group type and its configuration parameters,
-see [Smart Proxy Group](/prizrak-core/smart-proxy-group/).
+see [Smart Proxy Group](https://core.prizrak.app/config/proxy-groups/smart/).
 
 ---
 
@@ -207,198 +207,15 @@ All keys and display rules are described in [Proxy and Group Descriptions](/for-
 
 ## 6. Prizrak-Core Feature Support
 
-Prizrak-Box runs on the [Prizrak-Core](/prizrak-core/) core, which has features that regular Mihomo does not. To deliver them to users through the subscription, add the required options to the proxy with the Remnawave **host mapper**, in the `mihomo` list.
+Prizrak-Box runs on the [Prizrak-Core](https://core.prizrak.app/) core, which has features that regular Mihomo does not. To deliver them to users through the subscription, add the required options to the proxy with the Remnawave **host mapper**, in the `mihomo` list. Only the Mihomo subscription changes, and clients on regular Mihomo ignore keys they do not know.
 
-- Only the Mihomo subscription changes. Xray JSON and base64 subscriptions stay as they are while their lists in the mapper are empty.
-- Clients on regular Mihomo ignore unknown keys and keep working as before.
+How to set up the host mapper and ready mapper JSON for every feature are in the Prizrak-Core docs: [Remnawave integration](https://core.prizrak.app/remnawave/).
 
-### Setting up the host mapper
-
-<Steps>
-
-1. Open **Hosts** and select the host to edit.
-2. In the **Options** block, click **Add** and pick **Mapper** in the **Advanced** group.
-3. A **Mapper** row with the status **Not set** appears in the **Advanced** section. Click it to open the mapper JSON editor.
-4. Paste the JSON from the examples below and click **Save** in the host card. The mapper status changes to **Configured**.
-
-</Steps>
-
-<Aside type="note">
-Make sure **Mihomo** is not checked in **Exclude from subscription type**, otherwise the host does not reach the Mihomo subscription together with the mapper options.
-</Aside>
-
-### mux.cool Multiplexing
-
-Prizrak-Core supports [mux.cool multiplexing](/prizrak-core/mux-cool/), compatible with Xray. Xray servers managed by Remnawave need no extra setup: they accept mux.cool on their own.
-
-```json
-{
-  "xrayJson": [],
-  "mihomo": [
-    {
-      "op": "set",
-      "value": {
-        "enabled": true,
-        "max-carriers": 4,
-        "max-concurrency": 8,
-        "max-connections": 3,
-        "xudp-concurrency": 16,
-        "xudp-proxy-udp443": "reject"
-      },
-      "to": "['mux.cool']"
-    }
-  ],
-  "base64": []
-}
-```
-
-The `set` rule writes the `value` object into the `mux.cool` key of this host's proxy. In the Mihomo subscription the proxy gets this block:
-
-```yaml
-proxies:
-  - name: 🇩🇪 Germany
-    type: vless
-    # ...
-    mux.cool:
-      enabled: true
-      max-carriers: 4
-      max-concurrency: 8
-      max-connections: 3
-      xudp-concurrency: 16
-      xudp-proxy-udp443: reject
-```
-
-<Aside type="caution">
-Do not enable `mux.cool` and `smux` on the same proxy. Clients on regular Mihomo ignore the `mux.cool` key and connect without multiplexing.
-</Aside>
-
-### REALITY ML-DSA-65
-
-If `mldsa65Seed` is set in the REALITY inbound of an Xray server, the server signs the REALITY certificate with a post-quantum ML-DSA-65 signature. Prizrak-Core [verifies this signature](/prizrak-core/reality/) when the proxy's `reality-opts` contain the public key `mldsa65-verify`.
-
-Put the ML-DSA-65 public key in base64url format into `value`. It is the `mldsa65Verify` value that `xray mldsa65` prints together with the inbound's `mldsa65Seed`.
-
-```json
-{
-  "xrayJson": [],
-  "mihomo": [
-    {
-      "op": "set",
-      "value": "<mldsa65Verify>",
-      "to": "['reality-opts']['mldsa65-verify']"
-    }
-  ],
-  "base64": []
-}
-```
-
-The rule writes the key into the `reality-opts` of this host's proxy:
-
-```yaml
-proxies:
-  - name: 🇩🇪 Germany
-    type: vless
-    # ...
-    reality-opts:
-      public-key: <X25519 public key>
-      short-id: <short id>
-      mldsa65-verify: <mldsa65Verify>
-```
-
-<Aside type="caution">
-The key must match the server's `mldsa65Seed`. If the key is wrong or ML-DSA-65 is not enabled on the server, Prizrak-Core rejects the REALITY certificate and does not connect.
-</Aside>
-
-### finalmask
-
-When the inbound of the Xray server has a `finalmask` block, the client needs the same masks. Prizrak-Core supports [finalmask](/prizrak-core/finalmask/) on `vless` and `trojan` proxies. The rule writes the whole block into the `finalmask` key of the host's proxy; put the masks of the inbound's `finalmask` into `value`, with the keys renamed mihomo-style (`randRange` → `rand-range` and so on).
-
-```json
-{
-  "xrayJson": [],
-  "mihomo": [
-    {
-      "op": "set",
-      "value": {
-        "tcp": [
-          {
-            "type": "fragment",
-            "packets": "tlshello",
-            "lengths": ["1-1"],
-            "delays": ["0"]
-          }
-        ]
-      },
-      "to": "['finalmask']"
-    }
-  ],
-  "base64": []
-}
-```
-
-In the Mihomo subscription the proxy gets this block:
-
-```yaml
-proxies:
-  - name: 🇩🇪 Germany
-    type: vless
-    # ...
-    finalmask:
-      tcp:
-        - type: fragment
-          packets: tlshello
-          lengths: ["1-1"]
-          delays: ["0"]
-```
-
-<Aside type="caution">
-Clients on regular Mihomo ignore the `finalmask` key and cannot connect to a masked server. Enable the masks only on hosts used by Prizrak-Core clients.
-</Aside>
-
-A host on a `kcp` inbound, such as an `xdns` DNS tunnel, needs a mapper that builds the whole proxy: see [a kcp host](/prizrak-core/finalmask/#a-kcp-host-vless-over-mkcp) on the finalmask page.
-
-### XHTTP Flow Control (h2-flow)
-
-For hosts with the XHTTP transport, Prizrak-Core can enable the [HTTP/2 flow governor](/prizrak-core/xhttp/#http2-flow-governor-h2-flow). With it, the server sends data no faster than the client reads it and does not fill large HTTP/2 windows. This lowers memory use on the client and helps on weak devices. The Xray server needs no setup: the governor works on the client side through standard HTTP/2 flow control. If the server runs [Jolymmiles/Xray-core](https://github.com/Jolymmiles/Xray-core) with its own governor (`h2Flow`), the two work together, and the governor can be on either side or on both.
-
-The governor is off by default and works only in h2 mode, that is ALPN `h2` or an empty ALPN. With ALPN `h3` or `http/1.1` the option has no effect.
-
-```json
-{
-  "xrayJson": [],
-  "mihomo": [
-    {
-      "op": "set",
-      "value": {
-        "enabled": true,
-        "max-stream-receive-window": 16777216,
-        "max-connection-receive-window": 33554432
-      },
-      "to": "['xhttp-opts']['h2-flow']"
-    }
-  ],
-  "base64": []
-}
-```
-
-The rule writes the `h2-flow` block into the `xhttp-opts` of this host's proxy:
-
-```yaml
-proxies:
-  - name: 🇩🇪 Germany
-    type: vless
-    network: xhttp
-    # ...
-    xhttp-opts:
-      # ...
-      h2-flow:
-        enabled: true
-        max-stream-receive-window: 16777216
-        max-connection-receive-window: 33554432
-```
-
-`max-stream-receive-window` and `max-connection-receive-window` are optional HTTP/2 receive windows in bytes, per stream and per connection, from 65535 to 1 GiB. With the governor they cap the window. Leave them out to keep Go's default windows (4 MiB per stream); then `"enabled": true` alone is enough in `value`.
-
-<Aside type="note">
-Add the rule only to hosts with the XHTTP transport. Proxies with other transports do not use the `xhttp-opts` key. The older `h2-flow-control: true` key still works, but the `h2-flow` block is the main one.
-</Aside>
+| Feature | Mapper example |
+|---------|----------------|
+| mux.cool multiplexing | [mux.cool](https://core.prizrak.app/remnawave/mux-cool/) |
+| REALITY ML-DSA-65 | [REALITY ML-DSA-65](https://core.prizrak.app/remnawave/reality/) |
+| finalmask | [finalmask](https://core.prizrak.app/remnawave/finalmask/) |
+| A `kcp` host: VLESS over mKCP, xdns DNS tunnels | [mKCP and xdns](https://core.prizrak.app/remnawave/kcp-xdns/) |
+| XHTTP flow governor (`h2-flow`) | [XHTTP h2-flow](https://core.prizrak.app/remnawave/xhttp-h2-flow/) |
+| QUIC reject (`udp-443`) | [udp-443](https://core.prizrak.app/remnawave/udp-443/) |

@@ -3,6 +3,30 @@ import { defineConfig } from 'astro/config';
 
 export default defineConfig({
   site: 'https://docs.prizrak.app',
+  // Prizrak-Core has its own docs at core.prizrak.app. The sidebar entry and
+  // the old addresses of its pages lead there, in the reader's language.
+  redirects: {
+    '/prizrak-core/': 'https://core.prizrak.app/',
+    '/ru/prizrak-core/': 'https://core.prizrak.app/ru/',
+    '/prizrak-core/smart-proxy-group/': 'https://core.prizrak.app/config/proxy-groups/smart/',
+    '/ru/prizrak-core/smart-proxy-group/': 'https://core.prizrak.app/ru/config/proxy-groups/smart/',
+    '/prizrak-core/prizrak-utls/': 'https://core.prizrak.app/config/proxies/prizrak-utls/',
+    '/ru/prizrak-core/prizrak-utls/': 'https://core.prizrak.app/ru/config/proxies/prizrak-utls/',
+    '/prizrak-core/mux-cool/': 'https://core.prizrak.app/config/proxies/mux-cool/',
+    '/ru/prizrak-core/mux-cool/': 'https://core.prizrak.app/ru/config/proxies/mux-cool/',
+    '/prizrak-core/reality/': 'https://core.prizrak.app/config/proxies/reality/',
+    '/ru/prizrak-core/reality/': 'https://core.prizrak.app/ru/config/proxies/reality/',
+    '/prizrak-core/finalmask/': 'https://core.prizrak.app/config/proxies/finalmask/',
+    '/ru/prizrak-core/finalmask/': 'https://core.prizrak.app/ru/config/proxies/finalmask/',
+    '/prizrak-core/xhttp/': 'https://core.prizrak.app/config/proxies/xhttp/',
+    '/ru/prizrak-core/xhttp/': 'https://core.prizrak.app/ru/config/proxies/xhttp/',
+    '/prizrak-core/freedom/': 'https://core.prizrak.app/config/proxies/freedom/',
+    '/ru/prizrak-core/freedom/': 'https://core.prizrak.app/ru/config/proxies/freedom/',
+    '/prizrak-core/provider-fallback/': 'https://core.prizrak.app/config/proxy-providers/fallback-urls/',
+    '/ru/prizrak-core/provider-fallback/': 'https://core.prizrak.app/ru/config/proxy-providers/fallback-urls/',
+    '/prizrak-core/ping-config/': 'https://core.prizrak.app/config/proxy-groups/ping-config/',
+    '/ru/prizrak-core/ping-config/': 'https://core.prizrak.app/ru/config/proxy-groups/ping-config/',
+  },
   integrations: [
     starlight({
       title: 'Prizrak-Box',
@@ -48,23 +72,7 @@ export default defineConfig({
         { label: 'Welcome', translations: { ru: 'Добро пожаловать' }, link: '/' },
         { label: 'Install App', translations: { ru: 'Установка' }, link: '/install/' },
         { label: 'About App', translations: { ru: 'О приложении' }, link: '/about/' },
-        {
-          label: 'Prizrak-Core',
-          translations: { ru: 'Ядро Prizrak-Core' },
-          collapsed: true,
-          items: [
-            { label: 'Overview', translations: { ru: 'Обзор' }, link: '/prizrak-core/' },
-            { label: 'Smart Proxy Group', translations: { ru: 'Прокси группа Smart' }, link: '/prizrak-core/smart-proxy-group/' },
-            { label: 'uTLS: prizrak-utls', link: '/prizrak-core/prizrak-utls/' },
-            { label: 'mux.cool (Xray Mux)', link: '/prizrak-core/mux-cool/' },
-            { label: 'REALITY: ML-DSA-65', translations: { ru: 'REALITY: ML-DSA-65' }, link: '/prizrak-core/reality/' },
-            { label: 'finalmask', link: '/prizrak-core/finalmask/' },
-            { label: 'XHTTP and HTTP/2', translations: { ru: 'XHTTP и HTTP/2' }, link: '/prizrak-core/xhttp/' },
-            { label: 'freedom: TLS fragmentation', translations: { ru: 'freedom: фрагментация TLS' }, link: '/prizrak-core/freedom/' },
-            { label: 'Providers: fallback-urls', translations: { ru: 'Провайдеры: fallback-urls' }, link: '/prizrak-core/provider-fallback/' },
-            { label: 'ping-config', link: '/prizrak-core/ping-config/' },
-          ],
-        },
+        { label: 'Prizrak-Core', translations: { ru: 'Ядро Prizrak-Core' }, link: '/prizrak-core/' },
         { label: 'Links', translations: { ru: 'Ссылки' }, link: '/links/' },
         { label: 'Privacy Policy', translations: { ru: 'Политика конфиденциальности' }, link: '/important-note/' },
         { label: 'Terms of Use', translations: { ru: 'Условия использования' }, link: '/terms/' },

@@ -375,7 +375,7 @@ So an `.mrs` file needs an object with its `behavior`.
 
 - When the address does not answer or answers with an error, the `fallback` ones are tried in turn.
 - A `304 Not Modified` from the address is an answer: no fallback is tried.
-- The backups reach the profile as [`fallback-urls`](/prizrak-core/provider-fallback/) when the app is built on Prizrak-Core v1.19.33-r7 or newer. On an older core they are kept in the routing but not written into the profile: only `url` is used.
+- The backups reach the profile as [`fallback-urls`](https://core.prizrak.app/config/proxy-providers/fallback-urls/) when the app is built on Prizrak-Core v1.19.33-r7 or newer. On an older core they are kept in the routing but not written into the profile: only `url` is used.
 
 **Errors.** A rule-set with a bad address, name, field or pair is left out, with every rule that names it, and a note on the routing's row.
 

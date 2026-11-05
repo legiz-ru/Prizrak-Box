@@ -138,7 +138,7 @@ Prizrak-Box представляется заголовком `User-Agent` сл�
 настроенного в панели Remnawave.
 
 Подробнее о типе прокси группы Smart и параметрах её конфигурации — в разделе
-[Прокси группа Smart](/ru/prizrak-core/smart-proxy-group/).
+[Прокси группа Smart](https://core.prizrak.app/ru/config/proxy-groups/smart/).
 
 ---
 
@@ -207,198 +207,15 @@ proxy-groups:
 
 ## 6. Поддержка функционала Prizrak-Core
 
-Prizrak-Box работает на ядре [Prizrak-Core](/ru/prizrak-core/). В нём есть возможности, которых нет в обычном Mihomo. Чтобы пользователи получили их через подписку, нужные параметры добавляются к прокси через **маппер хоста** Remnawave, в список `mihomo`.
+Prizrak-Box работает на ядре [Prizrak-Core](https://core.prizrak.app/ru/). В нём есть возможности, которых нет в обычном Mihomo. Чтобы пользователи получили их через подписку, нужные параметры добавляются к прокси через **маппер хоста** Remnawave, в список `mihomo`. Меняется только подписка в формате Mihomo, а клиенты на обычном Mihomo незнакомые ключи игнорируют.
 
-- Меняется только подписка в формате Mihomo. Подписки Xray JSON и base64 остаются как были, если их списки в маппере пустые.
-- Клиенты на обычном Mihomo незнакомые ключи игнорируют и работают как раньше.
+Как настроить маппер хоста и готовые JSON для каждой возможности — в документации Prizrak-Core: [Интеграция с Remnawave](https://core.prizrak.app/ru/remnawave/).
 
-### Как настроить маппер хоста
-
-<Steps>
-
-1. Откройте **Хосты** и выберите хост для редактирования.
-2. В блоке **Опции** нажмите **Добавить** и в группе **Расширенные** выберите **Маппер**.
-3. В разделе **Расширенные** появится строка **Маппер** со статусом **Не задано**. Нажмите на неё, откроется JSON-редактор маппера.
-4. Вставьте JSON из примеров ниже и нажмите **Сохранить** в карточке хоста. Статус маппера сменится на **Настроено**.
-
-</Steps>
-
-<Aside type="note">
-Проверьте, что в блоке **Исключить из типа подписки** не отмечен **Mihomo**, иначе хост не попадёт в подписку Mihomo вместе с параметрами маппера.
-</Aside>
-
-### Мультиплексирование mux.cool
-
-Prizrak-Core поддерживает [мультиплексирование mux.cool](/ru/prizrak-core/mux-cool/), совместимое с Xray. Серверам Xray, которыми управляет Remnawave, дополнительная настройка не нужна: они принимают mux.cool сами.
-
-```json
-{
-  "xrayJson": [],
-  "mihomo": [
-    {
-      "op": "set",
-      "value": {
-        "enabled": true,
-        "max-carriers": 4,
-        "max-concurrency": 8,
-        "max-connections": 3,
-        "xudp-concurrency": 16,
-        "xudp-proxy-udp443": "reject"
-      },
-      "to": "['mux.cool']"
-    }
-  ],
-  "base64": []
-}
-```
-
-Правило `set` записывает объект `value` в ключ `mux.cool` прокси этого хоста. В подписке Mihomo прокси получит такой блок:
-
-```yaml
-proxies:
-  - name: 🇩🇪 Germany
-    type: vless
-    # ...
-    mux.cool:
-      enabled: true
-      max-carriers: 4
-      max-concurrency: 8
-      max-connections: 3
-      xudp-concurrency: 16
-      xudp-proxy-udp443: reject
-```
-
-<Aside type="caution">
-Не включайте одновременно `mux.cool` и `smux` у одного прокси. Клиенты на обычном Mihomo ключ `mux.cool` проигнорируют и подключатся без мультиплексирования.
-</Aside>
-
-### REALITY ML-DSA-65
-
-Если в REALITY-инбаунде сервера Xray задан `mldsa65Seed`, сервер подписывает сертификат REALITY постквантовой подписью ML-DSA-65. Prizrak-Core [проверяет эту подпись](/ru/prizrak-core/reality/), если в `reality-opts` прокси указан публичный ключ `mldsa65-verify`.
-
-В `value` укажите публичный ключ ML-DSA-65 в формате base64url. Это значение `mldsa65Verify`, которое `xray mldsa65` выводит вместе с `mldsa65Seed` для инбаунда.
-
-```json
-{
-  "xrayJson": [],
-  "mihomo": [
-    {
-      "op": "set",
-      "value": "<mldsa65Verify>",
-      "to": "['reality-opts']['mldsa65-verify']"
-    }
-  ],
-  "base64": []
-}
-```
-
-Правило записывает ключ в `reality-opts` прокси этого хоста:
-
-```yaml
-proxies:
-  - name: 🇩🇪 Germany
-    type: vless
-    # ...
-    reality-opts:
-      public-key: <X25519 public key>
-      short-id: <short id>
-      mldsa65-verify: <mldsa65Verify>
-```
-
-<Aside type="caution">
-Ключ должен соответствовать `mldsa65Seed` сервера. Если ключ неверный или на сервере ML-DSA-65 не включён, Prizrak-Core не примет сертификат REALITY и не подключится.
-</Aside>
-
-### finalmask
-
-Если во входящем соединении сервера Xray задан блок `finalmask`, клиенту нужны те же маски. Prizrak-Core поддерживает [finalmask](/ru/prizrak-core/finalmask/) для прокси `vless` и `trojan`. Правило записывает блок целиком в ключ `finalmask` прокси этого хоста; в `value` перенесите маски из `finalmask` входящего соединения, переименовав ключи в стиль mihomo (`randRange` → `rand-range` и так далее).
-
-```json
-{
-  "xrayJson": [],
-  "mihomo": [
-    {
-      "op": "set",
-      "value": {
-        "tcp": [
-          {
-            "type": "fragment",
-            "packets": "tlshello",
-            "lengths": ["1-1"],
-            "delays": ["0"]
-          }
-        ]
-      },
-      "to": "['finalmask']"
-    }
-  ],
-  "base64": []
-}
-```
-
-В подписке Mihomo прокси получит такой блок:
-
-```yaml
-proxies:
-  - name: 🇩🇪 Germany
-    type: vless
-    # ...
-    finalmask:
-      tcp:
-        - type: fragment
-          packets: tlshello
-          lengths: ["1-1"]
-          delays: ["0"]
-```
-
-<Aside type="caution">
-Клиенты на обычном Mihomo ключ `finalmask` проигнорируют и к серверу с масками не подключатся. Включайте маски только для хостов, которыми пользуются клиенты на Prizrak-Core.
-</Aside>
-
-Хосту на входящем `kcp`, например DNS-туннелю через `xdns`, нужен маппер, который собирает весь прокси: см. [хост с kcp](/ru/prizrak-core/finalmask/#хост-с-kcp-vless-поверх-mkcp) на странице finalmask.
-
-### Регулятор потока XHTTP (h2-flow)
-
-Для хостов с транспортом XHTTP Prizrak-Core умеет включать [регулятор потока HTTP/2](/ru/prizrak-core/xhttp/#регулятор-потока-http2-h2-flow). С ним сервер присылает данные не быстрее, чем клиент их читает, и не заполняет большие окна HTTP/2. Это снижает расход памяти на клиенте и помогает на слабых устройствах. Сервер Xray настраивать не нужно: регулятор работает на стороне клиента через стандартное управление потоком HTTP/2. Если на сервере стоит [Jolymmiles/Xray-core](https://github.com/Jolymmiles/Xray-core) со своим регулятором (`h2Flow`), они работают вместе, и включать регулятор можно с любой стороны или с обеих.
-
-Регулятор выключен по умолчанию и действует только в режиме h2. Это ALPN `h2` или пустой ALPN. При ALPN `h3` или `http/1.1` параметр ни на что не влияет.
-
-```json
-{
-  "xrayJson": [],
-  "mihomo": [
-    {
-      "op": "set",
-      "value": {
-        "enabled": true,
-        "max-stream-receive-window": 16777216,
-        "max-connection-receive-window": 33554432
-      },
-      "to": "['xhttp-opts']['h2-flow']"
-    }
-  ],
-  "base64": []
-}
-```
-
-Правило записывает блок `h2-flow` в `xhttp-opts` прокси этого хоста:
-
-```yaml
-proxies:
-  - name: 🇩🇪 Germany
-    type: vless
-    network: xhttp
-    # ...
-    xhttp-opts:
-      # ...
-      h2-flow:
-        enabled: true
-        max-stream-receive-window: 16777216
-        max-connection-receive-window: 33554432
-```
-
-`max-stream-receive-window` и `max-connection-receive-window` — необязательные окна приёма HTTP/2 в байтах на поток и на соединение, от 65535 до 1 ГиБ. С регулятором это потолок окна. Если их не указывать, действуют окна Go по умолчанию (4 МиБ на поток), а в `value` достаточно `"enabled": true`.
-
-<Aside type="note">
-Добавляйте правило только хостам с транспортом XHTTP. У прокси с другим транспортом ключ `xhttp-opts` не используется. Старый вариант с ключом `h2-flow-control: true` тоже работает, но блок `h2-flow` основной.
-</Aside>
+| Возможность | Пример маппера |
+|-------------|----------------|
+| Мультиплексирование mux.cool | [mux.cool](https://core.prizrak.app/ru/remnawave/mux-cool/) |
+| REALITY ML-DSA-65 | [REALITY ML-DSA-65](https://core.prizrak.app/ru/remnawave/reality/) |
+| finalmask | [finalmask](https://core.prizrak.app/ru/remnawave/finalmask/) |
+| `kcp`-хост: VLESS поверх mKCP, DNS-туннели через xdns | [mKCP и xdns](https://core.prizrak.app/ru/remnawave/kcp-xdns/) |
+| Регулятор потока XHTTP (`h2-flow`) | [XHTTP h2-flow](https://core.prizrak.app/ru/remnawave/xhttp-h2-flow/) |
+| Блокировка QUIC (`udp-443`) | [udp-443](https://core.prizrak.app/ru/remnawave/udp-443/) |
