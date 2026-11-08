@@ -95,6 +95,9 @@ jobs:
           PXA_REF: ${{ inputs.pxa_ref || 'main' }}
         run: |
           set -euo pipefail
+          # Outside the checkout: the GITHUB_TOKEN header it persists in .git/config
+          # would be sent instead of this token.
+          cd "$RUNNER_TEMP"
           [ -n "$TOKEN" ] || { echo "::error::The PRIVATE_SRC_TOKEN secret is not set"; exit 1; }
           resolve() {
             if [[ "$2" =~ ^[0-9a-f]{40}$ ]]; then echo "$2"; return; fi
