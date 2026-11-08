@@ -467,6 +467,7 @@ jobs:
       - name: Build px + px-service
         env: { GOARCH: '${{ matrix.arch }}' }
         run: |
+          (cd src-go && go mod download github.com/legiz-ru/prizrak-go-kit)
           src-go/kit_core_check.sh
           (cd src-go && go run github.com/legiz-ru/prizrak-go-kit/prizrakkit/cmd/templates internal/tmpl/builtin)
           (cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags="-s -w -X github.com/legiz-ru/prizrak-box/api.Version=${{ env.VERSION }}" -o px .)
