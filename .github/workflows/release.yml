@@ -659,10 +659,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Pinned, not ubuntu-latest: the binary needs the glibc of the image it
+          # is linked on, so a newer image silently drops every older distro.
+          # 22.04 has glibc 2.35: Ubuntu 22.04+, Debian 12+, Fedora 36+.
           - arch: amd64
-            runner: ubuntu-latest
+            runner: ubuntu-22.04
           - arch: arm64
-            runner: ubuntu-24.04-arm
+            runner: ubuntu-22.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout pxd-src
@@ -684,7 +687,7 @@ jobs:
           git config --global url."https://x-access-token:${PRIVATE_SRC_TOKEN}@github.com/legiz-ru/prizrak-go-kit".insteadOf "https://github.com/legiz-ru/prizrak-go-kit"
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-        with: { workspaces: 'src-rs -> target', key: 'linux-${{ matrix.arch }}' }
+        with: { workspaces: 'src-rs -> target', key: 'linux-${{ matrix.arch }}-ubuntu2204' }
       - name: Set Version
         run: echo "VERSION=${{ needs.setup.outputs.version }}" >> $GITHUB_ENV
       - name: Sync VERSION to package.json
@@ -708,6 +711,17 @@ jobs:
         run: |
           cd src-rs
           cargo build --release --locked
+      - name: Check the glibc the binary needs
+        run: |
+          set -e
+          limit=GLIBC_2.35
+          need="$(objdump -T src-rs/target/release/prizrak-box | grep -oE 'GLIBC_[0-9]+(\.[0-9]+)+' | sort -Vu | tail -n1)"
+          echo "The binary needs $need (limit $limit)"
+          [ -n "$need" ]
+          if [ "$(printf '%s\n' "$need" "$limit" | sort -V | tail -n1)" != "$limit" ]; then
+            echo "::error::The binary needs $need, newer than $limit"
+            exit 1
+          fi
       - name: Package deb + rpm + Arch (nfpm)
         run: |
           set -e
