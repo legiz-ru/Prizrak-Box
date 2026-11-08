@@ -7,7 +7,7 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
 
 ## Overview
 
-**Prizrak-Box** is an open-source, cross-platform proxy client built on top of [Mihomo](https://github.com/MetaCubeX/mihomo) (formerly Clash.Meta).
+**Prizrak-Box** is a cross-platform proxy client built on top of [Mihomo](https://github.com/MetaCubeX/mihomo) (formerly Clash.Meta).
 It provides a user-friendly graphical interface for managing proxy subscriptions, monitoring traffic, and applying routing rules.
 
 ![Prizrak-Box main screen](../../assets/about-main.webp)
@@ -62,8 +62,7 @@ When a remote subscription is fetched, the server can return HTTP response heade
 
 The app is structured as:
 
-- **Wails v3** (Windows, macOS) — native desktop shell rendering the Vue 3 UI
-- **Electron** (Linux) — desktop shell rendering the Vue 3 UI
+- **Rust + Slint** (Windows, macOS, Linux) — native desktop app
 - **Android** — Jetpack Compose UI
 - **iOS, iPadOS, tvOS** — SwiftUI UI with the Mihomo core built in as a Go library
 - **Go backend** (`px`) — HTTP API, subscription management, BoltDB persistence

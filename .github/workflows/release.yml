@@ -1025,7 +1025,7 @@ jobs:
             echo "$TAG is a pre-release or a draft: the update feed stays as it is"
             exit 0
           fi
-          NAMES='["windows-amd64.msi","windows-arm64.msi","windows-amd64.zip","windows-arm64.zip","macos-amd64.dmg","macos-arm64.dmg","macos-amd64.zip","macos-arm64.zip","linux-amd64.deb","linux-arm64.deb","linux-amd64.rpm","linux-arm64.rpm","linux-amd64-aur.tar.zst","linux-arm64-aur.tar.zst"]'
+          NAMES='["windows-amd64.msi","windows-arm64.msi","windows-amd64.zip","windows-arm64.zip","macos-amd64.dmg","macos-arm64.dmg","macos-amd64.zip","macos-arm64.zip","linux-amd64.deb","linux-arm64.deb","linux-amd64.rpm","linux-arm64.rpm","linux-amd64-aur.tar.zst","linux-arm64-aur.tar.zst","prizrak-box-android-arm64-v8a.apk","prizrak-box-android-armeabi-v7a.apk","prizrak-box-android-x86.apk","prizrak-box-android-x86_64.apk","prizrak-box-android-universal.apk"]'
           printf '%s' "$REL" | jq --argjson names "$NAMES" '{
             version: (.tag_name | ltrimstr("v")),
             tag: .tag_name,
