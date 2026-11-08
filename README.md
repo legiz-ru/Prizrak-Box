@@ -1,124 +1,64 @@
 <div align="center">
 
-  <img src="build/appicon.png" width="160px" alt="Prizrak-Box"/>
+<img src="docs/src/assets/appicon.png" width="128" alt="Prizrak-Box"/>
 
-  <h1>Prizrak-Box</h1>
+# Prizrak-Box
 
-  <p>🌈 A simple desktop client for <strong>Mihomo</strong></p>
-  <p>✨ 一个简易的 <strong>Mihomo</strong> 桌面客户端</p>
-  <p>✨ Простой настольный клиент для <strong>Mihomo</strong></p>
+A cross-platform proxy client built on the Mihomo (Clash.Meta) core
 
-  <p>
-    🇨🇳 <a href="doc/README.zh-CN.md">简体中文</a> | 🇺🇸 <a href="doc/README.en.md">English</a> | 🇷🇺 <a href="doc/README.ru.md">Русский</a>
-  </p>
+[Download](https://github.com/legiz-ru/Prizrak-Box/releases/latest) · [Documentation](https://docs.prizrak.app) · [Telegram](https://t.me/legiz_trashbag) · [Русский](#русский)
 
 </div>
 
----
+![Prizrak-Box](docs/src/assets/about-main.webp)
 
-## 📦 Project Overview | 项目简介 | Обзор проекта
+## Features
 
-**Prizrak-Box** is a lightweight and user-friendly cross-platform client (fork of [Pandora-Box](https://github.com/snakem982/Pandora-Box)) for [Mihomo](https://github.com/MetaCubeX/mihomo), supporting multiple proxy protocols, automatic rule grouping, TUN mode, and functionality relevant for Russia.  
-It is designed for both casual and advanced users to easily manage and convert proxy subscriptions.
+- **Subscriptions** — remote Clash YAML subscriptions with auto-update, local configs, and proxy keys (`vless://`, `hy2://` and more) with built-in templates.
+- **Routing** — built-in rule templates for Russia and China, geo-IP and domain lists, your own routing on top of a subscription.
+- **TUN mode** — all device traffic through the proxy, without per-app setup.
+- **Connections** — live list, topology, and per-process traffic.
+- **AGE-encrypted subscriptions**, one-click setup from a provider's portal (deep links), [Remnawave](https://docs.prizrak.app/for-devs/remnawave-integration/) integration.
+- **Prizrak-Core** — a Mihomo fork with XHTTP, extra uTLS fingerprints and more: [core.prizrak.app](https://core.prizrak.app).
 
-**Prizrak-Box** 是一个跨平台的轻量桌面客户端（[Pandora-Box](https://github.com/snakem982/Pandora-Box) 的分支项目），适配 [Mihomo](https://github.com/MetaCubeX/mihomo) 内核，支持多种代理协议、规则自动分组与 TUN 模式，并具备适用于俄罗斯的相关功能。界面简洁，功能强大，适合轻量与进阶用户使用。
+## Download
 
-**Prizrak-Box** — это легкий и удобный кроссплатформенный клиент (форк [Pandora-Box](https://github.com/snakem982/Pandora-Box)) для [Mihomo](https://github.com/MetaCubeX/mihomo), поддерживающий различные прокси-протоколы, автоматическую группировку правил, режим TUN и функционал, актуальный для России.  
-Он разработан как для обычных пользователей, так и для продвинутых, чтобы облегчить управление и конвертацию подписок прокси.
+All builds are in [Releases](https://github.com/legiz-ru/Prizrak-Box/releases/latest) ([including pre-releases](https://github.com/legiz-ru/Prizrak-Box/releases)).
 
----
+| Platform | Files |
+|---|---|
+| Windows 10/11 | `windows-amd64.msi` · `windows-arm64.msi` — installer; `.zip` — portable |
+| macOS 12+ | `macos-arm64.dmg` (Apple Silicon) · `macos-amd64.dmg` (Intel) |
+| Linux | `linux-amd64.deb` / `.rpm` / `-aur.tar.zst` (Arch), same for `arm64`; AUR: `prizrak-box-bin` |
+| Android, Android TV | `prizrak-box-android-universal.apk` or the APK for your ABI; [Obtainium](https://docs.prizrak.app/install/) for auto-updates |
+| iOS, iPadOS, tvOS | testing in TestFlight |
 
-## 📥 Get Started ｜ 快速开始 ｜ Начало работы
+Step-by-step instructions: [docs.prizrak.app/install](https://docs.prizrak.app/install/).
 
-👉 [Download the Latest Release / 下载最新版本 / Скачать последнюю версию](https://github.com/legiz-ru/Prizrak-Box/releases)
+> **macOS:** if the app "is damaged" or "the developer cannot be verified", run
+> `xattr -dr com.apple.quarantine /Applications/Prizrak-Box.app`
 
----
+## Documentation
 
-## 🛠 Development ｜ 开发 ｜ Разработка
+- [About the app](https://docs.prizrak.app/about/) · [FAQ](https://docs.prizrak.app/faq/) · [Android TV](https://docs.prizrak.app/android-tv/)
+- For providers and developers: [supported headers](https://docs.prizrak.app/for-devs/supported-headers/), [deep links](https://docs.prizrak.app/for-devs/deep-linking/), [routing](https://docs.prizrak.app/for-devs/routing/), [AGE encryption](https://docs.prizrak.app/for-devs/age-encryption/), [Remnawave](https://docs.prizrak.app/for-devs/remnawave-integration/)
 
-If you want to contribute or build Prizrak-Box locally, refer to the resources below:  
-如果你想参与开发或构建 Prizrak-Box，可以参考以下资源：  
-Если вы хотите принять участие в разработке или собрать Prizrak-Box локально, воспользуйтесь следующими ресурсами:
+## Community
 
-### 🔧 Prerequisites | 前置依赖 | Предварительные требования
-
-- [Node.js](https://nodejs.org/) ≥ 18 (for building UI components or tooling)
-- [Go](https://go.dev/) ≥ 1.24 (for integration with Mihomo or backend modules)
-
-### 🧪 Build Instructions | 构建指南 | Инструкции по сборке
-
-```bash
-# Install dependencies
-npm install
-cd src-go
-go mod tidy
-
-# Build px backend
-CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags "-X github.com/legiz-ru/prizrak-box/api.Version=v-test" -o px(.exe)
-cd ..
-
-# Build px-service (for TUN service mode)
-cd src-service
-go mod tidy
-CGO_ENABLED=0 go build -ldflags="-s -w" -o px-service(.exe)
-cd ..
-
-# Build desktop app
-npm run package
-
-# Run in dev mode
-npm run start
-```
-
-#### Native shell: Rust + Slint (TEST) | 原生外壳 | Нативная оболочка
-
-A web-engine-free desktop shell for the same `px` / `px-service` backend lives
-in [`src-rs`](src-rs/README.md) (Rust + Slint). Build it with:
-无 Web 引擎的原生桌面外壳位于 `src-rs`。
-Нативная оболочка без веб-движка — в `src-rs`.
-
-```bash
-cd src-rs
-cargo run --release
-```
-
-#### Service Mode (Optional) | 服务模式（可选）| Режим сервиса (опционально)
-
-The service allows TUN mode to work without running the app as administrator.
-服务允许 TUN 模式在不以管理员身份运行应用程序的情况下工作。
-Сервис позволяет использовать TUN режим без запуска приложения от администратора.
-
-```bash
-# Install service (requires admin/root)
-./px-service -install
-
-# Uninstall service
-./px-service -uninstall
-
-# Check service status
-./px-service -status
-
-# Run in standalone mode (for debugging)
-./px-service -standalone
-```
+[Developer channel](https://t.me/legiz_trashbag) · [Community chat](https://t.me/+OqHkX0bo178xNDcy) · [Issues](https://github.com/legiz-ru/Prizrak-Box/issues)
 
 ---
 
-## 🌐 Language ｜ 语言选择 ｜ Выбор языка
+## Русский
 
-- 🇨🇳 [查看中文文档](doc/README.zh-CN.md)
-- 🇺🇸 [View English Documentation](doc/README.en.md)
-- 🇷🇺 [Просмотр русской документации](doc/README.ru.md)
+Кроссплатформенный прокси-клиент на ядре Mihomo (Clash.Meta): Windows, macOS, Linux, Android, Android TV; iOS, iPadOS и tvOS — в тестировании (TestFlight).
 
----
+**Возможности:** подписки Clash YAML с автообновлением, локальные конфиги и прямые ключи (`vless://`, `hy2://` и другие) со встроенными шаблонами; шаблоны правил для России и Китая и своя маршрутизация поверх подписки; режим TUN; соединения — списком, топологией и по процессам; подписки с шифрованием AGE, настройка в один клик из кабинета провайдера, интеграция с Remnawave; ядро [Prizrak-Core](https://core.prizrak.app).
 
-## 🧭 More Information ｜ 更多信息 ｜ Дополнительная информация
+**Скачать:** [последний релиз](https://github.com/legiz-ru/Prizrak-Box/releases/latest) (файлы — в таблице выше). Пошагово: [docs.prizrak.app/ru/install](https://docs.prizrak.app/ru/install/).
 
-- ✅ [Project Issues](https://github.com/legiz-ru/Prizrak-Box/issues)
-- 📄 [License (GPL-3.0)](./LICENSE)
+**macOS:** если система пишет, что приложение повреждено или разработчик не проверен — `xattr -dr com.apple.quarantine /Applications/Prizrak-Box.app`
 
----
+**Документация:** [docs.prizrak.app/ru](https://docs.prizrak.app/ru/) — о приложении, FAQ, Android TV, раздел для провайдеров и разработчиков (заголовки, deep links, маршрутизация, AGE, Remnawave).
 
-📝 This README was generated with the assistance of AI and reviewed by the developer.  
-📝 本文档内容由 AI 辅助生成，并由开发者校对。  
-📝 Этот README создан при поддержке ИИ и проверен разработчиком.
+**Сообщество:** [канал разработчика](https://t.me/legiz_trashbag) · [чат](https://t.me/+OqHkX0bo178xNDcy)

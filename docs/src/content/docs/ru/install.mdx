@@ -7,7 +7,7 @@ import { Tabs, TabItem, Steps } from '@astrojs/starlight/components';
 
 Все релизы доступны на GitHub: [последний стабильный](https://github.com/legiz-ru/Prizrak-Box/releases/latest) · [все релизы включая пре-релизы](https://github.com/legiz-ru/Prizrak-Box/releases).
 
-Для Windows, macOS и Linux основная сборка Prizrak-Box — это файлы без суффикса (например, `windows-amd64.msi`, `macos-arm64.dmg`, `linux-amd64.deb`). Файлы с окончанием `-wails` или `-electron` — прежние сборки: пока они ещё публикуются, но скоро будут удалены.
+Для Windows, macOS и Linux выберите файл под свою систему и архитектуру (например, `windows-amd64.msi`, `macos-arm64.dmg`, `linux-amd64.deb`).
 
 <Tabs>
   <TabItem label="Android">
@@ -129,7 +129,6 @@ xattr -dr com.apple.quarantine /Applications/Prizrak-Box.app
 ```bash
 yay -S prizrak-box-bin
 ```
-Пакет в AUR пока собирается из прежней сборки на Electron и позже перейдёт на основную.
 :::
 
   </TabItem>

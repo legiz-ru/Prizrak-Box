@@ -7,7 +7,7 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
 
 ## Обзор
 
-**Prizrak-Box** — это кроссплатформенный прокси-клиент с открытым исходным кодом, работающий на базе [Mihomo](https://github.com/MetaCubeX/mihomo) (бывший Clash.Meta).
+**Prizrak-Box** — это кроссплатформенный прокси-клиент, работающий на базе [Mihomo](https://github.com/MetaCubeX/mihomo) (бывший Clash.Meta).
 Приложение предоставляет удобный графический интерфейс для управления прокси-подписками, мониторинга трафика и настройки правил маршрутизации.
 
 ![Главный экран Prizrak-Box](../../../assets/about-main.webp)
@@ -63,8 +63,7 @@ Prizrak-Box поддерживает три типа профилей:
 
 Приложение состоит из:
 
-- **Wails v3** (Windows, macOS) — нативная оболочка, отображающая Vue 3 интерфейс
-- **Electron** (Linux) — оболочка, отображающая Vue 3 интерфейс
+- **Rust + Slint** (Windows, macOS, Linux) — нативное настольное приложение
 - **Android** — интерфейс на Jetpack Compose
 - **iOS, iPadOS, tvOS** — интерфейс на SwiftUI, ядро Mihomo встроено как Go-библиотека
 - **Go-бэкенд** (`px`) — HTTP API, управление подписками, хранилище BoltDB
