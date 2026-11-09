@@ -601,7 +601,8 @@ jobs:
           Fetch "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb" "src-go/internal/em/GeoLite2-ASN.mmdb"
       - name: Build px + px-service
         shell: pwsh
-        env: { GOARCH: '${{ matrix.arch }}' }
+        # GOAMD64=v1: the core has to run on x86-64 CPUs without AVX2 (ignored on arm64)
+        env: { GOARCH: '${{ matrix.arch }}', GOAMD64: v1 }
         run: |
           cd src-go;       go run github.com/legiz-ru/prizrak-go-kit/prizrakkit/cmd/templates internal/tmpl/builtin; cd ..
           # icon + VERSIONINFO: Task Manager shows these names, not a bare px.exe
@@ -702,7 +703,8 @@ jobs:
           wget -qO src-go/internal/em/BundleMRS.7z     --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z
           wget -qO src-go/internal/em/GeoLite2-ASN.mmdb --tries=4 --waitretry=5 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
       - name: Build px + px-service
-        env: { GOARCH: '${{ matrix.arch }}' }
+        # GOAMD64=v1: the core has to run on x86-64 CPUs without AVX2 (ignored on arm64)
+        env: { GOARCH: '${{ matrix.arch }}', GOAMD64: v1 }
         run: |
           (cd src-go && go run github.com/legiz-ru/prizrak-go-kit/prizrakkit/cmd/templates internal/tmpl/builtin)
           (cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags="-s -w -X github.com/legiz-ru/prizrak-box/api.Version=${{ env.VERSION }}" -o px .)
