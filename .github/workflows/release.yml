@@ -337,15 +337,17 @@ jobs:
           depends=(${DEPENDS})
           options=('!strip' '!debug')
           install=${PKGNAME_BASE}.install
+          noextract=("${PKGNAME_BASE}-${PKGVER}-aarch64.tar.zst" "${PKGNAME_BASE}-${PKGVER}-x86_64.tar.zst")
           source_aarch64=("${SRC_AARCH64}")
           source_x86_64=("${SRC_X86_64}")
           sha256sums_aarch64=('${SUM_AARCH64}')
           sha256sums_x86_64=('${SUM_X86_64}')
 
-          # The source is the release's pacman package: makepkg unpacks it into
-          # \$srcdir, and its usr/ tree is the whole package.
+          # The source is the release's pacman package. It goes straight into
+          # \$pkgdir: makepkg and AUR helpers keep \$srcdir between builds, so
+          # copying usr/ from there also packs files of older versions.
           package() {
-            cp -a "\${srcdir}/usr" "\${pkgdir}/"
+            bsdtar -xpf "\${srcdir}/${PKGNAME_BASE}-\${pkgver}-\${CARCH}.tar.zst" -C "\${pkgdir}" usr
           }
           EOF
 
@@ -360,6 +362,7 @@ jobs:
             printf '\tlicense = %s\n' "${LICENSE}"
             while read -r dep; do printf '\tdepends = %s\n' "$dep"; done < depends.txt
             printf '\tprovides = %s\n\tconflicts = %s\n' "${PKGNAME_BASE}" "${PKGNAME_BASE}"
+            printf '\tnoextract = %s\n' "${PKGNAME_BASE}-${PKGVER}-aarch64.tar.zst" "${PKGNAME_BASE}-${PKGVER}-x86_64.tar.zst"
             printf '\toptions = !strip\n\toptions = !debug\n'
             printf '\tsource_aarch64 = %s\n\tsha256sums_aarch64 = %s\n' "${SRC_AARCH64}" "${SUM_AARCH64}"
             printf '\tsource_x86_64 = %s\n\tsha256sums_x86_64 = %s\n' "${SRC_X86_64}" "${SUM_X86_64}"
