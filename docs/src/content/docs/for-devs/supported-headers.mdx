@@ -622,7 +622,7 @@ The appearance follows Android or iOS, even if the user chose light or dark in t
 **Differences from [`pxd-theme`](#desktop-ui-controls-) (desktop):**
 
 - No `image`, `transparency`, `blur` or `dim`: the mobile client has no background image or transparent panels. `background` with built-in backgrounds is used instead of `image`.
-- `card` and the `user` value are added.
+- The `user` value is added.
 - `accent=auto` takes the card colour, not a colour from a background image.
 
 </details>
@@ -664,13 +664,13 @@ If the profile is currently in **Global** mode when this header hides the switch
 <details>
 <summary>**`pxd-theme`**</summary>
 
-Sets the desktop client's look for the profile: background image, interface transparency, blur under panels, background dimming, mode (light / dark) and accent colour.
+Sets the desktop client's look for the profile: background image, interface transparency, blur under panels, background dimming, mode (light / dark), accent colour, the profile card colour and where the server groups are shown.
 
 | Property | Value |
 |----------|-------|
 | Type | `string` (key=value pairs separated by semicolons) |
 | Encoding | UTF-8 or Base64 (`base64:` prefix) |
-| Applies to | the active profile (primary, or otherwise selected) |
+| Applies to | `card`: always, to the card of its own profile; the other parameters: while the profile is active (primary, or otherwise selected) |
 
 | Parameter | Values | Description |
 |-----------|--------|-------------|
@@ -680,19 +680,48 @@ Sets the desktop client's look for the profile: background image, interface tran
 | `dim` | `0`–`80` (%) | Background dimming |
 | `mode` | `auto`, `light`, `dark` | Appearance mode. `auto` follows the background image, or the system theme without one |
 | `accent` | `#RRGGBB` or `auto` | Accent colour. `auto` picks it from the background image |
+| `card` | `#RRGGBB` or `auto` | Profile card colour. `auto` takes it from the profile logo |
+| `proxies` | `page` or `home` | Where the server groups are shown: on the **Proxies** screen (`page`) or on the home screen (`home`) |
 
 Every parameter is optional. A parameter missing from the header comes from the user's own settings. Numbers outside their range are clamped to the nearest bound; unknown parameters and invalid values are ignored.
 
+Keys and the values `auto`, `light`, `dark`, `page`, `home` are case-insensitive, and spaces around `=` and `;` are ignored. A colour is written only as `#` followed by six hexadecimal digits.
+
 **Image:**
 
-- Formats: **JPEG**, **PNG**, **WebP** (JPEG recommended).
-- Recommended size: about **1920×1080** and no more than **~2 MB** — the image is downloaded every time the theme is applied.
+- Formats: **JPEG**, **PNG**, **WebP** (JPEG recommended) and **SVG** (also gzipped, `.svgz`). An SVG is drawn 2560 px on its long side.
+- Recommended size: about **1920×1080** and no more than **~2 MB**. Images over 15 MB are not loaded.
+- The app keeps the last downloaded image and downloads it again when the theme brings a different URL.
 - If the URL contains `;`, encode it as `%3B`.
+
+**Card colour (`card`):**
+
+- Colours the profile card: on the **Profiles** screen, in the profile panel, in the deck on the home screen and on the **Renew subscription** button. It does not become the accent of the app.
+- If the colour is so light that white text on it is hard to read, the card is darkened.
+- Without `card`, or with `card=auto`, the colour comes from the profile logo. If the logo has no colour of its own (grey, black, white) or there is no logo, the profile gets a colour from the app palette and keeps it.
+- `card` belongs to the profile, not to the look of the window: it also works when the **"Profile theme"** switch is off.
+
+**Server groups (`proxies`):**
+
+| Value | Side menu | Home screen after connecting | **Disconnect** button at the top |
+|-------|-----------|------------------------------|----------------------------------|
+| `page` or absent | has **Proxies** | the big circle, tap to disconnect | on every screen except the home screen |
+| `home` | no **Proxies** | the groups and servers | on every screen |
+
+- Before connecting, the home screen looks the same with both values: the big connect circle.
+- With `home`, a user who was on the **Proxies** screen is taken to the home screen.
+- `proxies` does not depend on the **"Profile theme"** switch. If the header disappears on the next subscription update, the groups move back to the **Proxies** screen.
 
 **Full example:**
 
 ```http
 pxd-theme: image=https://cdn.example.com/theme/bg-1920x1080.jpg; transparency=30; blur=4; dim=20; mode=dark; accent=auto
+```
+
+**A card colour and the groups on the home screen, the look left to the user:**
+
+```http
+pxd-theme: card=#3b2a6b; proxies=home
 ```
 
 **Only a fixed accent colour and a fixed mode, without an image:**
@@ -709,7 +738,7 @@ Here the background stays whatever the user chose; the profile sets the mode and
 pxd-theme: base64:bW9kZT1saWdodDsgYWNjZW50PSMxZjllN2E=
 ```
 
-Parameters set by the profile are shown in the **Theme** dialog and cannot be changed there. The user can turn the profile theme off with the **"Profile theme"** switch in the same dialog, which brings back their own settings. Switching to a profile without this header also brings back the user's settings (or the defaults if they never changed them). If the header disappears on the next subscription update, the profile theme is removed.
+The look parameters set by the profile (`image`, `transparency`, `blur`, `dim`, `mode`, `accent`) are shown in the **Theme** dialog and cannot be changed there. The user can turn the profile theme off with the **"Profile theme"** switch in the same dialog, which brings back their own settings; `card` and `proxies` keep working. Switching to a profile without this header also brings back the user's settings (or the defaults if they never changed them). If the header disappears on the next subscription update, the profile theme is removed.
 
 </details>
 
