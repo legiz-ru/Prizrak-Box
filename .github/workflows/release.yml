@@ -696,7 +696,41 @@ jobs:
         run: echo "VERSION=${{ needs.setup.outputs.version }}" >> $GITHUB_ENV
       - name: Sync VERSION to package.json
         run: node build/sync-version.js
+      # On 2026-11-11 the runners could not resolve *.ubuntu.com ("Temporary
+      # failure resolving 'azure.archive.ubuntu.com'", 'ports.ubuntu.com') while
+      # other names resolved, and apt waited 20 s for each package for an hour.
+      # When the mirrors do not resolve: public resolvers, and as the last resort
+      # their addresses from DNS over HTTPS in /etc/hosts. Inert otherwise.
+      - name: DNS for the Ubuntu mirrors
+        timeout-minutes: 8
+        shell: bash
+        run: |
+          hosts=$(grep -rhoE 'https?://[A-Za-z0-9.-]+' /etc/apt/apt-mirrors.txt /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null \
+            | sed -E 's#^https?://##' | grep -E '(^|\.)ubuntu\.com$' | sort -u || true)
+          echo "Ubuntu mirrors:" $hosts
+          unresolved() { for h in $hosts; do timeout 15 getent hosts "$h" > /dev/null || echo "$h"; done; }
+          bad=$(unresolved)
+          if [ -z "$bad" ]; then exit 0; fi
+          echo "::warning::The runner's DNS does not resolve" $bad"; trying public resolvers"
+          sudo mkdir -p /etc/systemd/resolved.conf.d
+          printf '[Resolve]\nDNS=1.1.1.1 8.8.8.8 9.9.9.9\nDomains=~.\n' | sudo tee /etc/systemd/resolved.conf.d/public-dns.conf > /dev/null
+          sudo systemctl restart systemd-resolved || true
+          sleep 2
+          bad=$(unresolved)
+          if [ -z "$bad" ]; then exit 0; fi
+          echo "::warning::Public resolvers do not answer for" $bad"; using DNS over HTTPS"
+          for h in $bad; do
+            ip=""
+            for u in "https://1.1.1.1/dns-query?name=$h&type=A" "https://dns.google/resolve?name=$h&type=A"; do
+              ip=$(curl -fsS --max-time 10 -H 'accept: application/dns-json' "$u" | jq -r '[.Answer[]? | select(.type == 1) | .data][0] // empty') || ip=""
+              if [ -n "$ip" ]; then break; fi
+            done
+            if [ -n "$ip" ]; then echo "$ip $h" | sudo tee -a /etc/hosts; fi
+          done
+          bad=$(unresolved)
+          if [ -n "$bad" ]; then echo "::error::Still not resolved:" $bad; exit 1; fi
       - name: Install build dependencies (GTK3 + AppIndicator for the tray, fontconfig, xkbcommon)
+        timeout-minutes: 15
         run: sudo apt-get update && sudo apt-get install -y pkg-config libgtk-3-dev libayatana-appindicator3-dev libfontconfig1-dev libxkbcommon-dev libssl-dev
       - name: Refresh geo/model data
         run: |
