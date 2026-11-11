@@ -1,32 +1,46 @@
 ---
 title: Android TV
-description: Using Prizrak-Box on Android TV — profile import via pxtv and manual methods.
+description: Using Prizrak-Box on Android TV and Apple TV — sending a profile from your phone to the TV.
 ---
 
 import { Steps, Aside } from '@astrojs/starlight/components';
 
-Prizrak-Box runs on Android TV with the same functionality as the Android phone version.
-Because Android TV has no browser or camera for QR scanning, profile import works differently.
+Prizrak-Box runs on Android TV with the same functionality as the Android phone version, and on Apple TV.
+Typing a long subscription link with a remote is no fun, so the TV takes the profile from your phone instead:
+it shows a QR code, the phone sends the profile over your home network, and the TV adds it right away.
 
-## Importing a Subscription
-
-The easiest way to import a subscription to an Android TV device is via **[pxtv](https://github.com/legiz-ru/pxtv)** —
-a lightweight web page that transfers a subscription link or YAML configuration from your phone to the TV over your local Wi-Fi network.
+## Sending a Profile from Your Phone
 
 ![Profile import on Android TV](../../assets/android-tv-import.webp)
 
 <Steps>
-1. Make sure your phone and Android TV are connected to the **same Wi-Fi network**.
-2. On the TV, open Prizrak-Box and navigate to the **Import** screen. The TV will display a local IP address and a QR code.
-3. On your phone, open **[pxtv](https://github.com/legiz-ru/pxtv)** or scan the QR code directly.
-4. Enter or paste your subscription URL into pxtv and confirm.
-5. The subscription is sent to Prizrak-Box on the TV instantly — no manual typing required.
+1. Make sure the phone and the TV are on the **same home network**. The TV can be connected to the router by Wi-Fi or by cable.
+2. On the TV, open Prizrak-Box and go to **Add Profile → From another device** (on Apple TV: **Receive from a device**).
+   The TV shows a QR code.
+
+   If the VPN is on on the TV, the screen first asks you to turn it off: while it is on, the phone cannot reach the TV over the home network.
+   Press **Turn off VPN** — the QR code appears right away. You turn the new profile on from Home afterwards.
+3. Scan the QR code with your phone, whichever way is handier:
+   - **the phone's camera** — open the link it offers, paste a subscription link, keys or YAML and tap **Send to TV**;
+   - **Prizrak-Box on the phone** — **Add → Scan QR Code**, then pick the profile: it goes over whole, with its keys and template;
+   - **[pxtv](https://tv.prizrak.app)** — paste the link (or open pxtv from your subscription page), tap **Scan**, point it at the QR code and tap **Send to TV**.
+4. The TV adds the profile at once and opens Home with it. The phone shows that the profile is on the TV.
 </Steps>
 
 <Aside type="tip">
-If your phone and TV are on different networks, you can also paste the TV's local IP address manually into the pxtv page on your phone.
+The phone cannot open the TV's page? It needs the same home network as the TV: not a guest Wi-Fi and not mobile data.
+If the phone has a VPN on, the local network must bypass it. After a minute without a phone, the TV shows the same hint.
 </Aside>
+
+<Aside type="note">
+One QR code takes one profile: once a profile has arrived, the TV closes the import screen. To send another one, open the import on the TV again.
+No camera at hand? The address for a browser is written on the TV screen under the steps.
+</Aside>
+
+## Apple TV
+
+Prizrak-Box on Apple TV receives profiles the same way: the same QR code, the same page on the phone, the same apps and pxtv.
 
 ## Manual Import
 
-If you prefer not to use pxtv, you can also type the subscription URL directly on the TV using the on-screen keyboard, or use Android TV's built-in text sharing if your launcher supports it.
+If you prefer not to use the phone, you can also type the subscription URL directly on the TV using the on-screen keyboard, or use Android TV's built-in text sharing if your launcher supports it.
