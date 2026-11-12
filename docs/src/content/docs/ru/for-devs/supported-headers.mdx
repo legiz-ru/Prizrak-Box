@@ -227,10 +227,14 @@ Subscription-Renew-Url: https://myvpn.example.com/renew?id=abc123
 
 Эти заголовки настраивают клиентские напоминания о приближающемся или наступившем истечении подписки, а также о расходе трафика — показываются как нативные уведомления ОС, а пока порог пройден — ещё и кнопкой «Продлить подписку» под карточкой профиля (см. `Subscription-Renew-Url` выше).
 
+![Напоминание о подписке: уведомление и окно после нажатия](../../../../assets/subscription-reminders.webp)
+
 <details>
 <summary>**`Notify-Expire-Days`**</summary>
 
 Пороги «за сколько дней до истечения подписки напомнить».
+
+![Пример заголовка Notify-Expire-Days](../../../../assets/headers-notify-expire-days.webp)
 
 | Свойство | Значение |
 |----------|----------|
@@ -249,6 +253,8 @@ Notify-Expire-Days: 1,3,7
 <summary>**`Notify-Traffic-Percent`**</summary>
 
 Пороги «на каком проценте использованного трафика напомнить».
+
+![Пример заголовка Notify-Traffic-Percent](../../../../assets/headers-notify-traffic-percent.webp)
 
 | Свойство | Значение |
 |----------|----------|

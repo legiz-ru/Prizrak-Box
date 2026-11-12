@@ -228,10 +228,14 @@ When present, the app shows a "Renew subscription" entry point in several places
 
 These headers configure client-side reminders about an approaching or reached subscription expiry, and about traffic usage — shown as native OS notifications and, while a threshold is crossed, as a "Renew subscription" button in the app (see `Subscription-Renew-Url` above).
 
+![A subscription reminder: the notification and what its tap opens](../../../assets/subscription-reminders.webp)
+
 <details>
 <summary>**`Notify-Expire-Days`**</summary>
 
 Days-before-expiry thresholds at which to remind the user.
+
+![Notify-Expire-Days header example](../../../assets/headers-notify-expire-days.webp)
 
 | Property | Value |
 |----------|-------|
@@ -250,6 +254,8 @@ Notify-Expire-Days: 1,3,7
 <summary>**`Notify-Traffic-Percent`**</summary>
 
 Traffic-usage-percentage thresholds at which to remind the user.
+
+![Notify-Traffic-Percent header example](../../../assets/headers-notify-traffic-percent.webp)
 
 | Property | Value |
 |----------|-------|

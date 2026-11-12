@@ -161,6 +161,8 @@ prizrak-box:
 
 ### Built-in templates
 
+![Built-in templates](../../../assets/routing-builtin-templates.webp)
+
 | Template | Address | Fallback address | Updated |
 |---|---|---|---|
 | **Ultimate by Davoyan** (default) | `https://github.com/remnawave/templates/raw/main/by-davoyan/subscription-templates/ultimate-mihomo-ru.yaml` | `https://cdn.jsdelivr.net/gh/remnawave/templates@main/by-davoyan/subscription-templates/ultimate-mihomo-ru.yaml` | every 24 h |
@@ -176,6 +178,8 @@ prizrak-box:
 Profiles on the built-in templates of before move to the new ones: RU-Bundle and RU-Bundle + smart to RU-Bundle, the others to Ultimate.
 
 ### Your own templates
+
+![Your own templates and routings, adding one](../../../assets/routing-own-templates.webp)
 
 A template is added under **Templates and Routings → Add**:
 
@@ -207,6 +211,8 @@ Hours from 0 to 8760; 0 is never. A template given in base64 is not updated by i
 ## Happ / INCY routings
 
 A routing is a routing profile in Happ's and INCY's JSON format ([docs.happ.info](https://docs.happ.info), Routing). Prizrak-Box reads it as Happ does and makes it a YAML template for the core.
+
+![The routing builder](../../../assets/routing-builder.webp)
 
 The JSON's keys are case-insensitive; `true` may be a string or a value; an empty or missing field is Happ's default. The JSON is strict: trailing commas and comments are errors.
 
