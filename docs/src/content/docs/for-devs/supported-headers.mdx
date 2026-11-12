@@ -164,6 +164,8 @@ When this header is present, Prizrak-Box automatically re-fetches the subscripti
 
 A URL for the subscription provider's home page or portal.
 
+![Profile-Web-Page-Url header example](../../../assets/headers-profile-web-page-url.webp)
+
 | Property | Value |
 |----------|-------|
 | Type | `string` (URL) |
@@ -183,6 +185,8 @@ Displayed in the profile detail view as a tappable link.
 
 A support or contact URL (e.g. Telegram channel, help desk).
 
+![Support-Url header example](../../../assets/headers-support-url.webp)
+
 | Property | Value |
 |----------|-------|
 | Type | `string` (URL) |
@@ -201,6 +205,8 @@ Displayed alongside the profile for users to reach support.
 <summary>**`Subscription-Renew-Url`**</summary>
 
 A direct link to the subscription's renewal/payment page.
+
+![Subscription-Renew-Url header example](../../../assets/headers-subscription-renew-url.webp)
 
 | Property | Value |
 |----------|-------|
@@ -320,6 +326,8 @@ Announce: base64:TWFpbnRlbmFuY2Ugc2NoZWR1bGVk
 <summary>**`Announce-Url`**</summary>
 
 A URL linked from the announcement banner.
+
+![Announce-Url header example](../../../assets/headers-announce-url.webp)
 
 | Property | Value |
 |----------|-------|
@@ -443,6 +451,8 @@ All values are applied once on subscription fetch and persist in the profile unt
 
 Controls how proxy latency is displayed in the proxy list.
 
+![pxa-latency-dots header example](../../../assets/headers-pxa-latency-dots.webp)
+
 | Property | Value |
 |----------|-------|
 | Type | `integer` |
@@ -470,6 +480,8 @@ If both `pxa-latency-dots` and `ping-result` are present, `pxa-latency-dots` tak
 
 Activates a simplified interface mode — shows only the first select proxy group of your Mihomo configuration on the app's main screen.
 
+![pxa-simple-mode header example](../../../assets/headers-pxa-simple-mode.webp)
+
 | Property | Value |
 |----------|-------|
 | Type | `integer` |
@@ -489,6 +501,8 @@ pxa-simple-mode: 1
 Shows the **Global Mode** menu item in the bottom-left corner of the current profile card when a VPN connection is active.
 When not set (or `0`), the item may be hidden.
 
+![pxa-global-mode-mp header example](../../../assets/headers-pxa-global-mode-mp.webp)
+
 | Property | Value |
 |----------|-------|
 | Type | `integer` |
@@ -507,6 +521,8 @@ pxa-global-mode-mp: 1
 
 Shows the **Connections** view menu item in the bottom-left corner of the current profile card when a VPN connection is active.
 
+![pxa-conns-view-mp header example](../../../assets/headers-pxa-conns-view-mp.webp)
+
 | Property | Value |
 |----------|-------|
 | Type | `integer` |
@@ -524,6 +540,8 @@ pxa-conns-view-mp: 1
 <summary>**`pxa-rp-mp`**</summary>
 
 Shows the **Rules Provider** (RP) menu item in the bottom-left corner of the current profile card when a VPN connection is active.
+
+![pxa-rp-mp header example](../../../assets/headers-pxa-rp-mp.webp)
 
 | Property | Value |
 |----------|-------|
@@ -891,6 +909,8 @@ The server returns the following headers to communicate HWID status. Prizrak-Box
 
 Always `true` when the HWID Device Limit is enabled on the server side. Prizrak-Box uses this to mark the profile as HWID-protected in the UI.
 
+![X-Hwid-Active header example](../../../assets/headers-x-hwid-active.webp)
+
 | Property | Value |
 |----------|-------|
 | Type | `string` (boolean) |
@@ -907,6 +927,8 @@ X-Hwid-Active: true
 
 `true` if HWID Device Limit is enabled on the server, but the client did **not** send an `X-Hwid` header.
 This signals to the app that the device was not identified and the subscription may be restricted.
+
+![X-Hwid-Not-Supported header example](../../../assets/headers-x-hwid-not-supported.webp)
 
 | Property | Value |
 |----------|-------|
@@ -925,6 +947,8 @@ X-Hwid-Not-Supported: true
 `true` if HWID Device Limit is enabled and the user has reached their maximum number of allowed devices.
 The app can display a warning to the user that no new devices can be added.
 
+![X-Hwid-Max-Devices-Reached header example](../../../assets/headers-x-hwid-max-devices-reached.webp)
+
 | Property | Value |
 |----------|-------|
 | Type | `string` (boolean) |
@@ -939,14 +963,4 @@ X-Hwid-Max-Devices-Reached: true
 <Aside type="note" title="RemnaWave compatibility">
 The HWID header format follows the [RemnaWave HWID Device Limit specification](https://docs.rw/features/hwid-device-limit#hwid-headers-sent-by-remnawave).
 Subscription servers implementing the RemnaWave format are fully compatible with Prizrak-Box.
-</Aside>
-
----
-
-## Advanced Templates (PXD) <Badge text="Deprecated" variant="caution" />
-
-<Aside type="caution" title="Deprecated — will be removed">
-The `Pxd-Template` / `Pxd-Template-Scheme` header mechanism is **deprecated** and will be removed from Prizrak-Box in a future release.
-
-How the legacy method worked: [How to use xhttp from Remnawave in Prizrak-Box](https://github.com/legiz-ru/my-remnawave#how-to-use-xhttp-from-remnawave-in-prizrak-box)
 </Aside>

@@ -163,6 +163,8 @@ Profile-Update-Interval: 24
 
 URL главной страницы или портала провайдера подписки.
 
+![Пример заголовка Profile-Web-Page-Url](../../../../assets/headers-profile-web-page-url.webp)
+
 | Свойство | Значение |
 |----------|----------|
 | Тип | `string` (URL) |
@@ -182,6 +184,8 @@ Profile-Web-Page-Url: https://myvpn.example.com
 
 URL службы поддержки или контактов (например, Telegram-канал, служба помощи).
 
+![Пример заголовка Support-Url](../../../../assets/headers-support-url.webp)
+
 | Свойство | Значение |
 |----------|----------|
 | Тип | `string` (URL) |
@@ -200,6 +204,8 @@ Support-Url: https://t.me/myvpn_support
 <summary>**`Subscription-Renew-Url`**</summary>
 
 Прямая ссылка на страницу продления/оплаты подписки.
+
+![Пример заголовка Subscription-Renew-Url](../../../../assets/headers-subscription-renew-url.webp)
 
 | Свойство | Значение |
 |----------|----------|
@@ -319,6 +325,8 @@ Announce: base64:0KLQtdGF0L3QuNGH0LXRgdC60L7QtSDQvtCx0YHQu9GD0LbQuNCy0LDQvdC40LU
 <summary>**`Announce-Url`**</summary>
 
 URL, на который ссылается баннер объявления.
+
+![Пример заголовка Announce-Url](../../../../assets/headers-announce-url.webp)
 
 | Свойство | Значение |
 |----------|----------|
@@ -442,6 +450,8 @@ fallback-domain: backup.example.com
 
 Управляет отображением задержки прокси в списке.
 
+![Пример заголовка pxa-latency-dots](../../../../assets/headers-pxa-latency-dots.webp)
+
 | Свойство | Значение |
 |----------|----------|
 | Тип | `integer` |
@@ -469,6 +479,8 @@ pxa-latency-dots: 1
 
 Включает упрощённый режим интерфейса — на главном экране приложения только первую select прокси группу вашей конфигурации mihomo.
 
+![Пример заголовка pxa-simple-mode](../../../../assets/headers-pxa-simple-mode.webp)
+
 | Свойство | Значение |
 |----------|----------|
 | Тип | `integer` |
@@ -486,6 +498,8 @@ pxa-simple-mode: 1
 <summary>**`pxa-global-mode-mp`**</summary>
 
 Показывает пункт меню **Глобальный режим** в левом нижнем углу карточки текущего профиля при запущенном подключении VPN.
+
+![Пример заголовка pxa-global-mode-mp](../../../../assets/headers-pxa-global-mode-mp.webp)
 
 | Свойство | Значение |
 |----------|----------|
@@ -505,6 +519,8 @@ pxa-global-mode-mp: 1
 
 Показывает пункт меню **Подключения** в левом нижнем углу карточки текущего профиля при запущенном подключении VPN.
 
+![Пример заголовка pxa-conns-view-mp](../../../../assets/headers-pxa-conns-view-mp.webp)
+
 | Свойство | Значение |
 |----------|----------|
 | Тип | `integer` |
@@ -522,6 +538,8 @@ pxa-conns-view-mp: 1
 <summary>**`pxa-rp-mp`**</summary>
 
 Показывает пункт меню **Rules Provider (RP)** в левом нижнем углу карточки текущего профиля при запущенном подключении VPN.
+
+![Пример заголовка pxa-rp-mp](../../../../assets/headers-pxa-rp-mp.webp)
 
 | Свойство | Значение |
 |----------|----------|
@@ -889,6 +907,8 @@ Prizrak-Box поддерживает формат заголовков HWID Devi
 
 Всегда `true`, когда HWID Device Limit включён на стороне сервера. Prizrak-Box использует этот заголовок для пометки профиля как HWID-защищённого в интерфейсе.
 
+![Пример заголовка X-Hwid-Active](../../../../assets/headers-x-hwid-active.webp)
+
 | Свойство | Значение |
 |----------|----------|
 | Тип | `string` (булево) |
@@ -905,6 +925,8 @@ X-Hwid-Active: true
 
 `true`, если HWID Device Limit включён на сервере, но клиент **не отправил** заголовок `X-Hwid`.
 Сигнализирует приложению, что устройство не идентифицировано и подписка может быть ограничена.
+
+![Пример заголовка X-Hwid-Not-Supported](../../../../assets/headers-x-hwid-not-supported.webp)
 
 | Свойство | Значение |
 |----------|----------|
@@ -923,6 +945,8 @@ X-Hwid-Not-Supported: true
 `true`, если HWID Device Limit включён и пользователь достиг максимального числа разрешённых устройств.
 Приложение может показать предупреждение о том, что добавить новые устройства невозможно.
 
+![Пример заголовка X-Hwid-Max-Devices-Reached](../../../../assets/headers-x-hwid-max-devices-reached.webp)
+
 | Свойство | Значение |
 |----------|----------|
 | Тип | `string` (булево) |
@@ -937,14 +961,4 @@ X-Hwid-Max-Devices-Reached: true
 <Aside type="note" title="Совместимость с RemnaWave">
 Формат HWID-заголовков соответствует [спецификации HWID Device Limit RemnaWave](https://docs.rw/features/hwid-device-limit#hwid-headers-sent-by-remnawave).
 Серверы подписок, реализующие формат RemnaWave, полностью совместимы с Prizrak-Box.
-</Aside>
-
----
-
-## Шаблоны (PXD) <Badge text="Устарело" variant="caution" />
-
-<Aside type="caution" title="Устарело — будет удалено">
-Механизм заголовков `Pxd-Template` / `Pxd-Template-Scheme` **устарел** и будет удалён из Prizrak-Box в одном из следующих релизов.
-
-Как работал устаревший метод можно ознакомиться здесь: [How to use xhttp from Remnawave in Prizrak-Box](https://github.com/legiz-ru/my-remnawave#how-to-use-xhttp-from-remnawave-in-prizrak-box)
 </Aside>
