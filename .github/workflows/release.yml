@@ -581,7 +581,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with: { targets: '${{ matrix.target }}' }
       - uses: Swatinem/rust-cache@v2
-        with: { workspaces: 'src-rs -> target', key: '${{ matrix.target }}' }
+        with:
+          workspaces: |
+            src-rs -> target
+            src-setup -> target
+          key: '${{ matrix.target }}'
       - name: Set Version
         shell: bash
         run: echo "VERSION=${{ needs.setup.outputs.version }}" >> $GITHUB_ENV
@@ -663,6 +667,25 @@ jobs:
           npm install --no-audit --no-fund
           node installer/build-msi.js
           Copy-Item "out/msi/${{ matrix.msiarch }}/windows-${{ matrix.msiarch }}.msi" "windows-${{ matrix.arch }}.msi"
+      - name: Build the installer (src-setup, prizrak-box-setup-win-<arch>.exe)
+        shell: pwsh
+        run: |
+          # Own window in the app's style (live issue 125); the C runtime is
+          # linked in (src-setup/.cargo/config.toml), so it starts on a clean
+          # Windows. The MSI goes after the exe:
+          # [exe][MSI][MSI length: u64 LE]["PXMSI001"] (src-setup/src/payload.rs).
+          cd src-setup
+          cargo build --release --locked --target ${{ matrix.target }}
+          cd ..
+          $stub = [IO.File]::ReadAllBytes("src-setup/target/${{ matrix.target }}/release/prizrak-box-setup.exe")
+          $msi = [IO.File]::ReadAllBytes("windows-${{ matrix.arch }}.msi")
+          $out = [IO.File]::Create("prizrak-box-setup-win-${{ matrix.arch }}.exe")
+          $out.Write($stub, 0, $stub.Length)
+          $out.Write($msi, 0, $msi.Length)
+          $out.Write([BitConverter]::GetBytes([UInt64]$msi.Length), 0, 8)
+          $out.Write([Text.Encoding]::ASCII.GetBytes('PXMSI001'), 0, 8)
+          $out.Close()
+          Get-Item "prizrak-box-setup-win-${{ matrix.arch }}.exe" | ForEach-Object { '{0}  {1:N0} bytes' -f $_.Name, $_.Length }
       - name: Stage portable zip
         shell: pwsh
         run: Compress-Archive -Path "out/Prizrak-Box-win32-${{ matrix.msiarch }}/*" -DestinationPath "windows-${{ matrix.arch }}.zip" -Force
@@ -670,6 +693,7 @@ jobs:
         with:
           name: windows-${{ matrix.arch }}
           path: |
+            prizrak-box-setup-win-${{ matrix.arch }}.exe
             windows-${{ matrix.arch }}.msi
             windows-${{ matrix.arch }}.zip
       - name: Cancel workflow on failure
@@ -933,8 +957,8 @@ jobs:
                     <tr>
                         <td>Windows</td>
                         <td>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.msi"><img src="https://img.shields.io/badge/Setup-x64-2d7d9a.svg?logo=wattpad"></a><br>
-                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.msi"><img src="https://img.shields.io/badge/Setup-arm-2d7d9a.svg?logo=wattpad"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/prizrak-box-setup-win-amd64.exe"><img src="https://img.shields.io/badge/Setup-x64-2d7d9a.svg?logo=wattpad"></a><br>
+                            <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/prizrak-box-setup-win-arm64.exe"><img src="https://img.shields.io/badge/Setup-arm-2d7d9a.svg?logo=wattpad"></a><br>
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-amd64.zip"><img src="https://img.shields.io/badge/Portable-x64-67b7d1.svg?logo=wattpad"></a><br>
                             <a href="https://github.com/${owner}/${repo}/releases/download/${tag}/windows-arm64.zip"><img src="https://img.shields.io/badge/Portable-arm-67b7d1.svg?logo=wattpad"></a>
                         </td>
