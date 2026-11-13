@@ -626,6 +626,29 @@ jobs:
           Copy-Item "src-rs/target/${{ matrix.target }}/release/prizrak-box.exe" "$dir/Prizrak-Box.exe"
           Copy-Item src-go/px.exe                 "$dir/resources/px.exe"
           Copy-Item src-service/px-service.exe    "$dir/resources/px-service.exe"
+          # Visual C++ runtime next to Prizrak-Box.exe (app-local, as Microsoft allows):
+          # the exe needs vcruntime140 / msvcp140, a clean Windows has neither.
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
+          $crt = Get-ChildItem "$vs\VC\Redist\MSVC" -Directory |
+            Where-Object { $_.Name -match '^\d+(\.\d+)+$' } |
+            Sort-Object { [version]$_.Name } -Descending |
+            ForEach-Object { Get-ChildItem (Join-Path $_.FullName '${{ matrix.msiarch }}') -Directory -Filter 'Microsoft.VC14*.CRT' -ErrorAction SilentlyContinue } |
+            Select-Object -First 1
+          if (-not $crt) { throw "No Microsoft.VC14*.CRT for ${{ matrix.msiarch }} under $vs\VC\Redist\MSVC" }
+          foreach ($f in 'vcruntime140.dll', 'vcruntime140_1.dll', 'msvcp140.dll') {
+            $src = Join-Path $crt.FullName $f
+            if (-not (Test-Path $src)) { throw "$src is missing" }
+            Copy-Item $src "$dir/$f"
+            '{0,-20} {1}  ({2})' -f $f, (Get-Item $src).VersionInfo.FileVersion, $crt.FullName
+          }
+          # Fail when the exe starts needing another Visual C++ DLL that is not staged.
+          $dumpbin = Get-ChildItem "$vs\VC\Tools\MSVC\*\bin\Hostx64\x64\dumpbin.exe" | Select-Object -Last 1
+          if (-not $dumpbin) { throw "dumpbin.exe not found under $vs" }
+          $deps = & $dumpbin.FullName /nologo /dependents "$dir/Prizrak-Box.exe" | ForEach-Object { $_.Trim() } |
+            Where-Object { $_ -match '^(vcruntime|msvcp|concrt|vccorlib)\w*\.dll$' }
+          'Prizrak-Box.exe needs: ' + ($deps -join ', ')
+          $missing = @($deps | Where-Object { -not (Test-Path (Join-Path $dir $_)) })
+          if ($missing) { throw ('Not staged next to Prizrak-Box.exe: ' + ($missing -join ', ')) }
       - name: Install WiX Toolset
         shell: pwsh
         run: |
