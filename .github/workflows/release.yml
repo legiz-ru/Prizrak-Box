@@ -473,7 +473,9 @@ jobs:
           (cd src-go && go mod download github.com/legiz-ru/prizrak-go-kit)
           src-go/kit_core_check.sh
           (cd src-go && go run github.com/legiz-ru/prizrak-go-kit/prizrakkit/cmd/templates internal/tmpl/builtin)
-          (cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags="-s -w -X github.com/legiz-ru/prizrak-box/api.Version=${{ env.VERSION }}" -o px .)
+          # the core's /version and User-Agent: the Prizrak-Core version from the replace line in src-go/go.mod
+          CORE=$(sed -n 's#^replace github.com/metacubex/mihomo => github.com/legiz-ru/Prizrak-Core \(v[^ ]*\)$#\1#p' src-go/go.mod); test -n "$CORE"
+          (cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags="-s -w -X github.com/legiz-ru/prizrak-box/api.Version=${{ env.VERSION }} -X github.com/metacubex/mihomo/constant.Version=$CORE" -o px .)
           (cd src-service && CGO_ENABLED=0 go build -ldflags="-s -w" -o px-service .)
       - name: Build Rust + Slint app
         run: |
@@ -615,7 +617,11 @@ jobs:
           # icon + VERSIONINFO: Task Manager shows these names, not a bare px.exe
           go run build/winres.go -ico build/appicon.ico -arch $env:GOARCH -desc "Prizrak-Box Backend Core" -file px.exe -version $env:VERSION.TrimStart('v') -out "src-go/rsrc_windows_$env:GOARCH.syso"
           go run build/winres.go -ico build/appicon.ico -arch $env:GOARCH -desc "Prizrak-Box Service" -file px-service.exe -version $env:VERSION.TrimStart('v') -out "src-service/rsrc_windows_$env:GOARCH.syso"
-          cd src-go;       $env:CGO_ENABLED='0'; go build -tags=with_gvisor -trimpath -ldflags="-s -w -X github.com/legiz-ru/prizrak-box/api.Version=$env:VERSION" -o px.exe .; cd ..
+          # the core's /version and User-Agent: the Prizrak-Core version from the replace line in src-go/go.mod
+          $m = Select-String -Path src-go/go.mod -Pattern '^replace github\.com/metacubex/mihomo => github\.com/legiz-ru/Prizrak-Core (v\S+)'
+          if (-not $m) { throw 'no Prizrak-Core version in src-go/go.mod' }
+          $core = $m.Matches[0].Groups[1].Value
+          cd src-go;       $env:CGO_ENABLED='0'; go build -tags=with_gvisor -trimpath -ldflags="-s -w -X github.com/legiz-ru/prizrak-box/api.Version=$env:VERSION -X github.com/metacubex/mihomo/constant.Version=$core" -o px.exe .; cd ..
           cd src-service;  $env:CGO_ENABLED='0'; go build -ldflags="-s -w" -o px-service.exe .;   cd ..
       - name: Build Rust + Slint app (Prizrak-Box.exe with icon + version)
         shell: pwsh
@@ -791,7 +797,9 @@ jobs:
         env: { GOARCH: '${{ matrix.arch }}', GOAMD64: v1 }
         run: |
           (cd src-go && go run github.com/legiz-ru/prizrak-go-kit/prizrakkit/cmd/templates internal/tmpl/builtin)
-          (cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags="-s -w -X github.com/legiz-ru/prizrak-box/api.Version=${{ env.VERSION }}" -o px .)
+          # the core's /version and User-Agent: the Prizrak-Core version from the replace line in src-go/go.mod
+          CORE=$(sed -n 's#^replace github.com/metacubex/mihomo => github.com/legiz-ru/Prizrak-Core \(v[^ ]*\)$#\1#p' src-go/go.mod); test -n "$CORE"
+          (cd src-go && CGO_ENABLED=0 go build -tags=with_gvisor -trimpath -ldflags="-s -w -X github.com/legiz-ru/prizrak-box/api.Version=${{ env.VERSION }} -X github.com/metacubex/mihomo/constant.Version=$CORE" -o px .)
           (cd src-service && CGO_ENABLED=0 go build -ldflags="-s -w" -o px-service .)
       - name: Build Rust + Slint app
         run: |
