@@ -729,12 +729,14 @@ jobs:
     steps:
       # gcc-toolset-13: its libstdc++.so takes what EL8's libstdc++ (GCC 8) lacks
       # from libstdc++_nonshared.a, so the binary asks for no newer libstdc++.
+      # alsa-lib-devel: cpal, for the sounds of the easter-egg game, links ALSA.
       - name: Build dependencies (AlmaLinux 8)
         timeout-minutes: 15
         run: |
           dnf -y -q install git tar xz wget jq binutils make python3 \
             gcc-toolset-13-gcc gcc-toolset-13-gcc-c++ \
-            gtk3-devel fontconfig-devel freetype-devel libxkbcommon-devel pkgconf-pkg-config
+            gtk3-devel fontconfig-devel freetype-devel libxkbcommon-devel alsa-lib-devel \
+            pkgconf-pkg-config
           echo /opt/rh/gcc-toolset-13/root/usr/bin >> "$GITHUB_PATH"
       # Skia calls the FreeType 2.10+ colour-font API (FT_Palette_Select,
       # FT_Get_Color_Glyph_Layer); EL8 has 2.9.1. Linking against 2.13.2 built here
