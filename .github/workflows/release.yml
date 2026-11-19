@@ -742,6 +742,10 @@ jobs:
             gtk3-devel fontconfig-devel freetype-devel libxkbcommon-devel alsa-lib-devel \
             pkgconf-pkg-config
           echo /opt/rh/gcc-toolset-13/root/usr/bin >> "$GITHUB_PATH"
+          # git runs as root here on a checkout owned by the runner's user and
+          # would refuse it (dubious ownership): go build could not stamp the
+          # commit (exit status 128); actions/checkout allows it only for itself.
+          git config --global --add safe.directory '*'
       # Skia calls the FreeType 2.10+ colour-font API (FT_Palette_Select,
       # FT_Get_Color_Glyph_Layer); EL8 has 2.9.1. Linking against 2.13.2 built here
       # leaves the runtime need as it was on Ubuntu: the system libfreetype.so.6, 2.10+.
