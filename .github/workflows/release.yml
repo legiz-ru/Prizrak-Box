@@ -818,7 +818,8 @@ jobs:
       - name: Package deb + rpm + Arch (nfpm)
         run: |
           set -e
-          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
+          # v2.48.0, as rc03 built with: v2.49.0 needs Go 1.27.4 and Go here is 1.26
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.48.0
           NFPM="$(go env GOPATH)/bin/nfpm"
           export PKG_ARCH='${{ matrix.arch }}'
           export PKG_VERSION="$(node -p "require('./package.json').version")"
