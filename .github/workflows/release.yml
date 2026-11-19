@@ -192,9 +192,13 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      # Go 1.26.3, not go.mod's 1.26.0: for 32-bit Android 8-10 go-kit's
+      # Makefile rewrites one line of the runtime's os_linux32.go, written so
+      # only in 1.26.3 and 1.26.4 (and stops when it is not there). 1.26.0-1.26.2
+      # try futex_time64 first, which kills the app on those devices.
       - uses: actions/setup-go@v6
         with:
-          go-version-file: go-kit/go.mod
+          go-version: '1.26.3'
           cache: false
 
       # no Gradle cache either: its build cache holds the app's compiled code
