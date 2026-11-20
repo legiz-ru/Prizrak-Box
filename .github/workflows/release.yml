@@ -860,17 +860,21 @@ jobs:
   # ── Release: upload artifacts and update release body ──
   release:
     needs: [setup, build_android, build_windows, build_linux, build_macos]
-    # Run only if no build job failed; skipped jobs are tolerated (user may disable some platforms).
+    # Run only if every build job succeeded or was skipped (a platform turned
+    # off in the inputs). A cancelled one stops it too: a macOS job GitHub
+    # found no runner for ends cancelled, not failed, and the release would go
+    # out without its files (nearly so on rc04). `gh run rerun <id> --failed`
+    # finishes such a run.
     # publish_aur runs after this job (it needs the uploaded assets) and is
     # non-fatal: the AUR is a third-party service whose outages must not block
     # publishing the release artifacts.
     if: |
       always() && !cancelled() && inputs.dry_run != true &&
       needs.setup.result == 'success' &&
-      needs.build_android.result != 'failure' &&
-      needs.build_windows.result != 'failure' &&
-      needs.build_linux.result != 'failure' &&
-      needs.build_macos.result != 'failure'
+      (needs.build_android.result == 'success' || needs.build_android.result == 'skipped') &&
+      (needs.build_windows.result == 'success' || needs.build_windows.result == 'skipped') &&
+      (needs.build_linux.result == 'success' || needs.build_linux.result == 'skipped') &&
+      (needs.build_macos.result == 'success' || needs.build_macos.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: write
