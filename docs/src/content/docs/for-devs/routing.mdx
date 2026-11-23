@@ -506,20 +506,24 @@ Links typed with the address when the subscription is added are applied once, an
 What the subscription lets the user change in its profile, and its main group:
 
 ```http
-prizrak-routing-override: rule=subonly; keys=false; primary-group=VPN
+prizrak-routing-override: rule=onlyadding; templates=false; show-hidden=true; keys=false; primary-group=VPN
 ```
 
+- **Any subscription.** The header works without `prizrak-routing` too: a YAML subscription, keys, a routing. Without it (and for a profile from a file) all is allowed, as with `rule=true`.
 - **Format.** `key=value` pairs separated by `;`, in any order. Unknown keys are left out; a missing key is its default.
 - **`primary-group`** — a YAML subscription's main group (see [A YAML subscription with prizrak-routing](#a-yaml-subscription-with-prizrak-routing)). The name as written, case matters. A name with emoji, non-ASCII letters or `;` goes in an HTTP header as `base64:` of its UTF-8, as `profile-title` does: `primary-group=base64:8J+boe+4jyBWUE4=` ("🛡️ VPN"). A `#prizrak-routing-override: …` body line can carry it as it is.
 - **A body line.** Also as `#prizrak-routing-override: …`.
 
-**`rule` — the profile's template or routing:**
+**`rule` — the profile's template or routing, [own rules](#the-users-own-rules):**
 
-| `rule` | Applied by default | Can be changed on the profile's page |
-|---|---|---|
-| `true` (default) | the first of `prizrak-routing` | to any template or routing, the user's own too |
-| `false` | the first of `prizrak-routing`, always | no: the profile's page has no template choice |
-| `subonly` | a YAML subscription: its own YAML ("Subscription Template"); a subscription of keys: the first of `prizrak-routing` | only to the Subscription Template and what `prizrak-routing` brought |
+| `rule` | Applied by default | Can be changed on the profile's page | Own rules |
+|---|---|---|---|
+| `true` (default) | the first of `prizrak-routing` | to any template or routing, the user's own too | yes |
+| `onlyadding` | the first of `prizrak-routing`, always | no: the "Template: …" row has a lock | yes |
+| `false` | the first of `prizrak-routing`, always | no: the "Template: …" row has a lock | no |
+| `subonly` | a YAML subscription: its own YAML ("Subscription Template"); a subscription of keys: the first of `prizrak-routing` | only to the Subscription Template and what `prizrak-routing` brought | no |
+
+With `false` and `subonly` the own rules added before are not removed: they are kept but not applied, and the profile's page says "Own rules are off". When the subscription allows them again, they apply, as keys do with `keys=false`.
 
 **`keys` — keys of the user's own (links, subscriptions, AWG `.conf`, `vpn://`):**
 
@@ -532,6 +536,19 @@ prizrak-routing-override: rule=subonly; keys=false; primary-group=VPN
   - No keys of one's own can be added; only the subscription's are used.
   - Keys added before are kept but not used; they come back when the subscription allows `keys=true` again.
 - **`keys=true`.** The user's keys come after the subscription's proxies.
+
+**`templates` — the template row:**
+
+- `true` (default) — as above.
+- `false` — the profile's page has no "Template: …" row (on a computer, Rules has no Templates tab either).
+
+**`show-hidden` — hidden groups in own rules:**
+
+- `false` (default) — groups with `hidden: true` are not in the "Send to" list; under it, "Hidden groups (N) are not shown by the provider".
+- `true` — they are in the list, marked "hidden".
+- A rule already sent to a hidden group keeps working: the group is only left out of the list. "Add as a list" takes any target of the config.
+
+Debug's Free routing lifts `rule`, `templates` and `show-hidden`, not `keys`; the header itself stays as it is.
 
 ### `Template-Update-Interval`
 
@@ -589,6 +606,42 @@ The user sees three choices: the Subscription Template (the default) and the two
 
 ---
 
+## The user's own rules
+
+On the profile's page, "Own rules: N" opens the editor: the profile's rules in the order the core checks them, the subscription's with a lock, the user's among them, `MATCH` last. The Rules screen's button and the "+" by the rules of the routing builder lead there too.
+
+- **Where they are kept.** Not in the profile's YAML but beside it; they are put in as the core loads the profile. An update of the subscription does not wipe them, and saving applies them to the running profile at once.
+- **What is kept.** The type, the value, the target, `no-resolve`, "off" and the place.
+- **The place:**
+  - "at the top" — before all the subscription's rules;
+  - "at the end" — after the subscription's rules, before `MATCH`;
+  - before a rule of the subscription: the rule holds on to the `TYPE,value` of the rule under it. The target is not part of it, so the provider changing a target does not move the user's rule. Dragging puts a rule between any rules of the subscription.
+- **The order in the profile.** "At the top" first, then before each rule of the subscription the user's that hold on to it, then "at the end", `MATCH` last.
+- **After an update of the subscription.**
+  - The subscription rule a rule held on to is gone: the rule goes to the end, before `MATCH`, and the editor says so.
+  - The target (a group, a server) or a rule-set a rule names is gone: the rule is not applied, and the editor says why. The profile loads either way.
+- **Rules switched off** are kept but not put in.
+
+**Types.** All of mihomo's rules but `MATCH`, `SUB-RULE` and `REMATCH-NAME`; the logical `AND`, `OR`, `NOT` too.
+
+| Platform | Left out | Notes |
+|---|---|---|
+| iOS, Apple TV | all `PROCESS-*`, `UID` | — |
+| Android | `PROCESS-PATH*` | `PROCESS-NAME` is an app's package, chosen from the installed apps; several at once make a rule each |
+| Computer | `UID` on Windows and macOS | chosen from the running programs |
+
+**Rule-sets and geo codes:**
+
+- **`RULE-SET`** — one of the profile's, or a new one by link. A new one joins `rule-providers`; when the profile already has the name, the profile's stays.
+- **`GEOSITE`, `GEOIP`** — the code is chosen from a `.dat` file: the profile's, or another source (MetaCubeX, Loyalsoldier, runetfreedom, an address of one's own). Geosite attributes too: `google@cn`. Another source changes the profile's `geox-url`, and for `GEOIP` turns `geodata-mode` on.
+- On iOS the `.dat` is cut to the codes of the profile and of the own rules, so that it fits the VPN's memory.
+
+**A list.** "Add as a list" takes `TYPE,value,target` lines, each checked as the rule window checks one. Empty lines and lines starting with `#` are skipped.
+
+**TV.** Android TV and Apple TV have no editor: the own rules go along with the profile sent from a phone (PXT v2, the profile's `user-rules`).
+
+**For providers.** To forbid own rules: `rule=false` or `rule=subonly`. To fix the template but leave own rules: `rule=onlyadding`. Without the header own rules are allowed, and a profile without any is the template and the subscription's config as they are.
+
 ## Every order on one page
 
 | What | Order |
@@ -596,6 +649,7 @@ The user sees three choices: the Subscription Template (the default) and the two
 | A subscription's header | HTTP → a `#name:` line of the body |
 | The template/routing source | `prizrak-routing` → `routing` → links of the body |
 | Which of the list applies | the first; for a YAML subscription with `rule=subonly` the Subscription Template |
+| The user's own rules | "at the top" → before their subscription rule → the subscription rule → "at the end" → `MATCH` |
 | A routing's rules | `DirectRules` / `ProxyRules` / `BlockRules` (by `RouteOrder`) → sites → IPs → `MATCH` by `GlobalProxy` |
 | A template's update interval | `update-interval` of the link → `Template-Update-Interval` → `prizrak-box: template-update-interval` → 24 h |
 | A routing's geodata interval | the user's choice → `Routing-Geo-Update-Interval` → `#routing-geo-update-interval:` → `geoUpdateIntervalHours` → by hand |

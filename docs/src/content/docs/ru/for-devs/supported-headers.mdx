@@ -806,20 +806,29 @@ Prizrak-Routing: prizrak-box://template/onadd/https://example.com/t.yaml#fallbac
 | Свойство | Значение |
 |----------|----------|
 | Тип | пары `ключ=значение` через `;` |
-| `rule` | `true` (по умолчанию), `false`, `subonly` |
+| `rule` | `true` (по умолчанию), `onlyadding`, `false`, `subonly` |
 | `keys` | `true`, `false` |
+| `templates` | `true` (по умолчанию), `false` |
+| `show-hidden` | `false` (по умолчанию), `true` |
 
 **Пример:**
 
 ```http
-Prizrak-Routing-Override: rule=subonly; keys=false
+Prizrak-Routing-Override: rule=onlyadding; templates=false; show-hidden=true; keys=false
 ```
 
-| `rule` | Применяется по умолчанию | Можно сменить |
-|---|---|---|
-| `true` | первое из `Prizrak-Routing` | на любой шаблон или роутинг |
-| `false` | первое из `Prizrak-Routing`, всегда | нельзя |
-| `subonly` | YAML-подписка — её YAML («Шаблон подписки»); подписка с ключами — первое из `Prizrak-Routing` | только на «Шаблон подписки» и пришедшее в `Prizrak-Routing` |
+Действует для любой подписки, с `Prizrak-Routing` и без. Без заголовка всё разрешено.
+
+| `rule` | Применяется по умолчанию | Можно сменить | Свои правила |
+|---|---|---|---|
+| `true` | первое из `Prizrak-Routing` | на любой шаблон или роутинг | да |
+| `onlyadding` | первое из `Prizrak-Routing`, всегда | нельзя | да |
+| `false` | первое из `Prizrak-Routing`, всегда | нельзя | нет |
+| `subonly` | YAML-подписка — её YAML («Шаблон подписки»); подписка с ключами — первое из `Prizrak-Routing` | только на «Шаблон подписки» и пришедшее в `Prizrak-Routing` | нет |
+
+[Свои правила](/ru/for-devs/routing/#свои-правила-пользователя) при `false` и `subonly` хранятся, но не применяются, и возвращаются, если подписка снова разрешит.
+
+`templates=false` — в карточке профиля нет строки «Шаблон: …». `show-hidden=true` — группы с `hidden: true` можно выбрать целью своего правила.
 
 `keys` — можно ли добавлять в профиль свои ключи. По умолчанию `false`, если подписка прислала `Prizrak-Routing`, иначе `true`. При `keys=false` добавленные раньше ключи хранятся, но не используются, и возвращаются, если подписка снова разрешит.
 
