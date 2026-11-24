@@ -648,6 +648,7 @@ The appearance follows Android or iOS, even if the user chose light or dark in t
 - No `image`, `transparency`, `blur` or `dim`: the mobile client has no background image or transparent panels. `background` with built-in backgrounds is used instead of `image`.
 - The `user` value is added.
 - `accent=auto` takes the card colour, not a colour from a background image.
+- No `menu` or `menu-collapsed`: only the desktop client moves its menu.
 
 </details>
 
@@ -688,7 +689,7 @@ If the profile is currently in **Global** mode when this header hides the switch
 <details>
 <summary>**`pxd-theme`**</summary>
 
-Sets the desktop client's look for the profile: background image, interface transparency, blur under panels, background dimming, mode (light / dark), accent colour, the profile card colour and where the server groups are shown.
+Sets the desktop client's look for the profile: background image, interface transparency, blur under panels, background dimming, mode (light / dark), accent colour, the profile card colour, where the server groups are shown and where the menu is.
 
 | Property | Value |
 |----------|-------|
@@ -706,10 +707,12 @@ Sets the desktop client's look for the profile: background image, interface tran
 | `accent` | `#RRGGBB` or `auto` | Accent colour. `auto` picks it from the background image |
 | `card` | `#RRGGBB` or `auto` | Profile card colour. `auto` takes it from the profile logo |
 | `proxies` | `page` or `home` | Where the server groups are shown: on the **Proxies** screen (`page`) or on the home screen (`home`) |
+| `menu` | `left`, `right`, `top`, `bottom` | Where the app's menu is: on the left (the default), the right, the top or the bottom |
+| `menu-collapsed` | `1` or `0` (also `true` / `false`, `yes` / `no`, `on` / `off`) | The menu on the left or the right folded to icons (`1`) or unfolded (`0`) |
 
 Every parameter is optional. A parameter missing from the header comes from the user's own settings. Numbers outside their range are clamped to the nearest bound; unknown parameters and invalid values are ignored.
 
-Keys and the values `auto`, `light`, `dark`, `page`, `home` are case-insensitive, and spaces around `=` and `;` are ignored. A colour is written only as `#` followed by six hexadecimal digits.
+Keys, the values `auto`, `light`, `dark`, `page`, `home`, `left`, `right`, `top`, `bottom` and the values of `menu-collapsed` are case-insensitive, and spaces around `=` and `;` are ignored. A colour is written only as `#` followed by six hexadecimal digits.
 
 **Image:**
 
@@ -727,7 +730,7 @@ Keys and the values `auto`, `light`, `dark`, `page`, `home` are case-insensitive
 
 **Server groups (`proxies`):**
 
-| Value | Side menu | Home screen after connecting | **Disconnect** button at the top |
+| Value | Menu | Home screen after connecting | **Disconnect** button at the top |
 |-------|-----------|------------------------------|----------------------------------|
 | `page` or absent | has **Proxies** | the big circle, tap to disconnect | on every screen except the home screen |
 | `home` | no **Proxies** | the groups and servers | on every screen |
@@ -735,6 +738,13 @@ Keys and the values `auto`, `light`, `dark`, `page`, `home` are case-insensitive
 - Before connecting, the home screen looks the same with both values: the big connect circle.
 - With `home`, a user who was on the **Proxies** screen is taken to the home screen.
 - `proxies` does not depend on the **"Profile theme"** switch. If the header disappears on the next subscription update, the groups move back to the **Proxies** screen.
+
+**Menu (`menu`, `menu-collapsed`):**
+
+- `left`: the side bar on the left, as before. `right`: the same bar on the right.
+- `top` and `bottom`: a bar at the top or the bottom of the window, where the sections, the mode, **Proxy** and **VPN**, the language, the theme and exit stand as separate capsules and circles. In a narrow window the section labels go last: first only the open section keeps its label, then only the icons are left. There is no "Group · Server" line at the top or the bottom.
+- `menu-collapsed=1` folds the side bar to icons and `menu-collapsed=0` unfolds it when the profile theme comes in or is turned on. After that the user folds and unfolds the bar as usual (the button in the title bar or the **Icons only** switch), and their choice is kept. At the top and the bottom `menu-collapsed` does nothing. In a window narrower than 1002 px the side bar folds to icons by itself.
+- Like the look, `menu` and `menu-collapsed` apply while the **"Profile theme"** switch is on. The place from `menu` is shown in the **Theme** dialog (the **Menu** row) and cannot be changed there while the profile theme is on. Without `menu` the user chooses the place.
 
 **Full example:**
 
@@ -746,6 +756,18 @@ pxd-theme: image=https://cdn.example.com/theme/bg-1920x1080.jpg; transparency=30
 
 ```http
 pxd-theme: card=#3b2a6b; proxies=home
+```
+
+**The menu at the top:**
+
+```http
+pxd-theme: menu=top
+```
+
+**The menu on the right, folded to icons:**
+
+```http
+pxd-theme: menu=right; menu-collapsed=1
 ```
 
 **Only a fixed accent colour and a fixed mode, without an image:**
@@ -762,7 +784,7 @@ Here the background stays whatever the user chose; the profile sets the mode and
 pxd-theme: base64:bW9kZT1saWdodDsgYWNjZW50PSMxZjllN2E=
 ```
 
-The look parameters set by the profile (`image`, `transparency`, `blur`, `dim`, `mode`, `accent`) are shown in the **Theme** dialog and cannot be changed there. The user can turn the profile theme off with the **"Profile theme"** switch in the same dialog, which brings back their own settings; `card` and `proxies` keep working. Switching to a profile without this header also brings back the user's settings (or the defaults if they never changed them). If the header disappears on the next subscription update, the profile theme is removed.
+The look parameters set by the profile (`image`, `transparency`, `blur`, `dim`, `mode`, `accent`, `menu`) are shown in the **Theme** dialog and cannot be changed there. The user can turn the profile theme off with the **"Profile theme"** switch in the same dialog, which brings back their own settings; `card` and `proxies` keep working. Switching to a profile without this header also brings back the user's settings (or the defaults if they never changed them); the side bar stays folded or unfolded as it last was. If the header disappears on the next subscription update, the profile theme is removed.
 
 </details>
 
