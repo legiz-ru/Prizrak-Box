@@ -806,7 +806,7 @@ Prizrak-Routing: prizrak-box://template/onadd/https://example.com/t.yaml#fallbac
 | Свойство | Значение |
 |----------|----------|
 | Тип | пары `ключ=значение` через `;` |
-| `rule` | `true` (по умолчанию), `onlyadding`, `false`, `subonly` |
+| `rule` | `true`, `onlyadding`, `false`, `subonly`; без него шаблон — как при `true`, своих правил нет |
 | `keys` | `true`, `false` |
 | `templates` | `true` (по умолчанию), `false` |
 | `show-hidden` | `false` (по умолчанию), `true` |
@@ -817,16 +817,17 @@ Prizrak-Routing: prizrak-box://template/onadd/https://example.com/t.yaml#fallbac
 Prizrak-Routing-Override: rule=onlyadding; templates=false; show-hidden=true; keys=false
 ```
 
-Действует для любой подписки, с `Prizrak-Routing` и без. Без заголовка всё разрешено.
+Действует для любой подписки, с `Prizrak-Routing` и без. Без заголовка шаблон можно менять, как при `true`, а своих правил нет: их включают только `rule=true` и `rule=onlyadding`.
 
 | `rule` | Применяется по умолчанию | Можно сменить | Свои правила |
 |---|---|---|---|
 | `true` | первое из `Prizrak-Routing` | на любой шаблон или роутинг | да |
+| нет заголовка или нет `rule` | как при `true` | как при `true` | нет |
 | `onlyadding` | первое из `Prizrak-Routing`, всегда | нельзя | да |
 | `false` | первое из `Prizrak-Routing`, всегда | нельзя | нет |
 | `subonly` | YAML-подписка — её YAML («Шаблон подписки»); подписка с ключами — первое из `Prizrak-Routing` | только на «Шаблон подписки» и пришедшее в `Prizrak-Routing` | нет |
 
-[Свои правила](/ru/for-devs/routing/#свои-правила-пользователя) при `false` и `subonly` хранятся, но не применяются, и возвращаются, если подписка снова разрешит.
+[Свои правила](/ru/for-devs/routing/#свои-правила-пользователя) без `rule`, при `false` и `subonly` хранятся, но не применяются, и возвращаются, если подписка снова разрешит.
 
 `templates=false` — в карточке профиля нет строки «Шаблон: …». `show-hidden=true` — группы с `hidden: true` можно выбрать целью своего правила.
 

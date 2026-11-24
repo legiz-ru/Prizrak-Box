@@ -808,7 +808,7 @@ What the subscription lets the user change in its profile.
 | Property | Value |
 |----------|-------|
 | Type | `key=value` pairs separated by `;` |
-| `rule` | `true` (default), `onlyadding`, `false`, `subonly` |
+| `rule` | `true`, `onlyadding`, `false`, `subonly`; without it the template is as with `true`, no own rules |
 | `keys` | `true`, `false` |
 | `templates` | `true` (default), `false` |
 | `show-hidden` | `false` (default), `true` |
@@ -819,16 +819,17 @@ What the subscription lets the user change in its profile.
 Prizrak-Routing-Override: rule=onlyadding; templates=false; show-hidden=true; keys=false
 ```
 
-It works for any subscription, with `Prizrak-Routing` or without. Without the header all is allowed.
+It works for any subscription, with `Prizrak-Routing` or without. Without the header the template may be changed, as with `true`, and there are no own rules: only `rule=true` and `rule=onlyadding` turn them on.
 
 | `rule` | Applied by default | Can be changed | Own rules |
 |---|---|---|---|
 | `true` | the first of `Prizrak-Routing` | to any template or routing | yes |
+| no header, or no `rule` | as with `true` | as with `true` | no |
 | `onlyadding` | the first of `Prizrak-Routing`, always | no | yes |
 | `false` | the first of `Prizrak-Routing`, always | no | no |
 | `subonly` | a YAML subscription: its YAML ("Subscription Template"); a subscription of keys: the first of `Prizrak-Routing` | only to the Subscription Template and what `Prizrak-Routing` brought | no |
 
-[Own rules](/for-devs/routing/#the-users-own-rules) are kept with `false` and `subonly` but not applied, and come back when the subscription allows them again.
+[Own rules](/for-devs/routing/#the-users-own-rules) are kept without `rule` and with `false` and `subonly`, but not applied, and come back when the subscription allows them again.
 
 `templates=false` — the profile's page has no "Template: …" row. `show-hidden=true` — groups with `hidden: true` may be the target of an own rule.
 
