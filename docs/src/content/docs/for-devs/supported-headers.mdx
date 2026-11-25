@@ -689,7 +689,7 @@ If the profile is currently in **Global** mode when this header hides the switch
 <details>
 <summary>**`pxd-theme`**</summary>
 
-Sets the desktop client's look for the profile: background image, interface transparency, blur under panels, background dimming, mode (light / dark), accent colour, the profile card colour, where the server groups are shown and where the menu is.
+Sets the desktop client's look for the profile: background image, interface transparency, blur under panels, background dimming, mode (light / dark), accent colour, the profile card colour, where the server groups are shown, where the menu is and working through VPN (TUN) only.
 
 | Property | Value |
 |----------|-------|
@@ -704,11 +704,12 @@ Sets the desktop client's look for the profile: background image, interface tran
 | `blur` | `0`–`30` (px) | Blur under panels |
 | `dim` | `0`–`80` (%) | Background dimming |
 | `mode` | `auto`, `light`, `dark` | Appearance mode. `auto` follows the background image, or the system theme without one |
-| `accent` | `#RRGGBB` or `auto` | Accent colour. `auto` picks it from the background image |
+| `accent` | `#RRGGBB` or `auto` | Accent colour. `auto` picks it from the background image. Without `accent` the user picks the accent in the **Theme** dialog: from the picture, from the row or their own `#RRGGBB` |
 | `card` | `#RRGGBB` or `auto` | Profile card colour. `auto` takes it from the profile logo |
 | `proxies` | `page` or `home` | Where the server groups are shown: on the **Proxies** screen (`page`) or on the home screen (`home`) |
 | `menu` | `left`, `right`, `top`, `bottom` | Where the app's menu is: on the left (the default), the right, the top or the bottom |
 | `menu-collapsed` | `1` or `0` (also `true` / `false`, `yes` / `no`, `on` / `off`) | The menu on the left or the right folded to icons (`1`) or unfolded (`0`) |
+| `network-mode` | `false` | While the VPN (TUN) service is running, there is no **Proxy** switch in the menu, the tray or the control wheel; the system proxy is in **Settings → General** |
 
 Every parameter is optional. A parameter missing from the header comes from the user's own settings. Numbers outside their range are clamped to the nearest bound; unknown parameters and invalid values are ignored.
 
@@ -746,6 +747,14 @@ Keys, the values `auto`, `light`, `dark`, `page`, `home`, `left`, `right`, `top`
 - `menu-collapsed=1` folds the side bar to icons and `menu-collapsed=0` unfolds it when the profile theme comes in or is turned on. After that the user folds and unfolds the bar as usual (the button in the title bar or the **Icons only** switch), and their choice is kept. At the top and the bottom `menu-collapsed` does nothing. In a window narrower than 1002 px the side bar folds to icons by itself.
 - Like the look, `menu` and `menu-collapsed` apply while the **"Profile theme"** switch is on. The place from `menu` is shown in the **Theme** dialog (the **Menu** row) and cannot be changed there while the profile theme is on. Without `menu` the user chooses the place.
 
+**VPN only (`network-mode`):**
+
+- `network-mode=false` applies while the VPN (TUN) service is running — started any way; on macOS and Linux, also once the user has granted the service its rights.
+- Then there is no **Proxy** switch: not in the menu (at the side, the top, the bottom, as icons), not in the tray, not in the control wheel. The connection goes through VPN (TUN).
+- The system proxy moves to **Settings → General**, right after the service mode: a **System proxy** row saying the profile asks for it. That row is there only with `network-mode=false`.
+- Without the service (not installed, not running or not granted its rights) **Proxy** stays where it is: there would be no way to connect without it.
+- Like `proxies`, `network-mode` does not depend on the **"Profile theme"** switch. Other values are ignored.
+
 **Full example:**
 
 ```http
@@ -770,6 +779,12 @@ pxd-theme: menu=top
 pxd-theme: menu=right; menu-collapsed=1
 ```
 
+**VPN only, without the Proxy switch:**
+
+```http
+pxd-theme: network-mode=false
+```
+
 **Only a fixed accent colour and a fixed mode, without an image:**
 
 ```http
@@ -784,7 +799,7 @@ Here the background stays whatever the user chose; the profile sets the mode and
 pxd-theme: base64:bW9kZT1saWdodDsgYWNjZW50PSMxZjllN2E=
 ```
 
-The look parameters set by the profile (`image`, `transparency`, `blur`, `dim`, `mode`, `accent`, `menu`) are shown in the **Theme** dialog and cannot be changed there. The user can turn the profile theme off with the **"Profile theme"** switch in the same dialog, which brings back their own settings; `card` and `proxies` keep working. Switching to a profile without this header also brings back the user's settings (or the defaults if they never changed them); the side bar stays folded or unfolded as it last was. If the header disappears on the next subscription update, the profile theme is removed.
+The look parameters set by the profile (`image`, `transparency`, `blur`, `dim`, `mode`, `accent`, `menu`) are shown in the **Theme** dialog and cannot be changed there. The user can turn the profile theme off with the **"Profile theme"** switch in the same dialog, which brings back their own settings; `card`, `proxies` and `network-mode` keep working. Switching to a profile without this header also brings back the user's settings (or the defaults if they never changed them); the side bar stays folded or unfolded as it last was. If the header disappears on the next subscription update, the profile theme is removed.
 
 </details>
 
