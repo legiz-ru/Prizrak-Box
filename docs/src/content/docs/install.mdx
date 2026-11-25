@@ -7,7 +7,7 @@ import { Tabs, TabItem, Steps } from '@astrojs/starlight/components';
 
 All releases are available on GitHub: [latest stable](https://github.com/legiz-ru/Prizrak-Box/releases/latest) · [all releases including pre-releases](https://github.com/legiz-ru/Prizrak-Box/releases).
 
-On Windows, macOS and Linux, choose the file for your system and architecture (e.g. `windows-amd64.msi`, `macos-arm64.dmg`, `linux-amd64.deb`).
+On Windows, macOS and Linux, choose the file for your system and architecture (e.g. `prizrak-box-setup-win-amd64.exe`, `macos-arm64.dmg`, `linux-amd64.deb`).
 
 <Tabs>
   <TabItem label="Android">
@@ -50,13 +50,13 @@ The APK includes a built-in update checker — it will notify you when a new rel
 
 <Steps>
 1. Go to the [latest stable release](https://github.com/legiz-ru/Prizrak-Box/releases/latest) or [all releases (including pre-releases)](https://github.com/legiz-ru/Prizrak-Box/releases).
-2. Download the `.msi` installer for your PC:
-   - `windows-amd64.msi` — x64 (most PCs), the **Setup x64** download button
-   - `windows-arm64.msi` — ARM (e.g. Snapdragon), the **Setup arm** button
+2. Download the installer for your PC:
+   - `prizrak-box-setup-win-amd64.exe` — x64 (most PCs), the **Setup x64** download button
+   - `prizrak-box-setup-win-arm64.exe` — ARM (e.g. Snapdragon), the **Setup arm** button
 
-   A portable build without installation is also available: `windows-amd64.zip` / `windows-arm64.zip`.
-3. Run the installer — administrator confirmation will be required. The installer also sets up the service that TUN mode uses, and upgrades an installed older version in place.
-4. Launch **Prizrak-Box** from the Start menu or desktop shortcut.
+   A portable build without installation is also available: `windows-amd64.zip` / `windows-arm64.zip`. For administrators, the `windows-amd64.msi` / `windows-arm64.msi` packages are still there.
+3. Run the installer. It lets you choose the folder, the VPN service (TUN mode needs it) and a desktop shortcut. Click **Install** — Windows asks for administrator permission. An older version is upgraded in place; profiles and settings are kept.
+4. At the end, click **Launch Prizrak-Box**. Later, open it from the Start menu or the desktop shortcut.
 5. Adding a provider configuration: click **Add** in the profiles menu and enter your subscription URL. One-click automatic configuration from your provider's portal is also supported.
 </Steps>
 

@@ -27,7 +27,7 @@ All builds are in [Releases](https://github.com/legiz-ru/Prizrak-Box/releases/la
 
 | Platform | Files |
 |---|---|
-| Windows 10/11 | `windows-amd64.msi` · `windows-arm64.msi` — installer; `.zip` — portable |
+| Windows 10/11 | `prizrak-box-setup-win-amd64.exe` · `prizrak-box-setup-win-arm64.exe` — installer; `.zip` — portable; `.msi` — for administrators |
 | macOS 12+ | `macos-arm64.dmg` (Apple Silicon) · `macos-amd64.dmg` (Intel) |
 | Linux | `linux-amd64.deb` / `.rpm` / `-aur.tar.zst` (Arch), same for `arm64`; AUR: `prizrak-box-bin` |
 | Android, Android TV | `prizrak-box-android-universal.apk` or the APK for your ABI; [Obtainium](https://docs.prizrak.app/install/) for auto-updates |
