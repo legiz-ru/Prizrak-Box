@@ -43,11 +43,13 @@ The app merges (union) the config lists and GUI selections, but Android does not
 </details>
 
 <details>
-<summary>**How to see numeric latency values instead of availability dots? (Android)**</summary>
+<summary>**How to see latency in milliseconds or as signal bars instead of dots?**</summary>
 
-1. In app settings → **General** → **App** → toggle off **Latency Display (Color Dots)**.
+1. **Android:** **Settings → Interface → Delay Display** — Colored dots, Milliseconds or Signal bars.
 
-2. If you are a server owner — you can distribute numeric latency display to all your users centrally via the [`pxa-latency-dots`](/for-devs/supported-headers/#mobile-ui-controls-) HTTP header.
+   **iPhone and iPad:** **Settings → Interface → Host Status** — Indicator, Ping or Signal. **Apple TV:** **Settings → Host Status**.
+
+2. If you are a server owner — you can set it for all your users via the [`pxa-latency-dots`](/for-devs/supported-headers/#mobile-ui-controls-) HTTP header: `0` — milliseconds, `1` — dots, `2` — signal bars. While a profile sets it, the row in Settings is locked.
 
 </details>
 

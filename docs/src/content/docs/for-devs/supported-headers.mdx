@@ -462,19 +462,36 @@ Controls how proxy latency is displayed in the proxy list.
 | Property | Value |
 |----------|-------|
 | Type | `integer` |
-| Values | `0` = latency numbers, `1` = latency dots |
+| Values | `0` = latency numbers, `1` = latency dots, `2` = signal bars |
 
 **Example:**
 
 ```http
-pxa-latency-dots: 1
+pxa-latency-dots: 2
 ```
+
+**Signal bars (`2`)** are four bars, like a phone's mobile signal. The colour is the same as for the dots and the numbers: green under 200 ms, orange under 500 ms, red from 500 ms.
+
+| Latency | Bars | Colour |
+|---------|------|--------|
+| under 100 ms | 4 | green |
+| 100–199 ms | 3 | green |
+| 200–499 ms | 2 | orange |
+| 500 ms and more | 1 | red |
+
+A timeout shows no bars lit and a red cross before them. A node not tested yet shows only the bars' outlines. While a test runs, the bars light up one by one.
+
+Without the header the user chooses: **Settings → Interface → Host Status** on iPhone and iPad, **Settings → Host Status** on Apple TV (Indicator, Ping, Signal), **Settings → Interface → Delay Display** on Android (Colored dots, Milliseconds, Signal bars). While the active profile sets the header, this row is locked and says «Set by the profile».
+
+Older app versions do not know the value `2` and show what the user chose.
 
 <Aside type="note" title="Happ compatibility">
 For compatibility with providers that previously used the Happ app, the following aliases are also supported:
 
 - `ping-result: time` → equivalent to `pxa-latency-dots: 0`
 - `ping-result: icon` → equivalent to `pxa-latency-dots: 1`
+
+Happ has no signal bars: they are only `pxa-latency-dots: 2`.
 
 If both `pxa-latency-dots` and `ping-result` are present, `pxa-latency-dots` takes priority.
 </Aside>
